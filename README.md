@@ -7,14 +7,14 @@ Translates English subtitles from [amruta.org](https://www.amruta.org/) lectures
 ## How It Works
 
 ```
-1. [GitHub Actions]  Download SRT + text from amruta.org
+1. [Local]           Download SRT + text from amruta.org
 2. [GitHub Actions]  Run Whisper speech detection on video
 3. [Local]           Translate with Claude Code (EN→UK)
 4. [GitHub Actions]  Optimize subtitles (timing, CPS, structure)
 5. [GitHub Actions]  Validate SRT quality
 ```
 
-All automation runs in **GitHub Actions**. Only translation is done locally.
+Download is done locally (amruta.org is behind Cloudflare). Everything else runs in **GitHub Actions**.
 
 ## Repository Structure
 
@@ -26,8 +26,8 @@ talks/                          Per-talk directories
     final/                      Optimized output (UK SRT, plain text, report)
     CLAUDE.md                   Per-talk Claude Code instructions
 
-tools/                          Python modules (used by Actions)
-  download.py                   amruta.org downloader
+tools/                          Python modules (used by Actions + locally)
+  download.py                   amruta.org downloader (local only)
   whisper_run.py                Whisper speech detection wrapper
   optimize_srt.py               SRT timing optimizer
   text_export.py                SRT → plain text exporter
@@ -35,24 +35,28 @@ tools/                          Python modules (used by Actions)
   config.py                     Optimization configuration
 
 templates/                      Templates for new talks
-glossary/                       SY terminology dictionary (TODO)
+glossary/                       SY terminology dictionary
 ```
 
 ## Adding a New Talk
 
-### 1. Download source materials
+### 1. Download source materials (local)
 
-Go to **Actions → Download Materials** and run with:
-- `amruta_url`: Full URL of the talk page on amruta.org
-- `talk_date`: Date in YYYY-MM-DD format
-- `talk_slug`: Short identifier (e.g., `guru-puja`)
+```bash
+python -m tools.download \
+  --url "https://www.amruta.org/..." \
+  --talk-dir talks/{date}_{slug}/source \
+  --what srt,text \
+  --cookie "wordpress_logged_in_...=..."
+```
 
-This downloads SRT files, transcript text, and creates the talk directory.
+Create `source/meta.yaml` with talk metadata and commit.
 
 ### 2. Run Whisper (optional)
 
 Go to **Actions → Whisper Speech Detection** and run with:
 - `talk_id`: Directory name (e.g., `1983-07-24_guru-puja`)
+- `vimeo_url`: Vimeo player URL (or leave empty to read from meta.yaml)
 
 This downloads the video temporarily, runs Whisper, saves `whisper.json`, then discards the video.
 
@@ -88,14 +92,6 @@ Pushing to `final/*.srt` triggers the **Validate** workflow:
 | Min duration | ≥1.2s | ≥1.0s |
 | Max duration | ≤7s | ≤8s |
 | Min gap | ≥80ms (2 frames @24fps) | ≥80ms |
-
-## Secrets
-
-Configure these in **Settings → Secrets and variables → Actions**:
-
-| Secret | Description |
-|--------|-------------|
-| `AMRUTA_SESSION_COOKIE` | WordPress session cookie for amruta.org |
 
 ## License
 

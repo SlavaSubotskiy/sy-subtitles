@@ -11,14 +11,6 @@ on:
         description: 'Vimeo URL (leave empty to read from meta.yaml)'
         required: false
         type: string
-  workflow_call:
-    inputs:
-      talk_id:
-        required: true
-        type: string
-      vimeo_url:
-        required: false
-        type: string
 
 jobs:
   whisper:
@@ -37,7 +29,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install -r requirements.txt
-          pip install openai-whisper yt-dlp
+          pip install openai-whisper
 
       - name: Resolve Vimeo URL
         id: vimeo
@@ -54,8 +46,6 @@ jobs:
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Download video (temporary)
-        env:
-          AMRUTA_SESSION_COOKIE: ${{ secrets.AMRUTA_SESSION_COOKIE }}
         run: |
           mkdir -p /tmp/whisper_work
           yt-dlp \
