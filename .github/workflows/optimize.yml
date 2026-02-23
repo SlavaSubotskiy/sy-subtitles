@@ -49,18 +49,10 @@ jobs:
             --output "talks/$TALK_ID/final/uk.srt" \
             --report "talks/$TALK_ID/final/report.txt"
 
-      - name: Export plain text
-        run: |
-          TALK_ID="${{ steps.detect.outputs.talk_id }}"
-          python -m tools.text_export \
-            --srt "talks/$TALK_ID/final/uk.srt" \
-            --meta "talks/$TALK_ID/source/meta.yaml" \
-            --output "talks/$TALK_ID/final/uk.txt"
-
       - name: Commit & push
         run: |
           TALK_ID="${{ steps.detect.outputs.talk_id }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "talks/$TALK_ID/final/"
+          git add "talks/$TALK_ID/final/uk.srt" "talks/$TALK_ID/final/report.txt"
           git diff --cached --quiet || (git commit -m "Optimize subtitles for $TALK_ID" && git push)
