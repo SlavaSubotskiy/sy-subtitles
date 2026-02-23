@@ -37,7 +37,11 @@ class AmrutaDownloader:
     def fetch_talk_page(self, url):
         """Fetch and parse a talk page."""
         resp = self.session.get(url)
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            print(f"  HTTP {resp.status_code} for {url}")
+            print(f"  Response headers: {dict(resp.headers)}")
+            print(f"  Response body (first 500 chars): {resp.text[:500]}")
+            resp.raise_for_status()
         return BeautifulSoup(resp.text, 'html.parser')
 
     def extract_vimeo_url(self, soup):
