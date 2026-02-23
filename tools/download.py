@@ -24,6 +24,10 @@ class AmrutaDownloader:
         load_dotenv()
         self.session_cookie = session_cookie or os.environ.get('AMRUTA_SESSION_COOKIE', '')
         self.session = requests.Session()
+        self.session.headers['User-Agent'] = (
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+        )
         if self.session_cookie:
             for part in self.session_cookie.split('; '):
                 if '=' in part:
@@ -53,6 +57,13 @@ class AmrutaDownloader:
                 return f"https://player.vimeo.com/video/{vid}"
         return None
 
+    def extract_all_vimeo_urls(self, soup):
+        """Extract all Vimeo video URLs from iframes."""
+        urls = []
+        for iframe in soup.find_all('iframe', src=re.compile(r'player\.vimeo\.com')):
+            urls.append(iframe['src'])
+        return urls
+
     def extract_srt_links(self, soup):
         """Find SRT/VTT download links on the page."""
         links = []
@@ -62,6 +73,22 @@ class AmrutaDownloader:
                 text = a.get_text(strip=True) or os.path.basename(href)
                 links.append({'url': href, 'label': text, 'ext': os.path.splitext(href)[1]})
         return links
+
+    def download_vimeo_subs(self, vimeo_url, output_dir):
+        """Download subtitles from Vimeo via yt-dlp --write-subs."""
+        import glob as globmod
+        os.makedirs(output_dir, exist_ok=True)
+        cmd = [
+            'yt-dlp',
+            '--referer', 'https://www.amruta.org/',
+            '--write-subs', '--all-subs', '--skip-download',
+            '--sub-format', 'srt/vtt/best',
+            '--convert-subs', 'srt',
+            '-o', os.path.join(output_dir, '%(id)s.%(ext)s'),
+            vimeo_url,
+        ]
+        subprocess.run(cmd, check=True)
+        return globmod.glob(os.path.join(output_dir, '*.srt'))
 
     def extract_transcript(self, soup):
         """Extract transcript text from page content."""
@@ -121,14 +148,22 @@ class AmrutaDownloader:
         # Extract Vimeo URL (always, for meta.yaml)
         result['vimeo_url'] = self.extract_vimeo_url(soup)
 
-        # Download SRTs
+        # Download SRTs — try direct links first, then Vimeo text tracks
         if do_all or 'srt' in what_set:
             srt_links = self.extract_srt_links(soup)
-            for link in srt_links:
-                filename = os.path.basename(link['url'])
-                out = self.download_file(link['url'], os.path.join(talk_dir, filename))
-                result['srt_files'].append(out)
-                print(f"  Downloaded SRT: {filename}")
+            if srt_links:
+                for link in srt_links:
+                    filename = os.path.basename(link['url'])
+                    out = self.download_file(link['url'], os.path.join(talk_dir, filename))
+                    result['srt_files'].append(out)
+                    print(f"  Downloaded SRT: {filename}")
+            elif result['vimeo_url']:
+                # No direct SRT links — extract from Vimeo text tracks
+                print("  No direct SRT links found, extracting from Vimeo...")
+                srt_files = self.download_vimeo_subs(result['vimeo_url'], talk_dir)
+                result['srt_files'] = srt_files
+                for f in srt_files:
+                    print(f"  Downloaded SRT: {os.path.basename(f)}")
 
         # Extract transcript text
         if do_all or 'text' in what_set:
