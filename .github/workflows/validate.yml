@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'talks/*/final/*.srt'
+  workflow_dispatch:
 
 jobs:
   validate:
