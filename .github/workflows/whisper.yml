@@ -12,6 +12,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   whisper:
     runs-on: ubuntu-latest
