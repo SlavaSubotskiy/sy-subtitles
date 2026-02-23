@@ -1,0 +1,71 @@
+name: Validate SRT
+
+on:
+  push:
+    paths:
+      - 'talks/*/final/*.srt'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate SRT files
+        run: |
+          python -c "
+          import sys
+          import glob
+          from tools.srt_utils import parse_srt, calc_stats
+          from tools.config import OptimizeConfig
+
+          config = OptimizeConfig()
+          errors = []
+          srt_files = glob.glob('talks/*/final/*.srt')
+
+          if not srt_files:
+              print('No SRT files found to validate')
+              sys.exit(0)
+
+          for srt_path in srt_files:
+              print(f'Validating: {srt_path}')
+              blocks = parse_srt(srt_path)
+              stats = calc_stats(blocks, config)
+
+              issues = []
+              if stats['overlaps'] > 0:
+                  issues.append(f'  FAIL: {stats[\"overlaps\"]} overlapping blocks')
+              if stats['gap_under_min'] > 0:
+                  issues.append(f'  WARN: {stats[\"gap_under_min\"]} gaps < {config.min_gap_ms}ms')
+              if stats['cps_over_hard'] > 0:
+                  issues.append(f'  WARN: {stats[\"cps_over_hard\"]} blocks with CPS > {config.hard_max_cps}')
+
+              print(f'  Blocks: {stats[\"total_blocks\"]}')
+              print(f'  CPS: avg={stats[\"avg_cps\"]:.1f}, max={stats[\"max_cps\"]:.1f}')
+              print(f'  CPS > {config.target_cps}: {stats[\"cps_over_target\"]}')
+              print(f'  CPS > {config.hard_max_cps}: {stats[\"cps_over_hard\"]}')
+              print(f'  Overlaps: {stats[\"overlaps\"]}')
+              print(f'  Gaps < {config.min_gap_ms}ms: {stats[\"gap_under_min\"]}')
+
+              if issues:
+                  for issue in issues:
+                      print(issue)
+                  if any('FAIL' in i for i in issues):
+                      errors.append(srt_path)
+              else:
+                  print('  OK')
+
+          if errors:
+              print(f'\nValidation FAILED for: {errors}')
+              sys.exit(1)
+          else:
+              print(f'\nAll {len(srt_files)} files passed validation')
+          "

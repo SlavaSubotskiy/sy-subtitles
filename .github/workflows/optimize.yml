@@ -1,0 +1,63 @@
+name: Optimize Subtitles
+
+on:
+  push:
+    paths:
+      - 'talks/*/work/uk_corrected.srt'
+  workflow_dispatch:
+    inputs:
+      talk_id:
+        description: 'Talk directory name (e.g., 1983-07-24_guru-puja)'
+        required: true
+        type: string
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Detect talk ID
+        id: detect
+        run: |
+          if [ -n "${{ inputs.talk_id }}" ]; then
+            echo "talk_id=${{ inputs.talk_id }}" >> "$GITHUB_OUTPUT"
+          else
+            # Extract from changed files
+            TALK_ID=$(git diff --name-only HEAD~1 HEAD | grep 'talks/.*/work/uk_corrected.srt' | head -1 | cut -d'/' -f2)
+            echo "talk_id=$TALK_ID" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run optimizer
+        run: |
+          TALK_ID="${{ steps.detect.outputs.talk_id }}"
+          mkdir -p "talks/$TALK_ID/final"
+          python -m tools.optimize_srt \
+            --srt "talks/$TALK_ID/work/uk_corrected.srt" \
+            --json "talks/$TALK_ID/source/whisper.json" \
+            --output "talks/$TALK_ID/final/uk.srt" \
+            --report "talks/$TALK_ID/final/report.txt"
+
+      - name: Export plain text
+        run: |
+          TALK_ID="${{ steps.detect.outputs.talk_id }}"
+          python -m tools.text_export \
+            --srt "talks/$TALK_ID/final/uk.srt" \
+            --meta "talks/$TALK_ID/source/meta.yaml" \
+            --output "talks/$TALK_ID/final/uk.txt"
+
+      - name: Commit & push
+        run: |
+          TALK_ID="${{ steps.detect.outputs.talk_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "talks/$TALK_ID/final/"
+          git diff --cached --quiet || (git commit -m "Optimize subtitles for $TALK_ID" && git push)

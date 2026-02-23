@@ -1,0 +1,31 @@
+# Media files (never committed)
+*.mp4
+*.mp3
+*.wav
+*.m4a
+*.avi
+*.mkv
+
+# JetBrains cache
+*.jacache
+
+# Environment
+.env
+.env.local
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

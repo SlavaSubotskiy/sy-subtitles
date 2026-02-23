@@ -1,0 +1,83 @@
+name: Whisper Speech Detection
+
+on:
+  workflow_dispatch:
+    inputs:
+      talk_id:
+        description: 'Talk directory name (e.g., 1983-07-24_guru-puja)'
+        required: true
+        type: string
+      vimeo_url:
+        description: 'Vimeo URL (leave empty to read from meta.yaml)'
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      talk_id:
+        required: true
+        type: string
+      vimeo_url:
+        required: false
+        type: string
+
+jobs:
+  whisper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install openai-whisper yt-dlp
+
+      - name: Resolve Vimeo URL
+        id: vimeo
+        run: |
+          URL="${{ inputs.vimeo_url }}"
+          if [ -z "$URL" ]; then
+            URL=$(python -c "
+          import yaml
+          with open('talks/${{ inputs.talk_id }}/source/meta.yaml') as f:
+              meta = yaml.safe_load(f)
+          print(meta.get('vimeo_url', ''))
+          ")
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Download video (temporary)
+        env:
+          AMRUTA_SESSION_COOKIE: ${{ secrets.AMRUTA_SESSION_COOKIE }}
+        run: |
+          mkdir -p /tmp/whisper_work
+          yt-dlp \
+            --referer "https://www.amruta.org/" \
+            -o "/tmp/whisper_work/video.mp4" \
+            "${{ steps.vimeo.outputs.url }}"
+
+      - name: Run Whisper
+        run: |
+          python -m tools.whisper_run \
+            --video /tmp/whisper_work/video.mp4 \
+            --output "talks/${{ inputs.talk_id }}/source/whisper.json" \
+            --model medium \
+            --language en
+
+      - name: Cleanup video
+        if: always()
+        run: rm -rf /tmp/whisper_work
+
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "talks/${{ inputs.talk_id }}/source/whisper.json"
+          git diff --cached --quiet || (git commit -m "Add Whisper data for ${{ inputs.talk_id }}" && git push)
