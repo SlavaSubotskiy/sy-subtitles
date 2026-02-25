@@ -311,17 +311,16 @@ class AmrutaDownloader:
                 for f in srt_files:
                     print(f"    Downloaded: {os.path.basename(f)}")
 
-        # Extract transcript text (talk-level, save under first video)
+        # Extract transcript text (talk-level, save at talk root)
         if do_all or 'text' in what_set:
             transcript = self.extract_transcript(soup)
-            if transcript and videos:
-                first_source = os.path.join(talk_dir, videos[0]['slug'], 'source')
-                os.makedirs(first_source, exist_ok=True)
-                path = os.path.join(first_source, 'transcript_en.txt')
+            if transcript:
+                os.makedirs(talk_dir, exist_ok=True)
+                path = os.path.join(talk_dir, 'transcript_en.txt')
                 with open(path, 'w', encoding='utf-8') as f:
                     f.write(transcript)
                 result['transcript_path'] = path
-                print(f"  Saved transcript: {videos[0]['slug']}/source/transcript_en.txt")
+                print(f"  Saved transcript: transcript_en.txt")
 
         # Download videos
         if do_all or 'video' in what_set:
