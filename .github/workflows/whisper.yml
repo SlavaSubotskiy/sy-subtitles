@@ -107,6 +107,12 @@ jobs:
           pip install -r requirements.txt
           pip install openai-whisper
 
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/whisper
+          key: whisper-medium
+
       - name: Download video (temporary)
         run: |
           mkdir -p /tmp/whisper_work
