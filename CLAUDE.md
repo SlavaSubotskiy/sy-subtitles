@@ -14,10 +14,12 @@ Source language: English. Target language: Ukrainian.
 ## Workflow
 
 1. Open a talk directory under `talks/{date}_{slug}/`
-2. Read `source/en.srt` — the English original
-3. Reference `glossary/` for Sahaja Yoga terminology
-4. Edit `work/uk_corrected.srt` — the Ukrainian translation
-5. Push changes — GitHub Actions will optimize and validate automatically
+2. Read `meta.yaml` for talk metadata and video list
+3. For each video subdirectory (`{video_slug}/`):
+   - Read `{video_slug}/source/en.srt` — the English original
+   - Reference `glossary/` for Sahaja Yoga terminology
+   - Edit `{video_slug}/work/uk_corrected.srt` — the Ukrainian translation
+4. Push changes — GitHub Actions will optimize and validate automatically
 
 ## Language Rules
 
@@ -51,7 +53,7 @@ Use the 5-agent language review (see `templates/language_review_template.md`):
 
 Run locally if needed:
 ```bash
-python -m tools.optimize_srt --srt PATH --json PATH --output PATH
+python -m tools.optimize_srt --srt PATH [--json PATH] --output PATH
 python -m tools.text_export --srt PATH --meta PATH --output PATH
 python -m tools.scrape_listing --output glossary/corpus/index.yaml --cookie "..."
 python -m tools.fetch_transcripts --index glossary/corpus/index.yaml --cookie "..."

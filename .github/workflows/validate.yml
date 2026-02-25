@@ -3,7 +3,7 @@ name: Validate SRT
 on:
   push:
     paths:
-      - 'talks/*/final/*.srt'
+      - 'talks/*/*/final/*.srt'
   workflow_dispatch:
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
 
           config = OptimizeConfig()
           errors = []
-          srt_files = glob.glob('talks/*/final/*.srt')
+          srt_files = glob.glob('talks/*/*/final/*.srt')
 
           if not srt_files:
               print('No SRT files found to validate')

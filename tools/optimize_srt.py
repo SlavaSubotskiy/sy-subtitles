@@ -698,13 +698,14 @@ def optimize(srt_path, json_path, output_path, report_path=None, config=None):
     report.append("=" * 60)
 
     blocks = parse_srt(srt_path)
-    whisper_segments = load_whisper_json(json_path)
+    whisper_segments = load_whisper_json(json_path) if json_path else []
     original_blocks = copy.deepcopy(blocks)
 
     orig_stats = calc_stats(blocks, config)
     report.append(format_stats(orig_stats, "ORIGINAL SRT STATISTICS"))
 
-    compare_with_whisper(blocks, whisper_segments, report)
+    if whisper_segments:
+        compare_with_whisper(blocks, whisper_segments, report)
     blocks = fix_structural(blocks, config, report)
     blocks = optimize_readability(blocks, whisper_segments, config, report)
     blocks = apply_chaining(blocks, config, report)
@@ -729,7 +730,7 @@ def optimize(srt_path, json_path, output_path, report_path=None, config=None):
 def main():
     parser = argparse.ArgumentParser(description='Optimize SRT subtitles')
     parser.add_argument('--srt', required=True, help='Input SRT file')
-    parser.add_argument('--json', required=True, help='Whisper JSON file')
+    parser.add_argument('--json', default=None, help='Whisper JSON file (optional)')
     parser.add_argument('--output', required=True, help='Output optimized SRT file')
     parser.add_argument('--report', help='Output report file')
     parser.add_argument('--target-cps', type=float, default=15.0)

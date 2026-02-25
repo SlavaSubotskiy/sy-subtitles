@@ -4,11 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       talk_id:
-        description: 'Talk directory name (e.g., 1983-07-24_guru-puja)'
-        required: true
-        type: string
-      vimeo_url:
-        description: 'Vimeo URL (leave empty to read from meta.yaml)'
+        description: 'Talk directory name (e.g., 1983-07-24_guru-puja). Leave empty to auto-discover all pending.'
         required: false
         type: string
 
@@ -16,8 +12,85 @@ permissions:
   contents: write
 
 jobs:
-  whisper:
+  discover:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build.outputs.matrix }}
+      has_jobs: ${{ steps.build.outputs.has_jobs }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Build video matrix
+        id: build
+        run: |
+          python3 << 'PYEOF'
+          import json
+          import os
+          import yaml
+
+          talk_id_input = "${{ inputs.talk_id }}".strip()
+
+          # Find meta.yaml files
+          if talk_id_input:
+              meta_paths = [f"talks/{talk_id_input}/meta.yaml"]
+          else:
+              meta_paths = sorted(
+                  f"talks/{d}/meta.yaml"
+                  for d in os.listdir("talks")
+                  if os.path.isfile(f"talks/{d}/meta.yaml")
+              )
+
+          matrix = []
+          for meta_path in meta_paths:
+              if not os.path.isfile(meta_path):
+                  print(f"WARNING: {meta_path} not found, skipping")
+                  continue
+
+              talk_id = meta_path.split("/")[1]
+              with open(meta_path) as f:
+                  meta = yaml.safe_load(f)
+
+              videos = meta.get("videos", [])
+              for video in videos:
+                  slug = video["slug"]
+                  vimeo_url = video["vimeo_url"]
+                  whisper_path = f"talks/{talk_id}/{slug}/source/whisper.json"
+
+                  if os.path.isfile(whisper_path):
+                      print(f"SKIP: {whisper_path} already exists")
+                      continue
+
+                  matrix.append({
+                      "talk_id": talk_id,
+                      "video_slug": slug,
+                      "vimeo_url": vimeo_url,
+                  })
+                  print(f"QUEUE: {talk_id}/{slug}")
+
+          has_jobs = "true" if matrix else "false"
+          print(f"\nTotal jobs: {len(matrix)}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"matrix={json.dumps({'include': matrix})}\n")
+              f.write(f"has_jobs={has_jobs}\n")
+          PYEOF
+
+  whisper:
+    needs: discover
+    if: needs.discover.outputs.has_jobs == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 3
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,33 +107,20 @@ jobs:
           pip install -r requirements.txt
           pip install openai-whisper
 
-      - name: Resolve Vimeo URL
-        id: vimeo
-        run: |
-          URL="${{ inputs.vimeo_url }}"
-          if [ -z "$URL" ]; then
-            URL=$(python -c "
-          import yaml
-          with open('talks/${{ inputs.talk_id }}/source/meta.yaml') as f:
-              meta = yaml.safe_load(f)
-          print(meta.get('vimeo_url', ''))
-          ")
-          fi
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
-
       - name: Download video (temporary)
         run: |
           mkdir -p /tmp/whisper_work
           yt-dlp \
             --referer "https://www.amruta.org/" \
             -o "/tmp/whisper_work/video.mp4" \
-            "${{ steps.vimeo.outputs.url }}"
+            "${{ matrix.vimeo_url }}"
 
       - name: Run Whisper
         run: |
+          mkdir -p "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source"
           python -m tools.whisper_run \
             --video /tmp/whisper_work/video.mp4 \
-            --output "talks/${{ inputs.talk_id }}/source/whisper.json" \
+            --output "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json" \
             --model medium \
             --language en
 
@@ -68,9 +128,54 @@ jobs:
         if: always()
         run: rm -rf /tmp/whisper_work
 
+      - name: Upload whisper artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-${{ matrix.talk_id }}-${{ matrix.video_slug }}
+          path: talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json
+
+  commit:
+    needs: [discover, whisper]
+    if: needs.discover.outputs.has_jobs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all whisper artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: whisper-*
+          merge-multiple: false
+
+      - name: Place artifacts into talk directories
+        run: |
+          for dir in whisper-*/; do
+            [ -d "$dir" ] || continue
+            # Extract talk_id and video_slug from artifact name: whisper-{talk_id}-{video_slug}
+            name="${dir%/}"
+            # talk_id may contain hyphens, video_slug is after the last occurrence
+            # Artifact name format: whisper-YYYY-MM-DD_slug-VideoSlug
+            # Parse by finding the underscore in talk_id
+            rest="${name#whisper-}"
+            # Split on the underscore that separates date from slug
+            talk_date="${rest%%-*}-${rest#*-}"
+            # More robust: find whisper.json and use the directory structure
+            if [ -f "$dir/whisper.json" ]; then
+              # Reconstruct from the artifact name
+              # Format: whisper-{talk_id}-{video_slug}
+              # talk_id format: YYYY-MM-DD_slug (contains exactly one underscore)
+              talk_id=$(echo "$rest" | sed -E 's/^([0-9]{4}-[0-9]{2}-[0-9]{2}_[^-]+(-[^-]+)*)-([^-]+(-[^-]+)*)$/\1/')
+              video_slug=$(echo "$rest" | sed -E 's/^([0-9]{4}-[0-9]{2}-[0-9]{2}_[^-]+(-[^-]+)*)-//')
+              dest="talks/${talk_id}/${video_slug}/source"
+              mkdir -p "$dest"
+              cp "$dir/whisper.json" "$dest/whisper.json"
+              echo "Placed: $dest/whisper.json"
+            fi
+          done
+
       - name: Commit & push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "talks/${{ inputs.talk_id }}/source/whisper.json"
-          git diff --cached --quiet || (git commit -m "Add Whisper data for ${{ inputs.talk_id }}" && git push)
+          git add talks/*/*/source/whisper.json
+          git diff --cached --quiet || (git commit -m "Add Whisper data" && git push)

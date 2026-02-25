@@ -13,8 +13,8 @@ Translates English subtitles from [amruta.org](https://www.amruta.org/) lectures
 ## How It Works
 
 ```
-1. [Local]           Download SRT + text from amruta.org
-2. [GitHub Actions]  Run Whisper speech detection on video
+1. [Local]           Download SRT + text from amruta.org (multi-video)
+2. [GitHub Actions]  Run Whisper speech detection (auto-discovers pending videos)
 3. [Local]           Translate with Claude Code (EN→UK)
 4. [GitHub Actions]  Optimize subtitles (timing, CPS, structure)
 5. [GitHub Actions]  Validate SRT quality
@@ -27,13 +27,15 @@ Download is done locally (amruta.org is behind Cloudflare). Everything else runs
 ```
 talks/                          Per-talk directories
   {date}_{slug}/
-    source/                     Original materials (EN SRT, whisper JSON, metadata)
-    work/                       Translation in progress (UK corrected SRT)
-    final/                      Optimized output (UK SRT, plain text, report)
+    meta.yaml                   Talk metadata (title, date, videos list)
     CLAUDE.md                   Per-talk Claude Code instructions
+    {video_slug}/               Named video subdirectory (e.g., Talk, Bhajan)
+      source/                   Original materials (EN SRT, whisper JSON)
+      work/                     Translation in progress (UK corrected SRT)
+      final/                    Optimized output (UK SRT, plain text, report)
 
 tools/                          Python modules (used by Actions + locally)
-  download.py                   amruta.org downloader (local only)
+  download.py                   amruta.org downloader (local only, multi-video + batch)
   scrape_listing.py             Scrape talk listing from amruta.org
   fetch_transcripts.py          Fetch EN+UK transcripts for glossary corpus
   whisper_run.py                Whisper speech detection wrapper
@@ -52,29 +54,35 @@ glossary/                       SY terminology dictionary (362 terms)
 ### 1. Download source materials (local)
 
 ```bash
+# Single talk (date/slug auto-extracted from URL):
 python -m tools.download \
-  --url "https://www.amruta.org/..." \
-  --talk-dir talks/{date}_{slug}/source \
-  --what srt,text \
-  --cookie "wordpress_logged_in_...=..."
+  --url "https://www.amruta.org/1993/09/19/ganesha-puja-cabella-1993/"
+
+# Batch mode:
+python -m tools.download --manifest queue.yaml
 ```
 
-Create `source/meta.yaml` with talk metadata and commit.
+The downloader automatically:
+- Extracts date and slug from the URL
+- Finds all Vimeo videos on the page
+- Creates named subdirectories per video (e.g., `Talk/`, `Bhajan/`)
+- Downloads SRTs per video from Vimeo
+- Writes `meta.yaml` with the videos list
 
-### 2. Run Whisper (optional)
+### 2. Run Whisper (auto-discovery)
 
-Go to **Actions → Whisper Speech Detection** and run with:
-- `talk_id`: Directory name (e.g., `1983-07-24_guru-puja`)
-- `vimeo_url`: Vimeo player URL (or leave empty to read from meta.yaml)
+Go to **Actions → Whisper Speech Detection** and run:
+- **Empty `talk_id`**: auto-discovers ALL videos missing `whisper.json`
+- **Specific `talk_id`**: processes only that talk's pending videos
 
-This downloads the video temporarily, runs Whisper, saves `whisper.json`, then discards the video.
+Whisper runs in parallel (max 3 concurrent) and commits all results in a single push.
 
 ### 3. Translate locally
 
 ```bash
 git pull
-# Edit talks/{id}/work/uk_corrected.srt using Claude Code
-git add talks/{id}/work/uk_corrected.srt
+# Edit talks/{id}/{video_slug}/work/uk_corrected.srt using Claude Code
+git add talks/{id}/{video_slug}/work/uk_corrected.srt
 git commit -m "Translate {talk_name}"
 git push
 ```
@@ -82,8 +90,9 @@ git push
 ### 4. Automatic optimization
 
 Pushing `uk_corrected.srt` triggers the **Optimize** workflow automatically:
-- Runs the SRT optimizer with Whisper timing data
-- Generates `final/uk.srt`, `final/uk.txt`, `final/report.txt`
+- Detects ALL changed `uk_corrected.srt` files
+- Runs the SRT optimizer per video (uses Whisper data if available)
+- Generates `final/uk.srt`, `final/report.txt`
 - Commits results back to the repo
 
 ### 5. Automatic validation
@@ -91,6 +100,19 @@ Pushing `uk_corrected.srt` triggers the **Optimize** workflow automatically:
 Pushing to `final/*.srt` triggers the **Validate** workflow:
 - Checks for overlaps, gaps, CPS limits, structural issues
 - Posts results as check annotations
+
+## Batch Download
+
+Create a `queue.yaml` file (gitignored):
+
+```yaml
+talks:
+  - url: https://www.amruta.org/1993/09/19/ganesha-puja-cabella-1993/
+  - url: https://www.amruta.org/1985/06/16/some-talk/
+    slug: short-slug  # optional override
+```
+
+Run: `python -m tools.download --manifest queue.yaml`
 
 ## Optimization Parameters
 

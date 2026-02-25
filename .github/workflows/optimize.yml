@@ -3,12 +3,16 @@ name: Optimize Subtitles
 on:
   push:
     paths:
-      - 'talks/*/work/uk_corrected.srt'
+      - 'talks/*/*/work/uk_corrected.srt'
   workflow_dispatch:
     inputs:
       talk_id:
         description: 'Talk directory name (e.g., 1983-07-24_guru-puja)'
         required: true
+        type: string
+      video_slug:
+        description: 'Video subdirectory (e.g., Talk). Leave empty for all videos.'
+        required: false
         type: string
 
 permissions:
@@ -19,6 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,31 +34,55 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Detect talk ID
+      - name: Detect changed files
         id: detect
         run: |
-          if [ -n "${{ inputs.talk_id }}" ]; then
-            echo "talk_id=${{ inputs.talk_id }}" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ inputs.talk_id }}" ] && [ -n "${{ inputs.video_slug }}" ]; then
+            # Manual trigger: specific video
+            echo "talks/${{ inputs.talk_id }}/${{ inputs.video_slug }}/work/uk_corrected.srt" > /tmp/changed_srts.txt
+          elif [ -n "${{ inputs.talk_id }}" ]; then
+            # Manual trigger: all videos in talk
+            find "talks/${{ inputs.talk_id }}" -path '*/work/uk_corrected.srt' > /tmp/changed_srts.txt
           else
-            # Extract from changed files
-            TALK_ID=$(git diff --name-only HEAD~1 HEAD | grep 'talks/.*/work/uk_corrected.srt' | head -1 | cut -d'/' -f2)
-            echo "talk_id=$TALK_ID" >> "$GITHUB_OUTPUT"
+            # Push trigger: detect ALL changed uk_corrected.srt files
+            git diff --name-only HEAD~1 HEAD | grep 'talks/.*/work/uk_corrected.srt' > /tmp/changed_srts.txt || true
           fi
+          echo "Files to optimize:"
+          cat /tmp/changed_srts.txt
 
-      - name: Run optimizer
+      - name: Run optimizer for each changed file
         run: |
-          TALK_ID="${{ steps.detect.outputs.talk_id }}"
-          mkdir -p "talks/$TALK_ID/final"
-          python -m tools.optimize_srt \
-            --srt "talks/$TALK_ID/work/uk_corrected.srt" \
-            --json "talks/$TALK_ID/source/whisper.json" \
-            --output "talks/$TALK_ID/final/uk.srt" \
-            --report "talks/$TALK_ID/final/report.txt"
+          while IFS= read -r srt_path; do
+            [ -z "$srt_path" ] && continue
+            [ -f "$srt_path" ] || { echo "SKIP (not found): $srt_path"; continue; }
+
+            # Extract talk_id and video_slug from path: talks/{talk_id}/{video_slug}/work/...
+            talk_id=$(echo "$srt_path" | cut -d'/' -f2)
+            video_slug=$(echo "$srt_path" | cut -d'/' -f3)
+
+            echo "=== Optimizing: $talk_id / $video_slug ==="
+            final_dir="talks/$talk_id/$video_slug/final"
+            mkdir -p "$final_dir"
+
+            # Build optimizer arguments (--json is optional)
+            json_path="talks/$talk_id/$video_slug/source/whisper.json"
+            json_arg=""
+            if [ -f "$json_path" ]; then
+              json_arg="--json $json_path"
+            else
+              echo "  Note: whisper.json not found, running without it"
+            fi
+
+            python -m tools.optimize_srt \
+              --srt "$srt_path" \
+              $json_arg \
+              --output "$final_dir/uk.srt" \
+              --report "$final_dir/report.txt"
+          done < /tmp/changed_srts.txt
 
       - name: Commit & push
         run: |
-          TALK_ID="${{ steps.detect.outputs.talk_id }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "talks/$TALK_ID/final/uk.srt" "talks/$TALK_ID/final/report.txt"
-          git diff --cached --quiet || (git commit -m "Optimize subtitles for $TALK_ID" && git push)
+          git add talks/*/*/final/uk.srt talks/*/*/final/report.txt
+          git diff --cached --quiet || (git commit -m "Optimize subtitles" && git push)

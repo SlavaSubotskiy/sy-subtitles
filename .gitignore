@@ -26,6 +26,9 @@ build/
 .idea/
 .vscode/
 
+# Batch download queue
+queue.yaml
+
 # Glossary corpus (large, generated data)
 glossary/corpus/
 
