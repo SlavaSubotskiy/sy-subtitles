@@ -131,7 +131,7 @@ jobs:
       - name: Upload whisper artifact
         uses: actions/upload-artifact@v4
         with:
-          name: whisper-${{ matrix.talk_id }}-${{ matrix.video_slug }}
+          name: whisper__${{ matrix.talk_id }}__${{ matrix.video_slug }}
           path: talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json
 
   commit:
@@ -144,28 +144,20 @@ jobs:
       - name: Download all whisper artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: whisper-*
+          pattern: whisper__*
           merge-multiple: false
 
       - name: Place artifacts into talk directories
         run: |
-          for dir in whisper-*/; do
+          for dir in whisper__*/; do
             [ -d "$dir" ] || continue
-            # Extract talk_id and video_slug from artifact name: whisper-{talk_id}-{video_slug}
             name="${dir%/}"
-            # talk_id may contain hyphens, video_slug is after the last occurrence
-            # Artifact name format: whisper-YYYY-MM-DD_slug-VideoSlug
-            # Parse by finding the underscore in talk_id
-            rest="${name#whisper-}"
-            # Split on the underscore that separates date from slug
-            talk_date="${rest%%-*}-${rest#*-}"
-            # More robust: find whisper.json and use the directory structure
+            # Format: whisper__{talk_id}__{video_slug}
+            # talk_id = everything between first __ and last __
+            rest="${name#whisper__}"
+            video_slug="${rest##*__}"
+            talk_id="${rest%__*}"
             if [ -f "$dir/whisper.json" ]; then
-              # Reconstruct from the artifact name
-              # Format: whisper-{talk_id}-{video_slug}
-              # talk_id format: YYYY-MM-DD_slug (contains exactly one underscore)
-              talk_id=$(echo "$rest" | sed -E 's/^([0-9]{4}-[0-9]{2}-[0-9]{2}_[^-]+(-[^-]+)*)-([^-]+(-[^-]+)*)$/\1/')
-              video_slug=$(echo "$rest" | sed -E 's/^([0-9]{4}-[0-9]{2}-[0-9]{2}_[^-]+(-[^-]+)*)-//')
               dest="talks/${talk_id}/${video_slug}/source"
               mkdir -p "$dest"
               cp "$dir/whisper.json" "$dest/whisper.json"
