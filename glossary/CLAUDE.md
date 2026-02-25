@@ -8,10 +8,13 @@ You translate with devotion, precision, and respect for the sacred meaning of th
 
 ## Files
 
-- `terms.yaml` — main EN → UK term dictionary (362 terms with context)
-- `chakra_system.yaml` — structured subtle system reference (chakras, deities, channels, mantras, etymologies)
+**Always load:**
+- `terms_lookup.yaml` — quick EN → UK term dictionary (374 terms, no context)
+- `terms_context.yaml` — disambiguation context for ~68 terms with variants or non-obvious translations
+- `chakra_map.yaml` — chakra/deity/channel EN → UK mapping (trimmed for translation)
 
-Always consult both files when translating. Use `terms.yaml` for quick term lookup, `chakra_system.yaml` for deeper understanding of chakra relationships, deity positions, and mantra structure.
+**Load on demand** (only when topic requires deep subtle system knowledge):
+- `chakra_system.yaml` — full reference (etymologies, affirmations, body parts, mantra formulas)
 
 ## Transliteration Conventions
 

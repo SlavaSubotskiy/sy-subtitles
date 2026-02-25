@@ -1,0 +1,354 @@
+# Subtle System — Translation Map (EN → UK)
+# Trimmed from chakra_system.yaml for translator agent use
+# For full reference (etymologies, affirmations, body parts) see chakra_system.yaml
+
+chakras:
+  muladhara:
+    en: Mooladhara
+    uk: Муладхара
+    deities:
+      left_and_centre:
+        en: Shri Ganesha
+        uk: Шрі Ґанеша
+      left:
+        en: Shri Nirmal Ganesha
+        uk: Шрі Нірмал Ґанеша
+        notes: Left channel mantra (from RU manual)
+      right:
+        en: Shri Kartikeya
+        uk: Шрі Картікейя
+      also:
+        en: Shri Gauri
+        uk: Шрі Ґаурі
+        notes: Mother of Ganesha
+  muladhara_sacrum:
+    en: Mooladhara (Sacrum / Kundalini seat)
+    uk: Муладхар (кісточка сакрум)
+    deities:
+      centre:
+      - en: Shri Gauri Mata
+        uk: Шрі Ґаурі
+      - en: Shri Kundalini Mata
+        uk: Кундаліні Мата
+  swadhishthana:
+    en: Swadhishthana
+    uk: Свадхістхана
+    deities:
+      centre_and_right:
+        en: Shri Brahmadeva-Saraswati
+        uk: Шрі Брахмадева-Сарасваті
+      left:
+      - en: Shri Nirmala Vidya
+        uk: Шрі Нірмала Відья
+      - en: Shri Shuddha Ichchha
+        uk: Шрі Шуддха Іччха
+      right:
+      - en: Shri Hazrat Ali
+        uk: Хазрат-Алі
+      - en: Shri Fatima
+        uk: Шрі Фатіма
+      - en: Shri Himalaya
+        uk: Шрі Гімалайя
+        notes: Liver cooling deity (from RU manual)
+  nabhi:
+    en: Nabhi (Manipura)
+    uk: Набхі (Маніпура)
+    deities:
+      centre:
+        en: Shri Lakshmi-Vishnu
+        uk: Шрі Лакшмі-Вішну
+      left:
+        en: Shri Gruha Lakshmi
+        uk: Шрі Ґруха Лакшмі
+      right:
+      - en: Shri Raja Lakshmi
+        uk: Шрі Раджа Лакшмі
+      - en: Shri Shesha Lakshmana
+        uk: Шрі Шеша Лакшмана
+      - en: Shri Nirmala Chitta
+        uk: Шрі Нірмала Чітта
+  void:
+    en: Void (Bhavasagara)
+    uk: Войд (Бхавасаґара)
+    deities:
+      all:
+        en: Shri Adi Guru Dattatreya
+        uk: Шрі Аді Ґуру Даттатрейя
+  anahata:
+    en: Heart (Anahata)
+    uk: Серце (Анахата)
+    deities:
+      centre:
+        en: Shri Jagadamba, Durga Mata
+        uk: Шрі Дурґа Мата Джаґадамба
+      left:
+      - en: Shri Shiva-Parvati
+        uk: Шрі Шіва-Парваті
+      - en: Shri Shiva-Shakti-Putra Kartikeya
+        uk: Шрі Шіва Шакті Путра Картікейя
+      - en: Shri Atma-Paramatma
+        uk: Шрі Атма Параматма
+      right:
+        en: Shri Sita-Rama
+        uk: Шрі Сіта-Рама
+  vishuddhi:
+    en: Vishuddhi
+    uk: Вішуддхі
+    deities:
+      centre:
+        en: Shri Radha-Krishna
+        uk: Шрі Радха-Крішна
+      left:
+        en: Shri Vishnumaya
+        uk: Шрі Вішнумайя
+        notes: Sister of Shri Krishna; incarnated as Shri Fatima, as Draupadi
+      right:
+      - en: Shri Vitthala-Rukmini
+        uk: Шрі Вітхала-Рукміні
+      - en: Shri Yashoda
+        uk: Шрі Яшода
+      - en: Shri Sarva Mantra Siddhi
+        uk: Шрі Сарва Мантра Сіддхі
+      - en: Shri Kubera
+        uk: Шрі Кубера
+  agnya:
+    en: Agnya (Ajna)
+    uk: Аґія
+    deities:
+      centre:
+        en: Shri Jesus Christ (Yeshu-Mariya) and Shri Mary (Maria Mata)
+        uk: Шрі Ісус Христос (ійешу хріста) та Шрі Марія (Марійа Мата)
+        notes: Jesus = Mahavishnu, Mahaganesha, Mahavirata; Mary = Mahalakshmi
+      back:
+      - en: Shri Maha Ganesha
+        uk: Шрі Маха Ґанеша
+      - en: Shri Maha Ganapati
+        uk: Шрі Маха Ґанапаті
+      left_superego:
+      - en: Shri Mahavira
+        uk: Шрі Махавіра
+      - en: Shri Mukti Dayini
+        uk: Шрі Мукті Даїні
+      - en: Shri Mahat Manasa
+        uk: Шрі Махат Манаса
+      right_ego:
+      - en: Shri Buddha
+        uk: Шрі Будда
+      - en: Shri Mahat Ahankara
+        uk: Шрі Махат Аханкара
+  sahasrara:
+    en: Sahasrara
+    uk: Сахасрара
+    deities:
+      centre:
+      - en: Shri Kalki
+        uk: Шрі Калькі
+      - en: Shri Nirmala (Adi Shakti)
+        uk: Шрі Нірмала (Аді Шакті)
+      - en: Shri Nirmala Viratangana
+        uk: Шрі Нірмала Вірата-Ангана
+sub_chakras:
+  hamsa:
+    en: Hamsa
+    uk: Хамса
+  lalita:
+    en: Lalita
+    uk: Лаліта
+  shri_chakra:
+    en: Shri Chakra
+    uk: Шрі чакра
+  ekadasha_rudra:
+    en: Ekadasha Rudra
+    uk: Екадаша Рудра
+above_sahasrara:
+- en: Shri Ardha Bindu (Ardha Matra)
+  uk: Шрі Ардха Бінду
+- en: Shri Bindu
+  uk: Шрі Бінду
+- en: Shri Valaya
+  uk: Шрі Валайя
+- en: Shri Amruta Dayini
+  uk: Шрі Амрута Даїні
+- en: Shri Atma-Paramatma
+  uk: Шрі Атма Параматма
+- en: Shri Sadashiva
+  uk: Шрі Садашіва
+- en: Shri Adi Shakti
+  uk: Шрі Аді Шакті
+channels:
+  ida:
+    en: Ida Nadi (Left Channel)
+    uk: Іда Наді (лівий канал)
+    deity:
+      en: Shri Mahakali, Shri Bhairava (Archangel Michael)
+      uk: Шрі Махакалі, Шрі Бхаїрава
+  pingala:
+    en: Pingala Nadi (Right Channel)
+    uk: Пінґала Наді (правий канал)
+    deity:
+      en: Shri Mahasaraswati, Shri Hanumana (Archangel Gabriel)
+      uk: Шрі Махасарасваті, Шрі Ханумана
+  sushumna:
+    en: Sushumna Nadi (Central Channel)
+    uk: Сушумна Наді (центральний канал)
+    deity:
+      en: Shri Mahalakshmi, Shri Ganesha
+      uk: Шрі Махалакшмі, Шрі Ґанеша
+ten_primordial_masters:
+  deity:
+    en: Shri Adi Guru Dattatreya
+    uk: Шрі Аді Ґуру Даттатрейя
+  chakra: Void (Bhavasagara)
+  incarnations:
+  - en: Raja Janaka
+    uk: Раджа Джанака
+  - en: Abraham
+    uk: Авраам
+  - en: Moses
+    uk: Мойсей
+  - en: Zarathustra (Zoroaster)
+    uk: Заратустра (Зороастр)
+  - en: Confucius (Kong-Zi)
+    uk: Конфуцій (Конг-Зі)
+  - en: Lao-Tze
+    uk: Лао-Цзи
+  - en: Socrates
+    uk: Сократ
+  - en: Prophet Muhammad
+    uk: Пророк Мохаммед
+  - en: Guru Nanak
+    uk: Ґуру Нанак
+  - en: Shri Sai Nath of Shirdi
+    uk: Шрі Саї Натх із Ширді
+ten_incarnations_of_vishnu:
+- en: Shri Matsya (Fish)
+  uk: Шрі Матсья (Риба)
+- en: Shri Kurma (Tortoise)
+  uk: Шрі Курма (Черепаха)
+- en: Shri Varaha (Boar)
+  uk: Шрі Вараха (Вепр)
+- en: Shri Narasimha (Man-Lion)
+  uk: Шрі Нарасімха (Людина-лев)
+- en: Shri Vamana (Dwarf)
+  uk: Шрі Вамана (Карлик)
+- en: Shri Parashurama (Brahmin-warrior)
+  uk: Шрі Парашурама
+- en: Shri Rama
+  uk: Шрі Рама
+- en: Shri Krishna
+  uk: Шрі Крішна
+- en: Lord Jesus Christ (Shri Iyeshu Hrista / Mahavishnu)
+  uk: Господь Ісус Христос (ійешу хріста)
+- en: Shri Kalki
+  uk: Шрі Калькі
+mantra_formula:
+  full_form:
+    en: Om Twameva sakshat Shri [Deity name] sakshat Shri Adi Shakti Mataji Shri Nirmala
+      Devyai namo namah
+    uk: оМ твамева сАкШАт шрІ [Ім'я Божества] сАкШАт шрІ Аді шакті мАтАджІ шрІ нірмалА
+      девйаї намо намаХа
+    meaning_en: O Divine Mother, verily You are Shri [Deity], who is an aspect of
+      the Primordial Power, Shri Mataji Nirmala Devi, unending salutations to You.
+    meaning_uk: Амінь, О Божественна Матінко, Шрі Матаджі, істинно, Ти -- [Ім'я Божества].
+      Вітання й доземний уклін Тобі!
+  short_form:
+    en: Om Twameva sakshat Shri [Deity name] namo namah
+    uk: оМ твамева сАкШАт шрІ [Ім'я Божества в давальному відмінку] намо намаХа
+  swamini_form:
+    en: Om Twameva sakshat Shri [Chakra name] Chakra Swamini ...
+    meaning: The Ruler/Goddess of [this] Chakra
+  short_mantra:
+    en: Om Twameva sakshat Shri Nirmala Devyai namo namah (x3 or x7)
+    meaning: Very powerful; may be used for Sahasrara or to clear any Chakra
+  note_on_demons: Names marked with asterisk (*) in the Mantrabook are demon names
+    and are said without 'Shri'.
+scripture_names:
+- en: Ganesha Atharva Shirsha
+  uk: Ґанеша Атхарва Шірша
+- en: Bhagavad Gita
+  uk: Бхаґавад Ґіта
+- en: Devi Suktam
+  uk: Деві Суктам
+- en: Shri Devi Atharva Shirsham
+  uk: Шрі Деві Атхарва Шіршам
+- en: Kavach Devi (Shri Chandi-Kavacham)
+  uk: Кавач Деві (Шрі Чанді-Кавачам)
+- en: Tad Nishkala
+  uk: Тад Нішкала
+- en: Shri Rama Kavach
+  uk: Шрі Рама Кавач
+- en: Shri Hanuman Chalisa
+  uk: Шрі Хануман Чаліса
+- en: Shri Maruti Stotra
+  uk: Шрі Маруті Стотра
+- en: Shri Bhumi Devi Vandana
+  uk: Шрі Бхумі Деві Вандана
+- en: Shri Saraswati Vandana
+  uk: Шрі Сарасваті Вандана
+- en: Gayatri Mantra
+  uk: Ґаятрі Мантра
+- en: Psalm 23 (Psalm of David)
+  uk: Псалом 23 (Псалом Давида)
+other_deities:
+- en: Shri Ganga
+  uk: Шрі Ґанґа
+- en: Goddess Athena
+  uk: Богиня Афіна (Шрі Афіна Паллада)
+- en: Fatima Al-Zahra
+  uk: Фатіма Аль-Захра
+- en: Shri Surya
+  uk: Шрі Сурья
+- en: Shri Hanuman
+  uk: Шрі Хануман
+- en: Shri Bhumi Devi
+  uk: Шрі Бхумі Деві
+- en: Shri Adi Bhumi Devi
+  uk: Шрі Аді Бхумі Деві
+- en: Sat Guru
+  uk: Сат Ґуру
+- en: Shri Raja-Rajeshwari
+  uk: Шрі Раджа-Раджешварі
+- en: Shri Mataji Nirmala Devi
+  uk: Шрі Матаджі Нірмала Деві
+- en: Shri Nirmala
+  uk: Шрі Нірмала
+- en: Allah
+  uk: Аллах
+- en: Shri Virata
+  uk: Шрі Вірата
+- en: Shri Bhairavi
+  uk: Шрі Бхаїрави
+three_great_mantras:
+- number: 1
+  sanskrit: >
+    Om Twameva sakshat Shri Mahalakshmi Mahasaraswati Mahakali Trigun'atmika Kundalini
+    sakshat Shri Adi Shakti Mataji Shri Nirmala Devyai namo namah
+  uk: >
+    оМ твамева сАкШАт шрІ махАлакШмІ махАсарасватІ махАкАлІ тріґуНАтміка куНДалінІ
+    сАкШАт шрІ Аді шакті мАтАджІ шрІ нірмалА девйаї намо намаХа
+  translation_en: >
+    You are Shri Mahalakshmi, Shri Mahasaraswati and Shri Mahakali, the Essence of
+    the Three Qualities, the Kundalini, the Primordial Shakti, Divine Mother, Immaculate
+    Goddess, we surrender to You.
+  translation_uk: >
+    Ом. Істинно, Ти -- Шрі Махалакшмі, Шрі Махасарасваті й Шрі Махакалі, Суть трьох
+    ґун -- Кундаліні.
+- number: 2
+  sanskrit: >
+    Om Twameva sakshat Shri Kalki sakshat Shri Adi Shakti Mataji Shri Nirmala Devyai
+    namo namah
+  uk: >
+    оМ твамева сАкШАт шрІ калькі сАкШАт шрІ Аді шакті мАтАджІ шрІ нірмалА девйаї намо
+    намаХа
+  translation_uk: Ом. Істинно, Ти -- Шрі Калькі.
+- number: 3
+  name: Sahasrara Mantra
+  sanskrit: >
+    Om Twameva sakshat Shri Kalki sakshat Shri Sahasrara-swamini Moksha-pradayini
+    Mataji Shri Nirmala Devyai namo namah
+  uk: >
+    оМ твамева сАкШАт шрІ калькі сАкШАт шрІ сахасрАра свАмінІ мокШа прадАйінІ мАтАджІ
+    шрІ нірмалА девйаї намо намаХа
+  translation_uk: >
+    Ом. Істинно, Ти -- Шрі Калькі, Богиня Сахасрара чакри, Божественна Матінка, Котра
+    дає духовне звільнення.

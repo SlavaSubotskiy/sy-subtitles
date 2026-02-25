@@ -29,6 +29,9 @@ build/
 # Glossary corpus (large, generated data)
 glossary/corpus/
 
+# Claude Code local config
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db

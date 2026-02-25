@@ -2,62 +2,67 @@
 
 Sahaja Yoga terminology dictionary (EN → UK) and subtle system reference.
 
-r**Status: v3** — 374 terms + chakra system reference.
+**Status: v4** — 374 terms + chakra system reference. Optimized for LLM translator agent.
 
 ## Structure
 
 ```
 glossary/
-  terms.yaml           # Main term dictionary (374 terms)
-  chakra_system.yaml   # Subtle system reference (chakras, deities, channels, mantras)
+  terms_lookup.yaml    # Quick EN → UK mapping (374 terms, ~19 KB)
+  terms_context.yaml   # Disambiguation context for ~68 ambiguous terms (~14 KB)
+  chakra_map.yaml      # Chakra/deity/channel EN → UK mapping (~12 KB)
+  chakra_system.yaml   # Full subtle system reference (on-demand, ~51 KB)
   corpus/              # Cached EN+UK transcripts from amruta.org (gitignored)
     index.yaml         # Talk listing (38 talks)
     {slug}/en.txt      # English transcript
     {slug}/uk.txt      # Ukrainian transcript
+  CLAUDE.md            # Translator agent instructions
   README.md            # This file
 ```
 
-## terms.yaml — Term Sections
+## Agent Loading Strategy
 
-### Original (from 1983-07-24 Guru Puja)
+| File | When to load | Size |
+|---|---|---|
+| `terms_lookup.yaml` | Always | ~19 KB |
+| `terms_context.yaml` | Always | ~14 KB |
+| `chakra_map.yaml` | Always | ~12 KB |
+| **Total (always)** | | **~45 KB** |
+| `chakra_system.yaml` | On demand (deep subtle system topics) | ~51 KB |
 
-| Section | Description |
-|---|---|
-| Subtle System | Chakras, nadis, energy (Kundalini, Sahasrara, Agnya, Vishuddhi, etc.) |
-| Spiritual States | Self-realization, atita, akarma, avir bhava, samadhi |
-| Key Concepts | Guru Principle, Dharma, protocol, tapasya, Incarnation, gunas |
-| Puja and Rituals | Puja, sankalpa, abhisheka, Havan, mantra |
-| Deities and Sacred Figures | Shri Mataji, Adi Shakti, Dattatreya, Shiva, Krishna, Ganesha, Jesus |
-| Sacred Geography | Tamasa/Thames, Kailasha, desha/Pradesh |
-| Puja Terminology | sakshat, namoh namaha, baddhas, siddhis |
-| Translation Notes | Capitalization rules for deity pronouns, spiritual terms |
+## terms_lookup.yaml
 
-### Corpus terms (from 38-talk corpus)
+All 374 terms as clean `en` / `uk` pairs without context. Organized by thematic sections:
+Subtle System, Spiritual States, Key Concepts, Puja and Rituals, Deities, Sacred Geography, etc.
 
-18 thematic sections: Subtle System, Three Powers, Deities, Ganesha Epithets, Epic Figures, Saints, Avatars, Cosmic Concepts, Spiritual States, Ananda types, Practices, Sacred Texts, Geography, Festivals, Social Roles, Ayurvedic, Other.
+## terms_context.yaml
 
-### Book terms (from SY Mantrabook EN 2025 / UK 2014)
+~68 terms that need disambiguation context:
+- Terms with variant Ukrainian translations (`/` in `uk` field)
+- Gender-specific forms (сахаджа йоґ / сахаджа йоґиня)
+- Non-obvious translations (catching → блокування, surrender → віддача на милість)
+- Dialogue labels (ШМ, СЙ)
 
-| Section | Description |
-|---|---|
-| Deities and Sacred Figures | Durga, Jagadamba, Hanumana, 10 Primordial Masters, Mary, Fatima, etc. |
-| Incarnations of Vishnu | Varaha, Narasimha, Vamana, Parashurama |
-| Spiritual Concepts | Advaita, Karma, Moksha, Six Enemies, Turiya, Prana/Mana/Laya, etc. |
-| Chakra-Related | Lalita, Shri Chakra, Manipura, Ardha Bindu, Bindu, Valaya, Granthi |
-| Ritual/Practice | Foot-soaking, Shoe-beating, Matka, Raising Kundalini, etc. |
-| Scriptures | Ganesha Atharva Shirsha, Bhagavad Gita, Vedas, Puranas, Kavach, etc. |
-| Cosmic Terms | Brahman, Parabrahman, Trimurti, Avatar, Deva/Devi, etc. |
+## chakra_map.yaml
 
-## chakra_system.yaml — Subtle System Reference
+Translation-oriented extract from `chakra_system.yaml`:
+- 9 main chakras with deity names (left/centre/right) EN → UK
+- 4 sub-chakras (Hamsa, Lalita, Shri Chakra, Ekadasha Rudra)
+- 7 above-Sahasrara centres
+- 3 channels (Ida, Pingala, Sushumna)
+- 10 Primordial Masters, 10 Incarnations of Vishnu
+- 14 other deities, 13 scripture names
+- Mantra formula reference
 
-Structured reference for the translator agent, covering:
-- All 7 main chakras + sub-chakras (Hamsa, Lalita, Shri Chakra, Ekadasha Rudra)
-- Deities per chakra (left/centre/right) with EN + UK names
-- Three channels (Ida, Pingala, Sushumna) with qualities
-- Three gunas, 10 Primordial Masters, 10 Incarnations of Vishnu
-- Six Enemies, Three Granthis, Bija Mantras
-- Above-Sahasrara centres, Deity relationships
-- Affirmations, mantras, country-chakra correspondences
+## chakra_system.yaml — Full Reference
+
+Complete subtle system encyclopedia (loaded on demand):
+- Etymologies, Sanskrit IAST, meanings
+- Body part projections, colors, petals, elements
+- Six Enemies with remedies and mantras
+- Affirmations (centre/left/right) in Ukrainian
+- Bija mantras, sacred word mantras
+- Three Granthis, Three Gunas, Three Great Mantras
 
 ## Transliteration Conventions
 
