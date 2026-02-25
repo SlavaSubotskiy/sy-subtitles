@@ -31,6 +31,13 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-optimize-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-optimize-
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 

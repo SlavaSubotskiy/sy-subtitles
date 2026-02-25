@@ -99,6 +99,13 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-whisper-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-whisper-
+
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
