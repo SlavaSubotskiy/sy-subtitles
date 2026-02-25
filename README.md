@@ -1,5 +1,11 @@
 # sy-subtitles
 
+> This project is humbly dedicated to Shri Mataji Nirmala Devi.
+> May the auspicious grace of Shri Ganesha remove all obstacles,
+> and may the devoted energy of Shri Hanumana carry Her words
+> to the hearts of Ukrainian-speaking seekers,
+> bringing joy to our Holy Mother.
+
 Sahaja Yoga lecture subtitle translation and optimization toolkit.
 
 Translates English subtitles from [amruta.org](https://www.amruta.org/) lectures into Ukrainian, with automated quality optimization via GitHub Actions.
@@ -37,7 +43,7 @@ tools/                          Python modules (used by Actions + locally)
   config.py                     Optimization configuration
 
 templates/                      Templates for new talks
-glossary/                       SY terminology dictionary (230 terms)
+glossary/                       SY terminology dictionary (363 terms)
   corpus/                       Cached transcripts from amruta.org (gitignored)
 ```
 
