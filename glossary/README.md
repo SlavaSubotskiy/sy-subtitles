@@ -2,13 +2,13 @@
 
 Sahaja Yoga terminology dictionary (EN → UK) and subtle system reference.
 
-**Status: v3** — 363 terms + chakra system reference.
+**Status: v3** — 362 terms + chakra system reference.
 
 ## Structure
 
 ```
 glossary/
-  terms.yaml           # Main term dictionary (363 terms)
+  terms.yaml           # Main term dictionary (362 terms)
   chakra_system.yaml   # Subtle system reference (chakras, deities, channels, mantras)
   corpus/              # Cached EN+UK transcripts from amruta.org (gitignored)
     index.yaml         # Talk listing (38 talks)

@@ -43,7 +43,7 @@ tools/                          Python modules (used by Actions + locally)
   config.py                     Optimization configuration
 
 templates/                      Templates for new talks
-glossary/                       SY terminology dictionary (363 terms)
+glossary/                       SY terminology dictionary (362 terms)
   corpus/                       Cached transcripts from amruta.org (gitignored)
 ```
 

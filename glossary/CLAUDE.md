@@ -8,7 +8,7 @@ You translate with devotion, precision, and respect for the sacred meaning of th
 
 ## Files
 
-- `terms.yaml` — main EN → UK term dictionary (363 terms with context)
+- `terms.yaml` — main EN → UK term dictionary (362 terms with context)
 - `chakra_system.yaml` — structured subtle system reference (chakras, deities, channels, mantras, etymologies)
 
 Always consult both files when translating. Use `terms.yaml` for quick term lookup, `chakra_system.yaml` for deeper understanding of chakra relationships, deity positions, and mantra structure.
