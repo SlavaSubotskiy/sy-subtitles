@@ -7,6 +7,12 @@ on:
         description: 'Talk directory name (e.g., 1983-07-24_guru-puja). Leave empty to auto-discover all pending.'
         required: false
         type: string
+  workflow_call:
+    inputs:
+      talk_id:
+        description: 'Talk directory name'
+        required: true
+        type: string
 
 permissions:
   contents: write

@@ -1,0 +1,64 @@
+name: Auto Whisper
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'talks/*/meta.yaml'
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.find.outputs.matrix }}
+      has_pending: ${{ steps.find.outputs.has_pending }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Find talks with pending whisper
+        id: find
+        run: |
+          python3 << 'PYEOF'
+          import json, os, yaml
+
+          pending_talks = set()
+          for d in sorted(os.listdir("talks")):
+              meta = f"talks/{d}/meta.yaml"
+              if not os.path.isfile(meta):
+                  continue
+              with open(meta) as f:
+                  data = yaml.safe_load(f)
+              for v in data.get("videos", []):
+                  if not os.path.isfile(f"talks/{d}/{v['slug']}/source/whisper.json"):
+                      pending_talks.add(d)
+                      print(f"PENDING: {d}/{v['slug']}")
+
+          matrix = {"include": [{"talk_id": t} for t in sorted(pending_talks)]}
+          has_pending = "true" if pending_talks else "false"
+          print(f"\nPending talks: {len(pending_talks)}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"matrix={json.dumps(matrix)}\n")
+              f.write(f"has_pending={has_pending}\n")
+          PYEOF
+
+  process:
+    needs: discover
+    if: needs.discover.outputs.has_pending == 'true'
+    strategy:
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+      fail-fast: false
+    uses: ./.github/workflows/whisper.yml
+    with:
+      talk_id: ${{ matrix.talk_id }}
