@@ -45,6 +45,6 @@ Follow the Ukrainian Mantra Book (Книга Мантр Сахаджа Йоґи,
 ## Ukrainian Orthography
 
 - Reflexive verbs: `-ся` not `-сь` (дотримуєтеся, not дотримуєтесь)
-- Quotation marks: `<<>>` (Ukrainian "yalynky" style)
-- Em-dash: ` -- ` with spaces for interjections
+- Quotation marks: `«»` (Ukrainian "yalynky" style)
+- Em-dash: ` — ` (U+2014) with spaces for interjections
 - Ellipsis: `...` (three dots, no space before)

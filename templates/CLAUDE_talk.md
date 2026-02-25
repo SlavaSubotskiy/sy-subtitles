@@ -50,8 +50,8 @@
 
 ### Ukrainian Orthography
 - Reflexive verbs: `-ся` not `-сь`
-- Quotation marks: `<<>>` (yalynky)
-- Em-dash: ` -- ` with spaces
+- Quotation marks: `«»` (yalynky)
+- Em-dash: ` — ` (U+2014) with spaces
 - Ellipsis: `...` without space before
 
 ## Review Process

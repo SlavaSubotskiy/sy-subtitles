@@ -31,14 +31,40 @@ Source language: English. Target language: Ukrainian.
 
 ### Ukrainian Orthography
 - Reflexive verbs: `-ся` not `-сь` (e.g., `дотримуєтеся` not `дотримуєтесь`)
-- Quotation marks: `<<>>` (Ukrainian "yalynky" style)
-- Em-dash: ` -- ` with spaces for interjections
+- Quotation marks: `«»` (Ukrainian "yalynky" style)
+- Em-dash: ` — ` (U+2014) with spaces for interjections
 - Ellipsis: `...` (three dots, no space before)
 
 ### SRT Format
 - Single-line mode (no manual line breaks in subtitle text)
 - UTF-8 encoding with BOM is acceptable
 - Block numbering must be sequential starting from 1
+
+## Writing Large SRT Files
+
+SRT files typically have 300-500+ blocks and don't fit in a single output.
+Write them in chunks using bash `cat` with heredoc and append:
+
+```bash
+# First chunk — create file
+cat > path/to/uk_corrected.srt << 'SRTEOF'
+1
+00:00:01,000 --> 00:00:05,000
+Перший блок.
+SRTEOF
+
+# Subsequent chunks — append
+cat >> path/to/uk_corrected.srt << 'SRTEOF'
+
+101
+00:05:00,000 --> 00:05:05,000
+Наступний блок.
+SRTEOF
+```
+
+Use ~100 blocks per chunk (5 chunks for a typical talk).
+
+When both videos share the same text (different timecodes only), translate the first video manually, then use a Python script to copy the Ukrainian text with the second video's timecodes.
 
 ## Review Process
 
