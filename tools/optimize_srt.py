@@ -258,74 +258,158 @@ def extend_cps(blocks, config):
     return extended
 
 
-def _find_whisper_split_time(start_ms, end_ms, ratio, whisper_intervals):
-    """Find best split time using whisper segment boundaries near the proportional midpoint."""
-    mid_time = start_ms + int((end_ms - start_ms) * ratio)
-    if not whisper_intervals:
-        return mid_time
-    # Look for whisper segment boundary closest to proportional mid
-    best_time = mid_time
-    best_dist = float('inf')
+def _get_whisper_slots(start_ms, end_ms, whisper_intervals):
+    """Get whisper-based time slots within a block's range.
+
+    Returns list of (slot_start, slot_end) covering the block's duration,
+    split at whisper segment boundaries.
+    """
+    # Collect all whisper boundaries (starts and ends) strictly inside the block
+    boundaries = set()
     for ws, we in whisper_intervals:
-        # Check segment end (speech pause point)
-        if start_ms < we < end_ms:
-            dist = abs(we - mid_time)
-            if dist < best_dist:
-                best_dist = dist
-                best_time = int(we)
-        # Check segment start
         if start_ms < ws < end_ms:
-            dist = abs(ws - mid_time)
-            if dist < best_dist:
-                best_dist = dist
-                best_time = int(ws)
-    return best_time
+            boundaries.add(int(ws))
+        if start_ms < we < end_ms:
+            boundaries.add(int(we))
+    if not boundaries:
+        return [(start_ms, end_ms)]
+    points = sorted([start_ms] + list(boundaries) + [end_ms])
+    return [(points[i], points[i + 1]) for i in range(len(points) - 1)]
 
 
 def split_blocks_by_duration(blocks, config, whisper_intervals=None):
-    """Split blocks exceeding max_duration into proportional pieces, using whisper for timing."""
+    """Split long blocks using whisper segment boundaries as primary time splits."""
     new_blocks = []
     splits = 0
     wi = whisper_intervals or []
+    gap = config.min_gap_ms
+
     for b in blocks:
         dur = b['end_ms'] - b['start_ms']
         if dur <= config.max_duration_ms + 1000:
             new_blocks.append(b)
             continue
-        # Recursively split into halves
-        pending = [b]
-        while pending:
-            current = pending.pop(0)
-            c_dur = current['end_ms'] - current['start_ms']
-            c_text = current['text'].replace('\n', ' ')
-            if c_dur <= config.max_duration_ms + 1000 or len(c_text) < 10:
-                new_blocks.append(current)
-                continue
-            split_pos = find_block_split_point(c_text)
-            if not split_pos or split_pos < 5 or (len(c_text) - split_pos) < 5:
-                new_blocks.append(current)
-                continue
-            text1 = c_text[:split_pos].strip()
-            text2 = c_text[split_pos:].strip()
-            ratio = len(text1) / len(c_text)
-            mid_time = _find_whisper_split_time(
-                current['start_ms'], current['end_ms'], ratio, wi)
-            part1 = {
-                'idx': current['idx'],
-                'start_ms': current['start_ms'],
-                'end_ms': mid_time - config.min_gap_ms // 2,
-                'text': split_long_line(text1),
-            }
-            part2 = {
-                'idx': current['idx'],
-                'start_ms': mid_time + config.min_gap_ms // 2,
-                'end_ms': current['end_ms'],
-                'text': split_long_line(text2),
-            }
-            splits += 1
-            pending.insert(0, part2)
-            pending.insert(0, part1)
+
+        text = b['text'].replace('\n', ' ')
+
+        # Get whisper-based time slots
+        slots = _get_whisper_slots(b['start_ms'], b['end_ms'], wi)
+
+        # Merge tiny slots (< 3s) with neighbors
+        merged = []
+        for slot in slots:
+            if merged and (slot[1] - slot[0]) < 3000:
+                merged[-1] = (merged[-1][0], slot[1])
+            elif merged and (merged[-1][1] - merged[-1][0]) < 3000:
+                merged[-1] = (merged[-1][0], slot[1])
+            else:
+                merged.append(slot)
+        slots = merged if len(merged) > 1 else slots
+
+        # If whisper gave us multiple slots, distribute text across them
+        if len(slots) > 1:
+            total_dur = sum(s[1] - s[0] for s in slots)
+            remaining_text = text
+            for i, (ss, se) in enumerate(slots):
+                slot_dur = se - ss
+                is_last = (i == len(slots) - 1)
+                if is_last:
+                    chunk = remaining_text
+                else:
+                    # Proportion of text for this slot
+                    ratio = slot_dur / total_dur
+                    target_chars = int(len(text) * ratio)
+                    # Find a good split point near target_chars
+                    chunk, remaining_text = _split_text_near(remaining_text, target_chars)
+                    total_dur -= slot_dur
+
+                if not chunk.strip():
+                    # No text for this slot — extend previous block
+                    if new_blocks:
+                        new_blocks[-1]['end_ms'] = se
+                    continue
+
+                new_blocks.append({
+                    'idx': b['idx'],
+                    'start_ms': ss + (gap // 2 if i > 0 else 0),
+                    'end_ms': se - (gap // 2 if not is_last else 0),
+                    'text': chunk.strip(),
+                })
+            splits += max(0, len(slots) - 1)
+        else:
+            # No whisper boundaries — fallback to proportional text split
+            pending = [b]
+            while pending:
+                current = pending.pop(0)
+                c_dur = current['end_ms'] - current['start_ms']
+                c_text = current['text'].replace('\n', ' ')
+                if c_dur <= config.max_duration_ms + 1000 or len(c_text) < 10:
+                    new_blocks.append(current)
+                    continue
+                split_pos = find_block_split_point(c_text)
+                if not split_pos or split_pos < 5 or (len(c_text) - split_pos) < 5:
+                    new_blocks.append(current)
+                    continue
+                text1 = c_text[:split_pos].strip()
+                text2 = c_text[split_pos:].strip()
+                ratio = len(text1) / len(c_text)
+                mid_time = current['start_ms'] + int(c_dur * ratio)
+                pending.insert(0, {
+                    'idx': current['idx'],
+                    'start_ms': mid_time + gap // 2,
+                    'end_ms': current['end_ms'],
+                    'text': text2,
+                })
+                pending.insert(0, {
+                    'idx': current['idx'],
+                    'start_ms': current['start_ms'],
+                    'end_ms': mid_time - gap // 2,
+                    'text': text1,
+                })
+                splits += 1
+
     return new_blocks, splits
+
+
+def _split_text_near(text, target_pos):
+    """Split text near target_pos at a natural break point. Returns (before, after)."""
+    if target_pos <= 0:
+        return ('', text)
+    if target_pos >= len(text):
+        return (text, '')
+
+    # Try sentence boundary first
+    best_pos = None
+    best_dist = float('inf')
+    for m in re.finditer(r'[.!?»]\s+', text):
+        pos = m.end()
+        dist = abs(pos - target_pos)
+        if dist < best_dist:
+            best_dist = dist
+            best_pos = pos
+
+    # Try clause boundary (comma, dash, semicolon)
+    if best_pos is None or best_dist > len(text) * 0.3:
+        for m in re.finditer(r'[,;:—]\s+', text):
+            pos = m.end()
+            dist = abs(pos - target_pos)
+            if dist < best_dist:
+                best_dist = dist
+                best_pos = pos
+
+    # Fallback: word boundary
+    if best_pos is None or best_dist > len(text) * 0.4:
+        for m in re.finditer(r'\s+', text):
+            pos = m.end()
+            dist = abs(pos - target_pos)
+            if dist < best_dist:
+                best_dist = dist
+                best_pos = pos
+
+    if best_pos is None:
+        best_pos = target_pos
+
+    return (text[:best_pos].strip(), text[best_pos:].strip())
 
 
 def split_blocks_by_size(blocks, config):
