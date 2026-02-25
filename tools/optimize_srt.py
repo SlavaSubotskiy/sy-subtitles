@@ -566,11 +566,6 @@ def optimize_readability(blocks, whisper_segments, config, report):
         if b['end_ms'] - b['start_ms'] < config.min_duration_ms:
             b['end_ms'] = b['start_ms'] + config.min_duration_ms
 
-    # Phase 9: Ensure maximum duration
-    for b in blocks:
-        if b['end_ms'] - b['start_ms'] > config.max_duration_ms + 1000:
-            b['end_ms'] = b['start_ms'] + config.max_duration_ms
-
     # Phase 10: Final overlap fix
     blocks = fix_overlaps(blocks, config)
 
