@@ -7,12 +7,22 @@ on:
         description: 'Talk directory name (e.g., 1983-07-24_guru-puja). Leave empty to auto-discover all pending.'
         required: false
         type: string
+      force:
+        description: 'Re-run even if whisper.json already exists'
+        required: false
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       talk_id:
         description: 'Talk directory name'
         required: true
         type: string
+      force:
+        description: 'Re-run even if whisper.json already exists'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -43,6 +53,7 @@ jobs:
           import yaml
 
           talk_id_input = "${{ inputs.talk_id }}".strip()
+          force = "${{ inputs.force }}".strip().lower() == "true"
 
           # Find meta.yaml files
           if talk_id_input:
@@ -70,7 +81,7 @@ jobs:
                   vimeo_url = video["vimeo_url"]
                   whisper_path = f"talks/{talk_id}/{slug}/source/whisper.json"
 
-                  if os.path.isfile(whisper_path):
+                  if os.path.isfile(whisper_path) and not force:
                       print(f"SKIP: {whisper_path} already exists")
                       continue
 
