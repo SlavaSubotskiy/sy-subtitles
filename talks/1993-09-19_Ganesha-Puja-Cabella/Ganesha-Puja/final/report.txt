@@ -61,7 +61,7 @@
   PARAMETER                          BEFORE      AFTER     CHANGE
   ------------------------------------------------------------
   Total blocks                          477        525       +48v
-  Avg CPS                               9.8       10.3
+  Avg CPS                               9.8        9.8
   Max CPS                              31.0       15.1
   CPS > target                           66         61        -5v
   CPS > hard max                         17          0       -17v
