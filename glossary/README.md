@@ -2,17 +2,23 @@
 
 Sahaja Yoga terminology dictionary (EN → UK).
 
-**Status: v1** — initial version based on 1983-07-24 Guru Puja lecture.
+**Status: v2** — 230 terms from 38 talks corpus.
 
 ## Structure
 
 ```
 glossary/
-  terms.yaml       # Main term dictionary (~60 terms)
-  README.md        # This file
+  terms.yaml       # Main term dictionary (230 terms)
+  corpus/           # Cached EN+UK transcripts from amruta.org (gitignored)
+    index.yaml      # Talk listing (38 talks)
+    {slug}/en.txt   # English transcript
+    {slug}/uk.txt   # Ukrainian transcript
+  README.md         # This file
 ```
 
 ## Sections in terms.yaml
+
+### Original (from 1983-07-24 Guru Puja)
 
 | Section | Description |
 |---|---|
@@ -25,6 +31,28 @@ glossary/
 | Puja Terminology | sakshat, namoh namaha, baddhas, siddhis |
 | Translation Notes | Capitalization rules for deity pronouns, spiritual terms |
 
+### New (from 38-talk corpus, 2026-02-25)
+
+| Section | Description |
+|---|---|
+| Subtle System | Additional chakras, nadis, energy structures |
+| Three Powers of God | Mahasaraswati, Mahalakshmi, Mahakali |
+| Deities and Sacred Figures | Extended deity list |
+| Ganesha Epithets | Sacred names of Ganesha |
+| Epic and Mythological Figures | Ramayana, Mahabharata characters |
+| Saints and Sages | Historical spiritual figures |
+| Avatars | Incarnations of Vishnu |
+| Cosmic Concepts | Cosmology, Virata, Paramchaitanya |
+| Spiritual States and Qualities | Nirvikalpa, nirananda, etc. |
+| Types of Ananda | Joy classifications |
+| Practices and Rituals | Bandhan, shoe-beating, etc. |
+| Sacred Texts | Gita, Devi Mahatmyam, etc. |
+| Sacred Geography | Prithvi, Vaikuntha, etc. |
+| Festivals | Diwali, Navaratri, etc. |
+| Social and Spiritual Roles | Guru, rishi, sanyasi |
+| Ayurvedic Terms | Healing terminology |
+| Other Key Terms | Miscellaneous SY vocabulary |
+
 ## Entry Format
 
 ```yaml
@@ -33,13 +61,16 @@ glossary/
   context: >
     Материнська духовна енергія, що перебуває в крижовій кістці (sacrum bone).
     Піднімається через центральний канал при самореалізації.
+```
 
-- en: Self-realization
-  uk: Самореалізація / реалізація
-  context: >
-    Пробудження Кундаліні і з'єднання з Божественним.
+## Corpus Pipeline
+
+```
+amruta.org listing → scrape_listing.py → corpus/index.yaml
+                   → fetch_transcripts.py → corpus/{slug}/en.txt + uk.txt
 ```
 
 ## Sources
 
-- 1983-07-24 Guru Puja, Lodge Hill, UK — first lecture analyzed
+- 38 Ukrainian-translated talks from amruta.org (1970–2008)
+- Primary: 1983-07-24 Guru Puja, Lodge Hill, UK (original analysis)

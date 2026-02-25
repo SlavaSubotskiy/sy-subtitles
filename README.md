@@ -28,6 +28,8 @@ talks/                          Per-talk directories
 
 tools/                          Python modules (used by Actions + locally)
   download.py                   amruta.org downloader (local only)
+  scrape_listing.py             Scrape talk listing from amruta.org
+  fetch_transcripts.py          Fetch EN+UK transcripts for glossary corpus
   whisper_run.py                Whisper speech detection wrapper
   optimize_srt.py               SRT timing optimizer
   text_export.py                SRT → plain text exporter
@@ -35,7 +37,8 @@ tools/                          Python modules (used by Actions + locally)
   config.py                     Optimization configuration
 
 templates/                      Templates for new talks
-glossary/                       SY terminology dictionary
+glossary/                       SY terminology dictionary (230 terms)
+  corpus/                       Cached transcripts from amruta.org (gitignored)
 ```
 
 ## Adding a New Talk
