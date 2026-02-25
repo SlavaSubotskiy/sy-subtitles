@@ -681,7 +681,16 @@ def optimize_readability(blocks, whisper_segments, config, report):
     report.append(f"  Phase 1 - Lines joined (single-line mode): {lines_joined}")
 
     # Phase 1b: Split blocks exceeding max duration
-    wi = [(seg['start'] * 1000, seg['end'] * 1000) for seg in whisper_segments] if whisper_segments else []
+    # Use word-level whisper boundaries if available, else segment-level
+    wi = []
+    if whisper_segments:
+        has_words = any('words' in seg for seg in whisper_segments)
+        if has_words:
+            for seg in whisper_segments:
+                for w in seg.get('words', []):
+                    wi.append((w['start'] * 1000, w['end'] * 1000))
+        else:
+            wi = [(seg['start'] * 1000, seg['end'] * 1000) for seg in whisper_segments]
     blocks, dur_splits = split_blocks_by_duration(blocks, config, wi)
     report.append(f"  Phase 1b - Duration splits (>{config.max_duration_ms}ms): {dur_splits}")
 

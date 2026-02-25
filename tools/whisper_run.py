@@ -25,16 +25,23 @@ def run_whisper(video_path, output_path, model='medium', language='en'):
         video_path,
         language=language,
         verbose=False,
+        word_timestamps=True,
     )
 
     segments = []
     for seg in result['segments']:
-        segments.append({
+        seg_data = {
             'id': seg['id'],
             'start': seg['start'],
             'end': seg['end'],
             'text': seg['text'].strip(),
-        })
+        }
+        if 'words' in seg:
+            seg_data['words'] = [
+                {'start': w['start'], 'end': w['end'], 'word': w['word'].strip()}
+                for w in seg['words']
+            ]
+        segments.append(seg_data)
 
     output = {
         'language': result.get('language', language),
