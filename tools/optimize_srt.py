@@ -482,33 +482,46 @@ def split_blocks_by_cps(blocks, config):
 
 
 def merge_short_blocks(blocks, config):
-    """Merge very short adjacent blocks if combined they are within limits."""
-    merged = 0
-    i = 0
-    new_blocks = []
-    while i < len(blocks):
-        b = copy.deepcopy(blocks[i])
-        if i + 1 < len(blocks):
-            next_b = blocks[i + 1]
-            b_chars = len(b['text'].replace('\n', ''))
-            next_chars = len(next_b['text'].replace('\n', ''))
-            combined_chars = b_chars + next_chars + 1
-            gap = next_b['start_ms'] - b['end_ms']
-            b_dur = b['end_ms'] - b['start_ms']
+    """Merge very short adjacent blocks if combined they are within limits. Multi-pass."""
+    total_merged = 0
+    for _pass in range(5):
+        merged = 0
+        i = 0
+        new_blocks = []
+        while i < len(blocks):
+            b = copy.deepcopy(blocks[i])
+            if i + 1 < len(blocks):
+                next_b = blocks[i + 1]
+                b_chars = len(b['text'].replace('\n', ''))
+                next_chars = len(next_b['text'].replace('\n', ''))
+                combined_chars = b_chars + next_chars + 1
+                gap = next_b['start_ms'] - b['end_ms']
+                b_dur = b['end_ms'] - b['start_ms']
+                next_dur = next_b['end_ms'] - next_b['start_ms']
+                combined_dur = b_dur + next_dur + gap
+                short_current = b_dur < config.min_duration_ms or (b_chars < 20 and b_dur < 3000)
+                short_next = next_dur < config.min_duration_ms or (next_chars < 20 and next_dur < 3000)
+                if (short_current or short_next) \
+                        and combined_chars <= config.max_chars_block \
+                        and combined_dur <= config.max_duration_ms + 1000 \
+                        and gap < 500:
+                    combined_text = b['text'].replace('\n', ' ') + ' ' + next_b['text'].replace('\n', ' ')
+                    b['end_ms'] = next_b['end_ms']
+                    b['text'] = split_long_line(combined_text)
+                    merged += 1
+                    i += 2
+                    new_blocks.append(b)
+                    continue
 
-            if b_dur < 800 and combined_chars <= config.max_chars_block and gap < 500:
-                combined_text = b['text'].replace('\n', ' ') + ' ' + next_b['text'].replace('\n', ' ')
-                b['end_ms'] = next_b['end_ms']
-                b['text'] = split_long_line(combined_text)
-                merged += 1
-                i += 2
-                new_blocks.append(b)
-                continue
+            new_blocks.append(b)
+            i += 1
 
-        new_blocks.append(b)
-        i += 1
+        blocks = new_blocks
+        total_merged += merged
+        if merged == 0:
+            break
 
-    return new_blocks, merged
+    return blocks, total_merged
 
 
 def cascade_redistribute(blocks, config, report):
