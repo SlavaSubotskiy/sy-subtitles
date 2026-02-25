@@ -26,6 +26,9 @@ build/
 .idea/
 .vscode/
 
+# Glossary corpus (large, generated data)
+glossary/corpus/
+
 # OS
 .DS_Store
 Thumbs.db
