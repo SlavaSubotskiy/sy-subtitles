@@ -81,6 +81,7 @@ Run locally if needed:
 ```bash
 python -m tools.optimize_srt --srt PATH [--json PATH] --output PATH
 python -m tools.text_export --srt PATH --meta PATH --output PATH
+python -m tools.extract_review --srt PATH [-o PATH]
 python -m tools.scrape_listing --output glossary/corpus/index.yaml --cookie "..."
 python -m tools.fetch_transcripts --index glossary/corpus/index.yaml --cookie "..."
 ```
