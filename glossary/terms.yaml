@@ -1,6 +1,6 @@
 # Sahaja Yoga Glossary (EN → UK)
-# Source: 38 talks from amruta.org corpus (1970–2008)
-# Status: v2 — 230 terms, expanded 2026-02-25
+# Source: 38 talks from amruta.org corpus (1970–2008), SY Mantrabook (EN 2025, UK 2014)
+# Status: v3 — ~320+ terms, expanded 2026-02-25 from books
 
 # ============================================================
 # SUBTLE SYSTEM: Chakras, Nadis, Energy
@@ -12,50 +12,66 @@
     Материнська духовна енергія, що перебуває в крижовій кістці (sacrum bone).
     Піднімається через центральний канал при самореалізації.
     В лекції: "як підняти Кундаліні, як направити Її в Сахасрару"
+    Etym: 'Coiled Goddess, sleeping in the water-pot.'
+    [kundala -- 'coils'; kunda -- 'water-pot', lini -- 'sleeping'].
+    Pure Desire for reunion with the Supreme Consciousness.
 
 - en: Sahasrara
   uk: Сахасрара
   context: >
     Сьома чакра на маківці голови — коронна чакра.
-    "Сахасрара знаходиться в Гімалаях, де знаходиться Шива на горі Кайлаш"
+    "Сахасрара знаходиться в Гімалаях, де знаходиться Шіва на горі Кайлаш"
+    Etym: 'Thousand-spoked'. [sahasra -- 'thousand', ara -- 'spokes'].
 
 - en: Agnya / Agnya Chakra
-  uk: Агія / Агія чакра
+  uk: Аґія / Аґія чакра
   context: >
     Шоста чакра між бровами. Пов'язана з Христом.
     "В Агії чакрі на вас чекає така величезна жертва"
     "стан, коли ви стаєте повним Духом у Агії чакрі"
+    Etym: 'Authority, control, command' (spelt ajna, pronounced Agnya).
+    [a -- 'full', gnya -- 'knowing']. The 'narrow gate' to Sahasrara.
 
 - en: Vishuddhi
-  uk: Вішудді
+  uk: Вішуддхі
   context: >
     П'ята чакра в ділянці горла. Має 16 аспектів.
-    "вирішать шістнадцять проблем Вішудді"
-    Left Vishuddhi (ліва Вішудді) — почуття провини
+    "вирішать шістнадцять проблем Вішуддхі"
+    Left Vishuddhi (ліва Вішуддхі) — почуття провини
+    Etym: 'Complete purification' [vi -- 'complete', shuddhi -- 'purity'].
+    Also: vish -- 'poison, hatred', uddhri -- 'draw out, remove'.
 
 - en: Mooladhara / Mooladhara chakra
   uk: Муладхара / Муладхара чакра
   context: >
-    Перша чакра біля основи хребта. Місце перебування Шрі Ганеші.
+    Перша чакра біля основи хребта. Місце перебування Шрі Ґанеші.
     "Ти перебуваєш в Муладхарі чакрі"
+    Etym: 'The Support of the Root'. [mula -- 'root', adhara -- 'support'].
+    Name of both the lowest Chakra and the Sacrum.
 
 - en: Void
   uk: Войд
   context: >
-    Область навколо пупка, пов'язана з Принципом Гуру (10 принципів).
+    Область навколо пупка, пов'язана з Принципом Ґуру (10 принципів).
     "десять ваших проблем у Войді — коли вони будуть вирішені"
+    Etym: Bhavasagara = 'Ocean of worldly existence, ocean of Illusion'.
+    [bhava -- 'existence', sagara -- 'ocean']. Contains Sun/Moon centres.
+    Gap in the Central Channel where the parasympathetic nerve breaks.
 
 - en: Sushumna Nadi
   uk: Сушумна Наді
   context: >
     Центральний енергетичний канал у хребті, через який піднімається Кундаліні.
     "мантри для вашого центрального каналу Сушумна Наді"
+    Etym: 'Very kind and gracious'. From Muladhara to Sahasrara
+    but has a break between Sacrum and Nabhi.
 
 - en: chakra
   uk: чакра
   context: >
     Енергетичний центр у тонкому тілі людини. Сім основних чакр.
     "кожен день ви повинні знати, яку чакру очистити"
+    Etym: 'Wheel, disc, discus as a weapon.' [char -- 'move', kri -- 'do, make'].
 
 - en: vibrations
   uk: вібрації
@@ -85,7 +101,7 @@
     Стан "за межами" — вища духовна стадія, де дії відбуваються автоматично
     без прив'язаності. "Що б ви не робили, ви робите це тому, що це має бути зроблено.
     Не звертаючи на це уваги, автоматично."
-    Досягається після стану Сатгуру.
+    Досягається після стану Сат Ґуру.
 
 - en: akarma state
   uk: стан акарми
@@ -105,6 +121,8 @@
   context: >
     Стан глибокої медитації, поглинання в Божественне.
     Частина тріади: "дх'яна-дхарана-самадхі"
+    Etym: Deep contemplation, profound meditation, joining (Yoga).
+    The deepest is Nirvikalpa -- 'doubtless' Samadhi.
 
 - en: ascent
   uk: сходження
@@ -117,11 +135,11 @@
 # ============================================================
 
 - en: Guru Principle
-  uk: Принцип Гуру
+  uk: Принцип Ґуру
   context: >
     Принцип духовного вчительства всередині кожної людини, пов'язаний з Войдом
     (10 принципів). Пробуджується через дисципліну і суворість до себе.
-    Стадії: Гуру → Сатгуру (через стан атіта).
+    Стадії: Ґуру → Сат Ґуру (через стан атіта).
 
 - en: dharma
   uk: Дхарма
@@ -129,6 +147,8 @@
     Праведність, внутрішній закон, моральний порядок.
     "Без Дхарми ви не можете досягти сходження"
     Пишеться з великої літери як духовний принцип.
+    Etym: [from dhri -- 'support']. Code of evolutionary process.
+    "As gold does not tarnish, so Dharma remains unchanged."
 
 - en: protocol
   uk: протокол
@@ -148,7 +168,7 @@
   uk: аскеза
   context: >
     Переклад tapasya в контексті самодисципліни.
-    "Гуру має пройти через усі аскези"
+    "Ґуру має пройти через усі аскези"
 
 - en: punya
   uk: пунья
@@ -173,7 +193,7 @@
   uk: одержимий / одержимість
   context: >
     Людина під впливом негативних сутностей (бхутів).
-    "Якщо ви одержимі, тоді Гуру також скаже вам... спочатку позбудься своїх одержимостей"
+    "Якщо ви одержимі, тоді Ґуру також скаже вам... спочатку позбудься своїх одержимостей"
 
 - en: bhoots
   uk: бхути
@@ -184,26 +204,26 @@
 - en: Ten Commandments / ten principles
   uk: десять заповідей / десять принципів
   context: >
-    Десять принципів Войду (область живота) — основа Принципу Гуру.
+    Десять принципів Войду (область живота) — основа Принципу Ґуру.
     "десять заповідей, виражених в нас"
 
 - en: left-sided
   uk: лівосторонній
   context: >
-    Емоційний, побожний тип людини. Пов'язано з Тамо Гуною.
+    Емоційний, побожний тип людини. Пов'язано з Тамо Ґуною.
     "люди були дуже відданими, лівосторонніми людьми, емоційними"
 
 - en: Tamo Guna
-  uk: Тамо Гуна
+  uk: Тамо Ґуна
   context: >
     Одна з трьох гун — якість інертності, ліва сторона.
-    "Тамаса — це місце Тамо Гуни"
+    "Тамаса — це місце Тамо Ґуни"
 
 - en: gunas
-  uk: гуни
+  uk: ґуни
   context: >
     Три якості природи: Тамо (інертність), Раджо (активність), Саттво (чистота).
-    "Ти — три Гуни і Ти — поза ними"
+    "Ти — три Ґуни і Ти — поза ними"
 
 - en: Ritambhara Pragnya
   uk: Рітамбхара Праг'я
@@ -238,11 +258,14 @@
   context: >
     Церемонія поклоніння Божеству. Завжди з великої літери.
     Types: Guru Puja, Ganesha Puja, Devi Puja.
+    Etym: Worship, adoration of the Divine. [from pu -- 'purify'].
+    Ritual washing, offering flowers, reciting mantras before
+    Shri Mataji's photo or murti.
 
 - en: Guru Puja
-  uk: Пуджа Гуру / Гуру Пуджа
+  uk: Пуджа Ґуру / Ґуру Пуджа
   context: >
-    Поклоніння Гуру. Обидва варіанти зустрічаються в тексті.
+    Поклоніння Ґуру. Обидва варіанти зустрічаються в тексті.
 
 - en: sankalpa
   uk: Санкальпа
@@ -275,24 +298,27 @@
     Священний звук або слово, що резонує з чакрами.
     "Кожна мантра має дуже великий зміст і глибоке значення"
     "Говоріть це від щирого серця, тоді інтенсивність буде великою"
+    Etym: Sacred speech. 'Instrument of thought' [from man -- 'think'].
+    Mantra formula: "Om Twameva Sakshat Shri [Deity] sakshat
+    Shri Adi Shakti Mataji Shri Nirmala Devyai namo namah."
 
 - en: Guru Purnima
-  uk: Гуру Пурніма
+  uk: Ґуру Пурніма
   context: >
-    День повного місяця, присвячений поклонінню Гуру.
-    "У день повного місяця Гуру Пурніма"
+    День повного місяця, присвячений поклонінню Ґуру.
+    "У день повного місяця Ґуру Пурніма"
 
 - en: Guru Sashti
-  uk: Гуру Сашті
+  uk: Ґуру Сашті
   context: >
-    Шістдесятиріччя Гуру — особливе святкування.
-    "це Гуру Сашті — сьогодні відзначається шістдесят років вашому Гуру"
+    Шістдесятиріччя Ґуру — особливе святкування.
+    "це Ґуру Сашті — сьогодні відзначається шістдесят років вашому Ґуру"
 
 - en: Guru tattwa
-  uk: Гуру Таттва
+  uk: Ґуру Таттва
   context: >
-    Принцип/есенція Гуру.
-    "пропонуючи Гуру Таттву Шотландії і всім народам"
+    Принцип/есенція Ґуру.
+    "пропонуючи Ґуру Таттву Шотландії і всім народам"
 
 # ============================================================
 # DEITIES AND SACRED FIGURES
@@ -303,77 +329,99 @@
   context: >
     Шрі Матаджі Нірмала Деві — засновниця Сахаджа Йоги.
     Звертання "Матінко" в молитві.
+    Etym: Mataji = 'Holy Mother' [mata -- 'mother', ji -- 'respected'].
+    Nirmala = 'Unsoiled, pure, immaculate' [nir -- 'not', mala -- 'dirt'].
 
 - en: Shri Adi Shakti
   uk: Шрі Аді Шакті
   context: >
     Первинна Божественна Сила/Енергія — аспект Шрі Матаджі.
+    Etym: Adi = 'First, beginning, original, primordial'.
+    Shakti = 'Energy, power'. Creative Power of God.
+    The first separation of the Supreme in order to create this Universe.
+    Also known as: Holy Spirit, Paramachaitanya, Dao.
 
-- en: Adi Guru Datattreya
-  uk: Аді Гуру Дататтрея
+- en: Adi Guru Dattatreya
+  uk: Аді Ґуру Даттатрейя
   context: >
-    Первинний Гуру, що поклонявся Матері на берегах Тамаси (Темзи).
-    "Шрі Аді Гуру Дататтрея поклонявся Матері на берегах річки Тамаса"
+    Первинний Ґуру, що поклонявся Матері на берегах Тамаси (Темзи).
+    "Шрі Аді Ґуру Даттатрейя поклонявся Матері на берегах річки Тамаса"
 
 - en: Shiva / Sadashiva
-  uk: Шива / Садашива
+  uk: Шіва / Садашіва
   context: >
-    Бог-Дух, присутній на горі Кайлаш. Англія — країна Шиви (Духа).
-    "в цій великій країні Шиви, Країні Духа"
+    Бог-Дух, присутній на горі Кайлаш. Англія — країна Шіви (Духа).
+    "в цій великій країні Шіви, Країні Духа"
+    Etym: Shiva = 'Happy, auspicious, fortunate, benevolent, bliss'.
+    Mahesha, Mahadeva -- 'Great God'. Embodiment of the Atma.
+    Sadashiva = 'Eternal Formless God' [sada -- 'eternal'].
 
 - en: Shri Krishna
   uk: Шрі Крішна
   context: >
-    Божественна Інкарнація. Йогешвара і Брахмачар'я.
+    Божественна Інкарнація. Йоґешвара і Брахмачар'я.
     Мав 16 000 сил, "одружився" з ними, але завжди залишався парубком.
+    Etym: 'Dark-skinned, Lord of Creation' [kri -- 'create',
+    ishana -- 'God']. 'Cultivator of Spirituality' [krishana -- 'farmer'].
 
 - en: Shri Ganesha
-  uk: Шрі Ганеша
+  uk: Шрі Ґанеша
   context: >
-    Божество Муладхари чакри. Син Шрі Шиви.
+    Божество Муладхари чакри. Син Шрі Шіви.
     "У Тебе один бивень і чотири руки"
+    Etym: 'Chief of Lord Shiva's attendants, Lord of all groups,
+    Controller of Chakras'. [gana -- 'group, people'; isha -- 'controller';
+    pati -- 'Lord']. Remover of Obstacles, worshipped first.
+    Incarnated as Lord Jesus Christ.
 
 - en: MahaGanapati
-  uk: Маха Ганапаті
+  uk: Маха Ґанапаті
   context: >
-    Велика форма Ганеші. "ми поклоняємося Маха Ганапаті"
+    Велика форма Ґанеші. "ми поклоняємося Маха Ґанапаті"
 
 - en: Shri Jesus / Lord Jesus Christ
   uk: Шрі Ісус / Господь Ісус Христос
   context: >
-    Інкарнація на Агії чакрі. Також Шрі Махавішну — Син Шрі Крішни.
+    Інкарнація на Аґії чакрі. Також Шрі Махавішну — Син Шрі Крішни.
     "прийшов на цю Землю як Господь Ісус Христос"
 
 - en: Shri Mahavishnu
   uk: Шрі Махавішну
   context: >
-    Космічна форма Христа. "мав сутність Шрі Ганеші"
+    Космічна форма Христа. "мав сутність Шрі Ґанеші"
+    Etym: Maha = 'Great'. Vishnu = 'All-pervading'.
+    Jesus Christ is Mahavishnu (higher aspect of Vishnu who is Ganesha).
+    Son of Shri Krishna (father) and Shri Radha (mother = Shri Mary-Mahalakshmi).
 
 - en: Shri Vishnu
   uk: Шрі Вішну
   context: >
     Божество-підтримувач. "двадцять одне ім'я Шрі Вішну"
+    Etym: 'All-pervading'. 'Driving away impurity'
+    [vish -- 'impurity', nu -- 'drive away']. 'Worshipped by the universe'
+    [vishwa -- 'universe', nuta -- 'worshipped']. Ten incarnations
+    direct humanity towards the ultimate goal.
 
 - en: Yogeshwara
-  uk: Йогешвара
+  uk: Йоґешвара
   context: >
     "Повелитель Йоги" — ім'я Шрі Крішни.
-    "мудрість і розважливість Йогешвари ви повинні мати"
+    "мудрість і розважливість Йоґешвари ви повинні мати"
 
 - en: brahmacharya
   uk: Брахмачар'я
   context: >
     Целібат, чистота. Якість Шрі Крішни.
-    "Він Йогешвара і Він Брахмачар'я"
+    "Він Йоґешвара і Він Брахмачар'я"
 
 - en: Satguru
-  uk: Сатгуру
+  uk: Сат Ґуру
   context: >
-    Істинний Гуру. Досягається після стану атіта.
-    "Щоб стати Сатгуру, ви повинні досягти стану атіта"
+    Істинний Ґуру. Досягається після стану атіта.
+    "Щоб стати Сат Ґуру, ви повинні досягти стану атіта"
 
 - en: Sahaja Yogi
-  uk: сахаджа йог (чол.) / сахаджа йогиня (жін.)
+  uk: сахаджа йоґ (чол.) / сахаджа йоґиня (жін.)
   context: >
     Практикуючий Сахаджа Йоги. З малої літери як загальна назва.
     Скорочення в діалогах: СЙ
@@ -395,8 +443,8 @@
 - en: Kailasha
   uk: Кайлаш
   context: >
-    Священна гора в Гімалаях — місце перебування Шиви/Садашиви.
-    "Сахасрара знаходиться в Гімалаях, де знаходиться Шива на горі Кайлаш"
+    Священна гора в Гімалаях — місце перебування Шіви/Садашіви.
+    "Сахасрара знаходиться в Гімалаях, де знаходиться Шіва на горі Кайлаш"
 
 - en: desh / desha / bhoomi
   uk: деш / деша / бхумі
@@ -408,7 +456,7 @@
   uk: прадеш
   context: >
     Просвітлена деша. "деша стала просвітленою"
-    Всі прадеші мають бути встановлені для досягнення стану Гуру.
+    Всі прадеші мають бути встановлені для досягнення стану Ґуру.
 
 # ============================================================
 # PUJA TERMINOLOGY (Sankalpa & Prayers)
@@ -418,20 +466,31 @@
   uk: Сакшат
   context: >
     "Втілення", "прояв" — використовується перед іменами Божеств.
+    Etym: 'Really, perceptible, in physical form, verily'.
+    [sa -- 'with', akshat -- 'with the eyes or senses in general'].
 
 - en: namoh namaha
   uk: намо намаха
-  context: Вітання/уклін Божеству.
+  context: >
+    Вітання/уклін Божеству.
+    Etym: [from nam -- 'to bend, bow']. Also taken as
+    'without ego' [na -- 'not', mah -- 'I'] and 'without conditionings'
+    [na -- 'not', mo -- 'worldly illusion'].
 
 - en: baddhas
   uk: бадхи
   context: >
     Перешкоди, обмеження. "для знищення всіх бадхів сахаджа йогів"
+    Etym: Baddha = 'Obstructed, bound by the fetters of existence'.
+    [from bandh -- 'tie, bind']. Negativity attaching to chakras, nadis, etc.
 
 - en: siddhis
   uk: сіддхі
   context: >
     Надприродні сили/здібності. "щоб бути володарями восьми сіддхів"
+    Etym: Siddhi = 'Success, fulfilment, Self-realisation'.
+    Eight magical powers possessed by Shri Hanuman.
+    A Siddha is a realized soul.
 
 - en: purushas
   uk: Пуруші
@@ -455,7 +514,7 @@
 # - Дух — з великої (Spirit як божественна сутність)
 # - Матінко — в молитвах/зверненнях
 # - Стопи — з великої (Стопи Матері / Божества)
-# - Він/Його/Йому — з великої для Божеств (Шрі Крішна, Ісус, Мойсей, Дататтрея)
+# - Він/Його/Йому — з великої для Божеств (Шрі Крішна, Ісус, Мойсей, Даттатрейя)
 # - Вона/Її — з великої для Шрі Матаджі та Божественної Матері
 # - Ти/Твоя/Тебе — з великої в молитвах до Божества
 
@@ -472,12 +531,18 @@
   context: >
     Лівий енергетичний канал (місячний канал).
     "Ida and Pingala, the left and the right channels"
+    Etym: 'Left Side Channel of refreshment, comfort and the Spirit.'
+    Crosses to right hemisphere of brain, forms Superego.
+    Deity: Shri Bhairava (Archangel Michael).
 
 - en: Pingala Nadi
-  uk: Пінгала Наді
+  uk: Пінґала Наді
   context: >
     Правий енергетичний канал (сонячний канал).
     Згадується у парі з Ідою та Сушумною.
+    Etym: 'Golden, reddish-brown'. Right Channel.
+    Crosses to left hemisphere, forms Ego.
+    Deity: Shri Hanumana (Archangel Gabriel).
 
 - en: Brahma Nadi
   uk: Брахма Наді
@@ -489,22 +554,33 @@
   context: >
     Третя чакра в ділянці пупка, пов'язана з Шрі Вішну/Лакшмі.
     "The Nabhi chakra which is looked after by Shri Vishnu"
+    Etym: Nabhi = 'Navel, middle'. Also called Manipura
+    = 'Place of the Gem' [mani -- 'gem', pura -- 'place'].
 
 - en: Swadishthana / Swadishthana Chakra
-  uk: Свадістхана / Свадістхана чакра
+  uk: Свадхістхана / Свадхістхана чакра
   context: >
     Друга чакра, пов'язана з творчістю та чистим знанням.
+    Etym: 'Standing in its own place' [swa -- 'own', adhi -- 'place',
+    shthana -- 'standing']. Also 'basis of the Self'. Emerges from the Nabhi.
+    Rotates like a satellite around Nabhi, forming the Void area.
+    Produces energy for brain cell renewal.
 
 - en: Anahat / Anahat Chakra
   uk: Анахат / Анахат чакра
   context: >
     Четверта (серцева) чакра тонкої системи.
+    Etym: 'Unstruck, without percussion'. [an -- 'not', ahata -- 'struck'].
+    The unstruck sound is 'Om'. Sternum -- seat of antibody production.
 
 - en: Hamsa Chakra
   uk: Хамса чакра
   context: >
-    Чакра між Вішудді та Агією, пов'язана з розрізненням (discretion).
+    Чакра між Вішуддхі та Аґією, пов'язана з розрізненням (discretion).
     "Хамса" означає лебідь -- символ відділення істини від неправди.
+    Etym: 'Swan, great saint'. [ha -- 'Shiva', m -- 'joining',
+    sa -- 'Shakti']. Manages self-regulation. Kundalini does NOT pass
+    through it -- we must care for it ourselves.
 
 - en: Brahmarandhra
   uk: Брахмарандхра
@@ -513,15 +589,19 @@
     "the Brahmarandhra, the opening on top of the head"
 
 - en: Ekadasha Rudra
-  uk: Екадеша Рудра
+  uk: Екадаша Рудра
   context: >
-    Одинадцять руйнівних сил Шиви, розташованих на чолі.
-    Коли людина не дотримується принципів, Екадеша Рудра спричиняє хвороби.
+    Одинадцять руйнівних сил Шіви, розташованих на чолі.
+    Коли людина не дотримується принципів, Екадаша Рудра спричиняє хвороби.
+    Etym: Ekadasha = [eka -- 'one', adasha -- 'with ten'].
+    Wielded by Lord Jesus Christ. Seated across top of Void, manifest
+    on forehead. Causes: false gurus, drugs, fanaticism, obstinacy,
+    half-hearted commitment to Sahaja Yoga.
 
 - en: Right Side / right-sided
   uk: права сторона / правосторонній
   context: >
-    Правий канал (Пінгала Наді), пов'язаний з его, надмірною активністю.
+    Правий канал (Пінґала Наді), пов'язаний з его, надмірною активністю.
     "Right Side is of no help. It will create problems for you."
 
 # ============================================================
@@ -532,12 +612,12 @@
   uk: Шакті
   context: >
     Божественна Жіноча Сила/Енергія -- творить, захищає, виховує.
-    Контрастує з руйнівною силою Шиви.
+    Контрастує з руйнівною силою Шіви.
 
 - en: Mahakali
   uk: Махакалі
   context: >
-    Ліва сила Бога -- сила бажання (Ічча Шакті).
+    Ліва сила Бога -- сила бажання (Іччха Шакті).
     "Mahakali power, which is the power of desire"
 
 - en: Mahasaraswati
@@ -567,6 +647,9 @@
   context: >
     Богиня добробуту та благополуччя, сила Шрі Вішну.
     Має вісім форм. Пов'язана з лівою рукою, що дає.
+    Etym: 'Bearing auspicious signs, wealth, good fortune',
+    'Forbearing Mother Earth' [la -- 'earth', kshami -- 'forgiving'].
+    Eight aspects: Adya, Vidya, Sobhagya, Amruta, Gruha, Raja, Satya, Bhogya.
 
 - en: Shri Rama
   uk: Шрі Рама
@@ -575,56 +658,70 @@
     "Шрі Рама повернувся зі вигнання" -- контекст свята Дівалі.
 
 - en: Parvati / Gauri
-  uk: Парваті / Гаурі
+  uk: Парваті / Ґаурі
   context: >
-    Мати Шрі Ганеші, дружина Шрі Шиви.
-    Гаурі -- "чиста, сяюча". "Парваті, яка створила Ганешу"
+    Мати Шрі Ґанеші, дружина Шрі Шіви.
+    Ґаурі -- "чиста, сяюча". "Парваті, яка створила Ґанешу"
 
 - en: Radha
   uk: Радха
   context: >
     Шакті (сила) Шрі Крішни; інкарнація Махалакшмі.
     "Ra" = енергія, "dha" = та, що підтримує.
+    Etym: 'Prosperity, happiness', 'support of Kundalini'
+    [ra -- 'Kundalini', dha -- 'support']. Rules Vishuddhi Chakra.
 
 - en: Kartikeya
-  uk: Картікея
+  uk: Картікейя
   context: >
-    Син Шрі Шиви і Парваті, брат Ганеші -- командувач армії богів.
+    Син Шрі Шіви і Парваті, брат Ґанеші -- командувач армії богів.
     Вбив демона Наракасуру.
 
 - en: Vishnumaya
   uk: Вішнумайя
   context: >
-    Сестра Шрі Крішни; сила лівої Вішудді. Проявляється як блискавка.
+    Сестра Шрі Крішни; сила лівої Вішуддхі. Проявляється як блискавка.
     Знищує нечесність і помилковість.
+    Etym: The Illusory Creative Power of Shri Vishnu.
+    Embodiment of Chastity and Sisterly Love. Rules Left Vishuddhi.
+    Was born as Krishna's sister, was Draupadi. Like electricity --
+    burns away negativity.
 
 - en: Mahamaya
   uk: Махамайя
   context: >
     "Велика Ілюзія" -- аспект Аді Шакті, що приховує Її божественність.
     "Нечутливість до Божественного створена силою Махамайї"
+    Etym: Maya = 'Creative energy, illusory power, magic'.
+    Maha = 'Great'. Mahamaya = Great Illusion hiding Divine identity.
 
 - en: Kalki
-  uk: Калкі
+  uk: Калькі
   context: >
     Десята (остання) Інкарнація Шрі Вішну -- прийде в кінці часів.
 
 - en: Rudra
   uk: Рудра
   context: >
-    Руйнівний аспект Шиви.
+    Руйнівний аспект Шіви.
 
 - en: Mahavira
   uk: Махавіра
   context: >
     Засновник джайнізму; пізніша інкарнація Бхаїравнатха.
     "Mahavira of all the persons wrote so clearly about hell"
+    Etym: 'Great warrior, very brave'. Ruler of Superego.
+    24th and final Arhat of Jain religion, c.650 BCE.
+    Left Agnya deity -- controls right hemisphere (conditioning/memory).
 
 - en: Bhairavanath / Bhairava
   uk: Бхаїравнатх / Бхаїрава
   context: >
     Божество лівого каналу (Іда Наді), носить світло.
     Пізніше інкарнувався як Махавіра.
+    Etym: 'Fearsome' [bhiru -- 'fearful'], 'Roaring terrifyingly'
+    [bhai -- 'fearful', rava -- 'roaring']. Wrathful form of Shri Shiva.
+    Archangel Michael in Christian tradition.
 
 - en: Surya / Surya Devata
   uk: Сур'я / Сур'я Девата
@@ -643,9 +740,9 @@
     "Agni Devta, the deity of fire"
 
 - en: Shiva Linga
-  uk: Лінгам Шиви
+  uk: Лінгам Шіви
   context: >
-    Сакральний символ Шиви. Під час Шиваратрі пуджі змії оточують Лінгам.
+    Сакральний символ Шіви. Під час Шіваратрі пуджі змії оточують Лінгам.
 
 - en: Bhoomi Devi / Mother Earth
   uk: Бхумі Деві / Мати Земля
@@ -658,26 +755,27 @@
 # ============================================================
 
 - en: Ganapati
-  uk: Ганапаті
+  uk: Ґанапаті
   context: >
-    "Володар усіх ганів" -- ім'я Шрі Ганеші.
-    "Ганапаті -- повелитель усіх ганів"
+    "Володар усіх ганів" -- ім'я Шрі Ґанеші.
+    "Ґанапаті -- повелитель усіх ганів"
 
 - en: Gajanana
   uk: Ґаджанана
   context: >
-    "Слононосий" -- ім'я Шрі Ганеші.
+    "Слононосий" -- ім'я Шрі Ґанеші.
     "Ґаджанана означає Той, хто має обличчя слона"
 
 - en: Vinayaka
   uk: Вінаяка
   context: >
-    Ім'я Ганеші -- "Той, хто видаляє перешкоди".
+    Ім'я Ґанеші -- "Той, хто видаляє перешкоди".
+    Etym: UK book: Шрі Вінайака -- Втілення смирення й слухняності.
 
 - en: Ganesh tattwa
-  uk: Ганеша Таттва
+  uk: Ґанеша Таттва
   context: >
-    Принцип Шрі Ганеші -- невинність, чистота, мудрість.
+    Принцип Шрі Ґанеші -- невинність, чистота, мудрість.
     "awakening the Ganesh tattwa within us"
 
 # ============================================================
@@ -689,6 +787,9 @@
   context: >
     Космічна форма Бога; колективна свідомість Всесвіту.
     Віратангана -- Його Шакті (жіночий аспект).
+    Etym: 'Vast Cosmic Form of God. The Subtle System of the Universe.'
+    [from viraj -- 'splendid, ruler']. Virat-angana = 'Feminine Power'
+    [angana -- 'woman']. Sahaja yogis reside in its brain as cells.
 
 - en: Arjuna
   uk: Арджуна
@@ -755,7 +856,7 @@
 - en: Ganas
   uk: ґани
   context: >
-    Божественні слуги/воїни Шрі Ганеші та Шрі Шиви.
+    Божественні слуги/воїни Шрі Ґанеші та Шрі Шіви.
 
 # ============================================================
 # SAINTS, SAGES, AND HISTORICAL FIGURES
@@ -765,6 +866,10 @@
   uk: Аді Шанкарачар'я
   context: >
     Великий індійський філософ, автор "Ананда Лахарі".
+    Etym: Saint from Kerala c.500 CE who revitalized Hinduism.
+    [shankar -- 'creating peace, well-being' (Shiva), acharya -- 'teacher'].
+    Also taught advaita Vedanta. Founded monasteries whose heads
+    are all called Shankaracharya.
 
 - en: Patanjali
   uk: Патанджалі
@@ -825,6 +930,9 @@
   context: >
     Творець та Його принцип (есенція).
     "Brahma, who is the Creator" / "the Brahma Tattwa"
+    Etym: Brahma = 'God who seeks/knows the Brahman'.
+    Sits on lotus from Shri Vishnu's navel. Ruler of Swadhishthana.
+    Tattwa = 'Principle, quality, Truth, Supreme Spirit'.
 
 - en: Parameshwara / Ishwara
   uk: Парамешвара / Ішвара
@@ -833,7 +941,7 @@
     "Ishwara, the God Almighty"
 
 - en: Bhavasagara / Bhav-Sagar
-  uk: Бхавасагар
+  uk: Бхавасаґара
   context: >
     "Океан ілюзій" -- область Войду навколо пупка.
     "this Bhavasagara, the ocean of illusion"
@@ -847,7 +955,7 @@
   uk: Омкара / Пранава
   context: >
     Священний звук Ом -- первинна вібрація створення.
-    Також ім'я Шрі Ганеші як втілення Омкари.
+    Також ім'я Шрі Ґанеші як втілення Омкари.
 
 - en: Akasha
   uk: Акаша
@@ -864,6 +972,9 @@
   context: >
     Всепроникаюча Божественна Сила (сила Аді Шакті).
     "ця сила Парамчайтаньї є у кожній частинці, у кожному атомі"
+    Etym: Supreme All-Pervading Formless Consciousness.
+    [para/param -- 'beyond, supreme'; chaitanya -- 'consciousness'].
+    Chaitanya = 'Consciousness, Divine Vibrations, Universal Spirit'.
 
 - en: Maya
   uk: Майя
@@ -944,9 +1055,9 @@
     "За межами дхарми" -- дхарма стає вродженою частиною буття.
 
 - en: gunateet
-  uk: гунатіт
+  uk: ґунатіт
   context: >
-    "За межами трьох гун" -- вихід за якості лівого/правого/центрального.
+    "За межами трьох ґун" -- вихід за якості лівого/правого/центрального.
 
 - en: kevalam
   uk: кевалам
@@ -1027,7 +1138,7 @@
     Використовується для опису вчинків Шрі Крішни.
 
 - en: maryadas
-  uk: мар'яди
+  uk: маріяди / мар'яди
   context: >
     Духовні межі, обмеження поведінки.
     "maryadas, the boundaries"
@@ -1046,6 +1157,8 @@
   uk: Атма / Параматма
   context: >
     Індивідуальний Дух / Всевишній Дух.
+    Etym: Atma = Individual Spirit, Soul, Self, Consciousness.
+    Para = 'beyond, supreme'. Paramatma = Attribute-less God Almighty.
 
 - en: Vishwa Nirmala Dharma
   uk: Вішва Нірмала Дхарма
@@ -1066,13 +1179,13 @@
 - en: Kshama
   uk: Кшама
   context: >
-    "Прощення" (санскрит). Мантра для очищення Агія чакри.
+    "Прощення" (санскрит). Мантра для очищення Аґія чакри.
     "By saying Kshama 3 times, the Agnya Chakra becomes alright."
 
 - en: Pashupati
   uk: Пашупаті
   context: >
-    "Володар тварин" -- ім'я Шрі Шиви.
+    "Володар тварин" -- ім'я Шрі Шіви.
 
 - en: daana
   uk: даана
@@ -1095,10 +1208,13 @@
 # ============================================================
 
 - en: bandhan
-  uk: бандан
+  uk: бандхан
   context: >
     Захисна техніка -- обмотування себе вібраціями (рукою навколо тіла).
     "before acting on them you must take a bandhan."
+    Etym: 'Tying, knot, connection'. [from bandh -- 'tie, bind'].
+    Horse-shoe shaped protection. Circle left hand with right hand
+    seven times. Also used for putting things into the Divine Attention.
 
 - en: catching / catches
   uk: блокування
@@ -1158,7 +1274,7 @@
 - en: bindi
   uk: бінді
   context: >
-    Червона крапка на лобі -- відмітка Шрі Ганеші.
+    Червона крапка на лобі -- відмітка Шрі Ґанеші.
     "You put on bindis. This is Ganesha's mark."
 
 - en: bija mantra
@@ -1233,9 +1349,9 @@
 # ============================================================
 
 - en: Ganapatipule
-  uk: Ганапатіпуле
+  uk: Ґанапатіпуле
   context: >
-    Місце в Індії з храмом Шрі Ганеші; місце щорічних семінарів SY.
+    Місце в Індії з храмом Шрі Ґанеші; місце щорічних семінарів SY.
 
 - en: Godavari
   uk: Годаварі
@@ -1278,9 +1394,9 @@
     Фестиваль вогнів. "Діпа Валі" = ряди вогнів (діпа = вогонь).
 
 - en: Shivaratri
-  uk: Шиваратрі
+  uk: Шіваратрі
   context: >
-    "Ніч Шиви" -- нічне поклоніння Шиві.
+    "Ніч Шіви" -- нічне поклоніння Шіві.
 
 # ============================================================
 # SOCIAL AND SPIRITUAL ROLES
@@ -1307,9 +1423,9 @@
     Каста воїнів-правителів.
 
 - en: guruvi
-  uk: гурувї
+  uk: ґурувї
   context: >
-    Жінка-гуру. "ladies also, they're called as guruvis, not as gurus"
+    Жінка-ґуру. "ladies also, they're called as guruvis, not as gurus"
 
 - en: Avadhuta / avadhoota
   uk: Авадхут / авадхута
@@ -1319,13 +1435,13 @@
 - en: shaivaite / vaishnavaite
   uk: шиваїт / вішнаїт
   context: >
-    Два типи індуїстських вірян: відданих Шиві та відданих Вішну.
+    Два типи індуїстських вірян: відданих Шіві та відданих Вішну.
 
 - en: Maha Yogi
-  uk: Махайог
+  uk: Махайоґ
   context: >
-    "Великий йог" -- найвищий стан сахаджа йога.
-    "якщо ви довершені, тоді ви Махайоги"
+    "Великий йоґ" -- найвищий стан сахаджа йоґа.
+    "якщо ви довершені, тоді ви Махайоґи"
 
 # ============================================================
 # AYURVEDIC AND HEALING TERMS
@@ -1334,7 +1450,7 @@
 - en: pipli
   uk: піплі
   context: >
-    Довгий перець -- аюрведичний засіб для Вішудді (горла).
+    Довгий перець -- аюрведичний засіб для Вішуддхі (горла).
     "Тримайте піплі в роті, поки він не розбухне"
 
 - en: ajwain dhuni
@@ -1360,7 +1476,7 @@
   uk: чандан
   context: >
     Сандалове дерево/паста -- священний аромат для пудж.
-    "Ганеша пахне чанданом -- ароматом сандалу"
+    "Ґанеша пахне чанданом -- ароматом сандалу"
 
 - en: Pisachhas
   uk: Пішачі
@@ -1385,12 +1501,12 @@
 - en: mast-maulaa
   uk: маст-маула
   context: >
-    Епітет Шиви -- "вільний, нічим не зумовлений".
+    Епітет Шіви -- "вільний, нічим не зумовлений".
 
 - en: alankara
   uk: аланкара
   context: >
-    Прикраси, оздоблення. Шива не носить жодних аланкар.
+    Прикраси, оздоблення. Шіва не носить жодних аланкар.
 
 - en: Ranchordas
   uk: Ранчордас
@@ -1406,3 +1522,859 @@
   uk: Лакшмі Паті
   context: >
     "Володар Лакшмі" -- чоловік, гідний Лакшмі.
+
+# ============================================================
+# BOOK TERMS — extracted from SY Mantrabook (EN 2025, UK 2014), 2026-02-25
+# ============================================================
+
+# ============================================================
+# DEITIES AND SACRED FIGURES (Book)
+# ============================================================
+
+- en: Durga / Durga Mata
+  uk: Дурґа / Дурґа Мата
+  context: >
+    Supreme Goddess -- Consort of Shri Sadashiva. 'Carrying us over
+    difficulties, hard to attain.' Shri Parvati in the Central Channel.
+    Центральне Серце чакра. Шрі Дурґа Мата Джаґадамба -- повний захист Матері.
+
+- en: Jagadamba
+  uk: Джаґадамба
+  context: >
+    'Mother of the world'. [jagat -- 'world', amba -- 'mother'].
+    Центральне Серце. Мантра: "Джай Джаґадамбе Ма".
+
+- en: Hanumana / Hanuman
+  uk: Хануман / Ханумана
+  context: >
+    'Having a prominent jaw'. Monkey Deity, greatest devotee of Shri Rama;
+    the power of the Right Channel. Destroyer of ego and pride.
+    Права сторона (Пінґала Наді). Архангел Гавриїл.
+
+- en: Saraswati
+  uk: Сарасваті
+  context: >
+    'Being like a lake, Power of Speech'. Goddess of Speech, Knowledge,
+    Arts and Music. Shakti of Shri Brahmadeva.
+    Свадхістхана чакра. Шрі Брахмадева-Сарасваті.
+
+- en: Brahmadeva
+  uk: Брахмадева
+  context: >
+    The Creator Aspect of God. 'The God who seeks/knows the Brahman'.
+    Ruler of Swadhishthana Chakra.
+    Свадхістхана чакра. Шрі Брахмадева-Сарасваті.
+
+- en: Rukmini
+  uk: Рукміні
+  context: >
+    'Radiant, ornamented with gold'. Main wife of Shri Krishna.
+    Права Вішуддхі. Шрі Вітхала-Рукміні.
+
+- en: Sita
+  uk: Сіта
+  context: >
+    Wife of Shri Rama. 'A furrow'. Found in a casket inside the earth
+    by Raja Janaka while ploughing.
+    Праве Серце. Шрі Сіта-Рама.
+
+- en: Buddha
+  uk: Будда
+  context: >
+    'Awakened, enlightened, intelligent, wise.' Deity of Right Agnya
+    Chakra (ego). Контролює ліву півкулю мозку (его).
+
+- en: Kali
+  uk: Калі
+  context: >
+    'Black' form of Shri Parvati, wife of Shri Shiva, ruler of the Left Side.
+    Ліва сторона. Пов'язана з Махакалі.
+
+- en: Lakshmana
+  uk: Лакшмана
+  context: >
+    'Bearing auspicious marks'. Brother of Shri Rama.
+    Incarnation of Shesha (divine serpent of Shri Vishnu).
+    Шрі Шеша Лакшмана -- Праве Набхі.
+
+- en: Ravana
+  uk: Равана
+  context: >
+    A ten-headed demon who kidnapped Shri Sita and was killed by
+    Shri Rama. Десять голів -- десять галузей знання, зведений хтивістю.
+
+- en: Bhairavi
+  uk: Бхаїрави
+  context: >
+    Feminine form of Bhairava. Power of the Left Side.
+    Ліва сторона. В UK книзі: Шрі Бхаїрави.
+
+- en: Shri Ganga
+  uk: Шрі Ґанґа
+  context: >
+    Sacred river Ganges as a deity. В UK книзі через ґ.
+
+- en: Athena
+  uk: Афіна
+  context: >
+    Goddess Athena -- SY context: Shri Athena Pallada.
+    Шрі Афіна Паллада.
+
+- en: Shesha
+  uk: Шеша
+  context: >
+    Seven-headed snake on which Shri Vishnu reclines. The Power of
+    Attention. Incarnated as Lakshmana and Balarama.
+    Шрі Шеша Лакшмана -- Праве Набхі.
+
+- en: Garuda
+  uk: Ґаруда
+  context: >
+    Vedic eagle deity who became the vehicle of Shri Vishnu.
+
+- en: Raja Janaka
+  uk: Раджа Джанака
+  context: >
+    Father-in-law of Shri Rama; a Self-realised King of Mithila.
+    First incarnation of Adi Guru Dattatreya.
+    Перший з десяти Первинних Учителів.
+
+- en: Abraham
+  uk: Авраам
+  context: >
+    Father of the Jewish people; established monotheism.
+    Другий із десяти Первинних Учителів.
+
+- en: Moses
+  uk: Мойсей
+  context: >
+    Led the Israelites from Egypt; received the Ten Commandments.
+    Третій із десяти Первинних Учителів.
+
+- en: Zarathustra / Zoroaster
+  uk: Заратустра / Зороастр
+  context: >
+    Founded Zoroastrianism; emphasised Truth vs Lie.
+    Четвертий із десяти Первинних Учителів.
+
+- en: Confucius
+  uk: Конфуцій
+  context: >
+    Teacher of morality, social relationships and justice.
+    П'ятий із десяти Первинних Учителів.
+
+- en: Lao-Tze
+  uk: Лао-Цзи
+  context: >
+    Author of Tao Te Ching; taught the way (Tao) of the Void.
+    Шостий із десяти Первинних Учителів.
+
+- en: Socrates
+  uk: Сократ
+  context: >
+    Father of Western philosophy; taught self-knowledge.
+    Сьомий із десяти Первинних Учителів.
+
+- en: Prophet Muhammad
+  uk: Пророк Мохаммед
+  context: >
+    Messenger of Allah; received the Quran.
+    Восьмий із десяти Первинних Учителів.
+
+- en: Shri Sai Baba of Shirdi / Sai Nath
+  uk: Шрі Саї Натх із Ширді
+  context: >
+    Taught unity of Hinduism and Islam; lived as a simple saint.
+    Десятий із десяти Первинних Учителів.
+
+- en: Mary / Virgin Mary
+  uk: Марія / Богородиця
+  context: >
+    Incarnation of Mahalakshmi and Mother of Christ (Mahavishnu).
+    Шрі Марія (Марійа Мата). Також Богородиця в UK книзі.
+    Central Agnya: Шрі Ісус Христос та Шрі Марія.
+
+- en: Fatima
+  uk: Фатіма
+  context: >
+    Incarnation of Shri Gruha Lakshmi. Sister of Shri Krishna (Vishnumaya aspect).
+    Ліва Свадхістхана + Ліва Вішуддхі.
+
+- en: Hazrat Ali
+  uk: Хазрат-Алі
+  context: >
+    (Arabic) 'Noble one, your honour'. Right Swadhishthana deity.
+    В UK книзі: Шрі Фатіма, Хазрат-Алі.
+
+- en: Allah
+  uk: Аллах
+  context: >
+    99 Holy Names in SY tradition.
+    99 Святих Імен в UK книзі. Мантра для Вішуддхі: аллах ху акбар.
+
+- en: Kubera
+  uk: Кубера
+  context: >
+    The God of Wealth. Aspect of Shri Krishna in America.
+    Шрі Кубера -- пов'язаний з Вішуддхі.
+
+- en: Mahadevi
+  uk: Махадеві
+  context: >
+    'Great Goddess'. Supreme feminine deity.
+    В UK книзі: Шрі Махадеві.
+
+- en: Raja-Rajeshwari
+  uk: Раджа-Раджешварі
+  context: >
+    'Queen of Queens'. A form of the Supreme Goddess.
+
+- en: Chamunda
+  uk: Чамунда
+  context: >
+    Form of Shri Durga who destroyed the demons Chanda ('anger')
+    and Munda ('bald head' signifying ego).
+
+- en: Nirmala Vidya
+  uk: Нірмала Відья
+  context: >
+    'Immaculate Knowledge'. Deity of Left Swadhishthana.
+    Ліва Свадхістхана.
+
+- en: Shuddha Ichchha
+  uk: Шуддха Іччха
+  context: >
+    'Pure Desire'. Deity of Left Swadhishthana.
+    Шрі Шуддха Іччха -- ліва Свадхістхана.
+
+- en: Bhagavati
+  uk: Бхаґаваті
+  context: >
+    'Blessed one, fortunate'. Name of the Supreme Goddess.
+    "Медитація -- це стан постійного перебування разом
+    з вічно люблячою Бхаґаваті."
+
+- en: Nishkalanka
+  uk: Нішкаланка
+  context: >
+    'Spotless'. Full name of Kalki / Калькі. Destroyer of impurities.
+
+# ============================================================
+# INCARNATIONS OF VISHNU (Book)
+# ============================================================
+
+- en: Varaha / Varaha Avatara
+  uk: Вараха
+  context: >
+    'Boar'. Third incarnation of Shri Vishnu; lifted the Earth from the cosmic ocean.
+    В UK книзі: Шрі Вараха (Вепр).
+
+- en: Narasimha / Narasimha Avatara
+  uk: Нарасімха
+  context: >
+    'Man-lion'. Fourth incarnation of Shri Vishnu; destroyed demon Hiranyakashipu.
+    В UK книзі: Шрі Нарасімха (Людина-лев).
+
+- en: Vamana / Vamana Avatara
+  uk: Вамана
+  context: >
+    'Short Man / Dwarf'. Fifth incarnation of Shri Vishnu.
+    В UK книзі: Шрі Вамана (Карлик).
+
+- en: Parashurama
+  uk: Парашурама
+  context: >
+    'Strong Man with Battle-axe'. Sixth incarnation of Shri Vishnu.
+    В UK книзі: Шрі Парашурама.
+
+# ============================================================
+# SPIRITUAL CONCEPTS AND STATES (Book)
+# ============================================================
+
+- en: Advaita
+  uk: Адвайта
+  context: >
+    'Non-dualism', the belief that all is one and the Supreme Spirit
+    and the Creation are not separate.
+    Філософія Аді Шанкарачар'ї. Основа розуміння єдності Атми та Параматми.
+
+- en: Karma
+  uk: карма
+  context: >
+    'Action'. Belief in the rewards of good and bad actions.
+    Also means 'duty' and actions in worshipping God.
+    Після прощення (Аґія) Дух більше не може тримати карму.
+    Христос зруйнував провину та карму.
+
+- en: Moksha
+  uk: мокша
+  context: >
+    Liberation, enlightenment. [mo = moha, ksha = destroying].
+    Духовне звільнення. Шрі Мокша Прадайіні.
+
+- en: Samsara
+  uk: самсара
+  context: >
+    Worldly life, illusory existence. Cycle of birth and death.
+    Бхавасаґара = океан самсари.
+
+- en: Turiya
+  uk: Тур'я
+  context: >
+    The 'fourth state' beyond waking, dreaming and deep sleep.
+    The state of Pure Spirit. Стан після Ом (мовчання після А-У-М).
+
+- en: Sat-chit-ananda
+  uk: Сат-Чід-Ананда
+  context: >
+    Qualities of the Formless Divine: Sat (existence), Chit (consciousness),
+    Ananda (joy). Give rise to the three Gunas.
+    В UK книзі: Сат-Чід-Ананда (Істина-Свідомість-Блаженство).
+    Ліве Серце після Самореалізації.
+
+- en: Pralaya
+  uk: Пралая
+  context: >
+    'Final dissolution'. The end of a cosmic cycle when all creation
+    is absorbed back into Sadashiva.
+    Космічне розчинення між циклами творіння.
+
+- en: Sattva / Sattva Guna
+  uk: Саттва / Саттва ґуна
+  context: >
+    Truth, reality, goodness, essence. Quality of the Central Channel.
+    В UK книзі: Саттва ґуна.
+
+- en: Rajas / Rajo Guna
+  uk: Раджо ґуна
+  context: >
+    Right Side quality. Passion, action.
+    В UK книзі: Раджо ґуна. Правий канал.
+
+- en: Prakriti
+  uk: Пракріті
+  context: >
+    'Nature, Primordial Creative Energy', Adi Shakti.
+    Пракріті та Пуруша -- два аспекти Бога.
+
+- en: Tantra
+  uk: тантра
+  context: >
+    Control, technique, especially 'the technique' of raising the Kundalini.
+    Negative connotations come from Tantrikas -- 'black magicians'.
+    Негативний контекст в SY -- чорна магія.
+
+- en: Ananda
+  uk: Ананда
+  context: >
+    'Joy, bliss, ecstasy'. A quality of the Formless Divine.
+    Основа для складених слів: Нірананда, Свананда, Брахмананда.
+
+- en: Gnyaha / Jnana
+  uk: Ґньяга / Джняна
+  context: >
+    'Knowledge', especially knowledge of the Absolute. Quality of Central Channel.
+    Г'яні -- реалізована душа. Г'янешвара.
+
+- en: Kriya
+  uk: крія
+  context: >
+    'Action' -- Right Side quality. Quality of Mahasaraswati.
+    Бхакті, Крія та Ґньяга -- три шляхи до Бога.
+
+- en: Iccha / Iccha Shakti
+  uk: Іччха / Іччха Шакті
+  context: >
+    'Desire, wishes'. Quality of Left Side (Mahakali).
+    Шрі Шуддха Іччха -- чисте бажання (ліва Свадхістхана).
+
+- en: Moha
+  uk: моха
+  context: >
+    Delusion, illusion, taking the world of senses to be real.
+    One of the 'six enemies' of the soul.
+    Четвертий ворог Духу: прив'язаність, ілюзія.
+
+- en: Kama
+  uk: кама
+  context: >
+    Desire, lust. First of the 'six enemies' of the soul.
+    Пошкоджує Муладхару та ліву сторону.
+
+- en: Krodha
+  uk: кродха
+  context: >
+    Anger. Second of the 'six enemies' of the soul.
+    Пошкоджує Свадхістхану та праву сторону.
+
+- en: Lobha
+  uk: лобха
+  context: >
+    Greed, avarice. Third of the 'six enemies' of the soul.
+    Пошкоджує Набхі та Вішуддхі.
+
+- en: Matsara / Matsarya
+  uk: матсара
+  context: >
+    Envy, jealousy. Fifth of the 'six enemies' of the soul.
+    Пошкоджує Вішуддхі та Набхі.
+
+- en: Mada
+  uk: мада
+  context: >
+    Arrogance, pride, intoxication with ego. Sixth enemy of the soul.
+    Пошкоджує Аґію та его.
+
+- en: Prana / Mana / Laya
+  uk: прана / мана / лая
+  context: >
+    Prana: Right side energy (vital breath).
+    Mana: Left side energy (emotions, manasa shakti).
+    Laya: Balance/rest point between them.
+    "Між вашою праною й вашою маною знаходиться лая."
+
+- en: Sahaj / Sahaja
+  uk: сахаджа
+  context: >
+    'In-born, natural, spontaneous, simple'. [saha -- 'with', ja -- 'born'].
+    Сахаджа Йоґа = спонтанне єднання.
+
+- en: Yoga
+  uk: Йоґа
+  context: >
+    Connection, union. [from yuj -- 'join']. Being with God.
+    В UK книзі: Йоґа (через ґ).
+
+- en: Dwija / Twice-born
+  uk: Двіджа
+  context: >
+    'Twice-born'. First birth is physical; second is spiritual.
+    Також як птах -- спочатку яйце, потім вилуплення.
+
+# ============================================================
+# CHAKRA-RELATED TERMS (Book)
+# ============================================================
+
+- en: Lalita chakra
+  uk: Лаліта чакра
+  context: >
+    'Charming, beautiful, playful'. Chakra on Left shoulder,
+    power of whole Left Side.
+    В UK книзі: Лаліта чакра (ліве плече).
+
+- en: Shri Chakra
+  uk: Шрі чакра
+  context: >
+    Mystical diagram representing the whole Subtle System. Yantra of
+    Supreme Goddess. Chakra on right shoulder.
+    В UK книзі: Шрі чакра (праве плече).
+
+- en: Manipura
+  uk: Маніпура
+  context: >
+    Nabhi Chakra, 'Place of the Gem'. [mani -- 'gem', pura -- 'place'].
+    Альтернативна назва Набхі чакри.
+
+- en: Ardha Bindu
+  uk: Ардха Бінду
+  context: >
+    'Half Dot, crescent'. Chakra above Sahasrara.
+    В UK книзі: Шрі Ардха Бінду. Перший центр над Сахасрарою.
+
+- en: Bindu
+  uk: Бінду
+  context: >
+    'Dot, spot, drop'. Chakra above Sahasrara.
+    В UK книзі: Шрі Бінду. Другий центр над Сахасрарою.
+
+- en: Valaya
+  uk: Валайя
+  context: >
+    'Circle'. The level of the Supreme Spirit beyond the Chakras
+    above Sahasrara.
+    В UK книзі: Шрі Валайя. Третій центр над Сахасрарою.
+
+- en: Pitha
+  uk: пітхи
+  context: >
+    Seats of chakras on the head.
+    UK книга: "Розташування чакр на голові (пітхи)."
+
+- en: Granthi
+  uk: ґрантхі
+  context: >
+    'Knot, joint, obstruction, doubt, difficulty'. The three Granthis
+    separate the three sections of the Subtle System.
+    Брахма ґрантхі, Вішну ґрантхі, Рудра ґрантхі.
+    В UK книзі: три ґрантхі / вузли ілюзії.
+
+- en: Mandala
+  uk: мандала
+  context: >
+    'Circle, area, zone'. Orb of influence. The Mandalas of Fire, Sun
+    and Moon are the divisions of the Subtle System.
+    Вогонь, Сонце, Місяць -- три мандали тонкої системи.
+
+# ============================================================
+# RITUAL AND PRACTICE TERMS (Book)
+# ============================================================
+
+- en: Foot-soaking
+  uk: футсокінг
+  context: >
+    Putting feet in salted warm water while meditating, to help clear
+    negativity through the water element.
+    UK книга: футсокінг (вимочування ніг у підсоленій воді).
+
+- en: Shoe-beating
+  uk: шубітінг (туфлебиття)
+  context: >
+    Technique to clear negative influences (especially from false gurus)
+    by beating their image or name with a shoe while saying mantras.
+    UK книга: шубітінг (туфлебиття).
+
+- en: Matka (lemon and chili)
+  uk: матка
+  context: >
+    Left side cleansing technique using lemons and chili peppers.
+    UK книга: матка (лимони й чілі). Техніка очищення лівої сторони.
+
+- en: Camphor
+  uk: камфора
+  context: >
+    Left side cleansing substance, burned in a ladle.
+    UK книга: камфора. Для всього лівого каналу.
+
+- en: Raising the Kundalini (technique)
+  uk: підйом Кундаліні
+  context: >
+    Moving the left hand upward from Muladhara to above Sahasrara,
+    then tying a knot. 1-3 times before meditation.
+
+- en: Vibratory awareness
+  uk: вібраційне усвідомлення
+  context: >
+    The ability to feel the state of chakras on hands and body
+    after Self-realisation.
+
+- en: Ashram
+  uk: ашрам
+  context: >
+    Spiritual community house. Місце колективної медитації.
+
+# ============================================================
+# SCRIPTURES AND TEXT NAMES (Book)
+# ============================================================
+
+- en: Ganesha Atharva Shirsha
+  uk: Ґанеша Атхарва Шірша
+  context: >
+    Major prayer/hymn to Shri Ganesha.
+    Ключова молитва до Шрі Ґанеші.
+
+- en: Bhagavad Gita
+  uk: Бхаґавад Ґіта
+  context: >
+    Shri Krishna's teachings to Arjuna on the battlefield.
+    В UK книзі: Бхаґавад Ґіта (через ґ).
+
+- en: Mahabharata
+  uk: Махабхарата
+  context: >
+    Longest poem ever written, describing the conflict between Pandavas
+    and Kauravas and Shri Krishna's involvement.
+    Ключовий епос, в якому Шрі Крішна показав Вірата-форму.
+
+- en: Ramayana
+  uk: Рамаяна
+  context: >
+    Epic poem about Shri Rama.
+    Епос про ідеального царя Шрі Раму.
+
+- en: Veda / Vedas
+  uk: Веди
+  context: >
+    Four oldest sacred texts of India -- Rig, Sama, Yajur, Atharva.
+    Основа індуїзму.
+
+- en: Upanishad / Upanishads
+  uk: Упанішади
+  context: >
+    Short texts crystallising Vedic thought.
+    'Drawing near' as a pupil to a teacher.
+    "TAT TWAM ASI" -- "Ти -- Те."
+
+- en: Purana / Puranas
+  uk: Пурани
+  context: >
+    Sacred Hindu books containing stories of Deities, rules for living.
+    Маркандея Пурана містить Деві Махатм'ям.
+
+- en: Vedanta
+  uk: Веданта
+  context: >
+    Philosophical basis of Hinduism from Vedas and Upanishads.
+    Аді Шанкарачар'я запропонував адвайта-Веданту.
+
+- en: Kavach / Kavacham
+  uk: Кавач / Кавачам
+  context: >
+    'Armour'. Protection prayer/hymn.
+    UK книга: Кавач Деві (Шрі Чанді-Кавачам), Шрі Рама Кавач.
+
+- en: Stotra
+  uk: стотра
+  context: >
+    Hymn of praise.
+    UK книга: Шрі Маруті Стотра.
+
+- en: Vandana
+  uk: вандана
+  context: >
+    Praise, adoration.
+    UK книга: Шрі Бхумі Деві Вандана, Шрі Сарасваті Вандана.
+
+- en: Chalisa
+  uk: Чаліса
+  context: >
+    40 verses of praise.
+    UK книга: Шрі Хануман Чаліса.
+
+- en: Gayatri Mantra
+  uk: Ґаятрі Мантра
+  context: >
+    Ancient hymn to Savitar (Sun God).
+    UK книга: Ґаятрі Мантра. Зігріває правий канал.
+
+- en: Devi Atharva Shirsham
+  uk: Деві Атхарва Шіршам
+  context: >
+    Prayer/hymn to Devi. UK книга.
+
+- en: Tad Nishkala
+  uk: Тад Нішкала
+  context: >
+    Praise of Shri Shiva by Adi Shankaracharya.
+    UK книга. "Я -- Брахман."
+
+# ============================================================
+# COSMIC TERMS AND CONCEPTS (Book)
+# ============================================================
+
+- en: Brahman
+  uk: Брахман
+  context: >
+    Formless All-pervading Divine Consciousness, the Supreme Spirit.
+    В UK книзі: Брахман (Всеосяжна Свідомість).
+    Не плутати з Брахмою (Творцем).
+
+- en: Parabrahman / Para-Brahma
+  uk: Парабрахман
+  context: >
+    Supreme All-Pervading Formless Consciousness.
+    UK книга: Парабрахман (Верховний Всеосяжний Дух).
+
+- en: Trimurti
+  uk: Трімурті
+  context: >
+    'The Three Forms' of God: Brahma the Creator, Vishnu the Sustainer
+    and Shiva the Destroyer.
+    Три іпостасі Бога.
+
+- en: Trigunatmika
+  uk: Тріґунатміка
+  context: >
+    'Three-natured'. Having the qualities of three Gunas.
+    Частина Маха-мантри: "тріґунатміка Кундаліні."
+
+- en: Yantra
+  uk: янтра
+  context: >
+    Sacred diagram, technique, machine.
+    Шрі чакра -- янтра Верховної Богині.
+
+- en: Sanskrit
+  uk: санскрит
+  context: >
+    'Elaborate, refined'. Root of Indian and European languages.
+    Деванаґарі -- мова богів.
+
+- en: Devanagari
+  uk: деванаґарі
+  context: >
+    'Belonging to the city of the Gods'. Script used to write
+    Sanskrit, Hindi and Marathi. 'The language of the Deities'.
+    Мова, в якій звуки чакр записані.
+
+- en: Deva Vani
+  uk: Дева Вані
+  context: >
+    'Language of Gods'. Sanskrit as divine language.
+
+- en: Deva
+  uk: Дева
+  context: >
+    God, Divine; the 33 Devas rule the physical aspects of creation.
+    "Deva" від "div" -- сяяти.
+
+- en: Devi
+  uk: Деві
+  context: >
+    Goddess. [fem. of deva -- 'god'].
+    Деві Суктам, Деві Махатм'ям, Молитва до Деві.
+
+- en: Asura
+  uk: асура
+  context: >
+    'Demon, devil'. [a -- 'not', sura -- 'shining, divine'].
+    Демонічні істоти, проти яких борються Боги.
+
+- en: Avatar / Avatara
+  uk: Аватара
+  context: >
+    Divine Being incarnated to help humanity.
+    [avatara -- 'descent'].
+    Десять аватар Шрі Вішну.
+
+# ============================================================
+# NAMES AND MANTRAS (Book)
+# ============================================================
+
+- en: Bijakshari
+  uk: біджакшари
+  context: >
+    'Seed sounds of mantra reflecting chakra qualities'.
+    UK книга: біджакшари (сім'яні звуки мантри).
+
+- en: Trigunatmika Kundalini
+  uk: Тріґунатміка Кундаліні
+  context: >
+    Three-natured Kundalini -- essence of three Gunas.
+    Частина Першої Великої Мантри.
+
+- en: Sarva Mantra Siddhi
+  uk: Сарва Мантра Сіддхі
+  context: >
+    Power of enlightened speech.
+    UK книга: Шрі Сарва Мантра Сіддхі -- Права Вішуддхі.
+
+- en: Amruta Dayini
+  uk: Амрута Даїні
+  context: >
+    Giver of immortal nectar.
+    UK книга: Шрі Амрута Даїні -- центр над Сахасрарою.
+
+- en: Mukti Dayini
+  uk: Муктi Даїнi
+  context: >
+    Giver of liberation.
+    UK книга: Шрі Муктi Даїнi -- Ліва Аґія.
+
+- en: Moksha Pradayini
+  uk: Мокша Прадайіні
+  context: >
+    'Giver of Liberation'. Part of Sahasrara Mantra.
+
+- en: Sahasrara Swamini
+  uk: Сахасрара Свамінi
+  context: >
+    'Ruler of Sahasrara'. Part of Sahasrara Mantra.
+
+- en: Anna-purna
+  uk: Аннапурна
+  context: >
+    Form of Shri Durga who gives nourishment.
+    [anna -- 'food', purna -- 'complete'].
+
+- en: Shakambhari Devi
+  uk: Шакамбхарі Деві
+  context: >
+    Deity of agriculture and gardening.
+    UK книга: шрІ шАкамбхарі деві -- захист рослин та садів.
+
+- en: Jala Devata
+  uk: Джала Девата
+  context: >
+    Deity of water element.
+    UK книга: шрІ джала деватА -- для вібрування напоїв.
+
+- en: Samudra Devata
+  uk: Самудра Девата
+  context: >
+    Deity of the ocean.
+    UK книга: шрІ самудра деватА -- для вібрування води для футсокінгу.
+
+- en: Yoga Nidra
+  uk: Йоґа Нідра
+  context: >
+    'Yogic sleep'. Mantra for going to sleep.
+    UK книга: шрІ йоґа нідрА -- перед сном.
+
+- en: Supatha
+  uk: Супатха
+  context: >
+    Mantra for protection during travel.
+
+- en: Kshemakari
+  uk: Кшемакарі
+  context: >
+    Mantra for protection of (our) path.
+
+- en: Nirmala Chitta
+  uk: Нірмала Чітта
+  context: >
+    'Crystal Pure Attention'. Mantra for liver/attention.
+
+- en: Chitta Nirodh / Chitteshwari / Chitt Shakti
+  uk: Чітта Ніродха / Чіттешварі / Чітт Шакті
+  context: >
+    Various aspects of controlling and purifying attention.
+    UK книга -- мантри для охолодження печінки.
+
+- en: Kailasa Swamini
+  uk: Каїлас Свамінi
+  context: >
+    'Goddess of Mount Kailash'.
+    UK книга: шрІ каілАса свАмінІ -- мантра для печінки.
+
+- en: Mahat-ahamkara
+  uk: Махат-Аханкара
+  context: >
+    'The great I am'. Divine I-consciousness.
+    UK книга: Шрі Махат Аханкара -- Права Аґія.
+
+- en: Mahat-manasa
+  uk: Махат Манаса
+  context: >
+    Primordial Superego.
+    UK книга: Шрі Махат Манаса -- Ліва Аґія.
+
+- en: Hiranya-garbha
+  uk: Хіраньяґарбха
+  context: >
+    'Golden Egg'. Creative Power of Shri Brahma.
+    UK книга: Шрі Хіраньягарбха. Задня Аґія.
+
+- en: Santana Lakshmi
+  uk: Сантана Лакшмі
+  context: >
+    Aspect of Lakshmi related to family lineage.
+    UK книга: Молитва до Шрі Сантана Лакшмі.
+
+- en: Gruha Lakshmi
+  uk: Ґруха Лакшмі
+  context: >
+    'Goddess of the household'. Left Nabhi principle.
+    UK книга: Шрі Ґруха Лакшмі (через ґ).
+    Ліве Набхі -- задоволення, родинне благополуччя.
+
+- en: Raja Lakshmi
+  uk: Раджа Лакшмі
+  context: >
+    'Royal dignity, financial wellbeing'. Right Nabhi principle.
+
+- en: Mahaganapati
+  uk: Маха Ґанапаті
+  context: >
+    Great form of Ganapati.
+    UK книга: Шрі Маха Ґанапаті (через ґ).
