@@ -258,6 +258,76 @@ def extend_cps(blocks, config):
     return extended
 
 
+def _find_whisper_split_time(start_ms, end_ms, ratio, whisper_intervals):
+    """Find best split time using whisper segment boundaries near the proportional midpoint."""
+    mid_time = start_ms + int((end_ms - start_ms) * ratio)
+    if not whisper_intervals:
+        return mid_time
+    # Look for whisper segment boundary closest to proportional mid
+    best_time = mid_time
+    best_dist = float('inf')
+    for ws, we in whisper_intervals:
+        # Check segment end (speech pause point)
+        if start_ms < we < end_ms:
+            dist = abs(we - mid_time)
+            if dist < best_dist:
+                best_dist = dist
+                best_time = int(we)
+        # Check segment start
+        if start_ms < ws < end_ms:
+            dist = abs(ws - mid_time)
+            if dist < best_dist:
+                best_dist = dist
+                best_time = int(ws)
+    return best_time
+
+
+def split_blocks_by_duration(blocks, config, whisper_intervals=None):
+    """Split blocks exceeding max_duration into proportional pieces, using whisper for timing."""
+    new_blocks = []
+    splits = 0
+    wi = whisper_intervals or []
+    for b in blocks:
+        dur = b['end_ms'] - b['start_ms']
+        if dur <= config.max_duration_ms + 1000:
+            new_blocks.append(b)
+            continue
+        # Recursively split into halves
+        pending = [b]
+        while pending:
+            current = pending.pop(0)
+            c_dur = current['end_ms'] - current['start_ms']
+            c_text = current['text'].replace('\n', ' ')
+            if c_dur <= config.max_duration_ms + 1000 or len(c_text) < 10:
+                new_blocks.append(current)
+                continue
+            split_pos = find_block_split_point(c_text)
+            if not split_pos or split_pos < 5 or (len(c_text) - split_pos) < 5:
+                new_blocks.append(current)
+                continue
+            text1 = c_text[:split_pos].strip()
+            text2 = c_text[split_pos:].strip()
+            ratio = len(text1) / len(c_text)
+            mid_time = _find_whisper_split_time(
+                current['start_ms'], current['end_ms'], ratio, wi)
+            part1 = {
+                'idx': current['idx'],
+                'start_ms': current['start_ms'],
+                'end_ms': mid_time - config.min_gap_ms // 2,
+                'text': split_long_line(text1),
+            }
+            part2 = {
+                'idx': current['idx'],
+                'start_ms': mid_time + config.min_gap_ms // 2,
+                'end_ms': current['end_ms'],
+                'text': split_long_line(text2),
+            }
+            splits += 1
+            pending.insert(0, part2)
+            pending.insert(0, part1)
+    return new_blocks, splits
+
+
 def split_blocks_by_size(blocks, config):
     """Split blocks exceeding max_chars_block."""
     new_blocks = []
@@ -512,6 +582,11 @@ def optimize_readability(blocks, whisper_segments, config, report):
                 b['text'] = b['text'].replace('\n', ' ')
                 lines_joined += 1
     report.append(f"  Phase 1 - Lines joined (single-line mode): {lines_joined}")
+
+    # Phase 1b: Split blocks exceeding max duration
+    wi = [(seg['start'] * 1000, seg['end'] * 1000) for seg in whisper_segments] if whisper_segments else []
+    blocks, dur_splits = split_blocks_by_duration(blocks, config, wi)
+    report.append(f"  Phase 1b - Duration splits (>{config.max_duration_ms}ms): {dur_splits}")
 
     # Phase 2: Split blocks > max_chars_block
     blocks, size_splits = split_blocks_by_size(blocks, config)
