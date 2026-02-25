@@ -235,15 +235,25 @@ class AmrutaDownloader:
         return downloaded
 
     def extract_transcript(self, soup):
-        """Extract transcript text from page content."""
+        """Extract transcript text from page content.
+
+        Strips video player wrappers and UI elements, keeps only
+        the actual transcript (headings + paragraphs).
+        """
         content = soup.find('div', class_='entry-content')
         if not content:
             content = soup.find('article')
         if not content:
             return None
 
+        # Remove all non-transcript elements
         for tag in content.find_all(['script', 'style', 'iframe']):
             tag.decompose()
+        for cls in ['embedded-video-wrapper', 'video-player-container',
+                     'video-links-container', 'soundcloud-wrapper',
+                     'custom-modal', 'custom-collapsible', 'custom-alert']:
+            for tag in content.find_all('div', class_=cls):
+                tag.decompose()
 
         text = content.get_text(separator='\n', strip=True)
         return text if text else None
