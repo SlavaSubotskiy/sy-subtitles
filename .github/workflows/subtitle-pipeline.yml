@@ -136,18 +136,18 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 25"
+          claude_args: "--max-turns 25 --dangerously-skip-permissions"
           show_full_output: true
           prompt: |
             You are translating a Sahaja Yoga lecture from English to Ukrainian.
 
-            REQUIRED READING — read ALL these files before translating:
-            1. CLAUDE.md — project rules and language conventions
-            2. glossary/CLAUDE.md — glossary instructions, transliteration conventions, capitalization rules
-            3. glossary/terms_lookup.yaml — EN→UK term dictionary (374 terms)
-            4. glossary/terms_context.yaml — disambiguation context for ambiguous terms
-            5. glossary/chakra_map.yaml — chakra/deity/channel mapping
-            6. talks/${{ matrix.talk_id }}/transcript_en.txt — English source transcript
+            REQUIRED READING — read these files before translating:
+            1. glossary/CLAUDE.md — transliteration conventions, capitalization rules
+            2. glossary/terms_lookup.yaml — EN→UK term dictionary (374 terms)
+            3. glossary/terms_context.yaml — disambiguation context for ambiguous terms
+            4. glossary/chakra_map.yaml — chakra/deity/channel mapping
+            5. talks/${{ matrix.talk_id }}/transcript_en.txt — English source transcript
+            (CLAUDE.md is auto-loaded — no need to read it)
 
             TASK:
             Translate the full English transcript into Ukrainian and write it to:
@@ -158,12 +158,7 @@ jobs:
             - Preserve paragraph structure: one EN paragraph = one UK paragraph
             - Separate paragraphs with double newlines (\n\n)
             - No header, no metadata, no line numbers in the output file
-            - Follow ALL language rules from CLAUDE.md:
-              • Deity pronoun capitalization (Shri Mataji: Вона/Її/Їй always uppercase; Incarnations singular: Він/Його uppercase; incarnations plural mid-sentence: lowercase)
-              • Reflexive verbs: -ся not -сь
-              • Quotation marks: «»
-              • Em-dash with spaces: ` — `
-              • Ellipsis: `...`
+            - Follow ALL language rules from CLAUDE.md
             - Use glossary terms consistently (terms_lookup.yaml + terms_context.yaml)
             - Follow transliteration conventions from glossary/CLAUDE.md (ґ not г for Sanskrit g, дх for dh, і for short i)
             - Translate with devotion, precision, and respect for the sacred meaning
@@ -187,13 +182,21 @@ jobs:
             Do not try to write everything in one call. Split into as many chunks as needed.
             Do not summarize, abbreviate, or skip any paragraphs.
 
+      - name: Verify translation exists
+        run: |
+          if [ ! -f "talks/${{ matrix.talk_id }}/transcript_uk.txt" ]; then
+            echo "::error::transcript_uk.txt was not created by translate step"
+            exit 1
+          fi
+          echo "transcript_uk.txt exists ($(wc -c < "talks/${{ matrix.talk_id }}/transcript_uk.txt") bytes)"
+
       - name: Review translation (2+1)
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 25"
+          claude_args: "--max-turns 25 --dangerously-skip-permissions"
           show_full_output: true
           prompt: |
             Perform a 2+1 language review on the Ukrainian translation.
@@ -202,10 +205,10 @@ jobs:
             1. talks/${{ matrix.talk_id }}/transcript_uk.txt — the translation to review
             2. talks/${{ matrix.talk_id }}/transcript_en.txt — English original for reference
             3. templates/language_review_template.md — review process and table format
-            4. CLAUDE.md — language rules
-            5. glossary/CLAUDE.md — SY terminology and capitalization rules
-            6. glossary/terms_lookup.yaml — term dictionary
-            7. glossary/terms_context.yaml — disambiguation context
+            4. glossary/CLAUDE.md — SY terminology and capitalization rules
+            5. glossary/terms_lookup.yaml — term dictionary
+            6. glossary/terms_context.yaml — disambiguation context
+            (CLAUDE.md is auto-loaded — no need to read it)
 
             PROCESS (follow templates/language_review_template.md):
 
@@ -242,6 +245,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: translation__${{ matrix.talk_id }}
+          if-no-files-found: error
           path: |
             talks/${{ matrix.talk_id }}/transcript_uk.txt
             talks/${{ matrix.talk_id }}/review_report.md
@@ -326,7 +330,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 50"
+          claude_args: "--max-turns 50 --dangerously-skip-permissions"
           show_full_output: true
           prompt: |
             Perform semantic word-level alignment of Ukrainian subtitle text to English speech timestamps.
