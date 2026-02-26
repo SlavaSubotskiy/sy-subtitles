@@ -1,0 +1,92 @@
+============================================================
+  SUBTITLE OPTIMIZATION SCRIPT
+============================================================
+  Source: uk_whisper.json (229 blocks)
+============================================================
+  ORIGINAL SRT STATISTICS
+============================================================
+  Total blocks: 229
+  CPS: avg=15.0, median=4.7, max=201.6
+  CPS > target: 59 (25.8%)
+  CPS > hard max: 45 (19.7%)
+  CPL: avg=97.2, max=768
+  CPL > max: 120 (52.4%)
+  Chars > max block: 62 (27.1%)
+  Lines > max: 0
+  Duration < min: 4
+  Duration > max: 159
+  Overlaps: 0
+  Gaps < min: 43
+============================================================
+  STEP 2: Comparing SRT with Whisper speech timings
+============================================================
+  Whisper segments: 229
+  SRT blocks: 229
+  SRT blocks starting >500ms before speech: 0
+  SRT blocks ending >2s after speech: 1
+
+============================================================
+  STEP 3: Fixing structural issues
+============================================================
+  Fixed double spaces: 0
+  Fixed leading/trailing spaces: 0
+  Fixed overlaps/tiny gaps: 0
+
+============================================================
+  STEP 4: Optimizing readability
+============================================================
+  Phase 1 - Lines joined (single-line mode): 0
+  Phase 1b - Duration splits (>7000ms): 197
+  Phase 2 - Blocks split (> 84 chars): 71
+  Phase 3 - CPS extensions (pass 1): 164
+  Phase 4 - CPS splits (> 20.0): 87
+  Phase 5 - Merged short blocks: 60
+  Phase 6 - CPS extensions (pass 2): 173
+  Phase 6 - CPS extensions (pass 3): 171
+  Phase 6 - CPS extensions (pass 4): 171
+  Phase 7 - Cascade time redistribution: 112
+  Phase 7b - Large gaps absorbed: 26
+  Phase 7c - CPS extensions after redistribution: 94
+  Phase 11 - Final CPS extensions: 94
+
+============================================================
+  STEP 5: Applying chaining
+============================================================
+  Gaps chained (3-11 frames -> 2 frames): 9
+
+============================================================
+  STEP 6: Final validation report
+============================================================
+
+  Text preservation: OK
+  Original chars: 22495, Optimized chars: 22495
+
+  PARAMETER                          BEFORE      AFTER     CHANGE
+  ------------------------------------------------------------
+  Total blocks                          229        524      +295v
+  Avg CPS                              15.0       14.4
+  Max CPS                             201.6      230.6
+  CPS > target                           59        165      +106^
+  CPS > hard max                         45         78       +33^
+  Max CPL                               768        231      -537v
+  CPL > max                             120        219       +99^
+  Chars > max block                      62         41       -21v
+  Lines > max                             0          0         --
+  Duration < min                          4         23       +19^
+  Overlaps                                0          0         --
+  Gaps < min                             43          0       -43v
+
+  Worst CPS blocks (top 10):
+    #175: CPS=230.6 (89ch/0.4s) "Тож потрібно розуміти різницю між протоколом і рит"
+    #176: CPS=220.2 (142ch/0.6s) "Я пам'ятаю, була дитина, яка прийшла побачити Мене"
+    #179: CPS=142.4 (93ch/0.7s) "людина може навіть побити іншу людину, бо: «Чому т"
+    #180: CPS=141.6 (81ch/0.6s) "Чому ти поклав камфору ось так? Це дуже неправильн"
+    #183: CPS=127.9 (60ch/0.5s) "Зараз ви в Царстві Божому, і тут немає таких прави"
+    #177: CPS=119.4 (148ch/1.2s) "Вона піде нагору без червоного килима?» Це прийшло"
+    #178: CPS=118.7 (134ch/1.1s) "Ви відчуваєте серцем: як робити поклоніння, як вия"
+    #172: CPS=116.3 (142ch/1.2s) "Ритуалізм — це ось що: вам треба сказати щось три "
+    #171: CPS=116.0 (211ch/1.8s) "Перш за все, ми маємо побачити, як наша обумовлені"
+    #55: CPS=78.6 (71ch/0.9s) "Для західного розуму неможливо зрозуміти, що Ісус "
+
+  Optimized SRT written to: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja-Talk/final/uk.srt
+  Total blocks: 524
