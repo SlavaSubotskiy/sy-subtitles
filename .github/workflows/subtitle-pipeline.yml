@@ -195,11 +195,13 @@ jobs:
 
       - name: Review translation (2+1)
         uses: anthropics/claude-code-action@v1
+        env:
+          CLAUDE_CODE_MAX_OUTPUT_TOKENS: "64000"
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 25 --dangerously-skip-permissions --model claude-sonnet-4-6"
+          claude_args: "--max-turns 25 --dangerously-skip-permissions --model claude-opus-4-6"
           show_full_output: true
           prompt: |
             Perform a 2+1 language review on the Ukrainian translation.
