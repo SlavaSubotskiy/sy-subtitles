@@ -35,56 +35,57 @@
   STEP 4: Optimizing readability
 ============================================================
   Phase 1 - Lines joined (single-line mode): 3
+  Phase 1b - Duration splits (>7000ms): 1
   Phase 2 - Blocks split (> 84 chars): 2
   Phase 3 - CPS extensions (pass 1): 218
   Phase 4 - CPS splits (> 20.0): 29
-  Phase 5 - Merged short blocks: 10
-  Phase 6 - CPS extensions (pass 2): 151
-  Phase 6 - CPS extensions (pass 3): 151
-  Phase 6 - CPS extensions (pass 4): 151
-  Phase 7 - Cascade time redistribution: 188
-  Phase 7b - Large gaps absorbed: 14
-  Phase 7c - CPS extensions after redistribution: 18
-  Phase 11 - Final CPS extensions: 18
+  Phase 5 - Merged short blocks: 75
+  Phase 6 - CPS extensions (pass 2): 133
+  Phase 6 - CPS extensions (pass 3): 132
+  Phase 6 - CPS extensions (pass 4): 132
+  Phase 7 - Cascade time redistribution: 169
+  Phase 7b - Large gaps absorbed: 11
+  Phase 7c - CPS extensions after redistribution: 15
+  Phase 11 - Final CPS extensions: 15
 
 ============================================================
   STEP 5: Applying chaining
 ============================================================
-  Gaps chained (3-11 frames -> 2 frames): 260
+  Gaps chained (3-11 frames -> 2 frames): 236
 
 ============================================================
   STEP 6: Final validation report
 ============================================================
 
   Text preservation: OK
-  Original chars: 36586, Optimized chars: 36586
+  Original chars: 36590, Optimized chars: 36590
 
   PARAMETER                          BEFORE      AFTER     CHANGE
   ------------------------------------------------------------
-  Total blocks                          897        918       +21v
+  Total blocks                          897        854       -43^
   Avg CPS                              12.0       11.3
-  Max CPS                              44.4       21.6
-  CPS > target                          212        159       -53v
-  CPS > hard max                         67          1       -66v
-  Max CPL                                87         82        -5v
-  CPL > max                             372        360       -12v
+  Max CPS                              44.4       19.4
+  CPS > target                          212        145       -67v
+  CPS > hard max                         67          0       -67v
+  Max CPL                                87         83        -4v
+  CPL > max                             372        390       +18^
   Chars > max block                       2          0        -2v
   Lines > max                             0          0         --
-  Duration < min                          9          7        -2v
+  Duration < min                          9          0        -9v
   Overlaps                               10          0       -10v
   Gaps < min                            220          0      -220v
 
   Worst CPS blocks (top 10):
-    #657: CPS=21.6 (18ch/0.8s) "що з цього вийде»."
-    #653: CPS=19.9 (58ch/2.9s) "ви можете це зробити. Але дехто намагається робити"
-    #656: CPS=18.4 (41ch/2.2s) "вони думають: «Давайте поекспериментуємо,"
-    #809: CPS=18.2 (70ch/3.8s) "Хай Твоя присутність, пробуджена в нас енергія Кун"
-    #808: CPS=17.5 (64ch/3.7s) "Хай Твоя присутність, пробуджена в нас енергія Кун"
-    #658: CPS=17.1 (67ch/3.9s) "І тоді вони ламають собі шиї і приходять до Мене, "
-    #811: CPS=16.9 (58ch/3.4s) "Хай Твоя присутність, пробуджена в нас енергія Кун"
-    #86: CPS=15.2 (17ch/1.1s) "їх краще вивести."
-    #89: CPS=15.2 (35ch/2.3s) "але тих, хто шумить, краще вивести."
-    #206: CPS=15.1 (28ch/1.9s) "якщо вам потрібно бути Гуру,"
+    #604: CPS=19.4 (24ch/1.2s) "говорити різні речі, які"
+    #605: CPS=19.0 (60ch/3.2s) "вони думають: «Давайте поекспериментуємо, що з цьо"
+    #748: CPS=18.2 (70ch/3.8s) "Хай Твоя присутність, пробуджена в нас енергія Кун"
+    #747: CPS=17.5 (64ch/3.7s) "Хай Твоя присутність, пробуджена в нас енергія Кун"
+    #750: CPS=16.9 (58ch/3.4s) "Хай Твоя присутність, пробуджена в нас енергія Кун"
+    #88: CPS=15.2 (35ch/2.3s) "але тих, хто шумить, краще вивести."
+    #198: CPS=15.1 (28ch/1.9s) "якщо вам потрібно бути Гуру,"
+    #480: CPS=15.1 (70ch/4.6s) "вони такі знервовані, вони такі засмучені, іноді з"
+    #137: CPS=15.1 (35ch/2.3s) "У певному сенсі, Я думаю, це добре,"
+    #457: CPS=15.1 (73ch/4.8s) "і там була маленька платформа, на яку ми повинні б"
 
   Optimized SRT written to: talks/1983-07-24_Guru-Puja-Awakening-The-Principle-Of-Guru/Talk/final/uk.srt
-  Total blocks: 918
+  Total blocks: 854

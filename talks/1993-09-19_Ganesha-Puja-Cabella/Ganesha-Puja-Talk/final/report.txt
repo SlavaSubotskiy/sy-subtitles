@@ -5,10 +5,10 @@
   ORIGINAL SRT STATISTICS
 ============================================================
   Total blocks: 477
-  CPS: avg=9.8, median=8.9, max=31.0
+  CPS: avg=9.8, median=9.0, max=31.0
   CPS > target: 66 (13.8%)
   CPS > hard max: 17 (3.6%)
-  CPL: avg=46.4, max=105
+  CPL: avg=46.4, max=106
   CPL > max: 247 (51.8%)
   Chars > max block: 43 (9.0%)
   Lines > max: 0
@@ -19,10 +19,10 @@
 ============================================================
   STEP 2: Comparing SRT with Whisper speech timings
 ============================================================
-  Whisper segments: 227
+  Whisper segments: 229
   SRT blocks: 477
-  SRT blocks starting >500ms before speech: 92
-  SRT blocks ending >2s after speech: 39
+  SRT blocks starting >500ms before speech: 80
+  SRT blocks ending >2s after speech: 44
 
 ============================================================
   STEP 3: Fixing structural issues
@@ -35,15 +35,17 @@
   STEP 4: Optimizing readability
 ============================================================
   Phase 1 - Lines joined (single-line mode): 0
-  Phase 2 - Blocks split (> 84 chars): 42
-  Phase 3 - CPS extensions (pass 1): 72
-  Phase 4 - CPS splits (> 20.0): 21
-  Phase 5 - Merged short blocks: 15
-  Phase 6 - CPS extensions (pass 2): 79
-  Phase 6 - CPS extensions (pass 3): 79
-  Phase 6 - CPS extensions (pass 4): 79
-  Phase 7 - Cascade time redistribution: 90
+  Phase 1b - Duration splits (>7000ms): 148
+  Phase 2 - Blocks split (> 84 chars): 15
+  Phase 3 - CPS extensions (pass 1): 83
+  Phase 4 - CPS splits (> 20.0): 25
+  Phase 5 - Merged short blocks: 111
+  Phase 6 - CPS extensions (pass 2): 53
+  Phase 6 - CPS extensions (pass 3): 53
+  Phase 6 - CPS extensions (pass 4): 53
+  Phase 7 - Cascade time redistribution: 59
   Phase 7c - CPS extensions after redistribution: 3
+  Phase 8b - Trimmed oversized low-text blocks: 1
   Phase 11 - Final CPS extensions: 3
 
 ============================================================
@@ -56,34 +58,34 @@
 ============================================================
 
   Text preservation: OK
-  Original chars: 22588, Optimized chars: 22588
+  Original chars: 22595, Optimized chars: 22595
 
   PARAMETER                          BEFORE      AFTER     CHANGE
   ------------------------------------------------------------
-  Total blocks                          477        525       +48v
-  Avg CPS                               9.8       10.3
+  Total blocks                          477        554       +77v
+  Avg CPS                               9.8        8.9
   Max CPS                              31.0       15.1
-  CPS > target                           66         60        -6v
+  CPS > target                           66         43       -23v
   CPS > hard max                         17          0       -17v
-  Max CPL                               105         90       -15v
-  CPL > max                             247        248        +1^
-  Chars > max block                      43          1       -42v
+  Max CPL                               106         84       -22v
+  CPL > max                             247        215       -32v
+  Chars > max block                      43          0       -43v
   Lines > max                             0          0         --
-  Duration < min                         35         24       -11v
+  Duration < min                         35          1       -34v
   Overlaps                                0          0         --
   Gaps < min                            473          0      -473v
 
   Worst CPS blocks (top 10):
-    #351: CPS=15.1 (38ch/2.5s) "Плюшевий ведмедик має день народження."
-    #170: CPS=15.1 (35ch/2.3s) "Можливо, деякі люди надто блискучі,"
-    #171: CPS=15.1 (53ch/3.5s) "і вони можуть намагатися хизуватися своєю блискучі"
-    #230: CPS=15.0 (16ch/1.1s) "Він сказав: «Що?"
-    #206: CPS=15.0 (16ch/1.1s) "ритуалістичними."
-    #504: CPS=15.0 (22ch/1.5s) "Вони сказали: «Гаразд."
-    #371: CPS=15.0 (22ch/1.5s) "«Ми можемо приїхати на"
-    #420: CPS=15.0 (25ch/1.7s) "Це має стати колективним."
-    #280: CPS=15.0 (25ch/1.7s) "Він має їсти лише тварин."
-    #130: CPS=15.0 (25ch/1.7s) "Лікарі нічого не зробили."
+    #226: CPS=15.1 (35ch/2.3s) "Можливо, деякі люди надто блискучі,"
+    #371: CPS=15.1 (41ch/2.7s) "залишите його десь за, скажімо, п'ятдесят"
+    #227: CPS=15.1 (53ch/3.5s) "і вони можуть намагатися хизуватися своєю блискучі"
+    #460: CPS=15.0 (25ch/1.7s) "Це має стати колективним."
+    #410: CPS=15.0 (28ch/1.9s) "«Ні, але ми маємо одну пару."
+    #333: CPS=15.0 (31ch/2.1s) "лише тварин. Він не їсть траву."
+    #48: CPS=15.0 (31ch/2.1s) "Отже, хоча Він такий маленький,"
+    #175: CPS=15.0 (34ch/2.3s) "На щастя, тепер у всіх вас є діти,"
+    #528: CPS=15.0 (37ch/2.5s) "«Ні.» «А що з тими дітьми?» «Вони теж"
+    #347: CPS=15.0 (40ch/2.7s) "І потім все нижче і нижче, аж до птахів."
 
   Optimized SRT written to: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja-Talk/final/uk.srt
-  Total blocks: 525
+  Total blocks: 554

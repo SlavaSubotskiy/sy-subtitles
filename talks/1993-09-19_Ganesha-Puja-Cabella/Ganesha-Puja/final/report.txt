@@ -35,17 +35,18 @@
   STEP 4: Optimizing readability
 ============================================================
   Phase 1 - Lines joined (single-line mode): 0
-  Phase 1b - Duration splits (>7000ms): 132
+  Phase 1b - Duration splits (>7000ms): 147
   Phase 2 - Blocks split (> 84 chars): 15
-  Phase 3 - CPS extensions (pass 1): 94
-  Phase 4 - CPS splits (> 20.0): 33
-  Phase 5 - Merged short blocks: 123
-  Phase 6 - CPS extensions (pass 2): 60
-  Phase 6 - CPS extensions (pass 3): 60
-  Phase 6 - CPS extensions (pass 4): 60
-  Phase 7 - Cascade time redistribution: 64
-  Phase 7c - CPS extensions after redistribution: 3
-  Phase 11 - Final CPS extensions: 3
+  Phase 3 - CPS extensions (pass 1): 80
+  Phase 4 - CPS splits (> 20.0): 24
+  Phase 5 - Merged short blocks: 109
+  Phase 6 - CPS extensions (pass 2): 53
+  Phase 6 - CPS extensions (pass 3): 53
+  Phase 6 - CPS extensions (pass 4): 53
+  Phase 7 - Cascade time redistribution: 60
+  Phase 7c - CPS extensions after redistribution: 2
+  Phase 8b - Trimmed oversized low-text blocks: 1
+  Phase 11 - Final CPS extensions: 2
 
 ============================================================
   STEP 5: Applying chaining
@@ -56,35 +57,35 @@
   STEP 6: Final validation report
 ============================================================
 
-  Text preservation: CHANGED!
-  Original chars: 22595, Optimized chars: 22597
+  Text preservation: OK
+  Original chars: 22595, Optimized chars: 22595
 
   PARAMETER                          BEFORE      AFTER     CHANGE
   ------------------------------------------------------------
-  Total blocks                          477        520       +43v
-  Avg CPS                               9.8        9.2
+  Total blocks                          477        554       +77v
+  Avg CPS                               9.8        8.9
   Max CPS                              31.0       15.1
-  CPS > target                           66         44       -22v
+  CPS > target                           66         43       -23v
   CPS > hard max                         17          0       -17v
   Max CPL                               106         84       -22v
-  CPL > max                             247        248        +1^
+  CPL > max                             247        213       -34v
   Chars > max block                      43          0       -43v
   Lines > max                             0          0         --
-  Duration < min                         35          3       -32v
+  Duration < min                         35          0       -35v
   Overlaps                                0          0         --
   Gaps < min                            471          0      -471v
 
   Worst CPS blocks (top 10):
-    #192: CPS=15.1 (35ch/2.3s) "Можливо, деякі люди надто блискучі,"
-    #251: CPS=15.1 (29ch/1.9s) "і Я сказала: «Ходімо нагору.»"
-    #193: CPS=15.1 (53ch/3.5s) "і вони можуть намагатися хизуватися своєю блискучі"
-    #406: CPS=15.0 (8ch/0.5s) "зробити,"
-    #53: CPS=15.0 (16ch/1.1s) "Якщо ви невинні,"
-    #505: CPS=15.0 (25ch/1.7s) "що на санскриті називають"
-    #427: CPS=15.0 (25ch/1.7s) "Це має стати колективним."
-    #378: CPS=15.0 (28ch/1.9s) "«Ні, але ми маємо одну пару."
-    #301: CPS=15.0 (31ch/2.1s) "лише тварин. Він не їсть траву."
-    #146: CPS=15.0 (34ch/2.3s) "На щастя, тепер у всіх вас є діти,"
+    #224: CPS=15.1 (35ch/2.3s) "Можливо, деякі люди надто блискучі,"
+    #225: CPS=15.1 (53ch/3.5s) "і вони можуть намагатися хизуватися своєю блискучі"
+    #460: CPS=15.0 (25ch/1.7s) "Це має стати колективним."
+    #410: CPS=15.0 (28ch/1.9s) "«Ні, але ми маємо одну пару."
+    #333: CPS=15.0 (31ch/2.1s) "лише тварин. Він не їсть траву."
+    #172: CPS=15.0 (34ch/2.3s) "На щастя, тепер у всіх вас є діти,"
+    #528: CPS=15.0 (37ch/2.5s) "«Ні.» «А що з тими дітьми?» «Вони теж"
+    #347: CPS=15.0 (40ch/2.7s) "І потім все нижче і нижче, аж до птахів."
+    #443: CPS=15.0 (43ch/2.9s) "невинні, Я мушу сказати. Я мушу це визнати."
+    #197: CPS=15.0 (43ch/2.9s) "Те саме з сучасною музикою, яку вони мають."
 
   Optimized SRT written to: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/final/uk.srt
-  Total blocks: 520
+  Total blocks: 554
