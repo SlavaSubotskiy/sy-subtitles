@@ -11,6 +11,22 @@ on:
         description: 'Talk directory name (e.g., 1993-09-19_Ganesha-Puja-Cabella)'
         required: true
         type: string
+      translate:
+        description: 'Run translate step'
+        type: boolean
+        default: true
+      review:
+        description: 'Run review step'
+        type: boolean
+        default: true
+      align:
+        description: 'Run align step (Claude semantic alignment)'
+        type: boolean
+        default: true
+      build:
+        description: 'Run build step (optimize_srt)'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -131,6 +147,7 @@ jobs:
           echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
 
       - name: Translate to Ukrainian
+        if: inputs.translate != false
         uses: anthropics/claude-code-action@v1
         env:
           CLAUDE_CODE_MAX_OUTPUT_TOKENS: "64000"
@@ -194,6 +211,7 @@ jobs:
           echo "transcript_uk.txt exists ($(wc -c < "talks/${{ matrix.talk_id }}/transcript_uk.txt") bytes)"
 
       - name: Review translation (2+1)
+        if: inputs.review != false
         uses: anthropics/claude-code-action@v1
         env:
           CLAUDE_CODE_MAX_OUTPUT_TOKENS: "64000"
@@ -331,6 +349,7 @@ jobs:
           fi
 
       - name: Align UK text to timestamps
+        if: inputs.align != false
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -378,6 +397,7 @@ jobs:
             After completion, verify the output file exists and report the number of segments processed.
 
       - name: Build optimized subtitles
+        if: inputs.build != false
         run: |
           VIDEO="talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}"
           mkdir -p "$VIDEO/final"
@@ -389,6 +409,7 @@ jobs:
             --report "$VIDEO/final/report.txt"
 
       - name: Upload build artifacts
+        if: inputs.build != false
         uses: actions/upload-artifact@v4
         with:
           name: subtitles__${{ matrix.talk_id }}__${{ matrix.video_slug }}
@@ -402,7 +423,9 @@ jobs:
     needs: [discover, translate-and-review, align-and-build]
     if: |
       always() &&
-      needs.align-and-build.result == 'success'
+      !cancelled() &&
+      (needs.align-and-build.result == 'success' || needs.align-and-build.result == 'skipped') &&
+      needs.translate-and-review.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -417,6 +440,7 @@ jobs:
           merge-multiple: false
 
       - name: Download subtitle artifacts
+        if: inputs.build != false
         uses: actions/download-artifact@v4
         with:
           pattern: subtitles__*

@@ -482,6 +482,70 @@ def split_blocks_by_cps(blocks, config):
     return new_blocks, splits
 
 
+def reconstruct_sentences(blocks, config):
+    """Merge consecutive blocks into complete sentences.
+
+    Blocks from uk_whisper.json often contain sentence fragments (one word or phrase
+    per whisper segment). This phase combines consecutive blocks until a sentence-ending
+    punctuation mark (.!?) is found, then starts a new accumulated block.
+
+    The merged block takes start_ms from the first and end_ms from the last fragment.
+    Later phases (duration split, CPS, merge) handle sizing.
+    """
+    if not blocks:
+        return blocks, 0
+
+    SENTENCE_END = re.compile(r"[.!?][»\"')\]]*$")
+
+    result = []
+    merged_count = 0
+    acc_text_parts = []
+    acc_start = blocks[0]["start_ms"]
+    acc_idx = blocks[0]["idx"]
+
+    for b in blocks:
+        text = b["text"].replace("\n", " ").strip()
+        if not text:
+            continue
+
+        if not acc_text_parts:
+            acc_start = b["start_ms"]
+            acc_idx = b["idx"]
+
+        acc_text_parts.append(text)
+        acc_end = b["end_ms"]
+
+        if SENTENCE_END.search(text):
+            combined = " ".join(acc_text_parts)
+            result.append(
+                {
+                    "idx": acc_idx,
+                    "start_ms": acc_start,
+                    "end_ms": acc_end,
+                    "text": combined,
+                }
+            )
+            if len(acc_text_parts) > 1:
+                merged_count += len(acc_text_parts) - 1
+            acc_text_parts = []
+
+    # Flush remaining fragments (no sentence-ending punct at the end)
+    if acc_text_parts:
+        combined = " ".join(acc_text_parts)
+        result.append(
+            {
+                "idx": acc_idx,
+                "start_ms": acc_start,
+                "end_ms": acc_end,
+                "text": combined,
+            }
+        )
+        if len(acc_text_parts) > 1:
+            merged_count += len(acc_text_parts) - 1
+
+    return result, merged_count
+
+
 def merge_short_blocks(blocks, config):
     """Merge very short adjacent blocks if combined they are within limits. Multi-pass."""
     total_merged = 0
@@ -673,6 +737,34 @@ def optimize_readability(blocks, whisper_segments, config, report):
     report.append("=" * 60)
     report.append("  STEP 4: Optimizing readability")
     report.append("=" * 60)
+
+    # Phase 0: Reconstruct sentences from fragmented whisper segments
+    blocks, sentences_merged = reconstruct_sentences(blocks, config)
+    report.append(f"  Phase 0 - Sentence reconstruction: {sentences_merged} fragments merged → {len(blocks)} blocks")
+
+    # Phase 0b: Trim oversized sentence blocks to reading duration
+    # After reconstruction, some sentences span huge time ranges because the alignment
+    # distributed text proportionally across many whisper segments.
+    # Cap block duration to reading time + margin so later phases split text sensibly.
+    trimmed_0b = 0
+    for i, b in enumerate(blocks):
+        chars = len(b["text"].replace("\n", ""))
+        dur = b["end_ms"] - b["start_ms"]
+        reading_dur = max(config.min_duration_ms, int((chars / config.target_cps) * 1000))
+        # Only trim if duration is way beyond reading time (> 3x) and beyond max_duration
+        if dur > max(reading_dur * 3, config.max_duration_ms * 2):
+            # Cap at reading time + 50% margin
+            new_end = b["start_ms"] + int(reading_dur * 1.5)
+            # Don't overlap with next block
+            if i + 1 < len(blocks):
+                new_end = min(new_end, blocks[i + 1]["start_ms"] - config.min_gap_ms)
+            # Ensure at least min_duration
+            new_end = max(new_end, b["start_ms"] + config.min_duration_ms)
+            if new_end < b["end_ms"] - 1000:
+                b["end_ms"] = new_end
+                trimmed_0b += 1
+    if trimmed_0b:
+        report.append(f"  Phase 0b - Trimmed oversized sentences: {trimmed_0b}")
 
     # Phase 1: Join multi-line blocks (single-line mode)
     lines_joined = 0
