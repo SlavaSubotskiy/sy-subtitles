@@ -169,7 +169,7 @@ jobs:
             - Translate with devotion, precision, and respect for the sacred meaning
 
             WRITING STRATEGY (important — the transcript is too large for a single Write):
-            Write the translation in chunks of ~5-8 paragraphs using bash:
+            Write the translation in chunks of ~3-5 KB each using bash:
             ```bash
             # First chunk — create file
             cat > talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
@@ -184,7 +184,7 @@ jobs:
             Наступний абзац...
             UKEOF
             ```
-            Use ~5 chunks for the full transcript. Do not try to write everything in one call.
+            Do not try to write everything in one call. Split into as many chunks as needed.
             Do not summarize, abbreviate, or skip any paragraphs.
 
       - name: Review translation (2+1)
