@@ -19,10 +19,10 @@
 ============================================================
   STEP 2: Comparing SRT with Whisper speech timings
 ============================================================
-  Whisper segments: 604
+  Whisper segments: 424
   SRT blocks: 477
-  SRT blocks starting >500ms before speech: 97
-  SRT blocks ending >2s after speech: 63
+  SRT blocks starting >500ms before speech: 64
+  SRT blocks ending >2s after speech: 31
 
 ============================================================
   STEP 3: Fixing structural issues
@@ -35,17 +35,17 @@
   STEP 4: Optimizing readability
 ============================================================
   Phase 1 - Lines joined (single-line mode): 0
-  Phase 1b - Duration splits (>7000ms): 128
+  Phase 1b - Duration splits (>7000ms): 132
   Phase 2 - Blocks split (> 84 chars): 15
-  Phase 3 - CPS extensions (pass 1): 87
-  Phase 4 - CPS splits (> 20.0): 27
-  Phase 5 - Merged short blocks: 120
-  Phase 6 - CPS extensions (pass 2): 51
-  Phase 6 - CPS extensions (pass 3): 51
-  Phase 6 - CPS extensions (pass 4): 51
-  Phase 7 - Cascade time redistribution: 58
-  Phase 7c - CPS extensions after redistribution: 2
-  Phase 11 - Final CPS extensions: 2
+  Phase 3 - CPS extensions (pass 1): 94
+  Phase 4 - CPS splits (> 20.0): 33
+  Phase 5 - Merged short blocks: 123
+  Phase 6 - CPS extensions (pass 2): 60
+  Phase 6 - CPS extensions (pass 3): 60
+  Phase 6 - CPS extensions (pass 4): 60
+  Phase 7 - Cascade time redistribution: 64
+  Phase 7c - CPS extensions after redistribution: 3
+  Phase 11 - Final CPS extensions: 3
 
 ============================================================
   STEP 5: Applying chaining
@@ -57,17 +57,17 @@
 ============================================================
 
   Text preservation: CHANGED!
-  Original chars: 22595, Optimized chars: 22596
+  Original chars: 22595, Optimized chars: 22597
 
   PARAMETER                          BEFORE      AFTER     CHANGE
   ------------------------------------------------------------
-  Total blocks                          477        519       +42v
-  Avg CPS                               9.8        9.1
+  Total blocks                          477        520       +43v
+  Avg CPS                               9.8        9.2
   Max CPS                              31.0       15.1
-  CPS > target                           66         37       -29v
+  CPS > target                           66         44       -22v
   CPS > hard max                         17          0       -17v
   Max CPL                               106         84       -22v
-  CPL > max                             247        242        -5v
+  CPL > max                             247        248        +1^
   Chars > max block                      43          0       -43v
   Lines > max                             0          0         --
   Duration < min                         35          3       -32v
@@ -75,16 +75,16 @@
   Gaps < min                            471          0      -471v
 
   Worst CPS blocks (top 10):
-    #194: CPS=15.1 (35ch/2.3s) "Можливо, деякі люди надто блискучі,"
-    #195: CPS=15.1 (53ch/3.5s) "і вони можуть намагатися хизуватися своєю блискучі"
-    #425: CPS=15.0 (25ch/1.7s) "Це має стати колективним."
-    #376: CPS=15.0 (28ch/1.9s) "«Ні, але ми маємо одну пару."
-    #305: CPS=15.0 (31ch/2.1s) "а з протоколу. Потім наступного"
-    #299: CPS=15.0 (31ch/2.1s) "лише тварин. Він не їсть траву."
-    #172: CPS=15.0 (34ch/2.3s) "За цим стоїть орієнтація на гроші,"
-    #143: CPS=15.0 (34ch/2.3s) "На щастя, тепер у всіх вас є діти,"
-    #492: CPS=15.0 (37ch/2.5s) "«Ні.» «А що з тими дітьми?» «Вони теж"
-    #313: CPS=15.0 (40ch/2.7s) "І потім все нижче і нижче, аж до птахів."
+    #192: CPS=15.1 (35ch/2.3s) "Можливо, деякі люди надто блискучі,"
+    #251: CPS=15.1 (29ch/1.9s) "і Я сказала: «Ходімо нагору.»"
+    #193: CPS=15.1 (53ch/3.5s) "і вони можуть намагатися хизуватися своєю блискучі"
+    #406: CPS=15.0 (8ch/0.5s) "зробити,"
+    #53: CPS=15.0 (16ch/1.1s) "Якщо ви невинні,"
+    #505: CPS=15.0 (25ch/1.7s) "що на санскриті називають"
+    #427: CPS=15.0 (25ch/1.7s) "Це має стати колективним."
+    #378: CPS=15.0 (28ch/1.9s) "«Ні, але ми маємо одну пару."
+    #301: CPS=15.0 (31ch/2.1s) "лише тварин. Він не їсть траву."
+    #146: CPS=15.0 (34ch/2.3s) "На щастя, тепер у всіх вас є діти,"
 
   Optimized SRT written to: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/final/uk.srt
-  Total blocks: 519
+  Total blocks: 520
