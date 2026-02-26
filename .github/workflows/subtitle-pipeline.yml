@@ -422,6 +422,11 @@ jobs:
 
       - name: Place artifacts into talk directories
         run: |
+          # Debug: show artifact structure
+          echo "=== Artifact contents ==="
+          find translation__* subtitles__* -type f 2>/dev/null || true
+          echo "========================="
+
           # Place translation artifacts
           for dir in translation__*/; do
             [ -d "$dir" ] || continue
@@ -429,9 +434,11 @@ jobs:
             talk_id="${name#translation__}"
             echo "Processing translation: $talk_id"
 
+            # Find files anywhere in artifact dir (upload-artifact strips LCA)
             for f in transcript_uk.txt review_report.md; do
-              src="$dir/talks/$talk_id/$f"
-              if [ -f "$src" ]; then
+              src=$(find "$dir" -name "$f" -type f | head -1)
+              if [ -n "$src" ]; then
+                mkdir -p "talks/$talk_id"
                 cp "$src" "talks/$talk_id/$f"
                 echo "  -> talks/$talk_id/$f"
               fi
@@ -447,17 +454,19 @@ jobs:
             talk_id="${rest%__*}"
             echo "Processing subtitles: $talk_id / $video_slug"
 
-            src="$dir/talks/$talk_id/$video_slug/work/uk_whisper.json"
-            if [ -f "$src" ]; then
-              dest="talks/$talk_id/$video_slug/work"
-              mkdir -p "$dest"
-              cp "$src" "$dest/uk_whisper.json"
-              echo "  -> $dest/uk_whisper.json"
-            fi
+            for f in uk_whisper.json; do
+              src=$(find "$dir" -name "$f" -type f | head -1)
+              if [ -n "$src" ]; then
+                dest="talks/$talk_id/$video_slug/work"
+                mkdir -p "$dest"
+                cp "$src" "$dest/$f"
+                echo "  -> $dest/$f"
+              fi
+            done
 
             for f in uk.srt report.txt; do
-              src="$dir/talks/$talk_id/$video_slug/final/$f"
-              if [ -f "$src" ]; then
+              src=$(find "$dir" -name "$f" -type f | head -1)
+              if [ -n "$src" ]; then
                 dest="talks/$talk_id/$video_slug/final"
                 mkdir -p "$dest"
                 cp "$src" "$dest/$f"
