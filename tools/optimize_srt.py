@@ -108,7 +108,7 @@ def find_block_split_point(text):
     mid = len(text) // 2
     best_pos = None
     best_dist = float('inf')
-    for m in re.finditer(r'[,;:]\s', text):
+    for m in re.finditer(r'[,;:—]\s', text):
         pos = m.end()
         dist = abs(pos - mid)
         if dist < best_dist:
@@ -258,170 +258,120 @@ def extend_cps(blocks, config):
     return extended
 
 
-def _get_whisper_slots(start_ms, end_ms, whisper_intervals):
-    """Get whisper-based time slots within a block's range.
+def _snap_to_speech_gap(target_ms, start_ms, end_ms, seg_intervals, word_intervals):
+    """Snap a split time to the nearest speech gap for cleaner transitions.
 
-    Returns list of (slot_start, slot_end) covering the block's duration,
-    split at whisper segment boundaries.
+    Looks for pauses between whisper segments or between words near the target time.
+    Prefers larger gaps (stronger pauses) closer to the target.
     """
-    # Collect all whisper boundaries (starts and ends) strictly inside the block
-    boundaries = set()
-    for ws, we in whisper_intervals:
-        if start_ms < ws < end_ms:
-            boundaries.add(int(ws))
-        if start_ms < we < end_ms:
-            boundaries.add(int(we))
-    if not boundaries:
-        return [(start_ms, end_ms)]
-    points = sorted([start_ms] + list(boundaries) + [end_ms])
-    return [(points[i], points[i + 1]) for i in range(len(points) - 1)]
+    SNAP_WINDOW = 3000  # look ±3s from target
+    best_time = target_ms
+    best_score = float('inf')
+
+    # Gaps between whisper segments
+    relevant_segs = sorted(
+        (max(start_ms, int(ws)), min(end_ms, int(we)))
+        for ws, we in seg_intervals
+        if ws < end_ms and we > start_ms
+    )
+    for i in range(len(relevant_segs) - 1):
+        gap_start = relevant_segs[i][1]
+        gap_end = relevant_segs[i + 1][0]
+        gap_size = gap_end - gap_start
+        if gap_size > 100:
+            gap_mid = (gap_start + gap_end) // 2
+            dist = abs(gap_mid - target_ms)
+            if dist < SNAP_WINDOW:
+                score = dist - gap_size * 0.5
+                if score < best_score:
+                    best_score = score
+                    best_time = gap_mid
+
+    # Gaps between words (finer precision)
+    if word_intervals:
+        relevant_words = sorted(
+            (max(start_ms, int(ws)), min(end_ms, int(we)))
+            for ws, we in word_intervals
+            if ws < end_ms and we > start_ms
+        )
+        for i in range(len(relevant_words) - 1):
+            gap_start = relevant_words[i][1]
+            gap_end = relevant_words[i + 1][0]
+            gap_size = gap_end - gap_start
+            if gap_size > 200:
+                gap_mid = (gap_start + gap_end) // 2
+                dist = abs(gap_mid - target_ms)
+                if dist < SNAP_WINDOW:
+                    score = dist - gap_size * 0.2
+                    if score < best_score:
+                        best_score = score
+                        best_time = gap_mid
+
+    return int(best_time)
 
 
 def split_blocks_by_duration(blocks, config, whisper_intervals=None, word_intervals=None):
-    """Split long blocks using whisper segment boundaries as primary time splits."""
+    """Split long blocks at sentence/clause/word boundaries with whisper-guided timing.
+
+    Text-first approach: finds natural text split points (sentence endings first),
+    then snaps the time split to the nearest speech pause from whisper data.
+    Recursive — keeps splitting until all blocks fit within max_duration.
+    """
     new_blocks = []
     splits = 0
     wi = whisper_intervals or []
     ww = word_intervals or []
     gap = config.min_gap_ms
 
-    for b in blocks:
+    pending = list(blocks)
+    while pending:
+        b = pending.pop(0)
         dur = b['end_ms'] - b['start_ms']
-        if dur <= config.max_duration_ms + 1000:
+        text = b['text'].replace('\n', ' ')
+
+        if dur <= config.max_duration_ms + 1000 or len(text) < 10:
             new_blocks.append(b)
             continue
 
-        text = b['text'].replace('\n', ' ')
+        # Find text split point: sentence > clause > word boundary
+        split_pos = find_block_split_point(text)
+        if not split_pos or split_pos < 3 or (len(text) - split_pos) < 3:
+            new_blocks.append(b)
+            continue
 
-        # Get whisper-based time slots
-        slots = _get_whisper_slots(b['start_ms'], b['end_ms'], wi)
+        text1 = text[:split_pos].strip()
+        text2 = text[split_pos:].strip()
+        if not text1 or not text2:
+            new_blocks.append(b)
+            continue
 
-        # Merge tiny slots (< 3s) with neighbors
-        merged = []
-        for slot in slots:
-            if merged and (slot[1] - slot[0]) < 3000:
-                merged[-1] = (merged[-1][0], slot[1])
-            elif merged and (merged[-1][1] - merged[-1][0]) < 3000:
-                merged[-1] = (merged[-1][0], slot[1])
-            else:
-                merged.append(slot)
-        slots = merged if len(merged) > 1 else slots
+        # Calculate proportional split time, then snap to speech gap
+        ratio = len(text1) / len(text)
+        mid_time = b['start_ms'] + int(dur * ratio)
+        mid_time = _snap_to_speech_gap(mid_time, b['start_ms'], b['end_ms'], wi, ww)
 
-        # If whisper gave us multiple slots, distribute text across them
-        if len(slots) > 1:
-            total_dur = sum(s[1] - s[0] for s in slots)
-            remaining_text = text
-            for i, (ss, se) in enumerate(slots):
-                slot_dur = se - ss
-                is_last = (i == len(slots) - 1)
-                if is_last:
-                    chunk = remaining_text
-                else:
-                    # Proportion of text for this slot
-                    ratio = slot_dur / total_dur
-                    target_chars = int(len(text) * ratio)
-                    # Find a good split point near target_chars
-                    chunk, remaining_text = _split_text_near(remaining_text, target_chars)
-                    total_dur -= slot_dur
+        # Ensure both halves have reasonable duration
+        if mid_time - b['start_ms'] < config.min_duration_ms:
+            mid_time = b['start_ms'] + config.min_duration_ms
+        if b['end_ms'] - mid_time < config.min_duration_ms:
+            mid_time = b['end_ms'] - config.min_duration_ms
 
-                if not chunk.strip():
-                    # No text for this slot — extend previous block
-                    if new_blocks:
-                        new_blocks[-1]['end_ms'] = se
-                    continue
-
-                new_blocks.append({
-                    'idx': b['idx'],
-                    'start_ms': ss + (gap // 2 if i > 0 else 0),
-                    'end_ms': se - (gap // 2 if not is_last else 0),
-                    'text': chunk.strip(),
-                })
-            splits += max(0, len(slots) - 1)
-        else:
-            # No whisper boundaries — fallback to proportional text split
-            pending = [b]
-            while pending:
-                current = pending.pop(0)
-                c_dur = current['end_ms'] - current['start_ms']
-                c_text = current['text'].replace('\n', ' ')
-                if c_dur <= config.max_duration_ms + 1000 or len(c_text) < 10:
-                    new_blocks.append(current)
-                    continue
-                split_pos = find_block_split_point(c_text)
-                if not split_pos or split_pos < 5 or (len(c_text) - split_pos) < 5:
-                    new_blocks.append(current)
-                    continue
-                text1 = c_text[:split_pos].strip()
-                text2 = c_text[split_pos:].strip()
-                ratio = len(text1) / len(c_text)
-                mid_time = current['start_ms'] + int(c_dur * ratio)
-                # Snap to nearest word boundary if available
-                if ww:
-                    best_wt = mid_time
-                    best_wd = float('inf')
-                    for ws, we in ww:
-                        if current['start_ms'] < we < current['end_ms']:
-                            d = abs(we - mid_time)
-                            if d < best_wd:
-                                best_wd = d
-                                best_wt = int(we)
-                    mid_time = best_wt
-                pending.insert(0, {
-                    'idx': current['idx'],
-                    'start_ms': mid_time + gap // 2,
-                    'end_ms': current['end_ms'],
-                    'text': text2,
-                })
-                pending.insert(0, {
-                    'idx': current['idx'],
-                    'start_ms': current['start_ms'],
-                    'end_ms': mid_time - gap // 2,
-                    'text': text1,
-                })
-                splits += 1
+        # Add both halves to pending for potential further splitting
+        pending.insert(0, {
+            'idx': b['idx'],
+            'start_ms': mid_time + gap // 2,
+            'end_ms': b['end_ms'],
+            'text': text2,
+        })
+        pending.insert(0, {
+            'idx': b['idx'],
+            'start_ms': b['start_ms'],
+            'end_ms': mid_time - gap // 2,
+            'text': text1,
+        })
+        splits += 1
 
     return new_blocks, splits
-
-
-def _split_text_near(text, target_pos):
-    """Split text near target_pos at a natural break point. Returns (before, after)."""
-    if target_pos <= 0:
-        return ('', text)
-    if target_pos >= len(text):
-        return (text, '')
-
-    # Try sentence boundary first
-    best_pos = None
-    best_dist = float('inf')
-    for m in re.finditer(r'[.!?»]\s+', text):
-        pos = m.end()
-        dist = abs(pos - target_pos)
-        if dist < best_dist:
-            best_dist = dist
-            best_pos = pos
-
-    # Try clause boundary (comma, dash, semicolon)
-    if best_pos is None or best_dist > len(text) * 0.3:
-        for m in re.finditer(r'[,;:—]\s+', text):
-            pos = m.end()
-            dist = abs(pos - target_pos)
-            if dist < best_dist:
-                best_dist = dist
-                best_pos = pos
-
-    # Fallback: word boundary
-    if best_pos is None or best_dist > len(text) * 0.4:
-        for m in re.finditer(r'\s+', text):
-            pos = m.end()
-            dist = abs(pos - target_pos)
-            if dist < best_dist:
-                best_dist = dist
-                best_pos = pos
-
-    if best_pos is None:
-        best_pos = target_pos
-
-    return (text[:best_pos].strip(), text[best_pos:].strip())
 
 
 def split_blocks_by_size(blocks, config):
@@ -755,6 +705,41 @@ def optimize_readability(blocks, whisper_segments, config, report):
     for b in blocks:
         if b['end_ms'] - b['start_ms'] < config.min_duration_ms:
             b['end_ms'] = b['start_ms'] + config.min_duration_ms
+
+    # Phase 8b: Trim oversized blocks with very little text
+    # Blocks that exceed max_duration but have too few chars to split
+    # (e.g., single-word blocks spanning long pauses) — trim to speech end
+    if whisper_segments:
+        speech_intervals = [(seg['start'] * 1000, seg['end'] * 1000) for seg in whisper_segments]
+        trimmed = 0
+        for i, b in enumerate(blocks):
+            chars = len(b['text'].replace('\n', ''))
+            dur = b['end_ms'] - b['start_ms']
+            if dur <= config.max_duration_ms:
+                continue
+            cps = chars / (dur / 1000.0) if dur > 0 else 999
+            if cps >= 2.0:
+                continue
+            # Find the whisper segment with most overlap with this block
+            best_overlap = 0
+            speech_end = b['start_ms']
+            for ws, we in speech_intervals:
+                ov_start = max(ws, b['start_ms'])
+                ov_end = min(we, b['end_ms'])
+                overlap = ov_end - ov_start
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    speech_end = int(we)
+            # Trim to speech_end + margin, at least reading time
+            reading_dur = max(config.min_duration_ms, int((chars / config.target_cps) * 1000))
+            new_end = max(b['start_ms'] + reading_dur, int(speech_end + 500))
+            if i + 1 < len(blocks):
+                new_end = min(new_end, blocks[i + 1]['start_ms'] - config.min_gap_ms)
+            if b['end_ms'] - new_end >= 2000:
+                b['end_ms'] = new_end
+                trimmed += 1
+        if trimmed:
+            report.append(f"  Phase 8b - Trimmed oversized low-text blocks: {trimmed}")
 
     # Phase 10: Final overlap fix
     blocks = fix_overlaps(blocks, config)
