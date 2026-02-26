@@ -110,10 +110,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Cache Claude Code
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.claude-code
+            ~/.local/share/claude-code
+          key: claude-code-${{ runner.os }}
+
+      - name: Install Claude Code
+        run: bun install -g @anthropic-ai/claude-code@latest
+
+      - name: Resolve executable paths
+        id: tools
+        run: |
+          echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
+          echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
+
       - name: Translate to Ukrainian
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          path_to_bun_executable: ${{ steps.tools.outputs.bun }}
+          path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
           claude_args: "--max-turns 25"
           prompt: |
             You are translating a Sahaja Yoga lecture from English to Ukrainian.
@@ -151,6 +173,8 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          path_to_bun_executable: ${{ steps.tools.outputs.bun }}
+          path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
           claude_args: "--max-turns 25"
           prompt: |
             Perform a 2+1 language review on the Ukrainian translation.
@@ -228,6 +252,26 @@ jobs:
         with:
           name: translation__${{ matrix.talk_id }}
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Cache Claude Code
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.claude-code
+            ~/.local/share/claude-code
+          key: claude-code-${{ runner.os }}
+
+      - name: Install Claude Code
+        run: bun install -g @anthropic-ai/claude-code@latest
+
+      - name: Resolve executable paths
+        id: tools
+        run: |
+          echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
+          echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -261,6 +305,8 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          path_to_bun_executable: ${{ steps.tools.outputs.bun }}
+          path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
           claude_args: "--max-turns 50"
           prompt: |
             Perform semantic word-level alignment of Ukrainian subtitle text to English speech timestamps.
