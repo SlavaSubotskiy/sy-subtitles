@@ -130,71 +130,57 @@ jobs:
           echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
           echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
 
-      - name: Split transcript into chunks
-        run: |
-          TALK="talks/${{ matrix.talk_id }}"
-          python3 << PYEOF
-          import re, os
-          text = open("$TALK/transcript_en.txt", encoding="utf-8").read()
-          lines = text.split("\n")
-          body_start = 0
-          for i, line in enumerate(lines):
-              if re.match(r"^(Talk Language:|Language:)", line.strip()):
-                  body_start = i + 1
-                  break
-              if i >= 10:
-                  break
-          body = "\n".join(lines[body_start:])
-          paragraphs = [p.strip() for p in re.split(r"\n\n+", body) if p.strip()]
-          os.makedirs("/tmp/en_chunks", exist_ok=True)
-          chunk_size = 5
-          for i in range(0, len(paragraphs), chunk_size):
-              chunk = "\n\n".join(paragraphs[i:i+chunk_size])
-              with open(f"/tmp/en_chunks/chunk_{i//chunk_size+1:03d}.txt", "w") as f:
-                  f.write(chunk)
-          print(f"Split {len(paragraphs)} paragraphs into {(len(paragraphs)+chunk_size-1)//chunk_size} chunks")
-          PYEOF
-          ls -la /tmp/en_chunks/
-
       - name: Translate to Ukrainian
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 50 --dangerously-skip-permissions --model claude-opus-4-6"
+          claude_args: "--max-turns 30 --dangerously-skip-permissions --model claude-opus-4-6"
           show_full_output: true
           prompt: |
             You are translating a Sahaja Yoga lecture from English to Ukrainian.
 
-            STEP 1 — Read reference files (do this ONCE at the start):
-            - glossary/CLAUDE.md
-            - glossary/terms_lookup.yaml
-            - glossary/terms_context.yaml
-            - glossary/chakra_map.yaml
-            (CLAUDE.md is auto-loaded)
+            REQUIRED READING — read these files before translating:
+            1. glossary/CLAUDE.md — transliteration conventions, capitalization rules
+            2. glossary/terms_lookup.yaml — EN→UK term dictionary (374 terms)
+            3. glossary/terms_context.yaml — disambiguation context for ambiguous terms
+            4. glossary/chakra_map.yaml — chakra/deity/channel mapping
+            5. talks/${{ matrix.talk_id }}/transcript_en.txt — English source transcript
+            (CLAUDE.md is auto-loaded — no need to read it)
 
-            STEP 2 — Translate chunk by chunk:
-            The English transcript has been pre-split into numbered chunks in /tmp/en_chunks/.
-            List the files there first with: ls /tmp/en_chunks/
-
-            For EACH chunk file (in order):
-            1. Read the chunk file
-            2. Translate it to Ukrainian
-            3. IMMEDIATELY write the translation using bash:
-               - First chunk: cat > talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
-               - Subsequent chunks: cat >> talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
-            4. Move to the next chunk
-
-            CRITICAL: Process ONE chunk at a time. Read → Translate → Write → Next.
-            Do NOT read multiple chunks before writing. Do NOT plan the entire translation upfront.
+            TASK:
+            Translate the full English transcript into Ukrainian and write it to:
+              talks/${{ matrix.talk_id }}/transcript_uk.txt
 
             RULES:
-            - Preserve paragraph structure: separate paragraphs with double newlines (\n\n)
+            - Skip the header lines (date, title, location, "Talk Language:" line) — translate ONLY the speech content
+            - Preserve paragraph structure: one EN paragraph = one UK paragraph
+            - Separate paragraphs with double newlines (\n\n)
+            - No header, no metadata, no line numbers in the output file
             - Follow ALL language rules from CLAUDE.md
-            - Use glossary terms consistently
-            - Follow transliteration conventions from glossary/CLAUDE.md (ґ not г, дх for dh, і for short i)
-            - Do not summarize, abbreviate, or skip any paragraphs
+            - Use glossary terms consistently (terms_lookup.yaml + terms_context.yaml)
+            - Follow transliteration conventions from glossary/CLAUDE.md (ґ not г for Sanskrit g, дх for dh, і for short i)
+            - Translate with devotion, precision, and respect for the sacred meaning
+
+            WRITING STRATEGY (important — the transcript is too large for a single Write):
+            Write the translation in chunks of ~3-5 KB each using bash:
+            ```bash
+            # First chunk — create file
+            cat > talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
+            Перший абзац...
+
+            Другий абзац...
+            UKEOF
+
+            # Next chunks — APPEND
+            cat >> talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
+
+            Наступний абзац...
+            UKEOF
+            ```
+            Do not try to write everything in one call. Split into as many chunks as needed.
+            Do not summarize, abbreviate, or skip any paragraphs.
 
       - name: Verify translation exists
         run: |
