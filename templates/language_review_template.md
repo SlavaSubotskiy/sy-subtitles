@@ -2,62 +2,81 @@
 
 ## Process
 
-Extract text from `work/uk_corrected.srt` and run 5 parallel review agents:
+Review `transcript_uk.txt` (full paragraphed Ukrainian text) using 2 parallel reviewers + 1 critic filter.
 
-### Text Extraction Format
+### Input Format
+
+Full paragraphed text from `transcript_uk.txt`:
 ```
-[1] Subtitle text block one.
-[2] Subtitle text block two.
+Перший абзац українського тексту. Він містить кілька речень.
+
+Другий абзац. Тут продовження перекладу.
 ```
 
 ### Review Agents
 
-**Agent A — Orthography (Spelling)**
-Check for: misspellings, incorrect word forms, Latin characters mixed with Cyrillic, incorrect prefixes (напів-, пів-), doubled consonants.
+**Reviewer L — Language (Orthography + Grammar + Punctuation)**
+Check for:
+- Spelling errors, incorrect word forms, Latin characters mixed with Cyrillic
+- Incorrect prefixes (напів-, пів-), doubled consonants
+- Missing/extra commas, double periods, incorrect ellipsis (`...` without space before)
+- Missing spaces after punctuation, extra spaces before punctuation
+- Quotation mark consistency (use `«»`)
+- Em-dash with spaces (` — `)
+- Incorrect case forms, verb conjugations, gender agreement
+- Reflexive verbs: `-ся` not `-сь` (e.g., `дотримуєтеся` not `дотримуєтесь`)
 
-**Agent B — Punctuation**
-Check for: missing/extra commas, double periods, incorrect ellipsis, missing spaces after punctuation, extra spaces before punctuation, quotation mark consistency (use << >>).
+**Reviewer S — SY Domain (Capitalization + Terminology + Consistency)**
+Check for:
+- Deity pronoun capitalization:
+  - Shri Mataji: ALWAYS uppercase (Я/Мені/Мій/Моя/Вона/Її/Їй)
+  - Individual Incarnations singular: uppercase (Він/Його/Йому)
+  - Incarnations plural mid-sentence: lowercase (вони/їм/їх)
+  - Regular people: always lowercase
+- Glossary terms: correct Ukrainian equivalents per `glossary/`
+- Language names: lowercase in Ukrainian (англійська, not Англійська)
+- SY terminology consistency across the entire text
+- Mixed styles (quotation marks, dashes) within the same transcript
 
-**Agent C — Grammar**
-Check for: incorrect case forms, incorrect verb conjugations, incorrect gender agreement, sentence continuation capitalization.
+**Critic — Filter + Validate**
+Reviews ALL corrections from Reviewer L and Reviewer S together:
+- Removes false positives (corrections where original was actually correct)
+- Removes trivial findings (style preferences, not errors)
+- Validates each correction is genuinely needed with clear justification
+- Catches conflicts between L and S suggestions
+- Has final say on which corrections to apply
 
-**Agent D — Capitalization**
-Check for: deity pronoun capitalization (Shri Mataji always uppercase, individual Incarnations singular uppercase, plural lowercase), language names (lowercase in Ukrainian), sentence start capitalization.
+### Flow
 
-**Agent E — Consistency (Informational)**
-Check for: mixed quotation styles, mixed dash styles, inconsistent terminology. Report only — do not apply without explicit approval.
+1. Reviewers L and S run **in parallel** on `transcript_uk.txt`
+2. Both produce corrections tables
+3. Critic reviews both tables together, keeps only real issues
+4. Apply filtered corrections to `transcript_uk.txt`
 
 ## Results
 
-### A. Orthography
-| # | Block | Error | Fix |
-|---|-------|-------|-----|
-| | | | |
+### L. Language (Orthography + Grammar + Punctuation)
+| # | Paragraph | Error | Context | Fix |
+|---|-----------|-------|---------|-----|
+| | | | | |
 
-### B. Punctuation
-| # | Block | Error | Fix |
-|---|-------|-------|-----|
-| | | | |
+### S. SY Domain (Capitalization + Terminology + Consistency)
+| # | Paragraph | Error | Context | Fix |
+|---|-----------|-------|---------|-----|
+| | | | | |
 
-### C. Grammar
-| # | Block | Error | Fix |
-|---|-------|-------|-----|
-| | | | |
+### Critic Filter
+| Source | # | Verdict | Reason |
+|--------|---|---------|--------|
+| | | Keep/Remove | |
 
-### D. Capitalization
-| # | Block | Error | Fix |
-|---|-------|-------|-----|
-| | | | |
-
-### E. Consistency (Informational)
-| # | Block | Observation | Suggestion |
-|---|-------|-------------|------------|
+### Approved Corrections
+| # | Paragraph | Error | Fix |
+|---|-----------|-------|-----|
 | | | | |
 
 ## Summary
 
-- Orthography: ___ issues
-- Punctuation: ___ issues
-- Grammar: ___ issues
-- Capitalization: ___ issues
-- Consistency: ___ observations
+- Language (L): ___ issues found, ___ approved by Critic
+- SY Domain (S): ___ issues found, ___ approved by Critic
+- Total corrections applied: ___

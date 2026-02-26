@@ -1,0 +1,40 @@
+1
+00:00:01,000 --> 00:00:04,000
+First block of text.
+
+2
+00:00:04,500 --> 00:00:07,500
+Second block with more words here.
+
+3
+00:00:08,000 --> 00:00:11,000
+Third block continues the speech.
+
+4
+00:00:11,200 --> 00:00:14,200
+Fourth block about meditation.
+
+5
+00:00:15,000 --> 00:00:18,000
+Fifth block on the subtle system.
+
+6
+00:00:18,500 --> 00:00:21,500
+Sixth block describes the chakras.
+
+7
+00:00:22,000 --> 00:00:25,000
+Seventh block about kundalini rising.
+
+8
+00:00:25,500 --> 00:00:28,500
+Eighth block with more details.
+
+9
+00:00:29,000 --> 00:00:32,000
+Ninth block near the end.
+
+10
+00:00:32,500 --> 00:00:35,500
+Tenth and final block of speech.
+

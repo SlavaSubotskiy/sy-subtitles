@@ -13,6 +13,19 @@ Source language: English. Target language: Ukrainian.
 
 ## Workflow
 
+### New Pipeline (transcript-based)
+
+1. Open a talk directory under `talks/{date}_{slug}/`
+2. Read `meta.yaml` for talk metadata and video list
+3. Read `transcript_en.txt` — full English transcript (per talk)
+4. Translate to `transcript_uk.txt` (per talk, `\n\n` between paragraphs)
+5. Review using 2 Reviewers + 1 Critic (see `templates/language_review_template.md`)
+6. Push `transcript_uk.txt` — GitHub Actions will align + optimize automatically:
+   - `align_uk.py` maps UK text to whisper timestamps → `uk_whisper.json`
+   - `optimize_srt.py --uk-json` builds optimized subtitles → `final/uk.srt`
+
+### Legacy Workflow (SRT-based, still supported)
+
 1. Open a talk directory under `talks/{date}_{slug}/`
 2. Read `meta.yaml` for talk metadata and video list
 3. For each video subdirectory (`{video_slug}/`):
@@ -68,19 +81,26 @@ When both videos share the same text (different timecodes only), translate the f
 
 ## Review Process
 
-Use the 5-agent language review (see `templates/language_review_template.md`):
-- A: Orthography
-- B: Punctuation
-- C: Grammar
-- D: Capitalization
-- E: Consistency
+Use the 2+1 agent language review (see `templates/language_review_template.md`):
+- **Reviewer L**: Language (Orthography + Grammar + Punctuation)
+- **Reviewer S**: SY Domain (Capitalization + Terminology + Consistency)
+- **Critic**: Filter corrections, remove false positives
 
 ## Tools
 
 Run locally if needed:
 ```bash
+# Align Ukrainian transcript to timestamps (new pipeline)
+python -m tools.align_uk --transcript PATH --whisper-json PATH --output PATH [--skip-word-align]
+
+# Optimize from SRT (legacy) or uk_whisper.json (new)
 python -m tools.optimize_srt --srt PATH [--json PATH] --output PATH
-python -m tools.text_export --srt PATH --meta PATH --output PATH
+python -m tools.optimize_srt --uk-json PATH [--json PATH] --output PATH
+
+# Export SRT to plain text
+python -m tools.text_export --srt PATH --output PATH [--meta PATH] [--double-spacing]
+
+# Other tools
 python -m tools.extract_review --srt PATH [-o PATH]
 python -m tools.scrape_listing --output glossary/corpus/index.yaml --cookie "..."
 python -m tools.fetch_transcripts --index glossary/corpus/index.yaml --cookie "..."

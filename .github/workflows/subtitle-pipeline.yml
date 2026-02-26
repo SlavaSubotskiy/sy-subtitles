@@ -1,0 +1,406 @@
+name: Subtitle Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'talks/*/transcript_en.txt'
+  workflow_dispatch:
+    inputs:
+      talk_id:
+        description: 'Talk directory name (e.g., 1993-09-19_Ganesha-Puja-Cabella)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.find.outputs.matrix }}
+      talk_matrix: ${{ steps.find.outputs.talk_matrix }}
+      whisper_matrix: ${{ steps.find.outputs.whisper_matrix }}
+      needs_whisper: ${{ steps.find.outputs.needs_whisper }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install pyyaml
+        run: pip install pyyaml
+
+      - name: Find talks, videos, and pending whisper
+        id: find
+        run: |
+          python3 << 'PYEOF'
+          import json, os, subprocess, yaml
+
+          talk_id_input = "${{ inputs.talk_id }}".strip()
+          video_includes = []
+          talk_ids = set()
+          whisper_talk_ids = set()
+
+          def process_talk(talk_id):
+              meta_path = f"talks/{talk_id}/meta.yaml"
+              if not os.path.isfile(meta_path):
+                  print(f"SKIP: {meta_path} not found")
+                  return
+              talk_ids.add(talk_id)
+              with open(meta_path) as f:
+                  meta = yaml.safe_load(f)
+              for v in meta.get("videos", []):
+                  slug = v["slug"]
+                  video_includes.append({"talk_id": talk_id, "video_slug": slug})
+                  whisper_path = f"talks/{talk_id}/{slug}/source/whisper.json"
+                  if not os.path.isfile(whisper_path):
+                      whisper_talk_ids.add(talk_id)
+                      print(f"WHISPER NEEDED: {talk_id}/{slug}")
+                  else:
+                      print(f"READY: {talk_id}/{slug}")
+
+          if talk_id_input:
+              process_talk(talk_id_input)
+          else:
+              result = subprocess.run(
+                  ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
+                  capture_output=True, text=True
+              )
+              for line in result.stdout.strip().split("\n"):
+                  if "transcript_en.txt" in line:
+                      parts = line.split("/")
+                      if len(parts) >= 2:
+                          process_talk(parts[1])
+
+          matrix = json.dumps({"include": video_includes})
+          talk_matrix = json.dumps({"include": [{"talk_id": t} for t in sorted(talk_ids)]})
+          whisper_matrix = json.dumps({"include": [{"talk_id": t} for t in sorted(whisper_talk_ids)]})
+          needs_whisper = "true" if whisper_talk_ids else "false"
+
+          print(f"\nTalks: {len(talk_ids)}, Videos: {len(video_includes)}, Talks needing whisper: {len(whisper_talk_ids)}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"matrix={matrix}\n")
+              f.write(f"talk_matrix={talk_matrix}\n")
+              f.write(f"whisper_matrix={whisper_matrix}\n")
+              f.write(f"needs_whisper={needs_whisper}\n")
+          PYEOF
+
+  # Run Whisper for talks that don't have whisper.json yet
+  whisper:
+    needs: discover
+    if: needs.discover.outputs.needs_whisper == 'true'
+    strategy:
+      matrix: ${{ fromJson(needs.discover.outputs.whisper_matrix) }}
+      fail-fast: false
+    uses: ./.github/workflows/whisper.yml
+    with:
+      talk_id: ${{ matrix.talk_id }}
+
+  # Translate EN→UK and review with 2+1 process (per talk)
+  translate-and-review:
+    needs: discover
+    environment: main
+    strategy:
+      matrix: ${{ fromJson(needs.discover.outputs.talk_matrix) }}
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Translate to Ukrainian
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          direct_prompt: true
+          claude_args: "--max-turns 25"
+          prompt: |
+            You are translating a Sahaja Yoga lecture from English to Ukrainian.
+
+            REQUIRED READING — read ALL these files before translating:
+            1. CLAUDE.md — project rules and language conventions
+            2. glossary/CLAUDE.md — glossary instructions, transliteration conventions, capitalization rules
+            3. glossary/terms_lookup.yaml — EN→UK term dictionary (374 terms)
+            4. glossary/terms_context.yaml — disambiguation context for ambiguous terms
+            5. glossary/chakra_map.yaml — chakra/deity/channel mapping
+            6. talks/${{ matrix.talk_id }}/transcript_en.txt — English source transcript
+
+            TASK:
+            Translate the full English transcript into Ukrainian and write it to:
+              talks/${{ matrix.talk_id }}/transcript_uk.txt
+
+            RULES:
+            - Skip the header lines (date, title, location, "Talk Language:" line) — translate ONLY the speech content
+            - Preserve paragraph structure: one EN paragraph = one UK paragraph
+            - Separate paragraphs with double newlines (\n\n)
+            - No header, no metadata, no line numbers in the output file
+            - Follow ALL language rules from CLAUDE.md:
+              • Deity pronoun capitalization (Shri Mataji: Вона/Її/Їй always uppercase; Incarnations singular: Він/Його uppercase; incarnations plural mid-sentence: lowercase)
+              • Reflexive verbs: -ся not -сь
+              • Quotation marks: «»
+              • Em-dash with spaces: ` — `
+              • Ellipsis: `...`
+            - Use glossary terms consistently (terms_lookup.yaml + terms_context.yaml)
+            - Follow transliteration conventions from glossary/CLAUDE.md (ґ not г for Sanskrit g, дх for dh, і for short i)
+            - Translate with devotion, precision, and respect for the sacred meaning
+
+            Write the COMPLETE translation. Do not summarize, abbreviate, or skip any paragraphs.
+
+      - name: Review translation (2+1)
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          direct_prompt: true
+          claude_args: "--max-turns 25"
+          prompt: |
+            Perform a 2+1 language review on the Ukrainian translation.
+
+            READ these files:
+            1. talks/${{ matrix.talk_id }}/transcript_uk.txt — the translation to review
+            2. talks/${{ matrix.talk_id }}/transcript_en.txt — English original for reference
+            3. templates/language_review_template.md — review process and table format
+            4. CLAUDE.md — language rules
+            5. glossary/CLAUDE.md — SY terminology and capitalization rules
+            6. glossary/terms_lookup.yaml — term dictionary
+            7. glossary/terms_context.yaml — disambiguation context
+
+            PROCESS (follow templates/language_review_template.md):
+
+            Step 1 — Reviewer L (Language):
+            Check orthography, grammar, punctuation:
+            - Spelling, incorrect word forms, mixed Latin/Cyrillic characters
+            - Comma usage, quotation marks «», em-dash ` — `, ellipsis `...`
+            - Reflexive verbs: -ся not -сь (e.g., дотримуєтеся not дотримуєтесь)
+            - Case forms, verb conjugations, gender agreement
+            - Missing/extra spaces around punctuation
+
+            Step 2 — Reviewer S (SY Domain):
+            Check terminology and capitalization:
+            - Deity pronoun capitalization per CLAUDE.md rules
+            - Glossary term consistency against terms_lookup.yaml
+            - SY terminology accuracy
+            - Language names lowercase in Ukrainian
+            - Spiritual term capitalization (Дхарма, Інкарнація, Пуджа, Дух, Істина, Стопи)
+
+            Step 3 — Critic:
+            Review ALL corrections from L and S:
+            - Remove false positives (where original was correct)
+            - Remove trivial style preferences (not real errors)
+            - Keep only genuine errors with clear justification
+            - Resolve conflicts between L and S suggestions
+
+            Step 4 — Apply:
+            Apply all Critic-approved corrections to talks/${{ matrix.talk_id }}/transcript_uk.txt
+            Save the full review report (with all tables) to talks/${{ matrix.talk_id }}/review_report.md
+
+            Be thorough but precise. Only change what genuinely needs correction.
+
+      - name: Upload translation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: translation__${{ matrix.talk_id }}
+          path: |
+            talks/${{ matrix.talk_id }}/transcript_uk.txt
+            talks/${{ matrix.talk_id }}/review_report.md
+
+  # Align UK text to timestamps and build subtitles (per video)
+  align-and-build:
+    needs: [discover, whisper, translate-and-review]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.discover.result == 'success' &&
+      needs.translate-and-review.result == 'success' &&
+      (needs.whisper.result == 'success' || needs.whisper.result == 'skipped')
+    environment: main
+    strategy:
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull latest (whisper may have pushed)
+        run: git pull --rebase
+
+      - name: Download translation artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: translation__${{ matrix.talk_id }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-pipeline-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-pipeline-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check prerequisites
+        run: |
+          TALK="talks/${{ matrix.talk_id }}"
+          VIDEO="$TALK/${{ matrix.video_slug }}"
+
+          if [ ! -f "$TALK/transcript_uk.txt" ]; then
+            echo "ERROR: $TALK/transcript_uk.txt not found"
+            exit 1
+          fi
+          if [ ! -f "$VIDEO/source/whisper.json" ]; then
+            echo "ERROR: $VIDEO/source/whisper.json not found (whisper job may have failed)"
+            exit 1
+          fi
+
+      - name: Align UK text to timestamps
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          direct_prompt: true
+          claude_args: "--max-turns 50"
+          prompt: |
+            Perform semantic word-level alignment of Ukrainian subtitle text to English speech timestamps.
+
+            STEP 1 — Run segment-level alignment (prep):
+            ```bash
+            python -m tools.align_uk \
+              --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
+              --whisper-json "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json" \
+              --output "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/work/uk_whisper.json" \
+              --skip-word-align
+            ```
+
+            This maps UK paragraphs to whisper segments and distributes text proportionally.
+            The resulting uk_whisper.json has segments with UK text and uniformly-distributed word timestamps.
+
+            STEP 2 — Semantic word-level alignment:
+            The English whisper.json has precise word-level timestamps from speech recognition.
+            Your task: for each segment, semantically map UK words to EN word timestamps.
+
+            Read both JSON files:
+            - talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/work/uk_whisper.json
+            - talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json
+
+            For each segment:
+            1. Find the EN words and their precise timestamps (from whisper.json segments[].words[])
+            2. Find the UK words (from uk_whisper.json segments[].words[])
+            3. Determine which UK word(s) correspond to which EN word(s) by meaning
+            4. Assign each UK word the start/end timestamps of its English equivalent
+            5. If one EN word → multiple UK words: split the EN word's time range proportionally
+            6. If multiple EN words → one UK word: use start of first EN word to end of last EN word
+            7. Ensure timestamps are monotonically increasing within each segment
+            8. All timestamps must stay within the segment's [start, end] bounds
+
+            Since the files are large (500+ KB), process in batches of ~20 segments.
+            Use Python scripts to read/extract batch data from both JSONs, apply your semantic alignment,
+            then write the updated word timestamps back to uk_whisper.json.
+
+            After completion, verify the output file exists and report the number of segments processed.
+
+      - name: Build optimized subtitles
+        run: |
+          VIDEO="talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}"
+          mkdir -p "$VIDEO/final"
+
+          python -m tools.optimize_srt \
+            --uk-json "$VIDEO/work/uk_whisper.json" \
+            --json "$VIDEO/source/whisper.json" \
+            --output "$VIDEO/final/uk.srt" \
+            --report "$VIDEO/final/report.txt"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: subtitles__${{ matrix.talk_id }}__${{ matrix.video_slug }}
+          path: |
+            talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/work/uk_whisper.json
+            talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/final/uk.srt
+            talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/final/report.txt
+
+  # Single commit job — collects all artifacts and pushes
+  commit:
+    needs: [discover, translate-and-review, align-and-build]
+    if: |
+      always() &&
+      needs.align-and-build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull latest
+        run: git pull --rebase
+
+      - name: Download translation artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: translation__*
+          merge-multiple: false
+
+      - name: Download subtitle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: subtitles__*
+          merge-multiple: false
+
+      - name: Place artifacts into talk directories
+        run: |
+          # Place translation artifacts
+          for dir in translation__*/; do
+            [ -d "$dir" ] || continue
+            name="${dir%/}"
+            talk_id="${name#translation__}"
+            echo "Processing translation: $talk_id"
+
+            for f in transcript_uk.txt review_report.md; do
+              src="$dir/talks/$talk_id/$f"
+              if [ -f "$src" ]; then
+                cp "$src" "talks/$talk_id/$f"
+                echo "  -> talks/$talk_id/$f"
+              fi
+            done
+          done
+
+          # Place subtitle artifacts
+          for dir in subtitles__*/; do
+            [ -d "$dir" ] || continue
+            name="${dir%/}"
+            rest="${name#subtitles__}"
+            video_slug="${rest##*__}"
+            talk_id="${rest%__*}"
+            echo "Processing subtitles: $talk_id / $video_slug"
+
+            src="$dir/talks/$talk_id/$video_slug/work/uk_whisper.json"
+            if [ -f "$src" ]; then
+              dest="talks/$talk_id/$video_slug/work"
+              mkdir -p "$dest"
+              cp "$src" "$dest/uk_whisper.json"
+              echo "  -> $dest/uk_whisper.json"
+            fi
+
+            for f in uk.srt report.txt; do
+              src="$dir/talks/$talk_id/$video_slug/final/$f"
+              if [ -f "$src" ]; then
+                dest="talks/$talk_id/$video_slug/final"
+                mkdir -p "$dest"
+                cp "$src" "$dest/$f"
+                echo "  -> $dest/$f"
+              fi
+            done
+          done
+
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add talks/*/transcript_uk.txt talks/*/review_report.md \
+                talks/*/*/work/uk_whisper.json talks/*/*/final/uk.srt talks/*/*/final/report.txt
+          git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
+          git commit -m "Build subtitles (full pipeline)"
+          git pull --rebase
+          git push

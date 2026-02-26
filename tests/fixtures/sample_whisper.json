@@ -1,0 +1,136 @@
+{
+  "language": "en",
+  "segments": [
+    {
+      "id": 0,
+      "start": 1.0,
+      "end": 4.0,
+      "text": " First block of text.",
+      "words": [
+        {"start": 1.0, "end": 1.5, "word": " First"},
+        {"start": 1.5, "end": 2.0, "word": " block"},
+        {"start": 2.0, "end": 2.5, "word": " of"},
+        {"start": 2.5, "end": 4.0, "word": " text."}
+      ]
+    },
+    {
+      "id": 1,
+      "start": 4.5,
+      "end": 7.5,
+      "text": " Second block with more words here.",
+      "words": [
+        {"start": 4.5, "end": 5.0, "word": " Second"},
+        {"start": 5.0, "end": 5.5, "word": " block"},
+        {"start": 5.5, "end": 6.0, "word": " with"},
+        {"start": 6.0, "end": 6.5, "word": " more"},
+        {"start": 6.5, "end": 7.0, "word": " words"},
+        {"start": 7.0, "end": 7.5, "word": " here."}
+      ]
+    },
+    {
+      "id": 2,
+      "start": 8.0,
+      "end": 11.0,
+      "text": " Third block continues the speech.",
+      "words": [
+        {"start": 8.0, "end": 8.5, "word": " Third"},
+        {"start": 8.5, "end": 9.0, "word": " block"},
+        {"start": 9.0, "end": 9.5, "word": " continues"},
+        {"start": 9.5, "end": 10.0, "word": " the"},
+        {"start": 10.0, "end": 11.0, "word": " speech."}
+      ]
+    },
+    {
+      "id": 3,
+      "start": 11.2,
+      "end": 14.2,
+      "text": " Fourth block about meditation.",
+      "words": [
+        {"start": 11.2, "end": 11.8, "word": " Fourth"},
+        {"start": 11.8, "end": 12.3, "word": " block"},
+        {"start": 12.3, "end": 12.8, "word": " about"},
+        {"start": 12.8, "end": 14.2, "word": " meditation."}
+      ]
+    },
+    {
+      "id": 4,
+      "start": 15.0,
+      "end": 18.0,
+      "text": " Fifth block on the subtle system.",
+      "words": [
+        {"start": 15.0, "end": 15.5, "word": " Fifth"},
+        {"start": 15.5, "end": 16.0, "word": " block"},
+        {"start": 16.0, "end": 16.3, "word": " on"},
+        {"start": 16.3, "end": 16.6, "word": " the"},
+        {"start": 16.6, "end": 17.2, "word": " subtle"},
+        {"start": 17.2, "end": 18.0, "word": " system."}
+      ]
+    },
+    {
+      "id": 5,
+      "start": 18.5,
+      "end": 21.5,
+      "text": " Sixth block describes the chakras.",
+      "words": [
+        {"start": 18.5, "end": 19.0, "word": " Sixth"},
+        {"start": 19.0, "end": 19.5, "word": " block"},
+        {"start": 19.5, "end": 20.0, "word": " describes"},
+        {"start": 20.0, "end": 20.5, "word": " the"},
+        {"start": 20.5, "end": 21.5, "word": " chakras."}
+      ]
+    },
+    {
+      "id": 6,
+      "start": 22.0,
+      "end": 25.0,
+      "text": " Seventh block about kundalini rising.",
+      "words": [
+        {"start": 22.0, "end": 22.5, "word": " Seventh"},
+        {"start": 22.5, "end": 23.0, "word": " block"},
+        {"start": 23.0, "end": 23.5, "word": " about"},
+        {"start": 23.5, "end": 24.2, "word": " kundalini"},
+        {"start": 24.2, "end": 25.0, "word": " rising."}
+      ]
+    },
+    {
+      "id": 7,
+      "start": 25.5,
+      "end": 28.5,
+      "text": " Eighth block with more details.",
+      "words": [
+        {"start": 25.5, "end": 26.0, "word": " Eighth"},
+        {"start": 26.0, "end": 26.5, "word": " block"},
+        {"start": 26.5, "end": 27.0, "word": " with"},
+        {"start": 27.0, "end": 27.5, "word": " more"},
+        {"start": 27.5, "end": 28.5, "word": " details."}
+      ]
+    },
+    {
+      "id": 8,
+      "start": 29.0,
+      "end": 32.0,
+      "text": " Ninth block near the end.",
+      "words": [
+        {"start": 29.0, "end": 29.5, "word": " Ninth"},
+        {"start": 29.5, "end": 30.0, "word": " block"},
+        {"start": 30.0, "end": 30.5, "word": " near"},
+        {"start": 30.5, "end": 31.0, "word": " the"},
+        {"start": 31.0, "end": 32.0, "word": " end."}
+      ]
+    },
+    {
+      "id": 9,
+      "start": 32.5,
+      "end": 35.5,
+      "text": " Tenth and final block of speech.",
+      "words": [
+        {"start": 32.5, "end": 33.0, "word": " Tenth"},
+        {"start": 33.0, "end": 33.3, "word": " and"},
+        {"start": 33.3, "end": 33.8, "word": " final"},
+        {"start": 33.8, "end": 34.3, "word": " block"},
+        {"start": 34.3, "end": 34.8, "word": " of"},
+        {"start": 34.8, "end": 35.5, "word": " speech."}
+      ]
+    }
+  ]
+}

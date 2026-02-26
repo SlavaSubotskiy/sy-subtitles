@@ -76,15 +76,27 @@ jobs:
             json_arg=""
             if [ -f "$json_path" ]; then
               json_arg="--json $json_path"
-            else
-              echo "  Note: whisper.json not found, running without it"
             fi
 
-            python -m tools.optimize_srt \
-              --srt "$srt_path" \
-              $json_arg \
-              --output "$final_dir/uk.srt" \
-              --report "$final_dir/report.txt"
+            # Prefer uk_whisper.json if available (new pipeline)
+            uk_json_path="talks/$talk_id/$video_slug/work/uk_whisper.json"
+            if [ -f "$uk_json_path" ]; then
+              echo "  Using uk_whisper.json (new pipeline)"
+              python -m tools.optimize_srt \
+                --uk-json "$uk_json_path" \
+                $json_arg \
+                --output "$final_dir/uk.srt" \
+                --report "$final_dir/report.txt"
+            else
+              if [ -z "$json_arg" ]; then
+                echo "  Note: whisper.json not found, running without it"
+              fi
+              python -m tools.optimize_srt \
+                --srt "$srt_path" \
+                $json_arg \
+                --output "$final_dir/uk.srt" \
+                --report "$final_dir/report.txt"
+            fi
           done < /tmp/changed_srts.txt
 
       - name: Commit & push

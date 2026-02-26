@@ -1,10 +1,14 @@
 name: Auto Whisper
 
+# Whisper is now triggered by subtitle-pipeline.yml when needed.
+# This workflow is kept for manual/ad-hoc runs only.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'talks/*/meta.yaml'
+  workflow_dispatch:
+    inputs:
+      talk_id:
+        description: 'Talk directory name (leave empty for all pending)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -32,8 +36,15 @@ jobs:
           python3 << 'PYEOF'
           import json, os, yaml
 
+          talk_id_input = "${{ inputs.talk_id }}".strip()
           pending_talks = set()
-          for d in sorted(os.listdir("talks")):
+
+          if talk_id_input:
+              dirs = [talk_id_input]
+          else:
+              dirs = sorted(os.listdir("talks"))
+
+          for d in dirs:
               meta = f"talks/{d}/meta.yaml"
               if not os.path.isfile(meta):
                   continue
