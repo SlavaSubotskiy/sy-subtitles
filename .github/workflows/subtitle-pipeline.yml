@@ -168,7 +168,24 @@ jobs:
             - Follow transliteration conventions from glossary/CLAUDE.md (ґ not г for Sanskrit g, дх for dh, і for short i)
             - Translate with devotion, precision, and respect for the sacred meaning
 
-            Write the COMPLETE translation. Do not summarize, abbreviate, or skip any paragraphs.
+            WRITING STRATEGY (important — the transcript is too large for a single Write):
+            Write the translation in chunks of ~5-8 paragraphs using bash:
+            ```bash
+            # First chunk — create file
+            cat > talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
+            Перший абзац...
+
+            Другий абзац...
+            UKEOF
+
+            # Next chunks — APPEND
+            cat >> talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
+
+            Наступний абзац...
+            UKEOF
+            ```
+            Use ~5 chunks for the full transcript. Do not try to write everything in one call.
+            Do not summarize, abbreviate, or skip any paragraphs.
 
       - name: Review translation (2+1)
         uses: anthropics/claude-code-action@v1
