@@ -35,24 +35,26 @@
 ============================================================
   STEP 4: Optimizing readability
 ============================================================
+  Phase 0 - Sentence reconstruction: 106 fragments merged → 58 blocks
+  Phase 0b - Trimmed oversized sentences: 5
   Phase 1 - Lines joined (single-line mode): 0
-  Phase 1b - Duration splits (>7000ms): 300
-  Phase 2 - Blocks split (> 84 chars): 65
-  Phase 3 - CPS extensions (pass 1): 139
-  Phase 4 - CPS splits (> 20.0): 64
-  Phase 5 - Merged short blocks: 68
-  Phase 6 - CPS extensions (pass 2): 132
-  Phase 6 - CPS extensions (pass 3): 132
-  Phase 6 - CPS extensions (pass 4): 132
-  Phase 7 - Cascade time redistribution: 168
-  Phase 7b - Large gaps absorbed: 2
-  Phase 7c - CPS extensions after redistribution: 6
-  Phase 11 - Final CPS extensions: 6
+  Phase 1b - Duration splits (>7000ms): 409
+  Phase 2 - Blocks split (> 84 chars): 27
+  Phase 3 - CPS extensions (pass 1): 58
+  Phase 4 - CPS splits (> 20.0): 17
+  Phase 5 - Merged short blocks: 25
+  Phase 6 - CPS extensions (pass 2): 54
+  Phase 6 - CPS extensions (pass 3): 54
+  Phase 6 - CPS extensions (pass 4): 54
+  Phase 7 - Cascade time redistribution: 65
+  Phase 7b - Large gaps absorbed: 1
+  Phase 7c - CPS extensions after redistribution: 4
+  Phase 11 - Final CPS extensions: 4
 
 ============================================================
   STEP 5: Applying chaining
 ============================================================
-  Gaps chained (3-11 frames -> 2 frames): 3
+  Gaps chained (3-11 frames -> 2 frames): 2
 
 ============================================================
   STEP 6: Final validation report
@@ -63,30 +65,30 @@
 
   PARAMETER                          BEFORE      AFTER     CHANGE
   ------------------------------------------------------------
-  Total blocks                          164        525      +361v
-  Avg CPS                              10.0        9.8
-  Max CPS                              44.6       45.7
-  CPS > target                           31        116       +85^
+  Total blocks                          164        486      +322v
+  Avg CPS                              10.0        9.5
+  Max CPS                              44.6       21.6
+  CPS > target                           31         46       +15^
   CPS > hard max                         20          1       -19v
   Max CPL                               510        212      -298v
-  CPL > max                             138        229       +91^
-  Chars > max block                     104         16       -88v
+  CPL > max                             138        248      +110^
+  Chars > max block                     104          5       -99v
   Lines > max                             0          0         --
-  Duration < min                          0          6        +6^
+  Duration < min                          0          2        +2^
   Overlaps                                0          0         --
   Gaps < min                             44          0       -44v
 
   Worst CPS blocks (top 10):
-    #485: CPS=45.7 (48ch/1.1s) "Потім ми поїхали на завод купувати нову машину»."
-    #484: CPS=16.9 (109ch/6.5s) "у нас був той Ваш старий автомобіль, який ми прода"
-    #79: CPS=15.1 (34ch/2.3s) "Ви поза будь-яким думанням про це,"
-    #440: CPS=15.1 (67ch/4.5s) "тому що его може вклинитися і спробувати вкласти і"
-    #192: CPS=15.0 (72ch/4.8s) "яка дуже популярна, може бути модною, може бути пр"
-    #80: CPS=15.0 (56ch/3.7s) "поза будь-якими висновками щодо цього, але ви дхар"
-    #356: CPS=15.0 (25ch/1.7s) "весь матеріалізм входить."
-    #505: CPS=15.0 (28ch/1.9s) "віґраха означає особистість,"
-    #287: CPS=15.0 (28ch/1.9s) "Я сказала: «Тварини невинні,"
-    #410: CPS=15.0 (31ch/2.1s) "як вони стали такими невинними,"
+    #273: CPS=21.6 (38ch/1.8s) "Навіть тигр, який є невинною істотою —"
+    #272: CPS=18.2 (41ch/2.3s) "У них є свої системи підтримання чистоти."
+    #457: CPS=15.1 (70ch/4.7s) "Вона сказала: «Ми медитуємо». «Справді? Тож у вас "
+    #64: CPS=15.0 (56ch/3.7s) "поза будь-якими висновками щодо цього, але ви дхар"
+    #336: CPS=15.0 (25ch/1.7s) "весь матеріалізм входить."
+    #281: CPS=15.0 (28ch/1.9s) "Не зі страху, а з протоколу."
+    #260: CPS=15.0 (31ch/2.1s) "про підтримання чистоти ашраму."
+    #458: CPS=15.0 (34ch/2.3s) "«А ті діти?» «Вони теж медитують»."
+    #63: CPS=15.0 (34ch/2.3s) "Ви поза будь-яким думанням про це,"
+    #265: CPS=15.0 (37ch/2.5s) "Я сказала: «Тварини невинні, знаєте»."
 
   Optimized SRT written to: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/final/uk.srt
-  Total blocks: 525
+  Total blocks: 486
