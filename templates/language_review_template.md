@@ -24,7 +24,6 @@ Check for:
 - Quotation mark consistency (use `«»`)
 - Em-dash with spaces (` — `)
 - Incorrect case forms, verb conjugations, gender agreement
-- Reflexive verbs: `-ся` not `-сь` (e.g., `дотримуєтеся` not `дотримуєтесь`)
 
 **Reviewer S — SY Domain (Capitalization + Terminology + Consistency)**
 Check for:

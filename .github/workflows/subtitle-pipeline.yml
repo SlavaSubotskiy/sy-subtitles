@@ -181,6 +181,7 @@ jobs:
             ```
             Do not try to write everything in one call. Split into as many chunks as needed.
             Do not summarize, abbreviate, or skip any paragraphs.
+            Do not use TodoWrite — this runs in CI, no one sees progress updates.
 
       - name: Verify translation exists
         run: |
@@ -196,7 +197,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 25 --dangerously-skip-permissions --model claude-opus-4-6"
+          claude_args: "--max-turns 25 --dangerously-skip-permissions --model claude-sonnet-4-6"
           show_full_output: true
           prompt: |
             Perform a 2+1 language review on the Ukrainian translation.
@@ -216,7 +217,6 @@ jobs:
             Check orthography, grammar, punctuation:
             - Spelling, incorrect word forms, mixed Latin/Cyrillic characters
             - Comma usage, quotation marks «», em-dash ` — `, ellipsis `...`
-            - Reflexive verbs: -ся not -сь (e.g., дотримуєтеся not дотримуєтесь)
             - Case forms, verb conjugations, gender agreement
             - Missing/extra spaces around punctuation
 
@@ -240,6 +240,7 @@ jobs:
             Save the full review report (with all tables) to talks/${{ matrix.talk_id }}/review_report.md
 
             Be thorough but precise. Only change what genuinely needs correction.
+            Do not use TodoWrite — this runs in CI, no one sees progress updates.
 
       - name: Upload translation artifacts
         uses: actions/upload-artifact@v4
@@ -274,6 +275,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: translation__${{ matrix.talk_id }}
+          path: talks/${{ matrix.talk_id }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

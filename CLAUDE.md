@@ -43,7 +43,6 @@ Source language: English. Target language: Ukrainian.
 - **Regular people**: always lowercase (except sentence start)
 
 ### Ukrainian Orthography
-- Reflexive verbs: `-ся` not `-сь` (e.g., `дотримуєтеся` not `дотримуєтесь`)
 - Quotation marks: `«»` (Ukrainian "yalynky" style)
 - Em-dash: ` — ` (U+2014) with spaces for interjections
 - Ellipsis: `...` (three dots, no space before)
