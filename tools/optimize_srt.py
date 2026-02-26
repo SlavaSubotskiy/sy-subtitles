@@ -277,11 +277,12 @@ def _get_whisper_slots(start_ms, end_ms, whisper_intervals):
     return [(points[i], points[i + 1]) for i in range(len(points) - 1)]
 
 
-def split_blocks_by_duration(blocks, config, whisper_intervals=None):
+def split_blocks_by_duration(blocks, config, whisper_intervals=None, word_intervals=None):
     """Split long blocks using whisper segment boundaries as primary time splits."""
     new_blocks = []
     splits = 0
     wi = whisper_intervals or []
+    ww = word_intervals or []
     gap = config.min_gap_ms
 
     for b in blocks:
@@ -354,6 +355,17 @@ def split_blocks_by_duration(blocks, config, whisper_intervals=None):
                 text2 = c_text[split_pos:].strip()
                 ratio = len(text1) / len(c_text)
                 mid_time = current['start_ms'] + int(c_dur * ratio)
+                # Snap to nearest word boundary if available
+                if ww:
+                    best_wt = mid_time
+                    best_wd = float('inf')
+                    for ws, we in ww:
+                        if current['start_ms'] < we < current['end_ms']:
+                            d = abs(we - mid_time)
+                            if d < best_wd:
+                                best_wd = d
+                                best_wt = int(we)
+                    mid_time = best_wt
                 pending.insert(0, {
                     'idx': current['idx'],
                     'start_ms': mid_time + gap // 2,
@@ -681,17 +693,14 @@ def optimize_readability(blocks, whisper_segments, config, report):
     report.append(f"  Phase 1 - Lines joined (single-line mode): {lines_joined}")
 
     # Phase 1b: Split blocks exceeding max duration
-    # Use word-level whisper boundaries if available, else segment-level
-    wi = []
-    if whisper_segments:
-        has_words = any('words' in seg for seg in whisper_segments)
-        if has_words:
-            for seg in whisper_segments:
-                for w in seg.get('words', []):
-                    wi.append((w['start'] * 1000, w['end'] * 1000))
-        else:
-            wi = [(seg['start'] * 1000, seg['end'] * 1000) for seg in whisper_segments]
-    blocks, dur_splits = split_blocks_by_duration(blocks, config, wi)
+    # Segment-level intervals for time slots, word-level for fine split points
+    seg_intervals = [(seg['start'] * 1000, seg['end'] * 1000) for seg in whisper_segments] if whisper_segments else []
+    word_intervals = []
+    if whisper_segments and any('words' in seg for seg in whisper_segments):
+        for seg in whisper_segments:
+            for w in seg.get('words', []):
+                word_intervals.append((w['start'] * 1000, w['end'] * 1000))
+    blocks, dur_splits = split_blocks_by_duration(blocks, config, seg_intervals, word_intervals)
     report.append(f"  Phase 1b - Duration splits (>{config.max_duration_ms}ms): {dur_splits}")
 
     # Phase 2: Split blocks > max_chars_block
