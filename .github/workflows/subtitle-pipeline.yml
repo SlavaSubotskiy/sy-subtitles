@@ -364,7 +364,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 40 --dangerously-skip-permissions --model claude-opus-4-6"
+          claude_args: "--max-turns 25 --dangerously-skip-permissions --model claude-opus-4-6"
           show_full_output: true
           prompt: |
             You are building Ukrainian subtitles for a Sahaja Yoga lecture.

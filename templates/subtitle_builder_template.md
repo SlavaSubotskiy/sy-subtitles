@@ -13,8 +13,8 @@ You will be given paths to three files per video:
 ### Step 1 — Read and understand inputs
 - Read `en.srt` fully — it shows WHAT is said and WHEN (50-80KB, fits in ~2 reads)
 - Read `transcript_uk.txt` — the Ukrainian text you'll be placing as subtitles
-- Read `whisper.json` in portions — use it for precise word-level timing within sentences
-  (The file is 300-600KB. Read segments in batches: first 50 segments, then next 50, etc.)
+- Do NOT read `whisper.json` into the conversation — it is 300-600KB and wastes context.
+  Your build script will load it directly via `json.load()`.
 
 ### Step 2 — Create subtitles in chunks
 Process the talk in ~5-minute time chunks. For each chunk:
@@ -68,6 +68,8 @@ After building subtitles for the FIRST video:
 
 ### Step 3 — Validate
 After all chunks are written, run the validation script (command will be provided).
+
+**IMPORTANT: Once validation passes with zero failures, STOP. Do not rebuild for marginal improvements.**
 
 ## Timing rules
 - Use EN subtitle start/end times as the primary reference for WHEN speech occurs
