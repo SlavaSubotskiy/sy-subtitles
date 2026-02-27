@@ -406,6 +406,9 @@ jobs:
                 --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
                 --offset-ms OFFSET \
                 --output "talks/${{ matrix.talk_id }}/NEXT_VIDEO_SLUG/final/uk.srt"
+            IMPORTANT: Do NOT trim or modify the offset SRT file after applying.
+            Some blocks may extend beyond the shorter video's duration — this is expected.
+            Do NOT write Python scripts to modify SRT files.
             If no offset (different content) — spawn another builder sub-agent for that video.
 
             STEP 3 — Review ALL subtitles:
@@ -420,12 +423,19 @@ jobs:
             Apply any fixes from the reviewer.
 
             STEP 4 — Validate ALL videos:
-            For each video in meta.yaml, run:
+            For the FIRST video (full validation):
               python -m tools.validate_subtitles \
-                --srt "talks/${{ matrix.talk_id }}/VIDEO_SLUG/final/uk.srt" \
+                --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
                 --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
-                --whisper-json "talks/${{ matrix.talk_id }}/VIDEO_SLUG/source/whisper.json" \
-                --report "talks/${{ matrix.talk_id }}/VIDEO_SLUG/final/report.txt"
+                --whisper-json "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json" \
+                --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/report.txt"
+            For offset videos (skip text and time checks — different video duration):
+              python -m tools.validate_subtitles \
+                --srt "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/final/uk.srt" \
+                --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
+                --whisper-json "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/source/whisper.json" \
+                --skip-text-check --skip-time-check \
+                --report "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/final/report.txt"
 
             Do not use TodoWrite — this runs in CI, no one sees progress updates.
 
@@ -441,18 +451,45 @@ jobs:
       - name: Validate subtitles
         if: inputs.build != false
         run: |
+          TALK="talks/${{ matrix.talk_id }}"
+
+          # Find the longest video (by whisper duration) — that's the one built by the agent
+          BUILT_SLUG=$(python3 -c "
+          import json, yaml
+          with open('$TALK/meta.yaml') as f:
+            meta = yaml.safe_load(f)
+          best_slug, best_dur = None, 0
+          for v in meta['videos']:
+            wpath = f'$TALK/{v[\"slug\"]}/source/whisper.json'
+            try:
+              with open(wpath) as wf:
+                segs = json.load(wf)['segments']
+              dur = segs[-1]['end'] if segs else 0
+            except (FileNotFoundError, KeyError, IndexError):
+              dur = 0
+            if dur > best_dur:
+              best_dur = dur
+              best_slug = v['slug']
+          print(best_slug)
+          ")
+
           python3 -c "
           import yaml
-          with open('talks/${{ matrix.talk_id }}/meta.yaml') as f:
+          with open('$TALK/meta.yaml') as f:
             meta = yaml.safe_load(f)
           for v in meta['videos']:
             print(v['slug'])
           " | while read slug; do
-            VIDEO="talks/${{ matrix.talk_id }}/$slug"
+            VIDEO="$TALK/$slug"
+            EXTRA_FLAGS=""
+            if [ "$slug" != "$BUILT_SLUG" ]; then
+              EXTRA_FLAGS="--skip-text-check --skip-time-check"
+            fi
             python -m tools.validate_subtitles \
               --srt "$VIDEO/final/uk.srt" \
-              --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
+              --transcript "$TALK/transcript_uk.txt" \
               --whisper-json "$VIDEO/source/whisper.json" \
+              $EXTRA_FLAGS \
               --report "$VIDEO/final/report.txt"
           done
 

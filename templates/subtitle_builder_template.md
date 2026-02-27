@@ -103,6 +103,11 @@ unit is always **one Ukrainian sentence at a time**.
 After processing ~50 EN SRT blocks worth of sentences, write that chunk.
 Then continue with the next chunk.
 
+**IMPORTANT — chunk boundary rule:** Before writing the first block of a new chunk,
+verify that its `start` time is ≥ previous block's `end` + 80ms. If whisper gives
+an earlier timestamp, adjust the new block's `start` = previous `end` + 80ms.
+Overlaps between chunks are a common mistake — always check!
+
 #### Concrete example
 
 Ukrainian sentence: `Сьогодні ми зібралися тут, щоб провести Пуджу Шрі Ґанеші.`

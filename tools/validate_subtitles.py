@@ -8,6 +8,8 @@ Usage:
       --srt PATH \
       --transcript PATH \
       [--whisper-json PATH] \
+      [--skip-text-check] \
+      [--skip-time-check] \
       --report PATH
 """
 
@@ -220,7 +222,14 @@ def check_statistics(srt_blocks, config, report):
     return stats
 
 
-def validate(srt_path, transcript_path, whisper_json_path=None, report_path=None):
+def validate(
+    srt_path,
+    transcript_path,
+    whisper_json_path=None,
+    report_path=None,
+    skip_text_check=False,
+    skip_time_check=False,
+):
     """Run all validation checks and write report.
 
     Returns (passed: bool, report_lines: list[str]).
@@ -245,10 +254,19 @@ def validate(srt_path, transcript_path, whisper_json_path=None, report_path=None
         whisper_segments = load_whisper_json(whisper_json_path)
         report.append(f"  Whisper segments: {len(whisper_segments)}")
 
+    if skip_text_check:
+        report.append("  (text preservation check skipped — offset video)")
+    if skip_time_check:
+        report.append("  (time range check skipped — offset video)")
+
     # Run checks
-    text_ok = check_text_preservation(srt_blocks, transcript_path, report)
+    text_ok = True if skip_text_check else check_text_preservation(srt_blocks, transcript_path, report)
     overlap_ok = check_overlaps(srt_blocks, report)
-    time_ok = check_time_range(srt_blocks, whisper_segments, report) if whisper_segments else True
+    time_ok = (
+        True
+        if skip_time_check
+        else (check_time_range(srt_blocks, whisper_segments, report) if whisper_segments else True)
+    )
     numbering_ok = check_sequential_numbering(srt_blocks, report)
     stats = check_statistics(srt_blocks, config, report)
 
@@ -297,9 +315,26 @@ def main():
     parser.add_argument("--transcript", required=True, help="Source transcript for text comparison")
     parser.add_argument("--whisper-json", help="Whisper JSON for time range check")
     parser.add_argument("--report", required=True, help="Output report file")
+    parser.add_argument(
+        "--skip-text-check",
+        action="store_true",
+        help="Skip text preservation check (for offset-applied videos with different duration)",
+    )
+    parser.add_argument(
+        "--skip-time-check",
+        action="store_true",
+        help="Skip time range check (for offset-applied videos that extend beyond whisper range)",
+    )
     args = parser.parse_args()
 
-    passed, report = validate(args.srt, args.transcript, args.whisper_json, args.report)
+    passed, report = validate(
+        args.srt,
+        args.transcript,
+        args.whisper_json,
+        args.report,
+        skip_text_check=args.skip_text_check,
+        skip_time_check=args.skip_time_check,
+    )
     for line in report:
         print(line)
 
