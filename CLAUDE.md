@@ -18,7 +18,7 @@ Source language: English. Target language: Ukrainian.
 1. Open a talk directory under `talks/{date}_{slug}/`
 2. Read `meta.yaml` for talk metadata and video list
 3. Read `transcript_en.txt` — full English transcript (per talk)
-4. Translate to `transcript_uk.txt` (per talk, `\n\n` between paragraphs)
+4. Translate to `transcript_uk.txt` (per talk, `\n` between paragraphs)
 5. Review using 2 Reviewers + 1 Critic (see `templates/language_review_template.md`)
 6. Push `transcript_uk.txt` — GitHub Actions will align + optimize automatically:
    - `align_uk.py` maps UK text to whisper timestamps → `uk_whisper.json`

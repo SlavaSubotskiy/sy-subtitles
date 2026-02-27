@@ -335,11 +335,56 @@ def _snap_to_speech_gap(target_ms, start_ms, end_ms, seg_intervals, word_interva
     return int(best_time)
 
 
+def _word_split_time(block, split_pos):
+    """Find the split time from word timestamps for a given text split position.
+
+    Walks through the block's _words metadata, accumulating character positions.
+    Returns the time at the word boundary closest to the text split position,
+    or None if no _words metadata is available.
+    """
+    words = block.get("_words")
+    if not words:
+        return None
+
+    # Build cumulative character positions (matching "word1 word2 word3" format)
+    pos = 0
+    for _i, w in enumerate(words):
+        word_end_pos = pos + len(w["word"])
+        # Check if split_pos falls at or before this word's end (+ space)
+        if word_end_pos >= split_pos:
+            # Split before this word: use this word's start
+            if pos >= split_pos:
+                return w["start"]
+            # Split after this word: use this word's end
+            return w["end"]
+        pos = word_end_pos + 1  # +1 for space
+
+    return None
+
+
+def _split_words_at(words, split_pos):
+    """Split a _words list at the given text position into two halves."""
+    if not words:
+        return None, None
+
+    pos = 0
+    for i, w in enumerate(words):
+        word_end_pos = pos + len(w["word"])
+        if word_end_pos >= split_pos:
+            if pos >= split_pos:
+                return words[:i], words[i:]
+            return words[: i + 1], words[i + 1 :]
+        pos = word_end_pos + 1
+
+    return words, []
+
+
 def split_blocks_by_duration(blocks, config, whisper_intervals=None, word_intervals=None):
     """Split long blocks at sentence/clause/word boundaries with whisper-guided timing.
 
     Text-first approach: finds natural text split points (sentence endings first),
-    then snaps the time split to the nearest speech pause from whisper data.
+    then determines split time from word timestamps (_words metadata) if available,
+    or falls back to proportional ratio + speech gap snapping.
     Recursive — keeps splitting until all blocks fit within max_duration.
     """
     new_blocks = []
@@ -370,10 +415,12 @@ def split_blocks_by_duration(blocks, config, whisper_intervals=None, word_interv
             new_blocks.append(b)
             continue
 
-        # Calculate proportional split time, then snap to speech gap
-        ratio = len(text1) / len(text)
-        mid_time = b["start_ms"] + int(dur * ratio)
-        mid_time = _snap_to_speech_gap(mid_time, b["start_ms"], b["end_ms"], wi, ww)
+        # Determine split time: prefer word timestamps, fall back to proportional
+        mid_time = _word_split_time(b, split_pos)
+        if mid_time is None:
+            ratio = len(text1) / len(text)
+            mid_time = b["start_ms"] + int(dur * ratio)
+            mid_time = _snap_to_speech_gap(mid_time, b["start_ms"], b["end_ms"], wi, ww)
 
         # Ensure both halves have reasonable duration
         if mid_time - b["start_ms"] < config.min_duration_ms:
@@ -381,25 +428,29 @@ def split_blocks_by_duration(blocks, config, whisper_intervals=None, word_interv
         if b["end_ms"] - mid_time < config.min_duration_ms:
             mid_time = b["end_ms"] - config.min_duration_ms
 
+        # Split _words metadata if present
+        words1, words2 = _split_words_at(b.get("_words"), split_pos)
+
+        block1 = {
+            "idx": b["idx"],
+            "start_ms": b["start_ms"],
+            "end_ms": mid_time - gap // 2,
+            "text": text1,
+        }
+        block2 = {
+            "idx": b["idx"],
+            "start_ms": mid_time + gap // 2,
+            "end_ms": b["end_ms"],
+            "text": text2,
+        }
+        if words1:
+            block1["_words"] = words1
+        if words2:
+            block2["_words"] = words2
+
         # Add both halves to pending for potential further splitting
-        pending.insert(
-            0,
-            {
-                "idx": b["idx"],
-                "start_ms": mid_time + gap // 2,
-                "end_ms": b["end_ms"],
-                "text": text2,
-            },
-        )
-        pending.insert(
-            0,
-            {
-                "idx": b["idx"],
-                "start_ms": b["start_ms"],
-                "end_ms": mid_time - gap // 2,
-                "text": text1,
-            },
-        )
+        pending.insert(0, block2)
+        pending.insert(0, block1)
         splits += 1
 
     return new_blocks, splits
@@ -417,25 +468,30 @@ def split_blocks_by_size(blocks, config):
             if split_pos and split_pos > 10 and (chars - split_pos) > 10:
                 text1 = text_flat[:split_pos].strip()
                 text2 = text_flat[split_pos:].strip()
-                ratio = len(text1) / chars
-                duration = b["end_ms"] - b["start_ms"]
-                mid_time = b["start_ms"] + int(duration * ratio)
-                new_blocks.append(
-                    {
-                        "idx": b["idx"],
-                        "start_ms": b["start_ms"],
-                        "end_ms": mid_time - config.min_gap_ms // 2,
-                        "text": split_long_line(text1),
-                    }
-                )
-                new_blocks.append(
-                    {
-                        "idx": b["idx"],
-                        "start_ms": mid_time + config.min_gap_ms // 2,
-                        "end_ms": b["end_ms"],
-                        "text": split_long_line(text2),
-                    }
-                )
+                mid_time = _word_split_time(b, split_pos)
+                if mid_time is None:
+                    ratio = len(text1) / chars
+                    duration = b["end_ms"] - b["start_ms"]
+                    mid_time = b["start_ms"] + int(duration * ratio)
+                words1, words2 = _split_words_at(b.get("_words"), split_pos)
+                block1 = {
+                    "idx": b["idx"],
+                    "start_ms": b["start_ms"],
+                    "end_ms": mid_time - config.min_gap_ms // 2,
+                    "text": split_long_line(text1),
+                }
+                block2 = {
+                    "idx": b["idx"],
+                    "start_ms": mid_time + config.min_gap_ms // 2,
+                    "end_ms": b["end_ms"],
+                    "text": split_long_line(text2),
+                }
+                if words1:
+                    block1["_words"] = words1
+                if words2:
+                    block2["_words"] = words2
+                new_blocks.append(block1)
+                new_blocks.append(block2)
                 splits += 1
                 continue
         new_blocks.append(b)
@@ -457,25 +513,30 @@ def split_blocks_by_cps(blocks, config):
             if split_pos and split_pos > 5 and (len(text_flat) - split_pos) > 5:
                 text1 = text_flat[:split_pos].strip()
                 text2 = text_flat[split_pos:].strip()
-                ratio = len(text1) / len(text_flat)
-                duration = b["end_ms"] - b["start_ms"]
-                mid_time = b["start_ms"] + int(duration * ratio)
-                new_blocks.append(
-                    {
-                        "idx": b["idx"],
-                        "start_ms": b["start_ms"],
-                        "end_ms": mid_time - config.min_gap_ms // 2,
-                        "text": split_long_line(text1),
-                    }
-                )
-                new_blocks.append(
-                    {
-                        "idx": b["idx"],
-                        "start_ms": mid_time + config.min_gap_ms // 2,
-                        "end_ms": b["end_ms"],
-                        "text": split_long_line(text2),
-                    }
-                )
+                mid_time = _word_split_time(b, split_pos)
+                if mid_time is None:
+                    ratio = len(text1) / len(text_flat)
+                    duration = b["end_ms"] - b["start_ms"]
+                    mid_time = b["start_ms"] + int(duration * ratio)
+                words1, words2 = _split_words_at(b.get("_words"), split_pos)
+                block1 = {
+                    "idx": b["idx"],
+                    "start_ms": b["start_ms"],
+                    "end_ms": mid_time - config.min_gap_ms // 2,
+                    "text": split_long_line(text1),
+                }
+                block2 = {
+                    "idx": b["idx"],
+                    "start_ms": mid_time + config.min_gap_ms // 2,
+                    "end_ms": b["end_ms"],
+                    "text": split_long_line(text2),
+                }
+                if words1:
+                    block1["_words"] = words1
+                if words2:
+                    block2["_words"] = words2
+                new_blocks.append(block1)
+                new_blocks.append(block2)
                 splits += 1
                 continue
         new_blocks.append(b)
@@ -501,6 +562,8 @@ def merge_sparse_blocks(blocks, config):
 
     total_merged = 0
 
+    MAX_MERGE_GAP = 3000  # Don't merge blocks with >3s gap (timing would be wrong)
+
     for _pass in range(10):
         merged = 0
         new_blocks = []
@@ -514,28 +577,40 @@ def merge_sparse_blocks(blocks, config):
             is_sparse = b_cps < config.sparse_cps_threshold and b_chars < 20
 
             if is_sparse and i + 1 < len(blocks):
-                # Try merge forward
+                # Try merge forward (only if gap is small)
                 next_b = blocks[i + 1]
+                gap = next_b["start_ms"] - b["end_ms"]
                 next_chars = len(next_b["text"].replace("\n", ""))
                 combined_chars = b_chars + next_chars + 1
-                if combined_chars <= config.max_chars_block:
+                if combined_chars <= config.max_chars_block and gap <= MAX_MERGE_GAP:
                     combined_text = b["text"].replace("\n", " ") + " " + next_b["text"].replace("\n", " ")
                     b["end_ms"] = next_b["end_ms"]
                     b["text"] = combined_text.strip()
+                    # Concatenate _words metadata
+                    w1 = b.get("_words", [])
+                    w2 = next_b.get("_words", [])
+                    if w1 or w2:
+                        b["_words"] = w1 + w2
                     merged += 1
                     i += 2
                     new_blocks.append(b)
                     continue
 
             if is_sparse and new_blocks:
-                # Try merge backward
+                # Try merge backward (only if gap is small)
                 prev_b = new_blocks[-1]
+                gap = b["start_ms"] - prev_b["end_ms"]
                 prev_chars = len(prev_b["text"].replace("\n", ""))
                 combined_chars = prev_chars + b_chars + 1
-                if combined_chars <= config.max_chars_block:
+                if combined_chars <= config.max_chars_block and gap <= MAX_MERGE_GAP:
                     combined_text = prev_b["text"].replace("\n", " ") + " " + b["text"].replace("\n", " ")
                     prev_b["end_ms"] = b["end_ms"]
                     prev_b["text"] = combined_text.strip()
+                    # Concatenate _words metadata
+                    w1 = prev_b.get("_words", [])
+                    w2 = b.get("_words", [])
+                    if w1 or w2:
+                        prev_b["_words"] = w1 + w2
                     merged += 1
                     i += 1
                     continue
@@ -607,6 +682,11 @@ def merge_short_blocks(blocks, config):
                     combined_text = b["text"].replace("\n", " ") + " " + next_b["text"].replace("\n", " ")
                     b["end_ms"] = next_b["end_ms"]
                     b["text"] = split_long_line(combined_text)
+                    # Concatenate _words metadata
+                    w1 = b.get("_words", [])
+                    w2 = next_b.get("_words", [])
+                    if w1 or w2:
+                        b["_words"] = w1 + w2
                     merged += 1
                     i += 2
                     new_blocks.append(b)
@@ -1002,6 +1082,9 @@ def build_blocks_from_uk_whisper(uk_json_path):
     """Build SRT blocks from uk_whisper.json aligned data.
 
     Each whisper segment with non-empty text becomes a subtitle block.
+    Uses segment-level timing for block boundaries, but stores word-level
+    timestamps as metadata (_words) for precise splitting in later phases.
+    Word timestamps are clamped to segment boundaries to prevent cross-segment leaks.
     Returns list of block dicts compatible with the optimizer pipeline.
     """
     with open(uk_json_path, encoding="utf-8") as f:
@@ -1012,14 +1095,25 @@ def build_blocks_from_uk_whisper(uk_json_path):
         text = seg.get("text", "").strip()
         if not text:
             continue
-        blocks.append(
-            {
-                "idx": seg.get("id", len(blocks) + 1),
-                "start_ms": int(seg["start"] * 1000),
-                "end_ms": int(seg["end"] * 1000),
-                "text": text,
-            }
-        )
+        seg_start_ms = int(seg["start"] * 1000)
+        seg_end_ms = int(seg["end"] * 1000)
+        # Clamp word timestamps to segment boundaries
+        words_meta = []
+        for w in seg.get("words", []):
+            ws = max(seg_start_ms, int(w["start"] * 1000))
+            we = min(seg_end_ms, int(w["end"] * 1000))
+            if we <= ws:
+                we = ws + 1
+            words_meta.append({"word": w["word"], "start": ws, "end": we})
+        block = {
+            "idx": seg.get("id", len(blocks) + 1),
+            "start_ms": seg_start_ms,
+            "end_ms": seg_end_ms,
+            "text": text,
+        }
+        if words_meta:
+            block["_words"] = words_meta
+        blocks.append(block)
 
     return blocks
 

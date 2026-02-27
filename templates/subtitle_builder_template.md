@@ -4,7 +4,7 @@ You are building Ukrainian subtitles for a Sahaja Yoga lecture video.
 
 ## Inputs
 You will be given paths to three files per video:
-1. **transcript_uk.txt** — Ukrainian translation (per-talk, paragraphs separated by \n\n)
+1. **transcript_uk.txt** — Ukrainian translation (per-talk, one paragraph per line)
 2. **en.srt** — English subtitles (per-video, timing reference)
 3. **whisper.json** — English speech recognition with word timestamps (per-video, large file)
 
@@ -44,6 +44,27 @@ cat >> OUTPUT_PATH << 'SRTEOF'
 Наступний блок.
 SRTEOF
 ```
+
+### Multi-video talks
+This talk may have multiple videos (check meta.yaml). Often they contain
+the same content with a time offset (e.g., full puja video vs talk-only cut).
+
+After building subtitles for the FIRST video:
+1. For each additional video, detect offset:
+   ```bash
+   python -m tools.offset_srt detect \
+     --srt1 "TALK/FIRST_VIDEO/source/en.srt" \
+     --srt2 "TALK/NEXT_VIDEO/source/en.srt"
+   ```
+2. If offset detected — apply it:
+   ```bash
+   python -m tools.offset_srt apply \
+     --srt "TALK/FIRST_VIDEO/final/uk.srt" \
+     --offset-ms OFFSET \
+     --output "TALK/NEXT_VIDEO/final/uk.srt"
+   ```
+3. If no offset (different content) — build from scratch as usual.
+4. Validate ALL output SRT files.
 
 ### Step 3 — Validate
 After all chunks are written, run the validation script (command will be provided).

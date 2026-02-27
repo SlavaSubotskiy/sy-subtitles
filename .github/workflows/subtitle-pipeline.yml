@@ -171,7 +171,7 @@ jobs:
             RULES:
             - Skip the header lines (date, title, location, "Talk Language:" line) — translate ONLY the speech content
             - Preserve paragraph structure: one EN paragraph = one UK paragraph
-            - Separate paragraphs with double newlines (\n\n)
+            - One paragraph per line (single \n between paragraphs)
             - No header, no metadata, no line numbers in the output file
             - Follow ALL language rules from CLAUDE.md
             - Use glossary terms consistently (terms_lookup.yaml + terms_context.yaml)
@@ -184,13 +184,11 @@ jobs:
             # First chunk — create file
             cat > talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
             Перший абзац...
-
             Другий абзац...
             UKEOF
 
             # Next chunks — APPEND
             cat >> talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
-
             Наступний абзац...
             UKEOF
             ```
@@ -269,7 +267,7 @@ jobs:
             talks/${{ matrix.talk_id }}/transcript_uk.txt
             talks/${{ matrix.talk_id }}/review_report.md
 
-  # Build Ukrainian subtitles using Claude agent (per video)
+  # Build Ukrainian subtitles using Claude agent (per talk, handles multi-video offset)
   build-subtitles:
     needs: [discover, whisper, translate-and-review]
     if: |
@@ -280,7 +278,7 @@ jobs:
       (needs.whisper.result == 'success' || needs.whisper.result == 'skipped')
     environment: main
     strategy:
-      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.discover.outputs.talk_matrix) }}
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -333,20 +331,30 @@ jobs:
       - name: Check prerequisites
         run: |
           TALK="talks/${{ matrix.talk_id }}"
-          VIDEO="$TALK/${{ matrix.video_slug }}"
 
           if [ ! -f "$TALK/transcript_uk.txt" ]; then
             echo "ERROR: $TALK/transcript_uk.txt not found"
             exit 1
           fi
-          if [ ! -f "$VIDEO/source/en.srt" ]; then
-            echo "ERROR: $VIDEO/source/en.srt not found"
-            exit 1
-          fi
-          if [ ! -f "$VIDEO/source/whisper.json" ]; then
-            echo "ERROR: $VIDEO/source/whisper.json not found (whisper job may have failed)"
-            exit 1
-          fi
+
+          python3 -c "
+          import yaml, sys
+          with open('$TALK/meta.yaml') as f:
+            meta = yaml.safe_load(f)
+          ok = True
+          for v in meta['videos']:
+            slug = v['slug']
+            for f in ['source/en.srt', 'source/whisper.json']:
+              path = f'$TALK/{slug}/{f}'
+              import os
+              if not os.path.isfile(path):
+                print(f'ERROR: {path} not found')
+                ok = False
+              else:
+                print(f'OK: {path}')
+          if not ok:
+            sys.exit(1)
+          "
 
       - name: Build subtitles
         if: inputs.build != false
@@ -355,55 +363,96 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 30 --dangerously-skip-permissions --model claude-opus-4-6"
+          claude_args: "--max-turns 40 --dangerously-skip-permissions --model claude-opus-4-6"
           show_full_output: true
           prompt: |
-            You are building Ukrainian subtitles for a Sahaja Yoga lecture video.
+            You are building Ukrainian subtitles for a Sahaja Yoga lecture.
 
-            READ FIRST: templates/subtitle_builder_template.md — your full instructions
+            TALK: talks/${{ matrix.talk_id }}/
+            Read meta.yaml to discover all videos for this talk.
 
-            INPUT FILES:
-            - Ukrainian text: talks/${{ matrix.talk_id }}/transcript_uk.txt
-            - English subtitles: talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/en.srt
-            - Whisper data: talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json
+            STEP 1 — Build subtitles for the FIRST video:
+            Use the Task tool to spawn a builder sub-agent:
+              - subagent_type: "general-purpose"
+              - prompt: |
+                  Read templates/subtitle_builder_template.md for full instructions.
+                  Build Ukrainian subtitles for the first video.
+                  INPUT FILES:
+                  - Ukrainian text: talks/${{ matrix.talk_id }}/transcript_uk.txt
+                  - English subtitles: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/en.srt
+                  - Whisper data: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json
+                  OUTPUT: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt
+                  Create output dir first: mkdir -p "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final"
+                  Process in ~5-minute chunks. After all chunks, validate:
+                  python -m tools.validate_subtitles \
+                    --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
+                    --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
+                    --whisper-json "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json" \
+                    --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/report.txt"
+                  If text preservation fails, fix and re-validate.
+                  Do not use TodoWrite — this runs in CI.
+            Replace FIRST_VIDEO_SLUG with the actual first video slug from meta.yaml.
 
-            OUTPUT: talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/final/uk.srt
+            STEP 2 — Handle remaining videos:
+            For each additional video in meta.yaml, detect offset:
+              python -m tools.offset_srt detect \
+                --srt1 "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/en.srt" \
+                --srt2 "talks/${{ matrix.talk_id }}/NEXT_VIDEO_SLUG/source/en.srt"
+            If offset detected — apply it:
+              mkdir -p "talks/${{ matrix.talk_id }}/NEXT_VIDEO_SLUG/final"
+              python -m tools.offset_srt apply \
+                --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
+                --offset-ms OFFSET \
+                --output "talks/${{ matrix.talk_id }}/NEXT_VIDEO_SLUG/final/uk.srt"
+            If no offset (different content) — spawn another builder sub-agent for that video.
 
-            Create the output directory first:
-            ```bash
-            mkdir -p "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/final"
-            ```
+            STEP 3 — Review ALL subtitles:
+            Use the Task tool to spawn a reviewer sub-agent:
+              - subagent_type: "general-purpose"
+              - prompt: |
+                  Read templates/subtitle_reviewer_template.md for instructions.
+                  Review ALL uk.srt files for this talk.
+                  For each video, check: uk.srt, en.srt, whisper.json.
+                  Talk: talks/${{ matrix.talk_id }}/
+                  Videos: (list all video slugs from meta.yaml)
+            Apply any fixes from the reviewer.
 
-            Process the talk in ~5-minute chunks, writing each chunk via bash cat.
-            After writing all chunks, validate:
-            ```bash
-            python -m tools.validate_subtitles \
-              --srt "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/final/uk.srt" \
-              --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
-              --whisper-json "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json" \
-              --report "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/final/report.txt"
-            ```
-            If text preservation fails, fix the SRT and re-validate.
+            STEP 4 — Validate ALL videos:
+            For each video in meta.yaml, run:
+              python -m tools.validate_subtitles \
+                --srt "talks/${{ matrix.talk_id }}/VIDEO_SLUG/final/uk.srt" \
+                --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
+                --whisper-json "talks/${{ matrix.talk_id }}/VIDEO_SLUG/source/whisper.json" \
+                --report "talks/${{ matrix.talk_id }}/VIDEO_SLUG/final/report.txt"
+
             Do not use TodoWrite — this runs in CI, no one sees progress updates.
 
       - name: Validate subtitles
         if: inputs.build != false
         run: |
-          VIDEO="talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}"
-          python -m tools.validate_subtitles \
-            --srt "$VIDEO/final/uk.srt" \
-            --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
-            --whisper-json "$VIDEO/source/whisper.json" \
-            --report "$VIDEO/final/report.txt"
+          python3 -c "
+          import yaml
+          with open('talks/${{ matrix.talk_id }}/meta.yaml') as f:
+            meta = yaml.safe_load(f)
+          for v in meta['videos']:
+            print(v['slug'])
+          " | while read slug; do
+            VIDEO="talks/${{ matrix.talk_id }}/$slug"
+            python -m tools.validate_subtitles \
+              --srt "$VIDEO/final/uk.srt" \
+              --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
+              --whisper-json "$VIDEO/source/whisper.json" \
+              --report "$VIDEO/final/report.txt"
+          done
 
       - name: Upload build artifacts
         if: inputs.build != false
         uses: actions/upload-artifact@v4
         with:
-          name: subtitles__${{ matrix.talk_id }}__${{ matrix.video_slug }}
+          name: subtitles__${{ matrix.talk_id }}
           path: |
-            talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/final/uk.srt
-            talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/final/report.txt
+            talks/${{ matrix.talk_id }}/*/final/uk.srt
+            talks/${{ matrix.talk_id }}/*/final/report.txt
 
   # Single commit job — collects all artifacts and pushes
   commit:
@@ -458,23 +507,21 @@ jobs:
             done
           done
 
-          # Place subtitle artifacts
+          # Place subtitle artifacts (per-talk, contains all videos)
           for dir in subtitles__*/; do
             [ -d "$dir" ] || continue
             name="${dir%/}"
-            rest="${name#subtitles__}"
-            video_slug="${rest##*__}"
-            talk_id="${rest%__*}"
-            echo "Processing subtitles: $talk_id / $video_slug"
+            talk_id="${name#subtitles__}"
+            echo "Processing subtitles: $talk_id"
 
-            for f in uk.srt report.txt; do
-              src=$(find "$dir" -name "$f" -type f | head -1)
-              if [ -n "$src" ]; then
-                dest="talks/$talk_id/$video_slug/final"
-                mkdir -p "$dest"
-                cp "$src" "$dest/$f"
-                echo "  -> $dest/$f"
-              fi
+            # Copy all final files preserving directory structure
+            find "$dir" -name "uk.srt" -o -name "report.txt" | while read src; do
+              # Extract relative path within the artifact
+              rel="${src#$dir/}"
+              dest="talks/$talk_id/$rel"
+              mkdir -p "$(dirname "$dest")"
+              cp "$src" "$dest"
+              echo "  -> $dest"
             done
           done
 
