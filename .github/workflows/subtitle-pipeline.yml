@@ -517,14 +517,18 @@ jobs:
             talk_id="${name#subtitles__}"
             echo "Processing subtitles: $talk_id"
 
-            # Copy all final files preserving directory structure
-            find "$dir" -name "uk.srt" -o -name "report.txt" | while read src; do
-              # Extract relative path within the artifact
-              rel="${src#$dir/}"
-              dest="talks/$talk_id/$rel"
-              mkdir -p "$(dirname "$dest")"
-              cp "$src" "$dest"
-              echo "  -> $dest"
+            # upload-artifact preserves paths from repo root (talks/TALK/VIDEO/final/*)
+            # Find files and copy to the correct location
+            find "$dir" \( -name "uk.srt" -o -name "report.txt" \) | while read src; do
+              # Extract path starting from the video slug (after talks/TALK_ID/)
+              # src example: subtitles__TALK/talks/TALK/VIDEO/final/uk.srt
+              # We need: talks/TALK/VIDEO/final/uk.srt
+              dest=$(echo "$src" | grep -o "talks/.*")
+              if [ -n "$dest" ]; then
+                mkdir -p "$(dirname "$dest")"
+                cp "$src" "$dest"
+                echo "  -> $dest"
+              fi
             done
           done
 
