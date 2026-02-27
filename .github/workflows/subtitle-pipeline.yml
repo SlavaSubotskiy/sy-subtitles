@@ -373,6 +373,17 @@ jobs:
             TALK: talks/${{ matrix.talk_id }}/
             Read meta.yaml to discover all videos for this talk.
 
+            STEP 0 — Compute EN SRT boundary:
+            Before building, determine the talk's time boundary. Run:
+              python3 -c "
+              import re
+              with open('talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/en.srt') as f:
+                  blocks = re.findall(r'(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})', f.read())
+              print(f'EN SRT: {len(blocks)} blocks, ends at {blocks[-1][1]}')
+              "
+            Replace FIRST_VIDEO_SLUG with the actual first video slug from meta.yaml.
+            Save the EN SRT end time — you will pass it to the builder.
+
             STEP 1 — Build subtitles for the FIRST video:
             Use the Task tool to spawn a builder sub-agent:
               - subagent_type: "general-purpose"
@@ -385,6 +396,13 @@ jobs:
                   - Whisper data: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json
                   OUTPUT: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt
                   Create output dir first: mkdir -p "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final"
+
+                  CRITICAL WHISPER BOUNDARY: The EN SRT ends at {EN_END_TIME}.
+                  The whisper.json may cover a much longer recording (e.g., 2h puja).
+                  You MUST ONLY use whisper segments within the EN SRT time range.
+                  Your UK SRT MUST NOT extend beyond {EN_END_TIME}.
+                  IGNORE all whisper segments after this time.
+
                   Process in ~5-minute chunks. After all chunks, validate:
                   python -m tools.validate_subtitles \
                     --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
@@ -393,7 +411,7 @@ jobs:
                     --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/report.txt"
                   If text preservation fails, fix and re-validate.
                   Do not use TodoWrite — this runs in CI.
-            Replace FIRST_VIDEO_SLUG with the actual first video slug from meta.yaml.
+            Replace FIRST_VIDEO_SLUG and {EN_END_TIME} with actual values.
 
             STEP 2 — Handle remaining videos:
             For each additional video in meta.yaml, detect offset:
@@ -411,18 +429,7 @@ jobs:
             Do NOT write Python scripts to modify SRT files.
             If no offset (different content) — spawn another builder sub-agent for that video.
 
-            STEP 3 — Review ALL subtitles:
-            Use the Task tool to spawn a reviewer sub-agent:
-              - subagent_type: "general-purpose"
-              - prompt: |
-                  Read templates/subtitle_reviewer_template.md for instructions.
-                  Review ALL uk.srt files for this talk.
-                  For each video, check: uk.srt, en.srt, whisper.json.
-                  Talk: talks/${{ matrix.talk_id }}/
-                  Videos: (list all video slugs from meta.yaml)
-            Apply any fixes from the reviewer.
-
-            STEP 4 — Validate ALL videos:
+            STEP 3 — Validate ALL videos:
             For the FIRST video (full validation):
               python -m tools.validate_subtitles \
                 --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
@@ -437,6 +444,7 @@ jobs:
                 --skip-text-check --skip-time-check \
                 --report "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/final/report.txt"
 
+            Once validation passes, STOP. Do not review or rebuild.
             Do not use TodoWrite — this runs in CI, no one sees progress updates.
 
       - name: Upload build artifacts
