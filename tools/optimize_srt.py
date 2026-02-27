@@ -482,68 +482,93 @@ def split_blocks_by_cps(blocks, config):
     return new_blocks, splits
 
 
-def reconstruct_sentences(blocks, config):
-    """Merge consecutive blocks into complete sentences.
+def merge_sparse_blocks(blocks, config):
+    """Merge ultra-sparse blocks (CPS < threshold AND chars < 20) with neighbors.
 
-    Blocks from uk_whisper.json often contain sentence fragments (one word or phrase
-    per whisper segment). This phase combines consecutive blocks until a sentence-ending
-    punctuation mark (.!?) is found, then starts a new accumulated block.
+    Only targets blocks that are clearly under-filled — single words or tiny fragments
+    sitting on long whisper segments. Normal blocks are left untouched to preserve
+    their whisper timing.
 
-    The merged block takes start_ms from the first and end_ms from the last fragment.
-    Later phases (duration split, CPS, merge) handle sizing.
+    Multi-pass: each pass merges sparse blocks forward (into next) or backward (into prev).
+    Combined chars must not exceed max_chars_block.
+
+    After merging, trims blocks that are still very sparse (CPS < threshold) to
+    reading duration. This prevents Phase 1b from re-fragmenting merged blocks
+    that carry huge dead time from sparse whisper segments.
     """
     if not blocks:
         return blocks, 0
 
-    SENTENCE_END = re.compile(r"[.!?][»\"')\]]*$")
+    total_merged = 0
 
-    result = []
-    merged_count = 0
-    acc_text_parts = []
-    acc_start = blocks[0]["start_ms"]
-    acc_idx = blocks[0]["idx"]
+    for _pass in range(10):
+        merged = 0
+        new_blocks = []
+        i = 0
+        while i < len(blocks):
+            b = copy.deepcopy(blocks[i])
+            b_chars = len(b["text"].replace("\n", ""))
+            b_dur = b["end_ms"] - b["start_ms"]
+            b_cps = b_chars / (b_dur / 1000.0) if b_dur > 0 else 999
 
-    for b in blocks:
-        text = b["text"].replace("\n", " ").strip()
-        if not text:
-            continue
+            is_sparse = b_cps < config.sparse_cps_threshold and b_chars < 20
 
-        if not acc_text_parts:
-            acc_start = b["start_ms"]
-            acc_idx = b["idx"]
+            if is_sparse and i + 1 < len(blocks):
+                # Try merge forward
+                next_b = blocks[i + 1]
+                next_chars = len(next_b["text"].replace("\n", ""))
+                combined_chars = b_chars + next_chars + 1
+                if combined_chars <= config.max_chars_block:
+                    combined_text = b["text"].replace("\n", " ") + " " + next_b["text"].replace("\n", " ")
+                    b["end_ms"] = next_b["end_ms"]
+                    b["text"] = combined_text.strip()
+                    merged += 1
+                    i += 2
+                    new_blocks.append(b)
+                    continue
 
-        acc_text_parts.append(text)
-        acc_end = b["end_ms"]
+            if is_sparse and new_blocks:
+                # Try merge backward
+                prev_b = new_blocks[-1]
+                prev_chars = len(prev_b["text"].replace("\n", ""))
+                combined_chars = prev_chars + b_chars + 1
+                if combined_chars <= config.max_chars_block:
+                    combined_text = prev_b["text"].replace("\n", " ") + " " + b["text"].replace("\n", " ")
+                    prev_b["end_ms"] = b["end_ms"]
+                    prev_b["text"] = combined_text.strip()
+                    merged += 1
+                    i += 1
+                    continue
 
-        if SENTENCE_END.search(text):
-            combined = " ".join(acc_text_parts)
-            result.append(
-                {
-                    "idx": acc_idx,
-                    "start_ms": acc_start,
-                    "end_ms": acc_end,
-                    "text": combined,
-                }
-            )
-            if len(acc_text_parts) > 1:
-                merged_count += len(acc_text_parts) - 1
-            acc_text_parts = []
+            new_blocks.append(b)
+            i += 1
 
-    # Flush remaining fragments (no sentence-ending punct at the end)
-    if acc_text_parts:
-        combined = " ".join(acc_text_parts)
-        result.append(
-            {
-                "idx": acc_idx,
-                "start_ms": acc_start,
-                "end_ms": acc_end,
-                "text": combined,
-            }
-        )
-        if len(acc_text_parts) > 1:
-            merged_count += len(acc_text_parts) - 1
+        blocks = new_blocks
+        total_merged += merged
+        if merged == 0:
+            break
 
-    return result, merged_count
+    # Trim merged blocks that are still very sparse — cap to reading duration
+    # so Phase 1b doesn't re-fragment them into single-word pieces
+    if total_merged > 0:
+        for i, b in enumerate(blocks):
+            chars = len(b["text"].replace("\n", ""))
+            dur = b["end_ms"] - b["start_ms"]
+            cps = chars / (dur / 1000.0) if dur > 0 else 999
+            if cps >= config.sparse_cps_threshold:
+                continue
+            # Cap at reading time × 1.5 (give some margin for Phase 7)
+            reading_dur = max(config.min_duration_ms, int((chars / config.target_cps) * 1000))
+            max_dur = int(reading_dur * 1.5)
+            if dur > max_dur:
+                new_end = b["start_ms"] + max_dur
+                # Don't overlap with next block
+                if i + 1 < len(blocks):
+                    new_end = min(new_end, blocks[i + 1]["start_ms"] - config.min_gap_ms)
+                new_end = max(new_end, b["start_ms"] + config.min_duration_ms)
+                b["end_ms"] = new_end
+
+    return blocks, total_merged
 
 
 def merge_short_blocks(blocks, config):
@@ -564,13 +589,20 @@ def merge_short_blocks(blocks, config):
                 b_dur = b["end_ms"] - b["start_ms"]
                 next_dur = next_b["end_ms"] - next_b["start_ms"]
                 combined_dur = b_dur + next_dur + gap
-                short_current = b_dur < config.min_duration_ms or (b_chars < 20 and b_dur < 3000)
-                short_next = next_dur < config.min_duration_ms or (next_chars < 20 and next_dur < 3000)
+                b_cps = b_chars / (b_dur / 1000.0) if b_dur > 0 else 999
+                next_cps = next_chars / (next_dur / 1000.0) if next_dur > 0 else 999
+                sparse_current = b_chars < 20 and b_cps < config.sparse_cps_threshold
+                sparse_next = next_chars < 20 and next_cps < config.sparse_cps_threshold
+                short_current = b_dur < config.min_duration_ms or (b_chars < 20 and b_dur < 3000) or sparse_current
+                short_next = next_dur < config.min_duration_ms or (next_chars < 20 and next_dur < 3000) or sparse_next
+                either_sparse = sparse_current or sparse_next
+                max_gap = 3000 if either_sparse else 500
+                max_combined_dur = config.max_duration_ms * 2 if either_sparse else config.max_duration_ms + 1000
                 if (
                     (short_current or short_next)
                     and combined_chars <= config.max_chars_block
-                    and combined_dur <= config.max_duration_ms + 1000
-                    and gap < 500
+                    and combined_dur <= max_combined_dur
+                    and gap < max_gap
                 ):
                     combined_text = b["text"].replace("\n", " ") + " " + next_b["text"].replace("\n", " ")
                     b["end_ms"] = next_b["end_ms"]
@@ -738,33 +770,9 @@ def optimize_readability(blocks, whisper_segments, config, report):
     report.append("  STEP 4: Optimizing readability")
     report.append("=" * 60)
 
-    # Phase 0: Reconstruct sentences from fragmented whisper segments
-    blocks, sentences_merged = reconstruct_sentences(blocks, config)
-    report.append(f"  Phase 0 - Sentence reconstruction: {sentences_merged} fragments merged → {len(blocks)} blocks")
-
-    # Phase 0b: Trim oversized sentence blocks to reading duration
-    # After reconstruction, some sentences span huge time ranges because the alignment
-    # distributed text proportionally across many whisper segments.
-    # Cap block duration to reading time + margin so later phases split text sensibly.
-    trimmed_0b = 0
-    for i, b in enumerate(blocks):
-        chars = len(b["text"].replace("\n", ""))
-        dur = b["end_ms"] - b["start_ms"]
-        reading_dur = max(config.min_duration_ms, int((chars / config.target_cps) * 1000))
-        # Only trim if duration is way beyond reading time (> 3x) and beyond max_duration
-        if dur > max(reading_dur * 3, config.max_duration_ms * 2):
-            # Cap at reading time + 50% margin
-            new_end = b["start_ms"] + int(reading_dur * 1.5)
-            # Don't overlap with next block
-            if i + 1 < len(blocks):
-                new_end = min(new_end, blocks[i + 1]["start_ms"] - config.min_gap_ms)
-            # Ensure at least min_duration
-            new_end = max(new_end, b["start_ms"] + config.min_duration_ms)
-            if new_end < b["end_ms"] - 1000:
-                b["end_ms"] = new_end
-                trimmed_0b += 1
-    if trimmed_0b:
-        report.append(f"  Phase 0b - Trimmed oversized sentences: {trimmed_0b}")
+    # Phase 0: Merge ultra-sparse blocks (single words on long segments)
+    blocks, sparse_merged = merge_sparse_blocks(blocks, config)
+    report.append(f"  Phase 0 - Sparse block merge: {sparse_merged} merged → {len(blocks)} blocks")
 
     # Phase 1: Join multi-line blocks (single-line mode)
     lines_joined = 0

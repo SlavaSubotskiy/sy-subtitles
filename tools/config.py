@@ -15,3 +15,4 @@ class OptimizeConfig:
     min_gap_ms: int = 80
     fps: int = 24
     single_line: bool = True
+    sparse_cps_threshold: float = 2.0
