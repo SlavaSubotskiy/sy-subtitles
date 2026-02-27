@@ -429,6 +429,15 @@ jobs:
 
             Do not use TodoWrite — this runs in CI, no one sees progress updates.
 
+      - name: Upload build artifacts
+        if: inputs.build != false && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: subtitles__${{ matrix.talk_id }}
+          path: |
+            talks/${{ matrix.talk_id }}/*/final/uk.srt
+            talks/${{ matrix.talk_id }}/*/final/report.txt
+
       - name: Validate subtitles
         if: inputs.build != false
         run: |
@@ -447,22 +456,13 @@ jobs:
               --report "$VIDEO/final/report.txt"
           done
 
-      - name: Upload build artifacts
-        if: inputs.build != false
-        uses: actions/upload-artifact@v4
-        with:
-          name: subtitles__${{ matrix.talk_id }}
-          path: |
-            talks/${{ matrix.talk_id }}/*/final/uk.srt
-            talks/${{ matrix.talk_id }}/*/final/report.txt
-
   # Single commit job — collects all artifacts and pushes
   commit:
     needs: [discover, translate-and-review, build-subtitles]
     if: |
       always() &&
       !cancelled() &&
-      (needs.build-subtitles.result == 'success' || needs.build-subtitles.result == 'skipped') &&
+      (needs.build-subtitles.result == 'success' || needs.build-subtitles.result == 'failure' || needs.build-subtitles.result == 'skipped') &&
       (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
