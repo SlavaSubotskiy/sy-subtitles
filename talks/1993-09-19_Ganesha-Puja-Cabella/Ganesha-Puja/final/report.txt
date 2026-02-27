@@ -1,93 +1,82 @@
 ============================================================
-  SUBTITLE OPTIMIZATION SCRIPT
+  SUBTITLE VALIDATION REPORT
 ============================================================
-  Source: uk_whisper.json (164 blocks)
+  SRT: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/final/uk.srt
+  Transcript: talks/1993-09-19_Ganesha-Puja-Cabella/transcript_uk.txt
+  Whisper: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/source/whisper.json
+  SRT blocks: 711
+  Whisper segments: 424
+
 ============================================================
-  ORIGINAL SRT STATISTICS
+  CHECK 1: Text preservation
 ============================================================
-  Total blocks: 164
-  CPS: avg=10.0, median=7.7, max=44.6
-  CPS > target: 31 (18.9%)
-  CPS > hard max: 20 (12.2%)
-  CPL: avg=136.2, max=510
-  CPL > max: 138 (84.1%)
-  Chars > max block: 104 (63.4%)
+  Transcript chars: 22495
+  SRT chars: 22495
+  Exact normalized match: OK
+  Transcript words: 3611
+  SRT words: 3611
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs whisper)
+============================================================
+  Whisper range: 00:01:20,960 — 02:00:04,960
+  SRT range:     00:01:21,109 — 00:46:43,757
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 711
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 711
+  CPS: avg=8.6, median=8.3, max=14.8
+  CPS > target: 0 (0.0%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=30.6, max=42
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
   Lines > max: 0
   Duration < min: 0
-  Duration > max: 147
+  Duration > max: 0
   Overlaps: 0
-  Gaps < min: 44
-============================================================
-  STEP 2: Comparing SRT with Whisper speech timings
-============================================================
-  Whisper segments: 424
-  SRT blocks: 164
-  SRT blocks starting >500ms before speech: 0
-  SRT blocks ending >2s after speech: 1
-
-============================================================
-  STEP 3: Fixing structural issues
-============================================================
-  Fixed double spaces: 0
-  Fixed leading/trailing spaces: 0
-  Fixed overlaps/tiny gaps: 0
-
-============================================================
-  STEP 4: Optimizing readability
-============================================================
-  Phase 0 - Sparse block merge: 6 merged → 158 blocks
-  Phase 1 - Lines joined (single-line mode): 0
-  Phase 1b - Duration splits (>7000ms): 300
-  Phase 2 - Blocks split (> 84 chars): 65
-  Phase 3 - CPS extensions (pass 1): 139
-  Phase 4 - CPS splits (> 20.0): 61
-  Phase 5 - Merged short blocks: 82
-  Phase 6 - CPS extensions (pass 2): 127
-  Phase 6 - CPS extensions (pass 3): 127
-  Phase 6 - CPS extensions (pass 4): 127
-  Phase 7 - Cascade time redistribution: 164
-  Phase 7b - Large gaps absorbed: 2
-  Phase 7c - CPS extensions after redistribution: 7
-  Phase 11 - Final CPS extensions: 7
-
-============================================================
-  STEP 5: Applying chaining
-============================================================
-  Gaps chained (3-11 frames -> 2 frames): 1
-
-============================================================
-  STEP 6: Final validation report
-============================================================
-
-  Text preservation: OK
-  Original chars: 22495, Optimized chars: 22495
-
-  PARAMETER                          BEFORE      AFTER     CHANGE
-  ------------------------------------------------------------
-  Total blocks                          164        502      +338v
-  Avg CPS                              10.0       10.2
-  Max CPS                              44.6       45.7
-  CPS > target                           31        116       +85^
-  CPS > hard max                         20          1       -19v
-  Max CPL                               510        212      -298v
-  CPL > max                             138        227       +89^
-  Chars > max block                     104         17       -87v
-  Lines > max                             0          0         --
-  Duration < min                          0          3        +3^
-  Overlaps                                0          0         --
-  Gaps < min                             44          0       -44v
+  Gaps < min: 1
 
   Worst CPS blocks (top 10):
-    #463: CPS=45.7 (48ch/1.1s) "Потім ми поїхали на завод купувати нову машину»."
-    #462: CPS=16.9 (109ch/6.5s) "у нас був той Ваш старий автомобіль, який ми прода"
-    #72: CPS=15.1 (34ch/2.3s) "Ви поза будь-яким думанням про це,"
-    #280: CPS=15.1 (30ch/2.0s) "жодних жахливих речей, нічого."
-    #419: CPS=15.1 (67ch/4.5s) "тому що его може вклинитися і спробувати вкласти і"
-    #183: CPS=15.0 (72ch/4.8s) "яка дуже популярна, може бути модною, може бути пр"
-    #73: CPS=15.0 (56ch/3.7s) "поза будь-якими висновками щодо цього, але ви дхар"
-    #343: CPS=15.0 (25ch/1.7s) "весь матеріалізм входить."
-    #483: CPS=15.0 (28ch/1.9s) "віґраха означає особистість,"
-    #276: CPS=15.0 (28ch/1.9s) "Я сказала: «Тварини невинні,"
+    #501: CPS=14.8 (38ch/2.6s) "Я бачила Моїх власних онуків та інших."
+    #505: CPS=14.8 (39ch/2.6s) "Навіщо ви хочете купувати ще?» «О бабу!"
+    #508: CPS=14.8 (39ch/2.6s) "«Ми можемо приїхати на машині або дійти"
+    #496: CPS=14.8 (34ch/2.3s) "Візьміть західну дитину на базар —"
+    #507: CPS=14.8 (34ch/2.3s) "«Ні, ми можемо прийти сюди». «Як?»"
+    #510: CPS=14.8 (34ch/2.3s) "«Нічого. Одна пара — це нормально."
+    #499: CPS=14.8 (40ch/2.7s) "вони ніколи нічого не візьмуть. Справді."
+    #500: CPS=14.8 (32ch/2.2s) "Так важко їх змусити. Принаймні,"
+    #504: CPS=14.8 (40ch/2.7s) "одну пару взуття: «Ні, але в нас є одна."
+    #509: CPS=14.8 (35ch/2.4s) "пішки». «Але ви будете без взуття»."
 
-  Optimized SRT written to: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/final/uk.srt
-  Total blocks: 502
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+
+  Avg CPS: 8.6 (target ≤15.0)
+  CPS > 15.0: 0 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 42: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 7000ms: 0 blocks
+  Gaps < 80ms: 1 blocks
+
+  Overall: PASSED
