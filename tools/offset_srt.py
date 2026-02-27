@@ -64,7 +64,7 @@ def detect_offset(srt1_path, srt2_path, check_blocks=10, tolerance_ms=500, simil
         block_offset = blocks2[i]["start_ms"] - blocks1[i]["start_ms"]
         if abs(block_offset - offset_ms) > tolerance_ms:
             print(
-                f"INCONSISTENT: Block {i+1} offset {block_offset}ms " f"differs from expected {offset_ms}ms",
+                f"INCONSISTENT: Block {i + 1} offset {block_offset}ms differs from expected {offset_ms}ms",
                 file=sys.stderr,
             )
             return None
