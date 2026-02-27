@@ -65,6 +65,15 @@ Timestamps are in **seconds** (float). Convert to SRT format: `4.0` → `00:00:0
 - Read `whisper.json` in portions using `python3 -c` to print segment summaries:
   print each segment's id, start, end, word count, and text (first 80 chars)
 
+**CRITICAL — Determine talk boundary from EN SRT:**
+The whisper.json may cover a much longer recording than the actual talk (e.g., a 2-hour
+puja ceremony where the talk is only 46 minutes). You MUST use the EN SRT time range
+as the boundary for your work:
+- Note the **last EN SRT block's end time** — this is where the talk ends
+- **ONLY use whisper segments** that fall within the EN SRT time range
+- Do NOT spread Ukrainian text into whisper segments beyond the last EN block
+- Your UK SRT should span approximately the same time range as the EN SRT
+
 ### Step 2 — Split Ukrainian text into sentences
 
 Before building, mentally split transcript_uk.txt into **sentences** (split at `.` `!` `?`).
@@ -85,6 +94,7 @@ unit is always **one Ukrainian sentence at a time**.
 2. **Look up whisper word timestamps** for those English words:
    - Find the segment(s) containing these English words
    - Read the `words[]` array to get per-word `start` and `end` times
+   - **STOP** if you reach whisper segments beyond the last EN SRT block's end time
 3. **Set timing from whisper words:**
    - Block **start** = `start` of the first corresponding English word
    - Block **end** = `end` of the last corresponding English word
