@@ -114,6 +114,7 @@ jobs:
   # Translate EN→UK and review with 2+1 process (per talk)
   translate-and-review:
     needs: discover
+    if: inputs.translate != false || inputs.review != false
     environment: main
     strategy:
       matrix: ${{ fromJson(needs.discover.outputs.talk_matrix) }}
