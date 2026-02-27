@@ -289,6 +289,7 @@ jobs:
         run: git pull --rebase
 
       - name: Download translation artifacts
+        if: needs.translate-and-review.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: translation__${{ matrix.talk_id }}
@@ -471,13 +472,14 @@ jobs:
         run: git pull --rebase
 
       - name: Download translation artifacts
+        if: needs.translate-and-review.result == 'success'
         uses: actions/download-artifact@v4
         with:
           pattern: translation__*
           merge-multiple: false
 
       - name: Download subtitle artifacts
-        if: inputs.build != false
+        if: needs.build-subtitles.result == 'success'
         uses: actions/download-artifact@v4
         with:
           pattern: subtitles__*
