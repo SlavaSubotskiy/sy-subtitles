@@ -4,115 +4,131 @@ You are building Ukrainian subtitles for a Sahaja Yoga lecture video.
 You must craft EVERY subtitle block manually — understanding the meaning,
 reading the precise word timestamps, and making intelligent decisions.
 
-## CRITICAL RULES (read before anything else)
+## CRITICAL RULES
 
 1. **NO SCRIPTS** — NEVER write a Python or bash script to generate subtitles.
-   YOU are the builder. A script cannot understand meaning or judge where a
-   phrase naturally breaks. YOU can. That is why you exist in this pipeline.
+   YOU craft each block yourself via bash cat heredoc.
 
 2. **NEVER MODIFY TEXT** — Copy Ukrainian text EXACTLY from transcript_uk.txt.
-   Do not paraphrase, reword, or "improve" anything. Not a single word.
-   Your job is TIMING and SPLITTING, not editing the translation.
+   Not a single word changed. Your job is TIMING and SPLITTING only.
 
-3. **MAX 42 CHARACTERS PER BLOCK** — This is an absolute hard limit.
-   Every subtitle block must be ≤42 characters. No exceptions.
-   Count the characters BEFORE writing. If a phrase is longer — SPLIT it.
-   A typical 45-minute talk needs **600-700 blocks**, NOT 400-500.
+3. **MAX 84 CHARACTERS PER BLOCK** — absolute hard limit, no exceptions.
+   A typical 45-minute talk needs **500-700 blocks**.
 
-## Hard limits (memorize these)
+## Hard limits
 
-| Parameter | Value                            | Notes                                 |
-|-----------|----------------------------------|---------------------------------------|
-| CPL (chars per line) | **≤42**                          | Hard maximum. Count before writing!   |
-| CPS (chars per second) | target **≤15**, hard max **≤20** | `chars / duration_seconds`            |
-| Block duration | **1.2s — 15.0s**                 | Min 1200ms, max 15000ms               |
-| Gap between blocks | **≥80ms**                        | 2 frames at 24fps                     |
-| Lines per block | **1**                            | Single line only, no `\n` in text     |
-| Text | **EXACT copy**                   | Every word from transcript, unchanged |
+| Parameter | Value | Quick reference |
+|-----------|-------|-----------------|
+| CPL | **≤84** | Single line. Count before writing! |
+| CPS | target **≤15**, hard max **≤20** | 40ch→2.7s, 60ch→4.0s, 84ch→5.6s min |
+| Duration | **1.2s — 15.0s** | Short sentence on slow speech can stay long |
+| Gap | **≥80ms** | Between every pair of blocks |
+| Lines | **1** | Single line, no `\n` in text |
 
 ## Inputs
-You will be given paths to three files per video:
-1. **transcript_uk.txt** — Ukrainian translation (per-talk, one paragraph per line)
-2. **en.srt** — English subtitles (per-video, timing reference)
-3. **whisper.json** — English speech recognition with word timestamps (per-video, large file)
+
+1. **transcript_uk.txt** — Ukrainian translation (one paragraph per line)
+2. **en.srt** — English subtitles (timing reference)
+3. **whisper.json** — word-level timestamps (large file, read in portions)
+
+### whisper.json format
+
+```json
+{
+  "segments": [
+    {
+      "id": 0, "start": 4.0, "end": 10.5,
+      "text": "Today we have gathered here",
+      "words": [
+        {"word": "Today", "start": 4.0, "end": 4.3},
+        {"word": "we", "start": 4.35, "end": 4.5},
+        {"word": "have", "start": 4.55, "end": 4.7},
+        {"word": "gathered", "start": 4.75, "end": 5.2},
+        {"word": "here", "start": 5.25, "end": 5.6}
+      ]
+    }
+  ]
+}
+```
+
+Timestamps are in **seconds** (float). Convert to SRT format: `4.0` → `00:00:04,000`.
 
 ## Process
 
 ### Step 1 — Read inputs
 - Read `en.srt` fully (50-80KB, fits in ~2 reads)
-- Read `transcript_uk.txt` — the Ukrainian text you'll be placing as subtitles
-- Read `whisper.json` in portions — segments in batches of 50
-  (The file is 300-600KB. Read first 50 segments, then next 50, etc.)
-  You NEED the word-level timestamps to time each subtitle correctly.
+- Read `transcript_uk.txt` — the text you'll be placing as subtitles
+- Read `whisper.json` in portions — **50 segments at a time**
+  (300-600KB total — read first 50, then next 50, etc.)
 
 ### Step 2 — Build subtitles chunk by chunk
 
-Process the talk in ~5-minute time chunks. For each chunk:
+Process the talk in **~5-minute time chunks** (~50 EN SRT blocks per chunk).
 
-1. **Look at EN subtitles** in this time range — they tell you WHAT is said and WHEN
-2. **Look at whisper word timestamps** for this range — they tell you the EXACT moment
-   each word starts and ends (more precise than EN SRT boundaries)
-3. **Find the corresponding Ukrainian text** — match by meaning and order
-4. **Craft each UK subtitle block** (see "How to craft a block" below)
-5. **Self-check EVERY block** before writing:
-   - Count characters — must be ≤42
-   - Calculate CPS = chars / duration_seconds — must be ≤15 (≤20 hard max)
-   - Check duration — must be 1.2s–15.0s
-   - Check gap to previous block — must be ≥80ms
-6. **Write the chunk** via bash cat heredoc (see Output format below)
+#### Algorithm for each chunk:
 
-**The key principle: each UK subtitle must appear on screen when the viewer
-hears the corresponding words in the original speech. Not before, not after.
-Use whisper word timestamps to achieve this precision.**
+1. **Take EN subtitles** in this time range (e.g. blocks 1-50, timecodes 00:00-05:00)
+2. **Take whisper word timestamps** for the same time range
+3. **Take the corresponding Ukrainian text** — go through transcript_uk.txt
+   in order, matching each EN block's meaning to the next unplaced UK text
+4. **For each piece of UK text, craft a subtitle block:**
 
-### How to craft a block
+   a. Find the EN words that correspond to this UK phrase
+   b. Look up those EN words in whisper.json → get `start` and `end` timestamps
+   c. Set block **start** = whisper start of first corresponding EN word
+   d. Set block **end** = whisper end of last corresponding EN word
+   e. If text is >84 chars → **split** (see splitting rules below)
+   f. If CPS >15 → extend end into silence (up to next block start minus 80ms)
+   g. If CPS still >15 after extending → **shift neighboring blocks** (see below)
+   h. If duration <1.2s → extend end into silence
 
-For each piece of Ukrainian text:
+5. **Verify the chunk** mentally: all blocks ≤84 chars? CPS reasonable? Gaps ≥80ms?
+6. **Write the chunk** via bash cat heredoc
 
-1. **Find corresponding English words** in the EN subtitles at this point
-2. **Find those English words in whisper.json** → get word-level start/end timestamps
-3. **Set timing:**
-   - Start = first corresponding whisper word start time
-   - End = last corresponding whisper word end time
-4. **Check text length** — if >42 chars, SPLIT (see "Where to split" below)
-5. **Check CPS** = chars / ((end - start) / 1000):
-   - If CPS > 15: extend end into silence after speech (up to next block start minus 80ms)
-   - If CPS still > 20 after extending: the text is too long, split into more blocks
-6. **Check duration:**
-   - If < 1.2s: extend end into silence (don't exceed 15s)
-   - If > 15.0s: split into multiple blocks at natural text boundaries
+#### Time shifting for fast speech
 
-### Where to split text (priority order)
+When speech is very fast, a subtitle block may have high CPS even after extending
+into silence. In this case, you MAY shift the timing of the current block and its
+neighbors to ensure comfortable reading:
 
-When text exceeds 42 chars or CPS/duration limits, split at the BEST point:
+- **Shift a block earlier** — start it before the speech begins (up to 1-2s early),
+  borrowing display time from silence before the speech
+- **Shift a block later** — let it stay on screen after the speech ends,
+  extending into the next silence gap
+- **Compress neighboring blocks** — if a neighbor has very low CPS (lots of spare
+  time), shorten its display to give more time to the dense block next to it
 
-1. **Sentence boundary** — after `.` `!` `?` (highest priority, cleanest break)
-2. **Clause boundary** — after `,` `;` `:` `—` (good, natural pause)
+The goal: **CPS ≤15 everywhere**. It is acceptable for a subtitle to appear
+slightly before or after its exact speech moment if this ensures the viewer
+can comfortably read it. Readability takes priority over millisecond precision.
+
+#### Sentence integrity principle
+
+**Prefer blocks that start and end on sentence boundaries.**
+If only 1-2 words remain until the end of a sentence, include them in the
+current block (if ≤84 chars). Do NOT carry orphan endings into the next block.
+
+Good: `І ось що Я хочу вам сказати.` (29ch — full sentence fits)
+Bad:  `І ось що Я хочу вам` + `сказати.` (orphan word)
+
+#### Splitting rules (when text >84 chars)
+
+Split at the BEST point, in priority order:
+
+1. **Sentence boundary** — after `.` `!` `?`
+2. **Clause boundary** — after `,` `;` `:` `—`
 3. **Before a conjunction** — що, який, яка, яке, які, і, та, але, бо, тому,
    коли, де, як, ні, або, чи, адже, проте, однак, якщо, хоча
 4. **Before a preposition** — в, у, на, з, із, від, до, для, без, через,
    після, перед, між, під, над, за, при, про, по
-5. **At any word boundary** — last resort, prefer a balanced split near the middle
+5. **Any word boundary** — near the middle, as last resort
 
-**NEVER** break mid-word. Each resulting piece gets its own timing from whisper.
+Each piece gets its own timing from whisper word timestamps.
 
-### Splitting example
-
-Ukrainian text: `Але якщо ви поважаєте її, тому що вона несе в собі невинність,` (63 chars)
-This is way over 42 chars. Split at the comma after `її`:
-- Block A: `Але якщо ви поважаєте її,` (26 chars) — timed to "But if you respect her,"
-- Block B: `тому що вона несе в собі невинність,` (36 chars) — timed to "because she carries innocence,"
-
-Each block gets its timing from the whisper word timestamps for the corresponding English words.
-
-### What NOT to do
-
-- **DON'T** put 60-80 chars in one block — ALWAYS split at ≤42
-- **DON'T** guess timings — ALWAYS look up whisper word timestamps
-- **DON'T** change any words from the transcript
-- **DON'T** merge multiple sentences into one block if it exceeds 42 chars
-- **DON'T** create blocks shorter than 1.2s unless there's no room to extend
-- **DON'T** create blocks longer than 15.0s — split them
+**Example:** `Але якщо ви поважаєте її, тому що вона несе в собі невинність,` (63ch)
+Split at comma after `її`:
+- `Але якщо ви поважаєте її,` (26ch) → timed to whisper for "But if you respect her,"
+- `тому що вона несе в собі невинність,` (36ch) → timed to "because she carries innocence,"
 
 ### Output format
 
@@ -120,20 +136,16 @@ Each block gets its timing from the whisper word timestamps for the correspondin
 # First chunk — create file
 cat > OUTPUT_PATH << 'SRTEOF'
 1
-00:00:04,000 --> 00:00:06,500
+00:01:21,109 --> 00:01:24,500
 Сьогодні ми зібралися тут,
 
 2
-00:00:06,580 --> 00:00:09,200
+00:01:24,580 --> 00:01:28,832
 щоб провести Пуджу Шрі Ґанеші.
 
 3
-00:00:09,280 --> 00:00:12,000
-Першим Божеством, створеним Аді Шакті,
-
-4
-00:00:12,080 --> 00:00:14,500
-був Шрі Ґанеша.
+00:01:28,912 --> 00:01:34,200
+Першим Божеством, створеним Аді Шакті, був Шрі Ґанеша.
 SRTEOF
 
 # Subsequent chunks — APPEND
@@ -145,14 +157,12 @@ cat >> OUTPUT_PATH << 'SRTEOF'
 SRTEOF
 ```
 
-Notice: every block is well under 42 chars. Short blocks are OK and expected.
+Block 3 keeps the full sentence together (55 chars, within 84 limit).
 
 ### Multi-video talks
-This talk may have multiple videos (check meta.yaml). Often they contain
-the same content with a time offset (e.g., full puja video vs talk-only cut).
 
-After building subtitles for the FIRST video:
-1. For each additional video, detect offset:
+After building subtitles for the FIRST video, handle remaining videos:
+1. Detect offset:
    ```bash
    python -m tools.offset_srt detect \
      --srt1 "TALK/FIRST_VIDEO/source/en.srt" \
@@ -165,36 +175,28 @@ After building subtitles for the FIRST video:
      --offset-ms OFFSET \
      --output "TALK/NEXT_VIDEO/final/uk.srt"
    ```
-3. If no offset (different content) — build from scratch as usual.
+3. If no offset (different content) — build from scratch.
 4. Validate ALL output SRT files.
 
 ### Step 3 — Validate
-After all chunks are written, run the validation script (command will be provided).
 
-**IMPORTANT: Once validation passes with zero failures, STOP. Do not rebuild for marginal improvements.**
+Run the validation script (command will be provided).
 
-If validation shows:
-- **CPL > 42**: Find and split the offending blocks (you miscounted characters)
-- **CPS > 15**: Extend block into silence, or split if text is too long
-- **CPS > 20**: Must split the block — text is too dense for its time slot
-- **Duration < 1.2s**: Extend end into silence
-- **Duration > 15.0s**: Split block at a natural text boundary
-- **Gap < 80ms**: Adjust end of previous block (end = next_start - 80)
-- **Text mismatch**: You changed or lost words — fix to match transcript exactly
+**Once validation passes with zero failures, STOP.**
 
-## Language rules
-- **Shri Mataji pronouns**: always uppercase (Я/Мені/Мій/Моя/Вона/Її/Їй)
-- **Individual deity/incarnation singular**: uppercase (Він/Його/Йому)
-- **Incarnations plural mid-sentence**: lowercase (вони/їм/їх)
-- **Ukrainian quotes**: «» at ALL levels (nested quotes also «», NEVER „" or "")
-- **Em-dash** with spaces: ` — `
-- **Ellipsis**: `...` (three dots, no space before)
+If validation fails:
+- **CPL > 84** → split the offending blocks
+- **CPS > 15** → extend end into silence, or split
+- **CPS > 20** → must split
+- **Duration < 1.2s** → extend end
+- **Gap < 80ms** → adjust previous block end (= next_start - 80)
+- **Text mismatch** → you changed or lost words, fix to match transcript
 
 ## Critical requirements
-- Use **ALL** Ukrainian text — every word must appear exactly once in the output
+
+- Use **ALL** Ukrainian text — every word exactly once
 - Keep text order matching speech order
-- Timecodes must be sequential and non-overlapping
-- SRT blocks must be numbered sequentially starting from 1
-- Maintain continuity between chunks (remember last block number and timecode)
-- **NEVER write a script** — you craft each block yourself
-- Do not use TodoWrite — this runs in CI, no one sees progress updates
+- Timecodes sequential and non-overlapping
+- Blocks numbered sequentially from 1
+- Maintain continuity between chunks (last block number + timecode)
+- Do not use TodoWrite — this runs in CI

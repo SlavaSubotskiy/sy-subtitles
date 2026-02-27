@@ -37,7 +37,7 @@
 | CPS | <=15 | <=20 |
 | Lines per block | 1 | 1 |
 | Min duration | >=1.2s | >=1.0s |
-| Max duration | <=7s | <=8s |
+| Max duration | <=15s | <=15s |
 | Min gap | >=80ms | >=80ms |
 
 ## Language Rules
@@ -56,9 +56,7 @@
 
 ## Review Process
 
-Use the 5-agent language review:
-- A: Orthography
-- B: Punctuation
-- C: Grammar
-- D: Capitalization
-- E: Consistency (informational only)
+Use the 2+1 agent language review (see `templates/language_review_template.md`):
+- **Reviewer L**: Language (Orthography + Grammar + Punctuation)
+- **Reviewer S**: SY Domain (Capitalization + Terminology + Consistency)
+- **Critic**: Filter corrections, remove false positives
