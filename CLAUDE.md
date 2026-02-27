@@ -44,6 +44,8 @@ Source language: English. Target language: Ukrainian.
 
 ### Ukrainian Orthography
 - Quotation marks: `«»` (Ukrainian "yalynky" style)
+- Nested quotes (quote-within-quote): also `«»`, e.g. `«Він сказав: «Привіт»»`
+- NEVER use German `„"` or English `""` for any level of quoting
 - Em-dash: ` — ` (U+2014) with spaces for interjections
 - Ellipsis: `...` (three dots, no space before)
 

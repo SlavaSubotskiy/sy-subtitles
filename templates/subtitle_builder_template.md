@@ -100,7 +100,7 @@ When a Ukrainian sentence is too long for one subtitle block (would exceed CPS o
 - **Shri Mataji pronouns**: always uppercase (Я/Мені/Мій/Моя/Вона/Її/Їй)
 - **Individual deity/incarnation singular**: uppercase (Він/Його/Йому)
 - **Incarnations plural mid-sentence**: lowercase (вони/їм/їх)
-- **Ukrainian quotes**: «»
+- **Ukrainian quotes**: «» at ALL levels (nested quotes also «», NEVER „" or "")
 - **Em-dash** with spaces: ` — `
 - **Ellipsis**: `...` (three dots, no space before)
 

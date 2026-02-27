@@ -21,7 +21,7 @@ Check for:
 - Incorrect prefixes (напів-, пів-), doubled consonants
 - Missing/extra commas, double periods, incorrect ellipsis (`...` without space before)
 - Missing spaces after punctuation, extra spaces before punctuation
-- Quotation mark consistency (use `«»`)
+- Quotation mark consistency (use `«»` at ALL levels, nested quotes also `«»`, NEVER `„"` or `""`)
 - Em-dash with spaces (` — `)
 - Incorrect case forms, verb conjugations, gender agreement
 

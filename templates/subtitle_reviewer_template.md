@@ -23,7 +23,7 @@ For each sampled UK block:
 ### 2. Language rules (ALL blocks — scan with grep/script)
 - Shri Mataji pronouns uppercase (Вона/Її/Їй not вона/її/їй)
 - Deity singular pronouns uppercase (Він/Його/Йому)
-- Ukrainian quotes «» not "" or ''
+- Ukrainian quotes «» at ALL levels (nested quotes also «», NEVER „" or "")
 - Em-dash ` — ` with spaces
 - Ellipsis `...` without space before
 
