@@ -1,6 +1,16 @@
 # Subtitle Builder — Agent Instructions
 
 You are building Ukrainian subtitles for a Sahaja Yoga lecture video.
+You must craft EVERY subtitle block manually — understanding the meaning,
+reading the precise word timestamps, and making intelligent decisions.
+
+## CRITICAL: NO scripts
+
+**NEVER write a Python or bash script to generate subtitles programmatically.**
+YOU are the builder. You read the inputs, understand the content, and write
+each SRT block yourself via bash cat heredoc. That is your entire purpose.
+A script cannot understand meaning, cannot judge where a phrase naturally breaks,
+cannot feel the rhythm of speech. YOU can. That is why you exist in this pipeline.
 
 ## Inputs
 You will be given paths to three files per video:
@@ -10,19 +20,49 @@ You will be given paths to three files per video:
 
 ## Process
 
-### Step 1 — Read and understand inputs
-- Read `en.srt` fully — it shows WHAT is said and WHEN (50-80KB, fits in ~2 reads)
+### Step 1 — Read inputs
+- Read `en.srt` fully (50-80KB, fits in ~2 reads)
 - Read `transcript_uk.txt` — the Ukrainian text you'll be placing as subtitles
-- Do NOT read `whisper.json` into the conversation — it is 300-600KB and wastes context.
-  Your build script will load it directly via `json.load()`.
+- Read `whisper.json` in portions — segments in batches of 50
+  (The file is 300-600KB. Read first 50 segments, then next 50, etc.)
+  You NEED the word-level timestamps to time each subtitle correctly.
 
-### Step 2 — Create subtitles in chunks
+### Step 2 — Build subtitles chunk by chunk
+
 Process the talk in ~5-minute time chunks. For each chunk:
-1. Identify the English subtitles in this time range
-2. Find the corresponding Ukrainian text (match EN→UK by meaning and order)
-3. Create Ukrainian SRT blocks timed to when the English equivalent is spoken
-4. Use whisper word timestamps for precise timing (where a sentence starts/ends within a segment)
-5. Write the chunk to the output SRT file using bash cat with heredoc:
+
+1. **Look at EN subtitles** in this time range — they tell you WHAT is said and WHEN
+2. **Look at whisper word timestamps** for this range — they tell you the EXACT moment
+   each word starts and ends (more precise than EN SRT boundaries)
+3. **Find the corresponding Ukrainian text** — match by meaning and order
+4. **Craft each UK subtitle block:**
+   - Start time = when the corresponding English speech BEGINS (from whisper word timestamps)
+   - End time = when the speech ENDS, or extend into silence if UK text is longer
+   - Text = a natural, readable piece of the Ukrainian translation (max 42 chars)
+   - If one EN block maps to multiple UK blocks, split at natural phrase boundaries
+     and distribute time based on where each phrase is actually spoken
+5. **Write the chunk** via bash cat heredoc (see format below)
+
+**The key principle: each UK subtitle must appear on screen when the viewer
+hears the corresponding words in the original speech. Not before, not after.
+Use whisper word timestamps to achieve this precision.**
+
+### How to time a subtitle block
+
+For each piece of Ukrainian text, find the corresponding English words, then:
+1. Find those words in whisper.json → get their start/end timestamps
+2. UK block start = first corresponding whisper word start time
+3. UK block end = last corresponding whisper word end time
+4. If UK text is longer and CPS would exceed 15, extend end into silence (up to 2s after speech)
+5. Ensure min 80ms gap to the next block
+
+Example: EN block says "Today we have gathered here to do Shri Ganesha Puja."
+Whisper shows: "Today" starts 00:01:21.109, "Puja" ends 00:01:28.832.
+You split UK into two blocks:
+- "Сьогодні ми зібралися тут," → 00:01:21,109 --> 00:01:24,500 (where "here" ends in whisper)
+- "щоб провести Пуджу Шрі Ґанеші." → 00:01:24,580 --> 00:01:28,832
+
+### Output format
 
 ```bash
 # First chunk — create file
@@ -71,13 +111,6 @@ After all chunks are written, run the validation script (command will be provide
 
 **IMPORTANT: Once validation passes with zero failures, STOP. Do not rebuild for marginal improvements.**
 
-## Timing rules
-- Use EN subtitle start/end times as the primary reference for WHEN speech occurs
-- Use whisper word timestamps to refine timing within sentences (precise start/end of phrases)
-- When the Ukrainian text is longer than English, extend the subtitle into silence AFTER speech
-- Never start a subtitle before the corresponding speech begins
-- Keep subtitle on screen at least 1.2s even for short phrases
-
 ## Readability rules
 - **CPS** (characters per second): target ≤15, hard maximum ≤20
 - **CPL** (characters per line): max 42
@@ -94,7 +127,7 @@ When a Ukrainian sentence is too long for one subtitle block (would exceed CPS o
 2. Then at clause boundaries (comma, em-dash, semicolon)
 3. Then at conjunction boundaries (що, який, і, та, але, бо, коли, де, як, або, якщо)
 4. Then at preposition boundaries (в, у, на, з, від, до, для, без, через, після)
-5. Each resulting block gets a proportional share of the original time range
+5. Time each resulting block to when its corresponding words are actually spoken (from whisper)
 
 ## Language rules
 - **Shri Mataji pronouns**: always uppercase (Я/Мені/Мій/Моя/Вона/Її/Їй)
@@ -110,4 +143,5 @@ When a Ukrainian sentence is too long for one subtitle block (would exceed CPS o
 - Timecodes must be sequential and non-overlapping
 - SRT blocks must be numbered sequentially starting from 1
 - Maintain continuity between chunks (remember last block number and timecode for next chunk)
+- **NEVER write a script** — you craft each block yourself
 - Do not use TodoWrite — this runs in CI, no one sees progress updates
