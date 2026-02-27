@@ -4,18 +4,10 @@
   SRT: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja-Talk/final/uk.srt
   Transcript: talks/1993-09-19_Ganesha-Puja-Cabella/transcript_uk.txt
   Whisper: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja-Talk/source/whisper.json
-  SRT blocks: 382
+  SRT blocks: 559
   Whisper segments: 229
-
-============================================================
-  CHECK 1: Text preservation
-============================================================
-  Transcript chars: 22493
-  SRT chars: 22493
-  Exact normalized match: OK
-  Transcript words: 3611
-  SRT words: 3611
-  Word-level match: OK
+  (text preservation check skipped — offset video)
+  (time range check skipped — offset video)
 
 ============================================================
   CHECK 2: Timing overlaps
@@ -23,45 +15,38 @@
   Overlapping blocks: 0
 
 ============================================================
-  CHECK 3: Time range (vs whisper)
-============================================================
-  Whisper range: 00:00:04,000 — 00:45:27,220
-  SRT range:     00:00:04,359 — 00:45:29,169
-  Time range: OK
-
-============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 382
+  Total blocks: 559
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 382
-  CPS: avg=9.1, median=8.8, max=22.5
-  CPS > target: 10 (2.6%)
-  CPS > hard max: 1 (0.3%)
-  CPL: avg=57.9, max=84
+  Total blocks: 559
+  CPS: avg=9.2, median=8.3, max=22.7
+  CPS > target: 86 (15.4%)
+  CPS > hard max: 10 (1.8%)
+  CPL: avg=39.2, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
-  Duration < min: 0
+  Duration < min: 2
   Duration > max: 0
   Overlaps: 0
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #382: CPS=22.5 (27ch/1.2s) "Нехай Бог благословить вас."
-    #336: CPS=19.7 (55ch/2.8s) "Іноді навіть набагато більше. Що тут такого особливого?"
-    #332: CPS=18.3 (43ch/2.3s) "Тепер просто подумайте про таку просту річ."
-    #334: CPS=17.7 (46ch/2.6s) "у Мене щонайменше п'ять-шість тисяч людей. Як?"
-    #333: CPS=17.7 (73ch/4.1s) "Я — індійка, і ніхто Мене не знає, але коли б Я не проводила..."
-    #335: CPS=17.7 (73ch/4.1s) "Як вони приходять на Мою лекцію ось так? Будь-де у всьому св..."
-    #305: CPS=16.0 (42ch/2.6s) "доки ви не поширите цю невинність навколо."
-    #373: CPS=15.7 (57ch/3.6s) "Але це має робитися не через зусилля, а через невинність."
-    #102: CPS=15.4 (42ch/2.7s) "Це така велика річ. Це таке благословення."
-    #288: CPS=15.2 (34ch/2.2s) "покупці й продавці, нічого більше."
+    #524: CPS=22.7 (21ch/0.9s) "Вони сказали: «Добре,"
+    #523: CPS=22.2 (81ch/3.6s) "з ними розмовляла, що вони сказали: «Ми побачили, як їхні об..."
+    #521: CPS=21.2 (30ch/1.4s) "Тож у вас немає грошей». «Ні»."
+    #516: CPS=21.0 (35ch/1.7s) "Тож мафія стояла надворі й сказала:"
+    #519: CPS=21.0 (41ch/2.0s) "Чим ви займаєтесь?» Це була його дружина."
+    #515: CPS=21.0 (45ch/2.1s) "Зараз, Я думаю, сицилійці вже добралися туди."
+    #518: CPS=20.8 (46ch/2.2s) "Тож вони сказали: «У нас немає грошей». «Чому?"
+    #517: CPS=20.6 (51ch/2.5s) "«ви маєте заплатити нам стільки-то грошей». Тисячі!"
+    #522: CPS=20.6 (51ch/2.5s) "«А ті діти?» «Вони теж медитують». Так невинно вона"
+    #520: CPS=20.4 (39ch/1.9s) "Вона сказала: «Ми медитуємо». «Справді?"
 
 ============================================================
   SUMMARY
@@ -71,11 +56,11 @@
   [PASS] Time range
   [PASS] Sequential numbering
 
-  Avg CPS: 9.1 (target ≤15.0)
-  CPS > 15.0: 10 blocks
-  CPS > 20.0: 1 blocks
+  Avg CPS: 9.2 (target ≤15.0)
+  CPS > 15.0: 86 blocks
+  CPS > 20.0: 10 blocks
   CPL > 84: 0 blocks
-  Duration < 1200ms: 0 blocks
+  Duration < 1200ms: 2 blocks
   Duration > 15000ms: 0 blocks
   Gaps < 80ms: 0 blocks
 
