@@ -4,14 +4,14 @@
   SRT: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja-Talk/final/uk.srt
   Transcript: talks/1993-09-19_Ganesha-Puja-Cabella/transcript_uk.txt
   Whisper: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja-Talk/source/whisper.json
-  SRT blocks: 780
+  SRT blocks: 698
   Whisper segments: 229
 
 ============================================================
   CHECK 1: Text preservation
 ============================================================
-  Transcript chars: 22495
-  SRT chars: 22495
+  Transcript chars: 22493
+  SRT chars: 22493
   Exact normalized match: OK
   Transcript words: 3611
   SRT words: 3611
@@ -26,23 +26,23 @@
   CHECK 3: Time range (vs whisper)
 ============================================================
   Whisper range: 00:00:04,000 — 00:45:27,220
-  SRT range:     00:00:04,000 — 00:45:28,053
+  SRT range:     00:00:04,508 — 00:45:27,156
   Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 780
+  Total blocks: 698
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 780
-  CPS: avg=9.4, median=9.0, max=19.9
-  CPS > target: 59 (7.6%)
+  Total blocks: 698
+  CPS: avg=8.7, median=8.8, max=15.0
+  CPS > target: 0 (0.0%)
   CPS > hard max: 0 (0.0%)
-  CPL: avg=27.8, max=42
+  CPL: avg=31.2, max=42
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
@@ -52,16 +52,16 @@
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #177: CPS=19.9 (29ch/1.5s) "Якщо щось з ними трапляється,"
-    #702: CPS=19.8 (33ch/1.7s) "Наприклад, Я була рада дізнатися,"
-    #687: CPS=19.6 (29ch/1.5s) "Іноді навіть набагато більше."
-    #274: CPS=19.2 (23ch/1.2s) "Тож існує великий напад"
-    #434: CPS=19.2 (23ch/1.2s) "Бог створив його таким,"
-    #724: CPS=19.1 (31ch/1.6s) "на завод купувати нову машину»."
-    #446: CPS=19.0 (40ch/2.1s) "Потім починають приходити нижчі тварини."
-    #559: CPS=18.9 (25ch/1.3s) "Одна пара — це нормально."
-    #419: CPS=18.9 (37ch/2.0s) "Там дуже чисто, бездоганно, весь час."
-    #548: CPS=18.7 (38ch/2.0s) "і це головний біль купити їм навіть ще"
+    #496: CPS=15.0 (34ch/2.3s) "Візьміть західну дитину на базар —"
+    #513: CPS=14.5 (28ch/1.9s) "дрібничку і прийдуть додому."
+    #498: CPS=14.5 (31ch/2.1s) "Але візьміть індійських дітей —"
+    #500: CPS=14.5 (21ch/1.4s) "Так важко їх змусити."
+    #510: CPS=14.5 (32ch/2.2s) "взуття». «Нічого. Одна пара — це"
+    #512: CPS=14.5 (35ch/2.4s) "грошей — вони куплять одну маленьку"
+    #511: CPS=14.5 (37ch/2.5s) "нормально. Навіщо мати дві?» Дайте їм"
+    #502: CPS=14.5 (38ch/2.6s) "Я бачила Моїх власних онуків та інших."
+    #504: CPS=14.5 (38ch/2.6s) "і це головний біль купити їм навіть ще"
+    #499: CPS=14.5 (40ch/2.8s) "вони ніколи нічого не візьмуть. Справді."
 
 ============================================================
   SUMMARY
@@ -71,8 +71,8 @@
   [PASS] Time range
   [PASS] Sequential numbering
 
-  Avg CPS: 9.4 (target ≤15.0)
-  CPS > 15.0: 59 blocks
+  Avg CPS: 8.7 (target ≤15.0)
+  CPS > 15.0: 0 blocks
   CPS > 20.0: 0 blocks
   CPL > 42: 0 blocks
   Duration < 1200ms: 0 blocks

@@ -4,14 +4,14 @@
   SRT: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/final/uk.srt
   Transcript: talks/1993-09-19_Ganesha-Puja-Cabella/transcript_uk.txt
   Whisper: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/source/whisper.json
-  SRT blocks: 711
+  SRT blocks: 698
   Whisper segments: 424
 
 ============================================================
   CHECK 1: Text preservation
 ============================================================
-  Transcript chars: 22495
-  SRT chars: 22495
+  Transcript chars: 22493
+  SRT chars: 22493
   Exact normalized match: OK
   Transcript words: 3611
   SRT words: 3611
@@ -32,36 +32,36 @@
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 711
+  Total blocks: 698
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 711
-  CPS: avg=8.6, median=8.3, max=14.8
+  Total blocks: 698
+  CPS: avg=8.7, median=8.8, max=15.0
   CPS > target: 0 (0.0%)
   CPS > hard max: 0 (0.0%)
-  CPL: avg=30.6, max=42
+  CPL: avg=31.2, max=42
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
   Duration < min: 0
   Duration > max: 0
   Overlaps: 0
-  Gaps < min: 1
+  Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #501: CPS=14.8 (38ch/2.6s) "Я бачила Моїх власних онуків та інших."
-    #505: CPS=14.8 (39ch/2.6s) "Навіщо ви хочете купувати ще?» «О бабу!"
-    #508: CPS=14.8 (39ch/2.6s) "«Ми можемо приїхати на машині або дійти"
-    #496: CPS=14.8 (34ch/2.3s) "Візьміть західну дитину на базар —"
-    #507: CPS=14.8 (34ch/2.3s) "«Ні, ми можемо прийти сюди». «Як?»"
-    #510: CPS=14.8 (34ch/2.3s) "«Нічого. Одна пара — це нормально."
-    #499: CPS=14.8 (40ch/2.7s) "вони ніколи нічого не візьмуть. Справді."
-    #500: CPS=14.8 (32ch/2.2s) "Так важко їх змусити. Принаймні,"
-    #504: CPS=14.8 (40ch/2.7s) "одну пару взуття: «Ні, але в нас є одна."
-    #509: CPS=14.8 (35ch/2.4s) "пішки». «Але ви будете без взуття»."
+    #496: CPS=15.0 (34ch/2.3s) "Візьміть західну дитину на базар —"
+    #513: CPS=14.5 (28ch/1.9s) "дрібничку і прийдуть додому."
+    #498: CPS=14.5 (31ch/2.1s) "Але візьміть індійських дітей —"
+    #500: CPS=14.5 (21ch/1.4s) "Так важко їх змусити."
+    #510: CPS=14.5 (32ch/2.2s) "взуття». «Нічого. Одна пара — це"
+    #512: CPS=14.5 (35ch/2.4s) "грошей — вони куплять одну маленьку"
+    #511: CPS=14.5 (37ch/2.5s) "нормально. Навіщо мати дві?» Дайте їм"
+    #502: CPS=14.5 (38ch/2.6s) "Я бачила Моїх власних онуків та інших."
+    #504: CPS=14.5 (38ch/2.6s) "і це головний біль купити їм навіть ще"
+    #499: CPS=14.5 (40ch/2.8s) "вони ніколи нічого не візьмуть. Справді."
 
 ============================================================
   SUMMARY
@@ -71,12 +71,12 @@
   [PASS] Time range
   [PASS] Sequential numbering
 
-  Avg CPS: 8.6 (target ≤15.0)
+  Avg CPS: 8.7 (target ≤15.0)
   CPS > 15.0: 0 blocks
   CPS > 20.0: 0 blocks
   CPL > 42: 0 blocks
   Duration < 1200ms: 0 blocks
   Duration > 7000ms: 0 blocks
-  Gaps < 80ms: 1 blocks
+  Gaps < 80ms: 0 blocks
 
   Overall: PASSED
