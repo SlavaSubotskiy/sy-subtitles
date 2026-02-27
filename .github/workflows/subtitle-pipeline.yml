@@ -275,7 +275,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.discover.result == 'success' &&
-      needs.translate-and-review.result == 'success' &&
+      (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'skipped') &&
       (needs.whisper.result == 'success' || needs.whisper.result == 'skipped')
     environment: main
     strategy:
@@ -462,7 +462,7 @@ jobs:
       always() &&
       !cancelled() &&
       (needs.build-subtitles.result == 'success' || needs.build-subtitles.result == 'skipped') &&
-      needs.translate-and-review.result == 'success'
+      (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
