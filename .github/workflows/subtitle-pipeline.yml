@@ -511,24 +511,20 @@ jobs:
           done
 
           # Place subtitle artifacts (per-talk, contains all videos)
+          # Artifact structure: subtitles__TALK/VIDEO/final/{uk.srt,report.txt}
+          # (upload-artifact strips LCA = talks/TALK/)
           for dir in subtitles__*/; do
             [ -d "$dir" ] || continue
             name="${dir%/}"
             talk_id="${name#subtitles__}"
             echo "Processing subtitles: $talk_id"
 
-            # upload-artifact preserves paths from repo root (talks/TALK/VIDEO/final/*)
-            # Find files and copy to the correct location
             find "$dir" \( -name "uk.srt" -o -name "report.txt" \) | while read src; do
-              # Extract path starting from the video slug (after talks/TALK_ID/)
-              # src example: subtitles__TALK/talks/TALK/VIDEO/final/uk.srt
-              # We need: talks/TALK/VIDEO/final/uk.srt
-              dest=$(echo "$src" | grep -o "talks/.*")
-              if [ -n "$dest" ]; then
-                mkdir -p "$(dirname "$dest")"
-                cp "$src" "$dest"
-                echo "  -> $dest"
-              fi
+              rel="${src#$dir/}"
+              dest="talks/$talk_id/$rel"
+              mkdir -p "$(dirname "$dest")"
+              cp "$src" "$dest"
+              echo "  -> $dest"
             done
           done
 
