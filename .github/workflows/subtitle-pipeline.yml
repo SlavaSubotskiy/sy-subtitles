@@ -392,16 +392,17 @@ jobs:
                   Build Ukrainian subtitles for the first video.
                   INPUT FILES:
                   - Ukrainian text: talks/${{ matrix.talk_id }}/transcript_uk.txt
-                  - English subtitles: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/en.srt
-                  - Whisper data: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json
+                  - EN_SRT: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/en.srt
+                  - WHISPER_JSON: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json
                   OUTPUT: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt
                   Create output dir first: mkdir -p "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final"
 
+                  TIMING TOOL: Use `python -m tools.builder_data` to query EN blocks with
+                  whisper word timestamps (already in SRT format). See the template for commands.
+                  Replace EN_SRT and WHISPER_JSON in the commands with the actual paths above.
+
                   CRITICAL WHISPER BOUNDARY: The EN SRT ends at {EN_END_TIME}.
-                  The whisper.json may cover a much longer recording (e.g., 2h puja).
-                  You MUST ONLY use whisper segments within the EN SRT time range.
                   Your UK SRT MUST NOT extend beyond {EN_END_TIME}.
-                  IGNORE all whisper segments after this time.
 
                   Process in ~5-minute chunks. After all chunks, validate:
                   python -m tools.validate_subtitles \

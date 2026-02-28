@@ -32,47 +32,50 @@ reading the precise word timestamps, and making intelligent decisions.
 ## Inputs
 
 1. **transcript_uk.txt** — Ukrainian translation (one paragraph per line, sentences separated by `.` `!` `?`)
-2. **en.srt** — English subtitles (timing reference)
-3. **whisper.json** — word-level timestamps (large file, read in portions)
+2. **EN_SRT** — English subtitles (path provided in prompt)
+3. **WHISPER_JSON** — word-level timestamps (path provided in prompt)
 
-### whisper.json format
+### Querying EN blocks with whisper timestamps
 
-```json
-{
-  "segments": [
-    {
-      "id": 0, "start": 4.0, "end": 10.5,
-      "text": "Today we have gathered here",
-      "words": [
-        {"word": "Today", "start": 4.0, "end": 4.3},
-        {"word": "we", "start": 4.35, "end": 4.5},
-        {"word": "have", "start": 4.55, "end": 4.7},
-        {"word": "gathered", "start": 4.75, "end": 5.2},
-        {"word": "here", "start": 5.25, "end": 5.6}
-      ]
-    }
-  ]
-}
+Use the `builder_data` tool to query EN blocks with whisper word timestamps.
+All timestamps are already in SRT format (`HH:MM:SS,mmm`) — copy directly.
+
+```bash
+# Overview — block count, time range
+python -m tools.builder_data info --en-srt EN_SRT --whisper-json WHISPER_JSON
+
+# Query blocks in range (use before each chunk)
+python -m tools.builder_data query --en-srt EN_SRT --whisper-json WHISPER_JSON --from 1 --to 50
+
+# Search by English text
+python -m tools.builder_data search --en-srt EN_SRT --whisper-json WHISPER_JSON --text "Shri Ganesha"
 ```
 
-Timestamps are in **seconds** (float). Convert to SRT format: `4.0` → `00:00:04,000`.
+Output format:
+```
+=== #1 ===
+Text: Today we have gathered here to do the Puja of Shri Ganesha.
+Timing: 00:01:20,100 → 00:01:23,800
+Words: Today 00:01:20,100 | we 00:01:20,450 | have 00:01:20,650 | gathered 00:01:20,850 | ...
+```
+
+- **Timing** line = speech start → speech end (from whisper word timestamps)
+- **Words** line = per-word start times (use for splitting long blocks)
 
 ## Process
 
-### Step 1 — Read inputs
-- Read `en.srt` fully (50-80KB, fits in ~2 reads)
+### Step 1 — Read inputs and get overview
 - Read `transcript_uk.txt` — the text you'll be placing as subtitles
-- Read `whisper.json` in portions using `python3 -c` to print segment summaries:
-  print each segment's id, start, end, word count, and text (first 80 chars)
+- Run `builder_data info` to get block count, time range, and talk boundary:
+  ```bash
+  python -m tools.builder_data info --en-srt EN_SRT --whisper-json WHISPER_JSON
+  ```
+- Note the EN SRT end time — your UK SRT must NOT extend beyond it
 
-**CRITICAL — Determine talk boundary from EN SRT:**
+**CRITICAL — Talk boundary:**
 The whisper.json may cover a much longer recording than the actual talk (e.g., a 2-hour
-puja ceremony where the talk is only 46 minutes). You MUST use the EN SRT time range
-as the boundary for your work:
-- Note the **last EN SRT block's end time** — this is where the talk ends
-- **ONLY use whisper segments** that fall within the EN SRT time range
-- Do NOT spread Ukrainian text into whisper segments beyond the last EN block
-- Your UK SRT should span approximately the same time range as the EN SRT
+puja ceremony where the talk is only 46 minutes). The `builder_data` tool automatically
+limits to EN SRT block range — but your UK SRT must NOT extend beyond the last EN block.
 
 ### Step 2 — Split Ukrainian text into sentences
 
@@ -87,28 +90,38 @@ one subtitle block. If >84 chars, you split it further (see splitting rules).
 Work through the talk in **~5-minute time chunks** for output, but your mental
 unit is always **one Ukrainian sentence at a time**.
 
+#### Before each chunk — query builder_data
+
+Before building each ~50-block chunk, query the relevant EN blocks:
+```bash
+python -m tools.builder_data query --en-srt EN_SRT --whisper-json WHISPER_JSON --from N --to M
+```
+This gives you EN text + whisper-based timing for each block, already in SRT format.
+
+If you need to find which EN blocks correspond to a Ukrainian phrase, use:
+```bash
+python -m tools.builder_data search --en-srt EN_SRT --whisper-json WHISPER_JSON --text "some english phrase"
+```
+
 #### Algorithm for each sentence:
 
-1. **Find the corresponding English text** — read en.srt blocks that carry
-   the same meaning as this Ukrainian sentence
-2. **Look up whisper word timestamps** for those English words:
-   - Find the segment(s) containing these English words
-   - Read the `words[]` array to get per-word `start` and `end` times
-   - **STOP** if you reach whisper segments beyond the last EN SRT block's end time
-3. **Set timing from whisper words:**
-   - Block **start** = `start` of the first corresponding English word
-   - Block **end** = `end` of the last corresponding English word
-4. **Check length:**
-   - If ≤84 chars → one block with the timing from step 3
+1. **Find the corresponding EN blocks** — from the `builder_data query` output,
+   identify which EN blocks carry the same meaning as this Ukrainian sentence
+2. **Use the Timing line** from builder_data output:
+   - Block **start** = start time from the first corresponding EN block's `Timing`
+   - Block **end** = end time from the last corresponding EN block's `Timing`
+   - For splitting: use the **Words** line to find per-word start times
+3. **Check length:**
+   - If ≤84 chars → one block with the timing from step 2
    - If >84 chars → **split** into pieces (see splitting rules), each piece
-     gets timing from the whisper words that correspond to its English portion
-5. **Check CPS** (chars ÷ duration):
+     gets timing from the Words line corresponding to its English portion
+4. **Check CPS** (chars ÷ duration):
    - If CPS >15 → extend `end` into silence (up to next block start − 80ms)
    - If CPS still >15 → shift neighboring blocks (see time shifting below)
    - If CPS >20 → must split the block further
-6. **Check duration:**
+5. **Check duration:**
    - If <1.2s → extend `end` into silence
-7. **Write the block(s)** to output via bash `cat` heredoc
+6. **Write the block(s)** to output via bash `cat` heredoc
 
 After processing ~50 EN SRT blocks worth of sentences, write that chunk.
 Then continue with the next chunk.
@@ -121,14 +134,16 @@ Overlaps between chunks are a common mistake — always check!
 #### Concrete example
 
 Ukrainian sentence: `Сьогодні ми зібралися тут, щоб провести Пуджу Шрі Ґанеші.`
-Corresponding EN: "Today we have gathered here to do the Puja of Shri Ganesha."
 
-Whisper words:
-- "Today" 80.1-80.4, "we" 80.45-80.6, "have" 80.65-80.8, "gathered" 80.85-81.3,
-  "here" 81.35-81.6, "to" 81.65-81.8, "do" 81.85-82.0, "the" 82.05-82.2,
-  "Puja" 82.25-82.6, "of" 82.65-82.8, "Shri" 82.85-83.2, "Ganesha" 83.25-83.8
+builder_data output for the corresponding EN block:
+```
+=== #1 ===
+Text: Today we have gathered here to do the Puja of Shri Ganesha.
+Timing: 00:01:20,100 → 00:01:23,800
+Words: Today 00:01:20,100 | we 00:01:20,450 | have 00:01:20,650 | ... | Ganesha 00:01:23,250
+```
 
-→ Block start: 80.1 (first word "Today"), end: 83.8 (last word "Ganesha")
+→ Use the **Timing** line directly: start `00:01:20,100`, end `00:01:23,800`
 → Text: 57 chars, duration: 3.7s → CPS = 15.4 → OK (under hard max 20)
 
 Result:
@@ -138,8 +153,8 @@ Result:
 Сьогодні ми зібралися тут, щоб провести Пуджу Шрі Ґанеші.
 ```
 
-If the sentence were 90 chars, you'd split at a comma and look up which
-English words correspond to each half to set per-piece timing.
+If the sentence were 90 chars, you'd split at a comma and use the **Words** line
+to find the start time for each piece's corresponding English word.
 
 #### Time shifting for fast speech
 
