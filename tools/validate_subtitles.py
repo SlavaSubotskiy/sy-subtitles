@@ -280,6 +280,10 @@ def validate(
         ("No overlaps", overlap_ok),
         ("Time range", time_ok),
         ("Sequential numbering", numbering_ok),
+        (f"CPL ≤ {config.max_cpl}", stats["cpl_over_max"] == 0),
+        (f"CPS ≤ {config.hard_max_cps}", stats["cps_over_hard"] == 0),
+        (f"Duration ≥ {config.min_duration_ms}ms", stats["duration_under_min"] == 0),
+        (f"Duration ≤ {config.max_duration_ms}ms", stats["duration_over_max"] == 0),
     ]
     all_passed = True
     for name, passed in checks:
@@ -288,7 +292,7 @@ def validate(
         if not passed:
             all_passed = False
 
-    # Quality metrics (informational, not pass/fail)
+    # Quality metrics (informational)
     report.append("")
     report.append(f"  Avg CPS: {stats['avg_cps']:.1f} (target ≤{config.target_cps})")
     report.append(f"  CPS > {config.target_cps}: {stats['cps_over_target']} blocks")
