@@ -4,7 +4,7 @@
   SRT: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/final/uk.srt
   Transcript: talks/1993-09-19_Ganesha-Puja-Cabella/transcript_uk.txt
   Whisper: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/source/whisper.json
-  SRT blocks: 559
+  SRT blocks: 321
   Whisper segments: 424
 
 ============================================================
@@ -26,42 +26,42 @@
   CHECK 3: Time range (vs whisper)
 ============================================================
   Whisper range: 00:01:20,960 — 02:00:04,960
-  SRT range:     00:01:21,109 — 00:46:41,386
+  SRT range:     00:01:21,109 — 00:46:43,757
   Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 559
+  Total blocks: 321
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 559
-  CPS: avg=9.2, median=8.3, max=22.7
-  CPS > target: 86 (15.4%)
-  CPS > hard max: 10 (1.8%)
-  CPL: avg=39.2, max=84
-  CPL > max: 0 (0.0%)
-  Chars > max block: 0 (0.0%)
+  Total blocks: 321
+  CPS: avg=8.7, median=8.3, max=15.8
+  CPS > target: 2 (0.6%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=69.1, max=241
+  CPL > max: 90 (28.0%)
+  Chars > max block: 90 (28.0%)
   Lines > max: 0
-  Duration < min: 2
-  Duration > max: 0
+  Duration < min: 3
+  Duration > max: 28
   Overlaps: 0
-  Gaps < min: 0
+  Gaps < min: 155
 
   Worst CPS blocks (top 10):
-    #524: CPS=22.7 (21ch/0.9s) "Вони сказали: «Добре,"
-    #523: CPS=22.2 (81ch/3.6s) "з ними розмовляла, що вони сказали: «Ми побачили, як їхні об..."
-    #521: CPS=21.2 (30ch/1.4s) "Тож у вас немає грошей». «Ні»."
-    #516: CPS=21.0 (35ch/1.7s) "Тож мафія стояла надворі й сказала:"
-    #519: CPS=21.0 (41ch/2.0s) "Чим ви займаєтесь?» Це була його дружина."
-    #515: CPS=21.0 (45ch/2.1s) "Зараз, Я думаю, сицилійці вже добралися туди."
-    #518: CPS=20.8 (46ch/2.2s) "Тож вони сказали: «У нас немає грошей». «Чому?"
-    #517: CPS=20.6 (51ch/2.5s) "«ви маєте заплатити нам стільки-то грошей». Тисячі!"
-    #522: CPS=20.6 (51ch/2.5s) "«А ті діти?» «Вони теж медитують». Так невинно вона"
-    #520: CPS=20.4 (39ch/1.9s) "Вона сказала: «Ми медитуємо». «Справді?"
+    #154: CPS=15.8 (23ch/1.5s) "Справді. Це дуже дивно."
+    #86: CPS=15.4 (24ch/1.6s) "Ви знаєте, де ви стоїте."
+    #5: CPS=14.9 (79ch/5.3s) "Вони коливаються з певною частотою. Є три типи частот, які в..."
+    #4: CPS=14.9 (189ch/12.7s) "Якщо ви заглибитесь у матерію, скажімо, діоксид сірки, потім..."
+    #223: CPS=14.3 (36ch/2.5s) "«Але ви будете без взуття». «Нічого."
+    #84: CPS=13.4 (39ch/2.9s) "Всі справжні художники завжди боролися."
+    #158: CPS=13.1 (37ch/2.8s) "Там дуже чисто, бездоганно, весь час."
+    #177: CPS=12.9 (37ch/2.9s) "Як вони це роблять? Подумайте про це."
+    #203: CPS=12.7 (19ch/1.5s) "Не їстиме свою їжу."
+    #145: CPS=12.5 (35ch/2.8s) "Я сказала: «Що це? Це ашрам чи що?»"
 
 ============================================================
   SUMMARY
@@ -71,12 +71,12 @@
   [PASS] Time range
   [PASS] Sequential numbering
 
-  Avg CPS: 9.2 (target ≤15.0)
-  CPS > 15.0: 86 blocks
-  CPS > 20.0: 10 blocks
-  CPL > 84: 0 blocks
-  Duration < 1200ms: 2 blocks
-  Duration > 15000ms: 0 blocks
-  Gaps < 80ms: 0 blocks
+  Avg CPS: 8.7 (target ≤15.0)
+  CPS > 15.0: 2 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 90 blocks
+  Duration < 1200ms: 3 blocks
+  Duration > 15000ms: 28 blocks
+  Gaps < 80ms: 155 blocks
 
   Overall: PASSED
