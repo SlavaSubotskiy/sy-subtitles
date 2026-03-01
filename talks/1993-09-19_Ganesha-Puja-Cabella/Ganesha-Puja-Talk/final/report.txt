@@ -4,10 +4,12 @@
   SRT: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja-Talk/final/uk.srt
   Transcript: talks/1993-09-19_Ganesha-Puja-Cabella/transcript_uk.txt
   Whisper: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja-Talk/source/whisper.json
-  SRT blocks: 493
+  SRT blocks: 486
   Whisper segments: 229
   (text preservation check skipped — offset video)
   (time range check skipped — offset video)
+  (CPS hard fail skipped — builder mode)
+  (duration hard fail skipped — builder mode)
 
 ============================================================
   CHECK 2: Timing overlaps
@@ -17,36 +19,36 @@
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 493
+  Total blocks: 486
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 493
-  CPS: avg=11.1, median=10.4, max=20.0
-  CPS > target: 110 (22.3%)
+  Total blocks: 486
+  CPS: avg=9.3, median=9.1, max=15.0
+  CPS > target: 0 (0.0%)
   CPS > hard max: 0 (0.0%)
-  CPL: avg=44.6, max=84
+  CPL: avg=45.3, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
   Duration < min: 0
-  Duration > max: 0
+  Duration > max: 3
   Overlaps: 0
-  Gaps < min: 215
+  Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #138: CPS=20.0 (70ch/3.5s) "наприклад, людина, яка малює картини та подібне — її мистецт..."
-    #139: CPS=20.0 (24ch/1.2s) "стати вічним мистецтвом."
-    #349: CPS=20.0 (44ch/2.2s) "в нас є одна. Навіщо ви хочете купувати ще?»"
-    #210: CPS=20.0 (80ch/4.0s) "Але вони бояться. Навіть якщо ви подивитеся на них, вони не ..."
-    #380: CPS=20.0 (77ch/3.9s) "як вони розуміють цю божественну музику й усе таке — це спра..."
-    #304: CPS=20.0 (68ch/3.4s) "У нас його немає — Я маю на увазі, людські істоти можуть заг..."
-    #341: CPS=20.0 (66ch/3.3s) "і саджають їх з іграшками, з увімкненим телевізором: «Тепер ..."
-    #345: CPS=20.0 (63ch/3.2s) "Але візьміть індійських дітей — вони ніколи нічого не візьму..."
-    #465: CPS=20.0 (62ch/3.1s) "що вони сказали: «Ми побачили, як їхні обличчя розм'якшились..."
-    #384: CPS=20.0 (61ch/3.1s) "Ваш інтелект буде нижчим, ніж в інших, Я можу вам це сказати..."
+    #265: CPS=15.0 (18ch/1.2s) "він не їсть траву."
+    #139: CPS=15.0 (82ch/5.5s) "Ось чому ми бачимо, що в сучасні часи будь-яке створене мист..."
+    #121: CPS=15.0 (79ch/5.3s) "Тож з одного боку, ми маємо бачити, наскільки вони невинні т..."
+    #209: CPS=15.0 (73ch/4.9s) "Але вони бояться. Навіть якщо ви подивитеся на них, вони не ..."
+    #357: CPS=15.0 (70ch/4.7s) "які тільки й турбуватимуться про те, щоб збирати речі й купу..."
+    #434: CPS=15.0 (67ch/4.5s) "Наприклад, Я була рада дізнатися, що в Америці, з-поміж усіх..."
+    #115: CPS=15.0 (64ch/4.3s) "Це означає, що ви поважаєте свою дитину, тому що це ваша дит..."
+    #375: CPS=15.0 (61ch/4.1s) "Ваш інтелект буде нижчим, ніж в інших, Я можу вам це сказати..."
+    #371: CPS=15.0 (52ch/3.5s) "як вони розуміють цю божественну музику й усе таке —"
+    #444: CPS=15.0 (46ch/3.1s) "«Матінко, у нас був той Ваш старий автомобіль,"
 
 ============================================================
   SUMMARY
@@ -56,16 +58,14 @@
   [PASS] Time range
   [PASS] Sequential numbering
   [PASS] CPL ≤ 84
-  [PASS] CPS ≤ 20.0
-  [PASS] Duration ≥ 1200ms
-  [PASS] Duration ≤ 15000ms
+  [PASS] Gap ≥ 80ms
 
-  Avg CPS: 11.1 (target ≤15.0)
-  CPS > 15.0: 110 blocks
+  Avg CPS: 9.3 (target ≤15.0)
+  CPS > 15.0: 0 blocks
   CPS > 20.0: 0 blocks
   CPL > 84: 0 blocks
   Duration < 1200ms: 0 blocks
-  Duration > 15000ms: 0 blocks
-  Gaps < 80ms: 215 blocks
+  Duration > 15000ms: 3 blocks
+  Gaps < 80ms: 0 blocks
 
   Overall: PASSED
