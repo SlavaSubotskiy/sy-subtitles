@@ -98,8 +98,8 @@ def apply_padding(blocks, config=None):
             padded_end = min(padded_end, original_end + max_pad_ms)
             # Cap at max duration
             padded_end = min(padded_end, max_end)
-            # Never shrink below original end
-            b["end_ms"] = max(padded_end, original_end)
+            # Never shrink below original end, but always cap at max duration
+            b["end_ms"] = min(max(padded_end, original_end), max_end)
         else:
             # Last block: modest extension, capped at max duration
             b["end_ms"] = min(original_end + last_block_pad_ms, max_end)
@@ -295,12 +295,14 @@ def balance_cps(blocks, config=None, threshold=None):
 
 
 def build_srt(mapping_path, output_path, report_path=None):
-    """Full pipeline: parse → duration → balance CPS → pad → gaps → write SRT.
+    """Full pipeline: parse → gaps(raw) → CPS → duration → CPS(soft) → pad → gaps → write SRT.
 
-    Duration enforcement runs FIRST (needs little space: 66-200ms).
-    CPS balancing runs SECOND (needs more space but can cascade further).
-    Both run on raw speech blocks where real silence gaps are available.
+    Gaps run FIRST on raw blocks to fix agent mapping overlaps.
+    CPS hard-max runs on clean blocks with real silence gaps.
+    Duration enforcement runs next — smaller deficits, cascade shifting.
+    CPS target pass — soft optimization with remaining gaps.
     Padding runs LAST, extending remaining silence for readability.
+    Final gaps pass cleans up any tight spots from padding.
     """
     config = OptimizeConfig()
 
@@ -314,12 +316,16 @@ def build_srt(mapping_path, output_path, report_path=None):
     print(f"  {total} blocks parsed")
     print(f"  Time range: {ms_to_time(blocks[0]['start_ms'])} → {ms_to_time(blocks[-1]['end_ms'])}")
 
-    # Phase 1: Fix timing issues using raw silence gaps
-    print("Enforcing minimum duration (≥1200ms)...")
-    blocks = enforce_duration(blocks, config)
+    # Phase 0: Fix raw mapping overlaps (agent errors)
+    print("Fixing raw overlaps...")
+    blocks = enforce_gaps(blocks, config)
 
+    # Phase 1: Fix timing issues using clean silence gaps
     print("Balancing CPS (hard max ≤20)...")
     blocks = balance_cps(blocks, config, threshold=config.hard_max_cps)
+
+    print("Enforcing minimum duration (≥1200ms)...")
+    blocks = enforce_duration(blocks, config)
 
     print("Balancing CPS (target ≤15)...")
     blocks = balance_cps(blocks, config, threshold=config.target_cps)
