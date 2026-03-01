@@ -229,6 +229,7 @@ def validate(
     report_path=None,
     skip_text_check=False,
     skip_time_check=False,
+    skip_cps_check=False,
 ):
     """Run all validation checks and write report.
 
@@ -258,6 +259,8 @@ def validate(
         report.append("  (text preservation check skipped — offset video)")
     if skip_time_check:
         report.append("  (time range check skipped — offset video)")
+    if skip_cps_check:
+        report.append("  (CPS hard fail skipped — builder mode)")
 
     # Run checks
     text_ok = True if skip_text_check else check_text_preservation(srt_blocks, transcript_path, report)
@@ -281,11 +284,12 @@ def validate(
         ("Time range", time_ok),
         ("Sequential numbering", numbering_ok),
         (f"CPL ≤ {config.max_cpl}", stats["cpl_over_max"] == 0),
-        (f"CPS ≤ {config.hard_max_cps}", stats["cps_over_hard"] == 0),
         (f"Duration ≥ {config.min_duration_ms}ms", stats["duration_under_min"] == 0),
         (f"Duration ≤ {config.max_duration_ms}ms", stats["duration_over_max"] == 0),
         (f"Gap ≥ {config.min_gap_ms}ms", stats["gap_under_min"] == 0),
     ]
+    if not skip_cps_check:
+        checks.append((f"CPS ≤ {config.hard_max_cps}", stats["cps_over_hard"] == 0))
     all_passed = True
     for name, passed in checks:
         status = "PASS" if passed else "FAIL"
@@ -330,6 +334,11 @@ def main():
         action="store_true",
         help="Skip time range check (for offset-applied videos that extend beyond whisper range)",
     )
+    parser.add_argument(
+        "--skip-cps-check",
+        action="store_true",
+        help="Skip CPS hard fail (for builder mode — CPS is handled by build_srt padding)",
+    )
     args = parser.parse_args()
 
     passed, report = validate(
@@ -339,6 +348,7 @@ def main():
         args.report,
         skip_text_check=args.skip_text_check,
         skip_time_check=args.skip_time_check,
+        skip_cps_check=args.skip_cps_check,
     )
     for line in report:
         print(line)

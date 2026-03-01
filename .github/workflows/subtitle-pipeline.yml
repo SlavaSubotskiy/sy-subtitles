@@ -404,9 +404,14 @@ jobs:
                   CRITICAL WHISPER BOUNDARY: The EN SRT ends at {EN_END_TIME}.
                   Your mapping MUST NOT extend beyond {EN_END_TIME}.
 
+                  CRITICAL TEXT RULE: COPY text EXACTLY from transcript_uk.txt. Do NOT
+                  translate, rephrase, or improve. Not a single word changed. Your ONLY
+                  job is splitting and timing. The text column must be a verbatim copy-paste.
+
                   Process in ~50-block chunks. Output mapping format:
                   block# | start_timecode | end_timecode | ukrainian_text
                   Do not use TodoWrite — this runs in CI.
+                  Do NOT write Python scripts to generate or fix the mapping.
             Replace FIRST_VIDEO_SLUG and {EN_END_TIME} with actual values.
 
             STEP 2 — Build SRT from mapping:
@@ -424,8 +429,11 @@ jobs:
                 --whisper-json "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json" \
                 --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/report.txt"
 
-            If validation fails on text mismatch or CPL/CPS issues — these are mapping problems.
-            Fix the mapping file (uk.map), re-run build_srt (STEP 2), and re-validate.
+            If validation fails on text mismatch or CPL — these are mapping problems.
+            Fix ONLY the specific blocks in uk.map by rewriting the whole file via cat heredoc,
+            then re-run build_srt (STEP 2) and re-validate.
+            NEVER write Python scripts to fix the mapping — fix manually block by block.
+            CPS and duration are handled by build_srt — do NOT try to fix them in the mapping.
 
             STEP 4 — Handle remaining videos:
             For each additional video in meta.yaml, detect offset:
