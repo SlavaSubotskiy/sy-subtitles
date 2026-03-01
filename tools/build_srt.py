@@ -149,7 +149,7 @@ def enforce_gaps(blocks, config=None):
 def enforce_duration(blocks, config=None):
     """Extend blocks shorter than min_duration if gap allows.
 
-    Reports unfixable issues.
+    Tries extending end first, then start (backwards). Reports unfixable issues.
     """
     if config is None:
         config = OptimizeConfig()
@@ -166,9 +166,23 @@ def enforce_duration(blocks, config=None):
                 available = result[i + 1]["start_ms"] - b["end_ms"] - config.min_gap_ms
                 extend = min(needed, max(0, available))
                 b["end_ms"] += extend
+                needed -= extend
             else:
                 # Last block — just extend
                 b["end_ms"] = b["start_ms"] + config.min_duration_ms
+                needed = 0
+
+            # Try extending start (backwards) if still short
+            if needed > 0 and i > 0:
+                available = b["start_ms"] - result[i - 1]["end_ms"] - config.min_gap_ms
+                extend = min(needed, max(0, available))
+                b["start_ms"] -= extend
+                needed -= extend
+            elif needed > 0 and i == 0:
+                # First block — extend start towards 0
+                extend = min(needed, b["start_ms"])
+                b["start_ms"] -= extend
+                needed -= extend
 
             new_duration = b["end_ms"] - b["start_ms"]
             if new_duration < config.min_duration_ms:
