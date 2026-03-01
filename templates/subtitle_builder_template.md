@@ -55,12 +55,12 @@ Output format:
 ```
 === #1 ===
 Text: Today we have gathered here to do the Puja of Shri Ganesha.
-Timing: 00:01:20,100 → 00:01:23,800
-Words: Today 00:01:20,100 | we 00:01:20,450 | have 00:01:20,650 | gathered 00:01:20,850 | ...
+Timing: 00:01:20,100 → 00:01:27,800
+Words: Today 00:01:20,100→00:01:20,400 | we 00:01:20,450→00:01:20,600 | ... | Ganesha. 00:01:23,250→00:01:23,800
 ```
 
-- **Timing** line = speech start → speech end (from whisper word timestamps)
-- **Words** line = per-word start times (use for splitting long blocks)
+- **Timing** line = recommended display range (start of speech → extended into silence for readability)
+- **Words** line = per-word `start→end` times (use END time when setting block boundaries)
 
 ## Process
 
@@ -107,16 +107,18 @@ python -m tools.builder_data search --en-srt EN_SRT --whisper-json WHISPER_JSON 
 
 1. **Find the corresponding EN blocks** — from the `builder_data query` output,
    identify which EN blocks carry the same meaning as this Ukrainian sentence
-2. **Use the Timing line** from builder_data output:
+2. **Use the Timing line directly** from builder_data output:
    - Block **start** = start time from the first corresponding EN block's `Timing`
    - Block **end** = end time from the last corresponding EN block's `Timing`
-   - For splitting: use the **Words** line to find per-word start times
+   - The Timing line already includes silence padding — use it as-is
+   - **NEVER use word START time as block end** — always use the word's END time (after →)
+   - For splitting: use the **Words** line `start→end` to set each piece's boundaries
 3. **Check length:**
    - If ≤84 chars → one block with the timing from step 2
    - If >84 chars → **split** into pieces (see splitting rules), each piece
-     gets timing from the Words line corresponding to its English portion
+     gets timing from the Words `end` time of its last corresponding English word
 4. **Check CPS** (chars ÷ duration):
-   - If CPS >15 → extend `end` into silence (up to next block start − 80ms)
+   - If CPS >15 → extend `end` further into silence (up to next block start − 80ms)
    - If CPS still >15 → shift neighboring blocks (see time shifting below)
    - If CPS >20 → must split the block further
 5. **Check duration:**
@@ -139,22 +141,23 @@ builder_data output for the corresponding EN block:
 ```
 === #1 ===
 Text: Today we have gathered here to do the Puja of Shri Ganesha.
-Timing: 00:01:20,100 → 00:01:23,800
-Words: Today 00:01:20,100 | we 00:01:20,450 | have 00:01:20,650 | ... | Ganesha 00:01:23,250
+Timing: 00:01:20,100 → 00:01:27,800
+Words: Today 00:01:20,100→00:01:20,400 | ... | Ganesha. 00:01:23,250→00:01:23,800
 ```
 
-→ Use the **Timing** line directly: start `00:01:20,100`, end `00:01:23,800`
-→ Text: 57 chars, duration: 3.7s → CPS = 15.4 → OK (under hard max 20)
+→ Use the **Timing** line directly: start `00:01:20,100`, end `00:01:27,800`
+→ The end includes silence padding (speech ends at 00:01:23,800, next speech at 00:01:27,880)
+→ Text: 57 chars, duration: 7.7s → CPS = 7.4 → Excellent readability
 
 Result:
 ```
 1
-00:01:20,100 --> 00:01:23,800
+00:01:20,100 --> 00:01:27,800
 Сьогодні ми зібралися тут, щоб провести Пуджу Шрі Ґанеші.
 ```
 
 If the sentence were 90 chars, you'd split at a comma and use the **Words** line
-to find the start time for each piece's corresponding English word.
+to find each piece's end time (the time AFTER → for the last word of each piece).
 
 #### Time shifting for fast speech
 
@@ -178,7 +181,7 @@ Split at the BEST point, in priority order:
    після, перед, між, під, над, за, при, про, по
 5. **Any word boundary** — near the middle, as last resort
 
-Each piece gets its own timing from whisper word timestamps.
+Each piece gets its own timing: start = word START (before →), end = word END (after →).
 
 ### Output format
 
