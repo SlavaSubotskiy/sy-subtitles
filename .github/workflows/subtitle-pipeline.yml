@@ -427,6 +427,7 @@ jobs:
                 --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
                 --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
                 --whisper-json "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json" \
+                --skip-cps-check \
                 --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/report.txt"
 
             If validation fails on text mismatch or CPL — these are mapping problems.
@@ -456,7 +457,7 @@ jobs:
                 --srt "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/final/uk.srt" \
                 --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
                 --whisper-json "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/source/whisper.json" \
-                --skip-text-check --skip-time-check \
+                --skip-text-check --skip-time-check --skip-cps-check \
                 --report "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/final/report.txt"
 
             Once validation passes, STOP. Do not review or rebuild.

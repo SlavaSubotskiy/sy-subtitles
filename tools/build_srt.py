@@ -74,7 +74,7 @@ def parse_mapping(filepath):
 def apply_padding(blocks, config=None):
     """Extend block end times into silence for readability.
 
-    For each block, extend end to: min(next_start - gap, end + 5000ms).
+    For each block, extend end to: min(next_start - gap, end + 5000ms, max_duration).
     Last block: extend up to +2000ms.
     """
     if config is None:
@@ -87,6 +87,8 @@ def apply_padding(blocks, config=None):
     for i, b in enumerate(blocks):
         b = dict(b)  # copy
         original_end = b["end_ms"]
+        # Cap so block doesn't exceed max duration
+        max_end = b["start_ms"] + config.max_duration_ms
 
         if i < len(blocks) - 1:
             next_start = blocks[i + 1]["start_ms"]
@@ -94,11 +96,13 @@ def apply_padding(blocks, config=None):
             padded_end = next_start - config.min_gap_ms
             # Cap at max padding
             padded_end = min(padded_end, original_end + max_pad_ms)
+            # Cap at max duration
+            padded_end = min(padded_end, max_end)
             # Never shrink below original end
             b["end_ms"] = max(padded_end, original_end)
         else:
-            # Last block: modest extension
-            b["end_ms"] = original_end + last_block_pad_ms
+            # Last block: modest extension, capped at max duration
+            b["end_ms"] = min(original_end + last_block_pad_ms, max_end)
 
         result.append(b)
 
@@ -293,7 +297,12 @@ def balance_cps(blocks, config=None, threshold=None):
 
 
 def build_srt(mapping_path, output_path, report_path=None):
-    """Full pipeline: parse mapping → pad → gaps → duration → balance CPS → write SRT."""
+    """Full pipeline: parse → balance CPS → duration → pad → gaps → write SRT.
+
+    CPS balancing and duration enforcement run FIRST on raw speech blocks,
+    where real silence gaps are available. Padding runs AFTER, extending
+    remaining silence for readability.
+    """
     config = OptimizeConfig()
 
     print(f"Parsing mapping: {mapping_path}")
@@ -306,21 +315,22 @@ def build_srt(mapping_path, output_path, report_path=None):
     print(f"  {total} blocks parsed")
     print(f"  Time range: {ms_to_time(blocks[0]['start_ms'])} → {ms_to_time(blocks[-1]['end_ms'])}")
 
-    # Pipeline
-    print("Applying padding...")
-    blocks = apply_padding(blocks, config)
-
-    print("Enforcing gaps (≥80ms)...")
-    blocks = enforce_gaps(blocks, config)
-
-    print("Enforcing minimum duration (≥1200ms)...")
-    blocks = enforce_duration(blocks, config)
-
+    # Phase 1: Fix timing issues using raw silence gaps
     print("Balancing CPS (hard max ≤20)...")
     blocks = balance_cps(blocks, config, threshold=config.hard_max_cps)
 
     print("Balancing CPS (target ≤15)...")
     blocks = balance_cps(blocks, config, threshold=config.target_cps)
+
+    print("Enforcing minimum duration (≥1200ms)...")
+    blocks = enforce_duration(blocks, config)
+
+    # Phase 2: Pad remaining silence for readability
+    print("Applying padding (capped at max duration)...")
+    blocks = apply_padding(blocks, config)
+
+    print("Enforcing gaps (≥80ms)...")
+    blocks = enforce_gaps(blocks, config)
 
     # Write SRT
     print(f"Writing SRT: {output_path}")
@@ -338,6 +348,7 @@ def build_srt(mapping_path, output_path, report_path=None):
         f"  CPS > {config.hard_max_cps}: {stats['cps_over_hard']}",
         f"  CPL > {config.max_cpl}: {stats['cpl_over_max']}",
         f"  Duration < {config.min_duration_ms}ms: {stats['duration_under_min']}",
+        f"  Duration > {config.max_duration_ms}ms: {stats['duration_over_max']}",
         f"  Gaps < {config.min_gap_ms}ms: {stats['gap_under_min']}",
         f"  Overlaps: {stats['overlaps']}",
     ]
