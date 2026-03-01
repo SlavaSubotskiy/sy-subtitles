@@ -146,54 +146,6 @@ def enforce_gaps(blocks, config=None):
     return result
 
 
-def enforce_duration(blocks, config=None):
-    """Extend blocks shorter than min_duration if gap allows.
-
-    Tries extending end first, then start (backwards). Reports unfixable issues.
-    """
-    if config is None:
-        config = OptimizeConfig()
-
-    warnings = []
-    result = [dict(b) for b in blocks]
-
-    for i, b in enumerate(result):
-        duration = b["end_ms"] - b["start_ms"]
-        if duration < config.min_duration_ms:
-            needed = config.min_duration_ms - duration
-            # Try extending end
-            if i < len(result) - 1:
-                available = result[i + 1]["start_ms"] - b["end_ms"] - config.min_gap_ms
-                extend = min(needed, max(0, available))
-                b["end_ms"] += extend
-                needed -= extend
-            else:
-                # Last block — just extend
-                b["end_ms"] = b["start_ms"] + config.min_duration_ms
-                needed = 0
-
-            # Try extending start (backwards) if still short
-            if needed > 0 and i > 0:
-                available = b["start_ms"] - result[i - 1]["end_ms"] - config.min_gap_ms
-                extend = min(needed, max(0, available))
-                b["start_ms"] -= extend
-                needed -= extend
-            elif needed > 0 and i == 0:
-                # First block — extend start towards 0
-                extend = min(needed, b["start_ms"])
-                b["start_ms"] -= extend
-                needed -= extend
-
-            new_duration = b["end_ms"] - b["start_ms"]
-            if new_duration < config.min_duration_ms:
-                warnings.append(f"  Short block #{b['idx']}: {new_duration}ms < {config.min_duration_ms}ms (unfixable)")
-
-    for w in warnings:
-        print(w)
-
-    return result
-
-
 def _cps(block):
     """Calculate CPS for a block."""
     dur_s = (block["end_ms"] - block["start_ms"]) / 1000.0
@@ -202,14 +154,110 @@ def _cps(block):
     return len(block["text"].replace("\n", "")) / dur_s
 
 
+def _extend_block(blocks, i, deficit, config, max_cascade=10):
+    """Extend block i by deficit ms using cascade shifting.
+
+    Shifts neighbors wholesale into nearby silence gaps (up to max_cascade
+    blocks in each direction). Tries rightward first, then leftward.
+    Returns remaining deficit (0 = fully resolved).
+    """
+    # === Extend END: shift blocks to the right into gaps ===
+    right_slack = 0
+    for j in range(i, min(i + max_cascade, len(blocks) - 1)):
+        gap = blocks[j + 1]["start_ms"] - blocks[j]["end_ms"]
+        right_slack += max(0, gap - config.min_gap_ms)
+
+    extend_right = min(deficit, right_slack)
+    if extend_right > 0:
+        shift = extend_right
+        for j in range(i + 1, min(i + 1 + max_cascade, len(blocks))):
+            if shift <= 0:
+                break
+            blocks[j]["start_ms"] += shift
+            blocks[j]["end_ms"] += shift
+            if j + 1 < len(blocks):
+                gap = blocks[j + 1]["start_ms"] - blocks[j]["end_ms"]
+                if gap >= config.min_gap_ms:
+                    break
+                shift = config.min_gap_ms - gap
+
+        blocks[i]["end_ms"] += extend_right
+        deficit -= extend_right
+
+    # === Extend START: shift blocks to the left into gaps ===
+    if deficit > 0:
+        left_slack = 0
+        for j in range(i, max(i - max_cascade, 0), -1):
+            gap = blocks[j]["start_ms"] - blocks[j - 1]["end_ms"]
+            left_slack += max(0, gap - config.min_gap_ms)
+        if i - max_cascade <= 0 and blocks[0]["start_ms"] > 0:
+            left_slack += blocks[0]["start_ms"]
+
+        extend_left = min(deficit, left_slack)
+        if extend_left > 0:
+            shift = extend_left
+            for j in range(i - 1, -1, -1):
+                if shift <= 0:
+                    break
+                blocks[j]["start_ms"] -= shift
+                blocks[j]["end_ms"] -= shift
+                if blocks[j]["start_ms"] < 0:
+                    overshoot = -blocks[j]["start_ms"]
+                    blocks[j]["start_ms"] = 0
+                    blocks[j]["end_ms"] += overshoot
+                    shift -= overshoot
+                if j > 0:
+                    gap = blocks[j]["start_ms"] - blocks[j - 1]["end_ms"]
+                    if gap >= config.min_gap_ms:
+                        break
+                    shift = config.min_gap_ms - gap
+
+            blocks[i]["start_ms"] -= extend_left
+            deficit -= extend_left
+
+    return deficit
+
+
+def enforce_duration(blocks, config=None):
+    """Extend blocks shorter than min_duration using cascade shifting.
+
+    Shifts neighbors into nearby silence gaps to make room.
+    Reports blocks that remain unfixable.
+    """
+    if config is None:
+        config = OptimizeConfig()
+
+    warnings = []
+
+    for i in range(len(blocks)):
+        duration = blocks[i]["end_ms"] - blocks[i]["start_ms"]
+        if duration >= config.min_duration_ms:
+            continue
+
+        deficit = config.min_duration_ms - duration
+
+        # Last block — just extend freely
+        if i == len(blocks) - 1:
+            blocks[i]["end_ms"] = blocks[i]["start_ms"] + config.min_duration_ms
+            continue
+
+        remaining = _extend_block(blocks, i, deficit, config)
+        if remaining > 0:
+            new_dur = blocks[i]["end_ms"] - blocks[i]["start_ms"]
+            warnings.append(f"  Short block #{blocks[i]['idx']}: {new_dur}ms < {config.min_duration_ms}ms (unfixable)")
+
+    for w in warnings:
+        print(w)
+
+    return blocks
+
+
 def balance_cps(blocks, config=None, threshold=None):
     """Balance CPS by shifting neighbors into nearby silence (gaps).
 
-    For blocks with CPS > threshold: find gaps in the neighborhood,
-    shift intermediate blocks wholesale (preserving their duration),
-    and extend the high-CPS block into the opened space.
-
-    Neighbors are NOT resized — only shifted into existing silence.
+    Uses cascade shifting: finds gaps in the neighborhood (up to 10 blocks),
+    shifts intermediate blocks wholesale (preserving their duration),
+    and extends the high-CPS block into the opened space.
     """
     if config is None:
         config = OptimizeConfig()
@@ -217,7 +265,6 @@ def balance_cps(blocks, config=None, threshold=None):
         threshold = config.hard_max_cps
 
     max_passes = 10
-    max_cascade = 10  # search up to 10 blocks in each direction
 
     for pass_num in range(max_passes):
         changes = 0
@@ -232,77 +279,14 @@ def balance_cps(blocks, config=None, threshold=None):
             if deficit <= 0:
                 continue
 
-            # === Extend END: shift blocks to the right into gaps ===
-            # Calculate total available slack to the right
-            right_slack = 0
-            for j in range(i, min(i + max_cascade, len(blocks) - 1)):
-                gap = blocks[j + 1]["start_ms"] - blocks[j]["end_ms"]
-                right_slack += max(0, gap - config.min_gap_ms)
-
-            extend_right = min(deficit, right_slack)
-            if extend_right > 0:
-                # Cascade: shift blocks i+1, i+2, ... rightward
-                # Each block shifts wholesale (same duration), consuming gap slack
-                shift = extend_right
-                for j in range(i + 1, min(i + 1 + max_cascade, len(blocks))):
-                    if shift <= 0:
-                        break
-                    blocks[j]["start_ms"] += shift
-                    blocks[j]["end_ms"] += shift
-                    # Check gap to next block
-                    if j + 1 < len(blocks):
-                        gap = blocks[j + 1]["start_ms"] - blocks[j]["end_ms"]
-                        if gap >= config.min_gap_ms:
-                            break  # gap absorbed the shift
-                        shift = config.min_gap_ms - gap  # carry forward
-
-                # Now extend block i's end into the opened space
-                blocks[i]["end_ms"] += extend_right
-                deficit -= extend_right
+            remaining = _extend_block(blocks, i, deficit, config)
+            if remaining < deficit:
                 changes += 1
-
-            # === Extend START: shift blocks to the left into gaps ===
-            if deficit > 0:
-                left_slack = 0
-                for j in range(i, max(i - max_cascade, 0), -1):
-                    gap = blocks[j]["start_ms"] - blocks[j - 1]["end_ms"]
-                    left_slack += max(0, gap - config.min_gap_ms)
-                # Also: space before first block (pre-talk silence)
-                if i - max_cascade <= 0 and blocks[0]["start_ms"] > 0:
-                    left_slack += blocks[0]["start_ms"]
-
-                extend_left = min(deficit, left_slack)
-                if extend_left > 0:
-                    # Cascade: shift blocks i-1, i-2, ... leftward
-                    shift = extend_left
-                    for j in range(i - 1, -1, -1):
-                        if shift <= 0:
-                            break
-                        blocks[j]["start_ms"] -= shift
-                        blocks[j]["end_ms"] -= shift
-                        # Don't go below 0
-                        if blocks[j]["start_ms"] < 0:
-                            overshoot = -blocks[j]["start_ms"]
-                            blocks[j]["start_ms"] = 0
-                            blocks[j]["end_ms"] += overshoot
-                            shift -= overshoot
-                        # Check gap to previous block
-                        if j > 0:
-                            gap = blocks[j]["start_ms"] - blocks[j - 1]["end_ms"]
-                            if gap >= config.min_gap_ms:
-                                break  # gap absorbed the shift
-                            shift = config.min_gap_ms - gap  # carry forward
-
-                    # Extend block i's start into the opened space
-                    blocks[i]["start_ms"] -= extend_left
-                    deficit -= extend_left
-                    changes += 1
 
         if changes == 0:
             break
         print(f"  Pass {pass_num + 1}: {changes} CPS adjustments")
 
-    # Report remaining violations
     remaining = sum(1 for b in blocks if _cps(b) > threshold)
     if remaining:
         print(f"  {remaining} blocks still have CPS > {threshold} (unfixable — no nearby silence)")
@@ -311,11 +295,12 @@ def balance_cps(blocks, config=None, threshold=None):
 
 
 def build_srt(mapping_path, output_path, report_path=None):
-    """Full pipeline: parse → balance CPS → duration → pad → gaps → write SRT.
+    """Full pipeline: parse → duration → balance CPS → pad → gaps → write SRT.
 
-    CPS balancing and duration enforcement run FIRST on raw speech blocks,
-    where real silence gaps are available. Padding runs AFTER, extending
-    remaining silence for readability.
+    Duration enforcement runs FIRST (needs little space: 66-200ms).
+    CPS balancing runs SECOND (needs more space but can cascade further).
+    Both run on raw speech blocks where real silence gaps are available.
+    Padding runs LAST, extending remaining silence for readability.
     """
     config = OptimizeConfig()
 
@@ -330,14 +315,14 @@ def build_srt(mapping_path, output_path, report_path=None):
     print(f"  Time range: {ms_to_time(blocks[0]['start_ms'])} → {ms_to_time(blocks[-1]['end_ms'])}")
 
     # Phase 1: Fix timing issues using raw silence gaps
+    print("Enforcing minimum duration (≥1200ms)...")
+    blocks = enforce_duration(blocks, config)
+
     print("Balancing CPS (hard max ≤20)...")
     blocks = balance_cps(blocks, config, threshold=config.hard_max_cps)
 
     print("Balancing CPS (target ≤15)...")
     blocks = balance_cps(blocks, config, threshold=config.target_cps)
-
-    print("Enforcing minimum duration (≥1200ms)...")
-    blocks = enforce_duration(blocks, config)
 
     # Phase 2: Pad remaining silence for readability
     print("Applying padding (capped at max duration)...")
