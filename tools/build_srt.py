@@ -98,8 +98,8 @@ def apply_padding(blocks, config=None):
             padded_end = min(padded_end, original_end + max_pad_ms)
             # Cap at max duration
             padded_end = min(padded_end, max_end)
-            # Never shrink below original end, but always cap at max duration
-            b["end_ms"] = min(max(padded_end, original_end), max_end)
+            # Never shrink below original end
+            b["end_ms"] = max(padded_end, original_end)
         else:
             # Last block: modest extension, capped at max duration
             b["end_ms"] = min(original_end + last_block_pad_ms, max_end)

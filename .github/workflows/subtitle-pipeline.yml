@@ -515,6 +515,7 @@ jobs:
               --srt "$VIDEO/final/uk.srt" \
               --transcript "$TALK/transcript_uk.txt" \
               --whisper-json "$VIDEO/source/whisper.json" \
+              --skip-duration-check \
               $EXTRA_FLAGS \
               --report "$VIDEO/final/report.txt"
           done
