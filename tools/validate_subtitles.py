@@ -284,6 +284,7 @@ def validate(
         (f"CPS ≤ {config.hard_max_cps}", stats["cps_over_hard"] == 0),
         (f"Duration ≥ {config.min_duration_ms}ms", stats["duration_under_min"] == 0),
         (f"Duration ≤ {config.max_duration_ms}ms", stats["duration_over_max"] == 0),
+        (f"Gap ≥ {config.min_gap_ms}ms", stats["gap_under_min"] == 0),
     ]
     all_passed = True
     for name, passed in checks:

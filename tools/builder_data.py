@@ -47,13 +47,13 @@ def _find_words_for_block(block, segments):
     return words
 
 
-def _format_block(block, segments, next_speech_start_ms=None):
+def _format_block(block, segments):
     """Format one block with whisper word timestamps in SRT timecode format.
 
-    Timing line shows recommended display range:
+    Timing line shows pure speech range:
     - start = first word start
-    - end = extended into silence (up to next speech - 80ms, max +5s)
-    This gives the viewer more reading time and lowers CPS.
+    - end = last word end
+    Padding is applied later by build_srt.py.
     """
     words = _find_words_for_block(block, segments)
     lines = []
@@ -62,18 +62,9 @@ def _format_block(block, segments, next_speech_start_ms=None):
         speech_start_ms = int(round(words[0]["start"] * 1000))
         speech_end_ms = int(round(words[-1]["end"] * 1000))
 
-        # Display end: extend into silence for readability and lower CPS
-        display_end_ms = speech_end_ms
-        if next_speech_start_ms is not None and next_speech_start_ms > speech_end_ms:
-            display_end_ms = next_speech_start_ms - 80
-        # Cap extension at 5s past speech end
-        display_end_ms = min(display_end_ms, speech_end_ms + 5000)
-        # Never shrink below speech end
-        display_end_ms = max(display_end_ms, speech_end_ms)
-
         lines.append(f"=== #{block['idx']} ===")
         lines.append(f"Text: {block['text']}")
-        lines.append(f"Timing: {ms_to_time(speech_start_ms)} → {ms_to_time(display_end_ms)}")
+        lines.append(f"Timing: {ms_to_time(speech_start_ms)} → {ms_to_time(speech_end_ms)}")
 
         # Word timestamps with start→end — pipe-separated
         word_parts = []
@@ -106,14 +97,6 @@ def cmd_info(args):
     print(f"{len(blocks)} EN blocks ({srt_start} — {srt_end}), {total_words} whisper words")
 
 
-def _get_speech_start_ms(block, segments):
-    """Get the first whisper word start time (ms) for a block, or None."""
-    words = _find_words_for_block(block, segments)
-    if words:
-        return int(round(words[0]["start"] * 1000))
-    return None
-
-
 def cmd_query(args):
     blocks, segments = _load(args)
     from_idx = args.from_block or 1
@@ -122,14 +105,9 @@ def cmd_query(args):
     to_idx = min(len(blocks), to_idx)
 
     selected = [b for b in blocks if from_idx <= b["idx"] <= to_idx]
-    # Build index for next block lookup (need blocks beyond to_idx for last block's padding)
-    block_by_idx = {b["idx"]: b for b in blocks}
 
     for block in selected:
-        # Find next block's speech start for silence padding
-        next_block = block_by_idx.get(block["idx"] + 1)
-        next_start = _get_speech_start_ms(next_block, segments) if next_block else None
-        for line in _format_block(block, segments, next_speech_start_ms=next_start):
+        for line in _format_block(block, segments):
             print(line)
         print()
 
@@ -137,13 +115,10 @@ def cmd_query(args):
 def cmd_search(args):
     blocks, segments = _load(args)
     query = args.text.lower()
-    block_by_idx = {b["idx"]: b for b in blocks}
 
     for block in blocks:
         if query in block["text"].lower():
-            next_block = block_by_idx.get(block["idx"] + 1)
-            next_start = _get_speech_start_ms(next_block, segments) if next_block else None
-            for line in _format_block(block, segments, next_speech_start_ms=next_start):
+            for line in _format_block(block, segments):
                 print(line)
             print()
 

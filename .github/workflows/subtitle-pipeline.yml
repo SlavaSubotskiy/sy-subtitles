@@ -384,37 +384,50 @@ jobs:
             Replace FIRST_VIDEO_SLUG with the actual first video slug from meta.yaml.
             Save the EN SRT end time — you will pass it to the builder.
 
-            STEP 1 — Build subtitles for the FIRST video:
+            STEP 1 — Build mapping for the FIRST video:
             Use the Task tool to spawn a builder sub-agent:
               - subagent_type: "general-purpose"
               - prompt: |
                   Read templates/subtitle_builder_template.md for full instructions.
-                  Build Ukrainian subtitles for the first video.
+                  Build a mapping table for Ukrainian subtitles.
                   INPUT FILES:
                   - Ukrainian text: talks/${{ matrix.talk_id }}/transcript_uk.txt
                   - EN_SRT: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/en.srt
                   - WHISPER_JSON: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json
-                  OUTPUT: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt
-                  Create output dir first: mkdir -p "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final"
+                  OUTPUT: talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/work/uk.map
+                  Create output dir first: mkdir -p "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/work"
 
                   TIMING TOOL: Use `python -m tools.builder_data` to query EN blocks with
                   whisper word timestamps (already in SRT format). See the template for commands.
                   Replace EN_SRT and WHISPER_JSON in the commands with the actual paths above.
 
                   CRITICAL WHISPER BOUNDARY: The EN SRT ends at {EN_END_TIME}.
-                  Your UK SRT MUST NOT extend beyond {EN_END_TIME}.
+                  Your mapping MUST NOT extend beyond {EN_END_TIME}.
 
-                  Process in ~5-minute chunks. After all chunks, validate:
-                  python -m tools.validate_subtitles \
-                    --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
-                    --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
-                    --whisper-json "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json" \
-                    --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/report.txt"
-                  If text preservation fails, fix and re-validate.
+                  Process in ~50-block chunks. Output mapping format:
+                  block# | start_timecode | end_timecode | ukrainian_text
                   Do not use TodoWrite — this runs in CI.
             Replace FIRST_VIDEO_SLUG and {EN_END_TIME} with actual values.
 
-            STEP 2 — Handle remaining videos:
+            STEP 2 — Build SRT from mapping:
+            After sub-agent completes, run:
+              mkdir -p "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final"
+              python -m tools.build_srt \
+                --mapping "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/work/uk.map" \
+                --output "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
+                --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/build_report.txt"
+
+            STEP 3 — Validate the FIRST video:
+              python -m tools.validate_subtitles \
+                --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
+                --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
+                --whisper-json "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json" \
+                --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/report.txt"
+
+            If validation fails on text mismatch or CPL/CPS issues — these are mapping problems.
+            Fix the mapping file (uk.map), re-run build_srt (STEP 2), and re-validate.
+
+            STEP 4 — Handle remaining videos:
             For each additional video in meta.yaml, detect offset:
               python -m tools.offset_srt detect \
                 --srt1 "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/en.srt" \
@@ -426,17 +439,10 @@ jobs:
                 --offset-ms OFFSET \
                 --output "talks/${{ matrix.talk_id }}/NEXT_VIDEO_SLUG/final/uk.srt"
             IMPORTANT: Do NOT trim or modify the offset SRT file after applying.
-            Some blocks may extend beyond the shorter video's duration — this is expected.
-            Do NOT write Python scripts to modify SRT files.
-            If no offset (different content) — spawn another builder sub-agent for that video.
+            If no offset (different content) — spawn another builder sub-agent for that video,
+            then run build_srt for its mapping too.
 
-            STEP 3 — Validate ALL videos:
-            For the FIRST video (full validation):
-              python -m tools.validate_subtitles \
-                --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
-                --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
-                --whisper-json "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json" \
-                --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/report.txt"
+            STEP 5 — Validate ALL remaining videos:
             For offset videos (skip text and time checks — different video duration):
               python -m tools.validate_subtitles \
                 --srt "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/final/uk.srt" \
@@ -454,8 +460,10 @@ jobs:
         with:
           name: subtitles__${{ matrix.talk_id }}
           path: |
+            talks/${{ matrix.talk_id }}/*/work/uk.map
             talks/${{ matrix.talk_id }}/*/final/uk.srt
             talks/${{ matrix.talk_id }}/*/final/report.txt
+            talks/${{ matrix.talk_id }}/*/final/build_report.txt
 
       - name: Validate subtitles
         if: inputs.build != false
@@ -565,7 +573,7 @@ jobs:
             talk_id="${name#subtitles__}"
             echo "Processing subtitles: $talk_id"
 
-            find "$dir" \( -name "uk.srt" -o -name "report.txt" \) | while read src; do
+            find "$dir" \( -name "uk.srt" -o -name "uk.map" -o -name "report.txt" -o -name "build_report.txt" \) | while read src; do
               rel="${src#$name/}"
               dest="talks/$talk_id/$rel"
               mkdir -p "$(dirname "$dest")"
@@ -579,7 +587,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add talks/*/transcript_uk.txt talks/*/review_report.md \
-                talks/*/*/final/uk.srt talks/*/*/final/report.txt
+                talks/*/*/work/uk.map \
+                talks/*/*/final/uk.srt talks/*/*/final/report.txt \
+                talks/*/*/final/build_report.txt
           git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
           git commit -m "Build subtitles (full pipeline)"
           git pull --rebase
