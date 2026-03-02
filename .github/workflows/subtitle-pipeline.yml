@@ -274,6 +274,7 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      inputs.build != false &&
       needs.discover.result == 'success' &&
       (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'skipped') &&
       (needs.whisper.result == 'success' || needs.whisper.result == 'skipped')
@@ -359,7 +360,6 @@ jobs:
           "
 
       - name: Build subtitles
-        if: inputs.build != false
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -464,7 +464,7 @@ jobs:
             Do not use TodoWrite — this runs in CI, no one sees progress updates.
 
       - name: Upload build artifacts
-        if: inputs.build != false && !cancelled()
+        if: "!cancelled()"
         uses: actions/upload-artifact@v4
         with:
           name: subtitles__${{ matrix.talk_id }}
@@ -475,7 +475,6 @@ jobs:
             talks/${{ matrix.talk_id }}/*/final/build_report.txt
 
       - name: Validate subtitles
-        if: inputs.build != false
         run: |
           TALK="talks/${{ matrix.talk_id }}"
 
