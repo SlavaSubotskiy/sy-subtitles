@@ -33,6 +33,20 @@ Your mapping will be processed by `build_srt.py` which adds padding, enforces ga
 - Duration enforcement (≥ 1.2s minimum)
 - SRT formatting and numbering
 
+## CRITICAL: Semantic alignment (EN ↔ UK)
+
+EN blocks and UK sentences are **NOT 1:1 by position**. The Ukrainian transcript may omit
+filler sentences that exist in English (speaker asides, repetitions, word-searching).
+
+**Rules:**
+1. Match EN blocks to UK sentences **by meaning**, not by sequential block number
+2. If the next EN block doesn't match the current UK sentence — **SKIP it** and search forward
+3. Use `builder_data search` to find the correct EN block when uncertain
+4. NEVER consume timecodes from an EN block whose meaning doesn't match your UK sentence
+
+**Why this matters:** If you use sequential alignment, every skipped filler shifts ALL subsequent
+blocks backward in time, causing 10-20+ second drift by the end of the talk.
+
 ## Inputs
 
 1. **transcript_uk.txt** — Ukrainian translation (one paragraph per line)
@@ -98,10 +112,24 @@ MAPEOF
 
 Work through the talk in **~50-block chunks**.
 
-**Before each chunk**, query the relevant EN blocks:
+**Before each chunk**, anchor to the correct EN position:
+
+1. Identify the **first Ukrainian sentence** of the chunk
+2. Pick a distinctive English word from that sentence's meaning
+3. Search for it: `python -m tools.builder_data search --en-srt EN_SRT --whisper-json WHISPER_JSON --text "KEYWORD"`
+4. Note the returned EN block number and its `Timing` timecodes
+5. Query EN blocks starting from that number:
 ```bash
-python -m tools.builder_data query --en-srt EN_SRT --whisper-json WHISPER_JSON --from N --to M
+python -m tools.builder_data query --en-srt EN_SRT --whisper-json WHISPER_JSON --from FOUND_NUM --to FOUND_NUM+40
 ```
+6. Use **THESE** timecodes, not sequential ones from the previous chunk's end
+
+**After each chunk**, verify alignment hasn't drifted:
+
+1. Take a distinctive word from the **last UK sentence's** meaning
+2. Search for the EN equivalent: `builder_data search --en-srt EN_SRT --whisper-json WHISPER_JSON --text "ENGLISH_WORD"`
+3. The found EN block's `Timing` should match what you used (±2s tolerance)
+4. If mismatch > 5 seconds → **DRIFT detected** → fix the chunk before continuing
 
 #### For each Ukrainian sentence:
 
@@ -114,7 +142,13 @@ python -m tools.builder_data query --en-srt EN_SRT --whisper-json WHISPER_JSON -
 3. **Check length:**
    - If ≤ 84 chars → one mapping line
    - If > 84 chars → split (see splitting rules below)
-4. **Write the mapping line(s)**
+4. **Skip filler EN blocks** — if an EN block contains speech NOT in the Ukrainian
+   transcript (filler), SKIP it entirely. Do NOT use its timecodes. Move to the next
+   EN block that matches your UK text. Common fillers:
+   - Speaker searching for a word: "I don't know what you call them..."
+   - False starts: "So the... no, I mean..."
+   - Untranslated asides in another language
+5. **Write the mapping line(s)**
 
 #### Concrete example
 
