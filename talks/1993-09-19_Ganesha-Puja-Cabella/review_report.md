@@ -13,67 +13,55 @@ Review `transcript_uk.txt` (full paragraphed Ukrainian text, 44 paragraphs) usin
 ## Results
 
 ### L. Language (Orthography + Grammar + Punctuation)
-
 | # | Paragraph | Error | Context | Fix |
 |---|-----------|-------|---------|-----|
-| L1 | 2 | Неправильна називна форма імені (без -а) | «був Шрі **Ґанеш**, тому» | «був Шрі **Ґанеша**, тому» |
-| L2 | 5 | Неправильний родовий відмінок | «принципом Шрі **Ґанеша**» | «принципом Шрі **Ґанеші**» |
-| L3a | 10 | Хибне чергування ґ→з у місцевому відмінку | «в Сахаджа **Йозі**.» | «в Сахаджа **Йоґі**.» |
-| L3b | 21 | Хибне чергування ґ→з у місцевому відмінку | «у Сахаджа **Йозі** Я» | «у Сахаджа **Йоґі** Я» |
-| L4 | 21 | Неправильне закінчення називного множини (-і замість -и) | «деякі сахаджа **йоґі**, Я думаю» | «деякі сахаджа **йоґи**, Я думаю» |
-| L5 | 23 | Неправильне закінчення називного множини (-і замість -и) | «сахаджа **йоґі** взагалі» | «сахаджа **йоґи** взагалі» |
-| L6 | 28 | Нестандартна форма дієслова («садовити» не існує в СУМ) | «**садовлять** їх з іграшками» | «**саджають** їх з іграшками» |
-| L7 | 33 | Неправильний родовий відмінок | «за допомогою Шрі **Ґанеша**» | «за допомогою Шрі **Ґанеші**» |
-| L8 | 35 | Неправильний родовий відмінок | «енергією Шрі **Ґанеша**» | «енергією Шрі **Ґанеші**» |
-| L9 | 40 | Непослідовна капіталізація «Ви/ви» в діалозі мафії | «**Ви** маєте заплатити» | «**ви** маєте заплатити» |
-| L10 | 41 | Некоректна конструкція з інструменталем | «називаємо **санскритом** віґраха» | «**на санскриті** називаємо віґраха» |
+| L1 | ¶8 | Missing comma after parenthetical «можливо» (2nd occurrence) | `можливо, егоїстичною, можливо тому, що ви народилися` | `можливо, егоїстичною, можливо, тому, що ви народилися` |
+| L2 | ¶8 | «так звано» (neuter adverb) instead of feminine adjective agreeing with «людина» | `яка не так звано зріла` | `яка не так звана зріла` |
 
 ### S. SY Domain (Capitalization + Terminology + Consistency)
-
 | # | Paragraph | Error | Context | Fix |
 |---|-----------|-------|---------|-----|
-| S1 | 2 | Називна форма не відповідає глосарію «Шрі Ґанеша» | «Шрі **Ґанеш**» (без -а) | «Шрі **Ґанеша**» |
-| S2 | 21, 23, 37 | Неправильне закінчення наз. мн. «йоґі» (тверда основа → -и) | «сахаджа **йоґі**» (3 випадки) | «сахаджа **йоґи**» |
+| — | — | No errors found | — | — |
 
-**No issues found in:** deity pronoun capitalization (Shri Mataji: Я/Мене/Мені/Моя/Свою; Shri Ganesha/Jesus: Він/Його/Йому/Нього/Своїй — all correct); spiritual term capitalization (Дхарма, Пуджа, Кундаліні, Пранава — all correct); glossary terms (Аґія, бхути, ашрам, камфора, протокол, обумовленість, сприятливість — all match); quotation marks «»/„" consistent; em-dashes with spaces consistent.
+**Verified clean across all 44 paragraphs:**
+- Ganesha deity pronouns (Він/Його/Йому/Своїй/Свою): all uppercase — correct
+- Jesus Christ deity pronouns (Його/Нього/Він) in ¶9: all uppercase — correct
+- Shri Mataji pronouns (Я/Мені/Мене/Моїх/Свою/Мою): all uppercase — correct
+- Addressing Shri Mataji (Ви/Ваша/Матінко) in ¶23, ¶40: uppercase — correct
+- Regular people pronouns: all lowercase mid-sentence — correct
+- Шрі Ґанеша declension: Ґанеша (наз.), Ґанеші (род./дав./місц.) — all correct
+- Сахаджа Йозі (locative, чергування ґ→з) in ¶10, ¶21 — correct per glossary
+- сахаджа йоґів/йоґи/йоґами: correct plural forms throughout
+- Дхарма (uppercase) in ¶8 — correct
+- Пуджа/Пуджі (uppercase) in ¶1, ¶43 — correct
+- Кундаліні in ¶33 — correct
+- Аґії in ¶9 — correct
+- Пранави in ¶26 — correct
+- ашрам (lowercase) — correct
+- его (lowercase) in ¶34 — correct
+- протокол (lowercase) in ¶22, ¶24 — correct
+- камфора in ¶22 — correct
+- санскриті (lowercase language name) in ¶41 — correct
+- обумовленість, сприятливість, увага, атака: all per glossary
+- Quotation marks «» at all levels including nested in ¶23, ¶30 — correct
+- Em-dash ` — ` with spaces throughout — correct
+- бхутівський / бхутів: consistent throughout ¶21, ¶23, ¶42
 
 ### Critic Filter
-
 | Source | # | Verdict | Reason |
 |--------|---|---------|--------|
-| L | L1 | Keep | Глосарій явно вказує «Шрі Ґанеша»; решта тексту використовує форму з -а |
-| L | L2 | Keep | Після «принципом» потрібен родовий відмінок: «Ґанеші» |
-| L | L3a | Keep | Правопис 2019 вказує чергування тільки для г→з, не для ґ→з; «Йоґа» → місц. «Йоґі» |
-| L | L3b | Keep | Те саме правило, що й L3a |
-| L | L4 | Keep | Тверда основа «йоґ» → називний множини -и; P37 підтверджує «йоґи» |
-| L | L5 | Keep | Те саме, що й L4 |
-| L | L6 | Keep | Дієслово «садовити» не зафіксоване в СУМ; стандартна форма — «саджають» |
-| L | L7 | Keep | «За допомогою» вимагає родового відмінка |
-| L | L8 | Keep | «Енергією» (кого?) вимагає родового відмінка |
-| L | L9 | Keep | Той самий діалог використовує «ви» далі; правило CLAUDE.md: звичайні люди — малі літери |
-| L | L10 | Keep | «Називаємо санскритом» = «називаємо [це] санскритом» (двозначно); «на санскриті» — однозначно |
-| S | S1 | Keep | Збігається з L1 — та сама виправка |
-| S | S2 | Keep | Збігається з L4/L5 — та сама виправка |
+| L | L1 | **Keep** | Genuine missing comma: «можливо» is a parenthetical word (вставне слово) and must be set off by commas; the first «можливо» in this sentence has a comma, the second does not — inconsistent and incorrect |
+| L | L2 | **Remove** | Borderline style preference: «так звано» as an invariable adverb-like particle before an adjective is common Ukrainian usage; the proposed fix «так звана зріла» creates an awkward two-adjective construction that is no clearer than the original |
 
 ### Approved Corrections
-
 | # | Paragraph | Error | Fix |
 |---|-----------|-------|-----|
-| 1 | 2 | «Шрі Ґанеш» | «Шрі Ґанеша» |
-| 2 | 5 | «принципом Шрі Ґанеша» | «принципом Шрі Ґанеші» |
-| 3 | 10 | «Сахаджа Йозі» | «Сахаджа Йоґі» |
-| 4 | 21 | «Сахаджа Йозі» | «Сахаджа Йоґі» |
-| 5 | 21 | «сахаджа йоґі» (наз. мн.) | «сахаджа йоґи» |
-| 6 | 23 | «сахаджа йоґі» (наз. мн.) | «сахаджа йоґи» |
-| 7 | 28 | «садовлять» | «саджають» |
-| 8 | 33 | «Шрі Ґанеша» (род.) | «Шрі Ґанеші» |
-| 9 | 35 | «Шрі Ґанеша» (род.) | «Шрі Ґанеші» |
-| 10 | 37 | «сахаджа йоґі» (наз. мн.) | «сахаджа йоґи» |
-| 11 | 40 | «Ви маєте» (в діалозі) | «ви маєте» |
-| 12 | 41 | «називаємо санскритом» | «на санскриті називаємо» |
+| 1 | ¶8 | Missing comma after parenthetical «можливо» | `можливо тому, що` → `можливо, тому, що` |
 
 ## Summary
 
-- Language (L): 10 issues found (incl. 2 locations for L3 and 3 for L4/L5), 10 approved by Critic
-- SY Domain (S): 2 issues found, 2 approved by Critic (both overlap with L)
-- Total corrections applied: 12
+- Language (L): 2 issues found, 1 approved by Critic
+- SY Domain (S): 0 issues found, 0 approved by Critic
+- Total corrections applied: 1
+
+The translation is of high quality. All previous review corrections (Ґанеша declension, Сахаджа Йозі locative, сахаджа йоґи plural forms) have been properly incorporated. Deity pronoun capitalization, SY terminology, glossary consistency, Ukrainian quotation marks «», and em-dash formatting are all correct throughout the 44-paragraph text.
