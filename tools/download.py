@@ -95,6 +95,32 @@ class AmrutaDownloader:
             return re.sub(r"\s*[–—|]\s*Nirmala.*$", "", text)
         return None
 
+    def extract_location(self, soup):
+        """Extract location from the <h4> metadata header.
+
+        The header has the structure:
+            Date<br/>Title<br/>Location<br/>Talk Language: ...
+        Location is the line immediately before "Talk Language:".
+        """
+        content = soup.find("div", class_="entry-content")
+        if not content:
+            return ""
+        h4 = content.find("h4")
+        if not h4:
+            return ""
+        # Split text by <br> tags — get text nodes between them
+        lines = []
+        for child in h4.children:
+            if isinstance(child, str):
+                t = child.strip()
+                if t:
+                    lines.append(t)
+        # Find the line before "Talk Language:"
+        for i, line in enumerate(lines):
+            if line.startswith("Talk Language:") and i > 0:
+                return lines[i - 1]
+        return ""
+
     def extract_video_labels(self, soup):
         """Extract video labels and Vimeo URLs from page.
 
@@ -271,7 +297,33 @@ class AmrutaDownloader:
             for tag in content.find_all("div", class_=cls):
                 tag.decompose()
 
-        text = content.get_text(separator="\n", strip=True)
+        # Unwrap inline tags so their text merges with the parent block
+        for tag in content.find_all(["em", "i", "strong", "b", "span", "a", "u", "sup", "sub"]):
+            tag.unwrap()
+
+        # Replace <br> with newlines
+        for br in content.find_all("br"):
+            br.replace_with("\n")
+
+        HEADINGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+        lines = []
+        prev_was_heading = False
+        for el in content.find_all(["p", *HEADINGS, "li", "blockquote"]):
+            # get_text with separator destroys \n from <br>; collect manually
+            raw = el.get_text()
+            # Normalize: collapse spaces/tabs (but keep \n from <br>)
+            raw = re.sub(r"[^\S\n]+", " ", raw)
+            # Trim each line and drop empties
+            block_lines = [ln.strip() for ln in raw.splitlines()]
+            block_text = "\n".join(ln for ln in block_lines if ln)
+            if block_text:
+                # Blank line after heading to separate header from body
+                if prev_was_heading and el.name not in HEADINGS:
+                    lines.append("")
+                lines.append(block_text)
+            prev_was_heading = el.name in HEADINGS
+
+        text = "\n".join(lines)
         return text if text else None
 
     def download_file(self, url, output_path):
@@ -322,8 +374,11 @@ class AmrutaDownloader:
         if not videos:
             print("  WARNING: No Vimeo videos found on page")
 
+        location = self.extract_location(soup)
+
         result = {
             "title": title,
+            "location": location,
             "videos": videos,
             "transcript_path": None,
         }
@@ -361,8 +416,8 @@ class AmrutaDownloader:
         return result
 
 
-def setup_talk(talk_dir, url, date, slug, title, videos):
-    """Create meta.yaml, video subdirs, and CLAUDE.md for a talk.
+def setup_talk(talk_dir, url, date, slug, title, location, videos):
+    """Create meta.yaml and video subdirs for a talk.
 
     Args:
         talk_dir: talk root directory
@@ -370,6 +425,7 @@ def setup_talk(talk_dir, url, date, slug, title, videos):
         date: talk date (YYYY-MM-DD)
         slug: talk slug
         title: talk title
+        location: talk location (extracted from page header)
         videos: list of {title, slug, vimeo_url} dicts
     """
     os.makedirs(talk_dir, exist_ok=True)
@@ -380,26 +436,6 @@ def setup_talk(talk_dir, url, date, slug, title, videos):
         os.makedirs(os.path.join(video_dir, "source"), exist_ok=True)
         os.makedirs(os.path.join(video_dir, "work"), exist_ok=True)
         os.makedirs(os.path.join(video_dir, "final"), exist_ok=True)
-
-    # Detect location from title or URL
-    location = ""
-    search_text = f"{title or ''} {url}".lower()
-    for place in [
-        "Cabella",
-        "Lodge Hill",
-        "Nirmala Palace",
-        "Vienna",
-        "London",
-        "New Delhi",
-        "Mumbai",
-        "Pune",
-        "Rome",
-        "Paris",
-        "Sydney",
-    ]:
-        if place.lower() in search_text:
-            location = place
-            break
 
     # meta.yaml at talk root
     meta = {
@@ -422,25 +458,6 @@ def setup_talk(talk_dir, url, date, slug, title, videos):
         yaml.dump(meta, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
     print("  Created: meta.yaml")
 
-    # CLAUDE.md from template
-    template_path = os.path.join("templates", "CLAUDE_talk.md")
-    if os.path.exists(template_path):
-        with open(template_path, encoding="utf-8") as f:
-            template = f.read()
-        claude_md = template.replace("{{DATE}}", date).replace("{{SLUG}}", slug)
-        talk_id = f"{date}_{slug}"
-        claude_md = claude_md.replace("{{TALK_ID}}", talk_id)
-        # Add video list
-        video_list = "\n".join(f"- `{v['slug']}/`" for v in videos)
-        claude_md = claude_md.replace("{{VIDEOS}}", video_list)
-    else:
-        claude_md = f"# {slug} — {date}\n"
-
-    claude_path = os.path.join(talk_dir, "CLAUDE.md")
-    with open(claude_path, "w", encoding="utf-8") as f:
-        f.write(claude_md)
-    print("  Created: CLAUDE.md")
-
 
 def process_single_url(downloader, url, what, slug_override=None):
     """Process a single amruta.org URL."""
@@ -454,14 +471,18 @@ def process_single_url(downloader, url, what, slug_override=None):
 
     result = downloader.download_talk_all(url, talk_dir, what)
 
-    setup_talk(
-        talk_dir=talk_dir,
-        url=url,
-        date=date,
-        slug=slug,
-        title=result["title"],
-        videos=result["videos"],
-    )
+    # Only create meta.yaml + dirs on full setup (not text-only re-downloads)
+    what_set = set(what.split(","))
+    if "all" in what_set or "srt" in what_set or "video" in what_set:
+        setup_talk(
+            talk_dir=talk_dir,
+            url=url,
+            date=date,
+            slug=slug,
+            title=result["title"],
+            location=result["location"],
+            videos=result["videos"],
+        )
 
     print(f"\nDone: talks/{talk_id}/")
     print(f"  Title: {result['title']}")

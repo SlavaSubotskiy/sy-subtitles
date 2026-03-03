@@ -25,6 +25,24 @@ def test_load_transcript_uk_double_spaced(sample_transcript_uk_path):
     assert paragraphs[0].startswith("Я вклоняюся")
 
 
+def test_load_transcript_uk_with_header(tmp_path):
+    """UK transcript with translated header should have header stripped."""
+    path = tmp_path / "transcript_uk.txt"
+    path.write_text(
+        "19 вересня 1993\n"
+        "Пуджа Ґанеші\n"
+        "Кампус, Кабелла-Ліґуре (Італія)\n"
+        "Мова промови: англійська | Транскрипт (українська)\n"
+        "\n"
+        "Перший абзац.\n"
+        "\n"
+        "Другий абзац.\n",
+        encoding="utf-8",
+    )
+    paragraphs = load_transcript(path)
+    assert paragraphs == ["Перший абзац.", "Другий абзац."]
+
+
 def test_load_transcript_short_first_paragraph(tmp_path):
     path = tmp_path / "short.txt"
     path.write_text("Hi.\n\nSecond paragraph here.\n\nThird one.", encoding="utf-8")

@@ -49,7 +49,9 @@ blocks backward in time, causing 10-20+ second drift by the end of the talk.
 
 ## Inputs
 
-1. **transcript_uk.txt** — Ukrainian translation (one paragraph per line)
+1. **transcript_uk.txt** — Ukrainian translation (one paragraph per line).
+   Starts with a metadata header (date, title, location, "Мова промови:" line)
+   followed by a blank line — **skip the header**, use only the body text.
 2. **EN_SRT** — English subtitles (path provided in prompt)
 3. **WHISPER_JSON** — word-level timestamps (path provided in prompt)
 

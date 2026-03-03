@@ -27,6 +27,22 @@ from .srt_utils import (
 )
 
 
+def strip_header(text):
+    """Strip metadata header from transcript text.
+
+    Detects the header marker line ("Talk Language:", "Language:", or
+    "Мова промови:") within the first 10 lines and returns everything
+    after it.  If no marker is found, returns the original text unchanged.
+    """
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if re.match(r"^(Talk Language:|Language:|Мова промови:|Мова:)", line.strip()):
+            return "\n".join(lines[i + 1 :])
+        if i >= 10:
+            break
+    return text
+
+
 def normalize_text(text):
     """Normalize text for comparison: collapse whitespace, strip punctuation dashes."""
     # NFKC normalize unicode
@@ -49,7 +65,7 @@ def extract_words(text):
 def check_text_preservation(srt_blocks, transcript_path, report):
     """Check that all transcript text appears in SRT and vice versa."""
     with open(transcript_path, encoding="utf-8") as f:
-        transcript_text = f.read()
+        transcript_text = strip_header(f.read())
 
     srt_text = " ".join(b["text"] for b in srt_blocks)
 

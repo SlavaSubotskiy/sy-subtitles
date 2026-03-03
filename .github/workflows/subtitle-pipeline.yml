@@ -4,7 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'talks/*/transcript_en.txt'
+      # - 'talks/*/transcript_en.txt'  # temporarily disabled while re-downloading transcripts
+      - 'talks/*/transcript_en.txt.DISABLED'
   workflow_dispatch:
     inputs:
       talk_id:
@@ -170,10 +171,13 @@ jobs:
               talks/${{ matrix.talk_id }}/transcript_uk.txt
 
             RULES:
-            - Skip the header lines (date, title, location, "Talk Language:" line) — translate ONLY the speech content
+            - Translate the header lines too (date, title, location, language line)
+            - Header format: translate date to Ukrainian, translate title and location, last header line must start with "Мова промови:"
+              Example: "Talk Language: English | Transcript (English) – VERIFIED"
+                     → "Мова промови: англійська | Транскрипт (українська)"
+            - Separate header from body with one blank line
             - Preserve paragraph structure: one EN paragraph = one UK paragraph
             - One paragraph per line (single \n between paragraphs)
-            - No header, no metadata, no line numbers in the output file
             - Follow ALL language rules from CLAUDE.md
             - Use glossary terms consistently (terms_lookup.yaml + terms_context.yaml)
             - Follow transliteration conventions from glossary/CLAUDE.md (ґ not г for Sanskrit g, дх for dh, і for short i)
@@ -407,6 +411,10 @@ jobs:
                   CRITICAL TEXT RULE: COPY text EXACTLY from transcript_uk.txt. Do NOT
                   translate, rephrase, or improve. Not a single word changed. Your ONLY
                   job is splitting and timing. The text column must be a verbatim copy-paste.
+
+                  HEADER: transcript_uk.txt starts with a translated header (date, title,
+                  location, "Мова промови:" line) followed by a blank line. SKIP the header —
+                  start reading text from after the blank line.
 
                   Process in ~50-block chunks. Output mapping format:
                   block# | start_timecode | end_timecode | ukrainian_text

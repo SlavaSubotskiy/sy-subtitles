@@ -39,13 +39,13 @@ def load_transcript(path):
         text = f.read()
 
     # Strip metadata header from amruta.org transcript format.
-    # Header ends at the "Talk Language:" line (always present in EN transcripts).
-    # For UK transcripts (no header), body_start stays at 0.
+    # Header ends at the "Talk Language:" / "Мова промови:" line.
+    # For transcripts without a header, body_start stays at 0.
     lines = text.split("\n")
     body_start = 0
     for i, line in enumerate(lines):
         stripped = line.strip()
-        if re.match(r"^(Talk Language:|Language:)", stripped):
+        if re.match(r"^(Talk Language:|Language:|Мова промови:|Мова:)", stripped):
             body_start = i + 1
             break
         # Stop scanning after first 10 lines — no header found
