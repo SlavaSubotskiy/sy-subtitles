@@ -204,6 +204,7 @@ jobs:
             ```
             Use 3-5 chunks TOTAL for the whole file. Do NOT write small chunks of 5-10 lines.
             Do not summarize, abbreviate, or skip any paragraphs.
+            After writing, verify paragraph count matches EN (grep -c '^.' on both files).
             Do not use TodoWrite — this runs in CI, no one sees progress updates.
 
       - name: Verify translation exists
