@@ -153,7 +153,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 50 --dangerously-skip-permissions --model claude-opus-4-6"
+          claude_args: "--max-turns 80 --dangerously-skip-permissions --model claude-opus-4-6"
           show_full_output: true
           prompt: |
             You are translating a Sahaja Yoga lecture from English to Ukrainian.
@@ -183,21 +183,26 @@ jobs:
             - Follow transliteration conventions from glossary/CLAUDE.md (ґ not г for Sanskrit g, дх for dh, і for short i)
             - Translate with devotion, precision, and respect for the sacred meaning
 
+            READING STRATEGY:
+            Read the entire transcript_en.txt in ONE Read call (do not use sed/head/tail to read in pieces).
+            Read all glossary files in parallel in one turn.
+
             WRITING STRATEGY (important — the transcript is too large for a single Write):
-            Write the translation in chunks of ~3-5 KB each using bash:
+            Write the translation in LARGE chunks of ~15-20 KB each using bash:
             ```bash
-            # First chunk — create file
+            # First chunk — create file (aim for ~20-30 paragraphs per chunk)
             cat > talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
             Перший абзац...
-            Другий абзац...
+            ...багато абзаців...
             UKEOF
 
             # Next chunks — APPEND
             cat >> talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
             Наступний абзац...
+            ...багато абзаців...
             UKEOF
             ```
-            Do not try to write everything in one call. Split into as many chunks as needed.
+            Use 3-5 chunks TOTAL for the whole file. Do NOT write small chunks of 5-10 lines.
             Do not summarize, abbreviate, or skip any paragraphs.
             Do not use TodoWrite — this runs in CI, no one sees progress updates.
 
