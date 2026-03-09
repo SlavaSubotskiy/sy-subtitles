@@ -166,7 +166,7 @@ jobs:
 
   commit:
     needs: [discover, whisper]
-    if: needs.discover.outputs.has_jobs == 'true'
+    if: needs.discover.outputs.has_jobs == 'true' && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
