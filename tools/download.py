@@ -323,8 +323,50 @@ class AmrutaDownloader:
                 lines.append(block_text)
             prev_was_heading = el.name in HEADINGS
 
+        # Deduplicate: amruta.org sometimes has duplicate paragraph blocks
+        # in the HTML. Remove consecutive runs of paragraphs that are
+        # exact copies of earlier paragraphs.
+        lines = self._deduplicate_paragraphs(lines)
+
         text = "\n".join(lines)
         return text if text else None
+
+    @staticmethod
+    def _deduplicate_paragraphs(lines):
+        """Remove duplicate paragraph blocks from extracted text.
+
+        Some amruta.org pages contain a block of paragraphs duplicated
+        verbatim later in the page. Detects runs of 3+ consecutive lines
+        where each is an exact copy of an earlier line, and removes them.
+        """
+        # Build index: line text → first occurrence index
+        first_seen = {}
+        for i, line in enumerate(lines):
+            if line and line not in first_seen:
+                first_seen[line] = i
+
+        # Find duplicate runs: consecutive lines that all appeared earlier
+        i = 0
+        to_remove = set()
+        while i < len(lines):
+            if not lines[i] or lines[i] not in first_seen or first_seen[lines[i]] == i:
+                i += 1
+                continue
+            # This line is a duplicate — check how long the run is
+            run_start = i
+            while i < len(lines) and lines[i] and lines[i] in first_seen and first_seen[lines[i]] < run_start:
+                i += 1
+            run_len = i - run_start
+            if run_len >= 3:
+                # Long enough to be a real duplicate block, not coincidence
+                for j in range(run_start, i):
+                    to_remove.add(j)
+            # else: short run (1-2 lines), could be legitimate repetition
+
+        if to_remove:
+            lines = [line for i, line in enumerate(lines) if i not in to_remove]
+
+        return lines
 
     def download_file(self, url, output_path):
         """Download a file to disk."""
