@@ -146,3 +146,45 @@ def test_list_items():
     html = "<ul><li>First item</li><li>Second item</li></ul>"
     result = _extract(html)
     assert result == "First item\nSecond item"
+
+
+# --- deduplication ---
+
+
+def test_deduplicate_removes_block_of_duplicates():
+    """10 consecutive duplicate paragraphs should be removed."""
+    html = "".join(f"<p>Paragraph {i}.</p>" for i in range(1, 11))
+    # Append same 10 paragraphs again (duplicate block)
+    html += "".join(f"<p>Paragraph {i}.</p>" for i in range(1, 11))
+    html += "<p>Final paragraph.</p>"
+    result = _extract(html)
+    lines = result.split("\n")
+    assert len(lines) == 11  # 10 unique + 1 final
+    assert lines[-1] == "Final paragraph."
+
+
+def test_deduplicate_keeps_short_repeats():
+    """1-2 repeated paragraphs should NOT be removed (could be legitimate)."""
+    html = "<p>Repeated line.</p><p>Other text.</p><p>Repeated line.</p>"
+    result = _extract(html)
+    lines = result.split("\n")
+    assert lines.count("Repeated line.") == 2
+
+
+def test_deduplicate_no_duplicates():
+    """All unique paragraphs — nothing removed."""
+    html = "<p>One.</p><p>Two.</p><p>Three.</p>"
+    result = _extract(html)
+    assert result == "One.\nTwo.\nThree."
+
+
+def test_deduplicate_block_in_middle():
+    """Duplicate block in the middle of content."""
+    before = "".join(f"<p>Before {i}.</p>" for i in range(5))
+    block = "".join(f"<p>Block {i}.</p>" for i in range(4))
+    after = "".join(f"<p>After {i}.</p>" for i in range(3))
+    html = before + block + after + block  # duplicate block at end
+    result = _extract(html)
+    lines = result.split("\n")
+    # 5 + 4 + 3 = 12 unique, duplicate block of 4 removed
+    assert len(lines) == 12
