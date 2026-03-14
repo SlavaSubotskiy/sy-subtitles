@@ -411,16 +411,22 @@ jobs:
             TALK: talks/${{ matrix.talk_id }}/
             Read meta.yaml to discover all videos for this talk.
 
-            STEP 0 — Compute EN SRT boundary:
-            Before building, determine the talk's time boundary. Run:
+            STEP 0 — Compute boundaries:
+            Before building, determine the talk's time boundaries. Run:
               python3 -c "
-              import re
+              import re, json
               with open('talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/en.srt') as f:
                   blocks = re.findall(r'(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})', f.read())
-              print(f'EN SRT: {len(blocks)} blocks, ends at {blocks[-1][1]}')
+              with open('talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/whisper.json') as f:
+                  segs = json.load(f)['segments']
+              en_end = blocks[-1][1]
+              w_end = segs[-1]['end']
+              w_end_tc = f'{int(w_end//3600):02d}:{int(w_end%3600//60):02d}:{int(w_end%60):02d},{int(w_end%1*1000):03d}'
+              print(f'EN SRT: {len(blocks)} blocks, ends at {en_end}')
+              print(f'Whisper: {len(segs)} segments, ends at {w_end_tc}')
               "
             Replace FIRST_VIDEO_SLUG with the actual first video slug from meta.yaml.
-            Save the EN SRT end time — you will pass it to the builder.
+            Save both boundaries — EN SRT end and whisper end.
 
             STEP 1 — Build mapping for the FIRST video:
             Use the Task tool to spawn a builder sub-agent:
@@ -439,8 +445,15 @@ jobs:
                   whisper word timestamps (already in SRT format). See the template for commands.
                   Replace EN_SRT and WHISPER_JSON in the commands with the actual paths above.
 
-                  CRITICAL WHISPER BOUNDARY: The EN SRT ends at {EN_END_TIME}.
-                  Your mapping MUST NOT extend beyond {EN_END_TIME}.
+                  BOUNDARIES:
+                  - EN SRT ends at {EN_END_TIME}.
+                  - Whisper ends at {WHISPER_END_TIME}.
+                  While EN SRT blocks are available, use them for timing (via builder_data).
+                  If the Ukrainian transcript continues BEYOND the EN SRT end but whisper
+                  still has data — keep mapping using whisper timestamps directly
+                  (query whisper segments with builder_data, use their start/end times).
+                  Your mapping MUST NOT extend beyond the whisper end time.
+                  Map ALL text from transcript_uk.txt — do not stop early.
 
                   CRITICAL TEXT RULE: COPY text EXACTLY from transcript_uk.txt. Do NOT
                   translate, rephrase, or improve. Not a single word changed. Your ONLY
@@ -454,7 +467,7 @@ jobs:
                   block# | start_timecode | end_timecode | ukrainian_text
                   Do not use TodoWrite — this runs in CI.
                   Do NOT write Python scripts to generate or fix the mapping.
-            Replace FIRST_VIDEO_SLUG and {EN_END_TIME} with actual values.
+            Replace FIRST_VIDEO_SLUG, {EN_END_TIME}, and {WHISPER_END_TIME} with actual values.
 
             STEP 2 — Build SRT from mapping:
             After sub-agent completes, run:
@@ -584,7 +597,7 @@ jobs:
           merge-multiple: false
 
       - name: Download subtitle artifacts
-        if: needs.build-subtitles.result == 'success'
+        if: needs.build-subtitles.result == 'success' || needs.build-subtitles.result == 'failure'
         uses: actions/download-artifact@v4
         with:
           pattern: subtitles__*

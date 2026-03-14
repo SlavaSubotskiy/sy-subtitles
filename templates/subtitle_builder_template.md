@@ -108,7 +108,9 @@ MAPEOF
 ### Step 1 — Read inputs and get overview
 - Read `transcript_uk.txt`
 - Run `builder_data info` to get block count and time range
-- Note the EN SRT end time — your mapping must NOT extend beyond it
+- Note the EN SRT end time and whisper end time
+- Your mapping must cover ALL transcript text and must NOT extend beyond the whisper end time
+- If the transcript continues beyond the EN SRT end — keep mapping using whisper timestamps directly
 
 ### Step 2 — Build mapping sentence by sentence
 
