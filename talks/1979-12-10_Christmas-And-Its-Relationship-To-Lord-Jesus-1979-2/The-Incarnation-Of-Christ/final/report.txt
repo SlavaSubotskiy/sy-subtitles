@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/final/uk.srt
+  Transcript: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/transcript_uk.txt
+  Whisper: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/source/whisper.json
+  SRT blocks: 1193
+  Whisper segments: 1083
+  (CPS hard fail skipped — builder mode)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 52087
+  SRT chars: 52087
+  Exact normalized match: OK
+  Transcript words: 8507
+  SRT words: 8507
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs whisper)
+============================================================
+  Whisper range: 00:00:00,880 — 01:28:45,850
+  SRT range:     00:00:00,880 — 01:27:45,350
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 1193
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 1193
+  CPS: avg=12.5, median=11.6, max=999.0
+  CPS > target: 89 (7.5%)
+  CPS > hard max: 22 (1.8%)
+  CPL: avg=42.7, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 13
+  Duration > max: 3
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #754: CPS=999.0 (25ch/-4.1s) "[Чоловік:] [НЕРОЗБІРЛИВО]"
+    #1078: CPS=56.2 (45ch/0.8s) "Шрі Матаджі: Гаразд, з якого часу це сталося."
+    #990: CPS=49.0 (50ch/1.0s) "Шрі Матаджі: У цьому брудному місці є хороші люди?"
+    #777: CPS=39.2 (58ch/1.5s) "Чорна магія — це дуже велика проблема, Я теж мушу сказати."
+    #778: CPS=38.7 (31ch/0.8s) "[Чоловік:] В Індії це дійсно..."
+    #975: CPS=38.0 (35ch/0.9s) "Шрі Матаджі: Що з ним відбувається?"
+    #1117: CPS=35.9 (51ch/1.4s) "Повертайтесь, ви тільки медитуйте на цю фотографію;"
+    #1121: CPS=27.6 (42ch/1.5s) "Шукач: Чи можу я поговорити про домашнє..."
+    #728: CPS=25.0 (37ch/1.5s) "[Чоловік:] Ми прийшли за реалізацією."
+    #1083: CPS=24.8 (37ch/1.5s) "[Шрі Матаджі до іншого шукача] Як ви?"
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+
+  Avg CPS: 12.5 (target ≤15.0)
+  CPS > 15.0: 89 blocks
+  CPS > 20.0: 22 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 13 blocks
+  Duration > 15000ms: 3 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
