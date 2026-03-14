@@ -87,10 +87,49 @@ Use the 2+1 agent language review (see `templates/language_review_template.md`):
 - **Reviewer S**: SY Domain (Capitalization + Terminology + Consistency)
 - **Critic**: Filter corrections, remove false positives
 
+## Adding a New Talk
+
+### Download from amruta.org
+
+```bash
+# Download everything (meta + transcript + SRT):
+python -m tools.download --url "https://www.amruta.org/..."
+
+# Download only specific parts:
+python -m tools.download --url "..." --what text   # meta.yaml + transcript_en.txt only
+python -m tools.download --url "..." --what srt    # en.srt from Vimeo only
+
+# Batch mode:
+python -m tools.download --manifest queue.yaml
+```
+
+The downloader automatically:
+- Extracts date and slug from the URL
+- Finds all Vimeo videos on the page
+- Creates `talks/{date}_{slug}/` with subdirectories per video
+- Downloads EN SRTs from Vimeo, saves `transcript_en.txt` and `meta.yaml`
+
+If Vimeo returns 401, download text first (`--what text`), then retry SRT (`--what srt`).
+
+### Push and run pipeline
+
+```bash
+git add talks/{date}_{slug}/
+git commit -m "Add {talk title}"
+git push
+# Trigger the full pipeline:
+gh workflow run subtitle-pipeline.yml -f talk_id={date}_{slug}
+```
+
+The pipeline runs: Whisper → Translate → Review → Build subtitles → Commit.
+
 ## Tools
 
 Run locally if needed:
 ```bash
+# Download talk from amruta.org
+python -m tools.download --url "https://www.amruta.org/..." [--what all|srt|text]
+
 # Align Ukrainian transcript to timestamps (new pipeline)
 python -m tools.align_uk --transcript PATH --whisper-json PATH --output PATH [--skip-word-align]
 
