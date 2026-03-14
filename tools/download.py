@@ -45,6 +45,19 @@ def parse_amruta_url(url):
     return date, slug
 
 
+def normalize_vimeo_url(url):
+    """Convert player.vimeo.com embed URL to vimeo.com direct URL.
+
+    player.vimeo.com/video/ID?h=HASH&... → vimeo.com/ID/HASH
+    The direct format works reliably with yt-dlp for both subtitles and video download.
+    Non-player URLs are returned unchanged.
+    """
+    m = re.match(r"https?://player\.vimeo\.com/video/(\d+)\?h=([a-f0-9]+)", url)
+    if m:
+        return f"https://vimeo.com/{m.group(1)}/{m.group(2)}"
+    return url
+
+
 def slugify_video_name(name):
     """Slugify a video label for use as directory name.
 
@@ -136,7 +149,7 @@ class AmrutaDownloader:
             iframe = wrapper.find("iframe", src=re.compile(r"player\.vimeo\.com"))
             if not iframe:
                 continue
-            vimeo_url = iframe["src"]
+            vimeo_url = normalize_vimeo_url(iframe["src"])
             label = self._extract_video_meta_label(wrapper)
             if label:
                 title = label
@@ -158,7 +171,7 @@ class AmrutaDownloader:
         # Strategy 2: fallback — find iframes directly
         iframes = soup.find_all("iframe", src=re.compile(r"player\.vimeo\.com"))
         for idx, iframe in enumerate(iframes):
-            vimeo_url = iframe["src"]
+            vimeo_url = normalize_vimeo_url(iframe["src"])
             label = self._find_preceding_label(iframe)
             if label:
                 title = label
