@@ -30,8 +30,13 @@ Your mapping will be processed by `build_srt.py` which adds padding, enforces ga
 
 - Padding (extending end into silence for readability)
 - Gap enforcement (≥ 80ms between blocks)
-- Duration enforcement (≥ 1.2s minimum)
+- Duration enforcement (min and max)
 - SRT formatting and numbering
+
+**NEVER shorten end times to reduce block duration.** Use the exact whisper end
+time for the last word in each block. If a block is long (15s+), that's fine —
+build_srt handles max duration. Trimming end times causes subtitles to disappear
+while speech is still playing and inflates CPS.
 
 ## CRITICAL: Semantic alignment (EN ↔ UK)
 
