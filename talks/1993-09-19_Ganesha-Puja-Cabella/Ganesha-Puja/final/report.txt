@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/final/uk.srt
+  Transcript: talks/1993-09-19_Ganesha-Puja-Cabella/transcript_uk.txt
+  Whisper: talks/1993-09-19_Ganesha-Puja-Cabella/Ganesha-Puja/source/whisper.json
+  SRT blocks: 477
+  Whisper segments: 424
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 22212
+  SRT chars: 22212
+  Exact normalized match: OK
+  Transcript words: 3559
+  SRT words: 3559
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs whisper)
+============================================================
+  Whisper range: 00:01:20,960 — 02:00:04,960
+  SRT range:     00:01:20,960 — 00:46:46,490
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 477
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 477
+  CPS: avg=9.6, median=9.2, max=15.0
+  CPS > target: 0 (0.0%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=45.6, max=79
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #327: CPS=15.0 (76ch/5.1s) "Ви берете їх — і це головний біль, щоб купити їм навіть ще о..."
+    #104: CPS=15.0 (64ch/4.3s) "Це означає, що ви поважаєте свою дитину, тому що це ваша дит..."
+    #108: CPS=15.0 (64ch/4.3s) "На щастя, у всіх вас зараз є діти, які народилися реалізован..."
+    #140: CPS=15.0 (64ch/4.3s) "Як ви знаєте, Мікеланджело мав велику суперечку з цим папою ..."
+    #26: CPS=15.0 (61ch/4.1s) "наскільки велика Його робота і скільки Йому потрібно зробити..."
+    #114: CPS=15.0 (58ch/3.9s) "і тоді його дочка каже: «Навіщо ви везете його до лікарні?"
+    #198: CPS=15.0 (55ch/3.7s) "Навіть якщо ви подивитесь на них, вони не посміхнуться,"
+    #233: CPS=15.0 (52ch/3.5s) "що сахаджа йоґи зовсім не дбають про чистоту ашраму."
+    #361: CPS=15.0 (52ch/3.5s) "як вони розуміють цю божественну музику й усе інше —"
+    #128: CPS=15.0 (43ch/2.9s) "яке створюється, просто приходить і зникає."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 9.6 (target ≤15.0)
+  CPS > 15.0: 0 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 15000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
