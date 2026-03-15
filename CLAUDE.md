@@ -13,26 +13,28 @@ Source language: English. Target language: Ukrainian.
 
 ## Workflow
 
-### New Pipeline (transcript-based)
+### Full Pipeline (transcript-based, via `subtitle-pipeline.yml`)
+
+1. Download talk: `python -m tools.download --url "https://www.amruta.org/..."`
+2. Push source files (`meta.yaml`, `transcript_en.txt`, `en.srt`)
+3. Trigger pipeline: `gh workflow run subtitle-pipeline.yml -f talk_id={date}_{slug}`
+4. Pipeline runs automatically:
+   - **Whisper**: speech detection → `whisper.json` (word-level timestamps)
+   - **Translate**: Claude agent translates EN → UK → `transcript_uk.txt`
+   - **Review**: 2+1 review (Reviewer L + Reviewer S + Critic)
+   - **Build**: Claude agent creates mapping (`uk.map`) using `builder_data` + whisper,
+     then `build_srt.py` generates `final/uk.srt`
+   - **Validate**: structural checks (text, CPL, CPS, overlaps, gaps)
+   - **Commit**: pushes all results back to repo
+
+### Legacy Workflow (SRT-based, still supported via `optimize.yml`)
 
 1. Open a talk directory under `talks/{date}_{slug}/`
-2. Read `meta.yaml` for talk metadata and video list
-3. Read `transcript_en.txt` — full English transcript (per talk)
-4. Translate to `transcript_uk.txt` (per talk, `\n` between paragraphs)
-5. Review using 2 Reviewers + 1 Critic (see `templates/language_review_template.md`)
-6. Push `transcript_uk.txt` — GitHub Actions will align + optimize automatically:
-   - `align_uk.py` maps UK text to whisper timestamps → `uk_whisper.json`
-   - `optimize_srt.py --uk-json` builds optimized subtitles → `final/uk.srt`
-
-### Legacy Workflow (SRT-based, still supported)
-
-1. Open a talk directory under `talks/{date}_{slug}/`
-2. Read `meta.yaml` for talk metadata and video list
-3. For each video subdirectory (`{video_slug}/`):
+2. For each video subdirectory (`{video_slug}/`):
    - Read `{video_slug}/source/en.srt` — the English original
    - Reference `glossary/` for Sahaja Yoga terminology
    - Edit `{video_slug}/work/uk_corrected.srt` — the Ukrainian translation
-4. Push changes — GitHub Actions will optimize and validate automatically
+3. Push `uk_corrected.srt` — triggers optimize + validate workflows automatically
 
 ## Language Rules
 
@@ -125,17 +127,28 @@ The pipeline runs: Whisper → Translate → Review → Build subtitles → Comm
 
 ## Tools
 
-Run locally if needed:
 ```bash
 # Download talk from amruta.org
 python -m tools.download --url "https://www.amruta.org/..." [--what all|srt|text]
 
-# Align Ukrainian transcript to timestamps (new pipeline)
-python -m tools.align_uk --transcript PATH --whisper-json PATH --output PATH [--skip-word-align]
+# Build SRT from mapping table (used by subtitle builder agent)
+python -m tools.build_srt --mapping PATH --output PATH --report PATH
 
-# Optimize from SRT (legacy) or uk_whisper.json (new)
+# Query EN blocks with whisper timestamps (used by subtitle builder agent)
+python -m tools.builder_data info --en-srt PATH --whisper-json PATH
+python -m tools.builder_data query --en-srt PATH --whisper-json PATH --from N --to N
+python -m tools.builder_data search --en-srt PATH --whisper-json PATH --text "KEYWORD"
+
+# Validate SRT subtitles
+python -m tools.validate_subtitles --srt PATH --transcript PATH [--whisper-json PATH] --report PATH \
+  [--skip-text-check] [--skip-time-check] [--skip-cps-check] [--skip-duration-check]
+
+# Detect and apply timecode offset between videos
+python -m tools.offset_srt detect --srt1 PATH --srt2 PATH
+python -m tools.offset_srt apply --srt PATH --offset-ms N --output PATH
+
+# Optimize SRT timing (legacy workflow)
 python -m tools.optimize_srt --srt PATH [--json PATH] --output PATH
-python -m tools.optimize_srt --uk-json PATH [--json PATH] --output PATH
 
 # Export SRT to plain text
 python -m tools.text_export --srt PATH --output PATH [--meta PATH] [--double-spacing]
