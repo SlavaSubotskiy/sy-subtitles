@@ -125,7 +125,7 @@ Run: `python -m tools.download --manifest queue.yaml`
 | CPL (chars/line) | — | ≤84 |
 | Lines per block | 1 (single-line mode) | 1 |
 | Min duration | ≥1.2s | ≥1.0s |
-| Max duration | ≤7s | ≤8s |
+| Max duration | ≤15s | ≤21s |
 | Min gap | ≥80ms (2 frames @24fps) | ≥80ms |
 
 ## License

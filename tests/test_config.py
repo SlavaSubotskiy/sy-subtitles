@@ -11,7 +11,7 @@ def test_default_values():
     assert c.max_lines == 1
     assert c.max_chars_block == 84
     assert c.min_duration_ms == 1200
-    assert c.max_duration_ms == 15000
+    assert c.max_duration_ms == 21000
     assert c.min_gap_ms == 80
     assert c.fps == 24
     assert c.single_line is True

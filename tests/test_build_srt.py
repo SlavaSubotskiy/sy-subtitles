@@ -116,10 +116,10 @@ def test_apply_padding_respects_max_duration():
         _make_block(1, 0, 1000, "A"),
         _make_block(2, 50000, 51000, "B"),  # huge gap
     ]
-    config = OptimizeConfig(min_gap_ms=80, max_duration_ms=15000)
+    config = OptimizeConfig(min_gap_ms=80, max_duration_ms=21000)
     result = apply_padding(blocks, config)
     # Should not exceed max_duration
-    assert result[0]["end_ms"] - result[0]["start_ms"] <= 15000
+    assert result[0]["end_ms"] - result[0]["start_ms"] <= 21000
 
 
 # ---------------------------------------------------------------------------

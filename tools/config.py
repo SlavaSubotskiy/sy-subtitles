@@ -11,7 +11,7 @@ class OptimizeConfig:
     max_lines: int = 1
     max_chars_block: int = 84
     min_duration_ms: int = 1200
-    max_duration_ms: int = 15000
+    max_duration_ms: int = 21000
     min_gap_ms: int = 80
     fps: int = 24
     single_line: bool = True

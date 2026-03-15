@@ -37,7 +37,7 @@
 | CPS | <=15 | <=20 |
 | Lines per block | 1 | 1 |
 | Min duration | >=1.2s | >=1.0s |
-| Max duration | <=15s | <=15s |
+| Max duration | <=15s | <=21s |
 | Min gap | >=80ms | >=80ms |
 
 ## Language Rules
