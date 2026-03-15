@@ -2,7 +2,7 @@
 
 Sahaja Yoga terminology dictionary (EN → UK) and subtle system reference.
 
-**Status: v4** — 374 terms + chakra system reference. Optimized for LLM translator agent.
+**Status: v4** – 374 terms + chakra system reference. Optimized for LLM translator agent.
 
 ## Structure
 
@@ -54,7 +54,7 @@ Translation-oriented extract from `chakra_system.yaml`:
 - 14 other deities, 13 scripture names
 - Mantra formula reference
 
-## chakra_system.yaml — Full Reference
+## chakra_system.yaml – Full Reference
 
 Complete subtle system encyclopedia (loaded on demand):
 - Etymologies, Sanskrit IAST, meanings

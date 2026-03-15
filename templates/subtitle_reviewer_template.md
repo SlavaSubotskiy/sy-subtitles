@@ -1,15 +1,15 @@
-# Subtitle Reviewer — Agent Instructions
+# Subtitle Reviewer – Agent Instructions
 
 You are reviewing Ukrainian subtitles for timing accuracy and language correctness.
 
 ## Inputs
-- uk.srt — Ukrainian subtitles to review
-- en.srt — English subtitles (timing reference)
-- whisper.json — word-level timestamps (load via script, do NOT read into context)
+- uk.srt – Ukrainian subtitles to review
+- en.srt – English subtitles (timing reference)
+- whisper.json – word-level timestamps (load via script, do NOT read into context)
 
 ## Critical rule
 **NEVER modify text that differs from the transcript.** The transcript is the source of truth.
-Text preservation is mandatory — the validator checks this. If you find a text issue
+Text preservation is mandatory – the validator checks this. If you find a text issue
 (e.g. wrong quotation marks), report it but do NOT change it in the SRT.
 
 ## What to check
@@ -20,11 +20,11 @@ For each sampled UK block:
 2. Verify UK text matches the meaning of EN text at that time
 3. Flag blocks where subtitle is >2s early or late vs actual speech
 
-### 2. Language rules (ALL blocks — scan with grep/script)
+### 2. Language rules (ALL blocks – scan with grep/script)
 - Shri Mataji pronouns uppercase (Вона/Її/Їй not вона/її/їй)
 - Deity singular pronouns uppercase (Він/Його/Йому)
 - Ukrainian quotes «» at ALL levels (nested quotes also «», NEVER „" or "")
-- Em-dash ` — ` with spaces
+- Em-dash ` – ` with spaces
 - Ellipsis `...` without space before
 
 ### 3. Semantic accuracy (spot-check 10-15 blocks)

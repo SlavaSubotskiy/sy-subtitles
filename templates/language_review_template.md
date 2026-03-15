@@ -1,4 +1,4 @@
-# Language Review — {{SLUG}}, {{DATE}}
+# Language Review – {{SLUG}}, {{DATE}}
 
 ## Process
 
@@ -15,17 +15,17 @@ Full paragraphed text from `transcript_uk.txt`:
 
 ### Review Agents
 
-**Reviewer L — Language (Orthography + Grammar + Punctuation)**
+**Reviewer L – Language (Orthography + Grammar + Punctuation)**
 Check for:
 - Spelling errors, incorrect word forms, Latin characters mixed with Cyrillic
 - Incorrect prefixes (напів-, пів-), doubled consonants
 - Missing/extra commas, double periods, incorrect ellipsis (`...` without space before)
 - Missing spaces after punctuation, extra spaces before punctuation
 - Quotation mark consistency (use `«»` at ALL levels, nested quotes also `«»`, NEVER `„"` or `""`)
-- Em-dash with spaces (` — `)
+- Em-dash with spaces (` – `)
 - Incorrect case forms, verb conjugations, gender agreement
 
-**Reviewer S — SY Domain (Capitalization + Terminology + Consistency)**
+**Reviewer S – SY Domain (Capitalization + Terminology + Consistency)**
 Check for:
 - Deity pronoun capitalization:
   - Shri Mataji: ALWAYS uppercase (Я/Мені/Мій/Моя/Вона/Її/Їй)
@@ -37,7 +37,7 @@ Check for:
 - SY terminology consistency across the entire text
 - Mixed styles (quotation marks, dashes) within the same transcript
 
-**Critic — Filter + Validate**
+**Critic – Filter + Validate**
 Reviews ALL corrections from Reviewer L and Reviewer S together:
 - Removes false positives (corrections where original was actually correct)
 - Removes trivial findings (style preferences, not errors)

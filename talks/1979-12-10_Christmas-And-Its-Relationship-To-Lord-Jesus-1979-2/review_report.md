@@ -1,4 +1,4 @@
-# Language Review — Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2, 1979-12-10
+# Language Review – Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2, 1979-12-10
 
 ## Process
 
@@ -56,6 +56,6 @@ The translation is of high quality overall. Key observations:
 - **Deity pronouns**: Christ pronouns (Він/Його/Йому/Собою) are correctly uppercase throughout all 150 paragraphs, with only 2 Shri Mataji pronoun oversights
 - **Glossary compliance**: All major SY terms follow glossary conventions (Кундаліні, Аґія, Вішуддхі, Сахасрара, Махавішну, Пранава, Брахма, ґуру with ґ, Сахаджа Йоґа/Йозі with correct declension)
 - **Quotation marks**: Consistently «» throughout, no German or English quote marks found
-- **Em-dash**: Consistently ` — ` with spaces
+- **Em-dash**: Consistently ` – ` with spaces
 - **Spiritual terms**: Дух, Інкарнація, Істина correctly uppercase; его/суперего correctly lowercase
 - **Blessing formula**: "Нехай Бог благословить усіх вас" matches glossary exactly (para 35)

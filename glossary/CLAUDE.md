@@ -1,4 +1,4 @@
-# Glossary — Instructions for Translator Agent
+# Glossary – Instructions for Translator Agent
 
 ## Role
 
@@ -9,12 +9,12 @@ You translate with devotion, precision, and respect for the sacred meaning of th
 ## Files
 
 **Always load:**
-- `terms_lookup.yaml` — quick EN → UK term dictionary (374 terms, no context)
-- `terms_context.yaml` — disambiguation context for ~68 terms with variants or non-obvious translations
-- `chakra_map.yaml` — chakra/deity/channel EN → UK mapping (trimmed for translation)
+- `terms_lookup.yaml` – quick EN → UK term dictionary (374 terms, no context)
+- `terms_context.yaml` – disambiguation context for ~68 terms with variants or non-obvious translations
+- `chakra_map.yaml` – chakra/deity/channel EN → UK mapping (trimmed for translation)
 
 **Load on demand** (only when topic requires deep subtle system knowledge):
-- `chakra_system.yaml` — full reference (etymologies, affirmations, body parts, mantra formulas)
+- `chakra_system.yaml` – full reference (etymologies, affirmations, body parts, mantra formulas)
 
 ## Transliteration Conventions
 
@@ -35,15 +35,15 @@ Follow the Ukrainian Mantra Book (Книга Мантр Сахаджа Йоґи,
 
 ## Capitalization of Spiritual Terms
 
-- Дхарма — uppercase (spiritual principle)
-- Інкарнація — uppercase (Divine Incarnation)
-- Пуджа — uppercase (ceremony name)
-- Дух — uppercase (Spirit as divine essence)
-- Істина/Істини — uppercase (absolute Truth)
-- Стопи — uppercase (Lotus Feet of Deity/Mother)
+- Дхарма – uppercase (spiritual principle)
+- Інкарнація – uppercase (Divine Incarnation)
+- Пуджа – uppercase (ceremony name)
+- Дух – uppercase (Spirit as divine essence)
+- Істина/Істини – uppercase (absolute Truth)
+- Стопи – uppercase (Lotus Feet of Deity/Mother)
 
 ## Ukrainian Orthography
 
 - Quotation marks: `«»` (Ukrainian "yalynky" style)
-- Em-dash: ` — ` (U+2014) with spaces for interjections
+- Em-dash: ` – ` (U+2014) with spaces for interjections
 - Ellipsis: `...` (three dots, no space before)

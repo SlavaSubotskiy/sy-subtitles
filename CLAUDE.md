@@ -1,4 +1,4 @@
-# SY Subtitles — Claude Code Instructions
+# SY Subtitles – Claude Code Instructions
 
 ## Role
 
@@ -31,10 +31,10 @@ Source language: English. Target language: Ukrainian.
 
 1. Open a talk directory under `talks/{date}_{slug}/`
 2. For each video subdirectory (`{video_slug}/`):
-   - Read `{video_slug}/source/en.srt` — the English original
+   - Read `{video_slug}/source/en.srt` – the English original
    - Reference `glossary/` for Sahaja Yoga terminology
-   - Edit `{video_slug}/work/uk_corrected.srt` — the Ukrainian translation
-3. Push `uk_corrected.srt` — triggers optimize + validate workflows automatically
+   - Edit `{video_slug}/work/uk_corrected.srt` – the Ukrainian translation
+3. Push `uk_corrected.srt` – triggers optimize + validate workflows automatically
 
 ## Language Rules
 
@@ -48,7 +48,7 @@ Source language: English. Target language: Ukrainian.
 - Quotation marks: `«»` (Ukrainian "yalynky" style)
 - Nested quotes (quote-within-quote): also `«»`, e.g. `«Він сказав: «Привіт»»`
 - NEVER use German `„"` or English `""` for any level of quoting
-- Em-dash: ` — ` (U+2014) with spaces for interjections
+- En-dash: ` – ` (U+2013) with spaces for interjections
 - Ellipsis: `...` (three dots, no space before)
 
 ### SRT Format
@@ -62,14 +62,14 @@ SRT files typically have 300-500+ blocks and don't fit in a single output.
 Write them in chunks using bash `cat` with heredoc and append:
 
 ```bash
-# First chunk — create file
+# First chunk – create file
 cat > path/to/uk_corrected.srt << 'SRTEOF'
 1
 00:00:01,000 --> 00:00:05,000
 Перший блок.
 SRTEOF
 
-# Subsequent chunks — append
+# Subsequent chunks – append
 cat >> path/to/uk_corrected.srt << 'SRTEOF'
 
 101

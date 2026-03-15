@@ -158,13 +158,13 @@ jobs:
           prompt: |
             You are translating a Sahaja Yoga lecture from English to Ukrainian.
 
-            REQUIRED READING — read these files before translating:
-            1. glossary/CLAUDE.md — transliteration conventions, capitalization rules
-            2. glossary/terms_lookup.yaml — EN→UK term dictionary (374 terms)
-            3. glossary/terms_context.yaml — disambiguation context for ambiguous terms
-            4. glossary/chakra_map.yaml — chakra/deity/channel mapping
-            5. talks/${{ matrix.talk_id }}/transcript_en.txt — English source transcript
-            (CLAUDE.md is auto-loaded — no need to read it)
+            REQUIRED READING – read these files before translating:
+            1. glossary/CLAUDE.md – transliteration conventions, capitalization rules
+            2. glossary/terms_lookup.yaml – EN→UK term dictionary (374 terms)
+            3. glossary/terms_context.yaml – disambiguation context for ambiguous terms
+            4. glossary/chakra_map.yaml – chakra/deity/channel mapping
+            5. talks/${{ matrix.talk_id }}/transcript_en.txt – English source transcript
+            (CLAUDE.md is auto-loaded – no need to read it)
 
             TASK:
             Translate the full English transcript into Ukrainian and write it to:
@@ -187,16 +187,16 @@ jobs:
             Read the entire transcript_en.txt in ONE Read call (do not use sed/head/tail to read in pieces).
             Read all glossary files in parallel in one turn.
 
-            WRITING STRATEGY (important — the transcript is too large for a single Write):
+            WRITING STRATEGY (important – the transcript is too large for a single Write):
             Write the translation in LARGE chunks of ~15-20 KB each using bash:
             ```bash
-            # First chunk — create file (aim for ~20-30 paragraphs per chunk)
+            # First chunk – create file (aim for ~20-30 paragraphs per chunk)
             cat > talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
             Перший абзац...
             ...багато абзаців...
             UKEOF
 
-            # Next chunks — APPEND
+            # Next chunks – APPEND
             cat >> talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
             Наступний абзац...
             ...багато абзаців...
@@ -205,11 +205,11 @@ jobs:
             Use 3-5 chunks TOTAL for the whole file. Do NOT write small chunks of 5-10 lines.
             Do not summarize, abbreviate, or skip any paragraphs.
             After writing, verify paragraph count matches EN (grep -c '^.' on both files).
-            If counts differ — you MUST fix the translation before finishing.
+            If counts differ – you MUST fix the translation before finishing.
             Every EN paragraph must correspond to exactly one UK paragraph, in the same order.
             Do not merge multiple EN paragraphs into one UK paragraph.
             Do not split one EN paragraph into multiple UK paragraphs.
-            Do not use TodoWrite — this runs in CI, no one sees progress updates.
+            Do not use TodoWrite – this runs in CI, no one sees progress updates.
 
       - name: Verify translation
         run: |
@@ -257,24 +257,24 @@ jobs:
             Perform a 2+1 language review on the Ukrainian translation.
 
             READ these files:
-            1. talks/${{ matrix.talk_id }}/transcript_uk.txt — the translation to review
-            2. talks/${{ matrix.talk_id }}/transcript_en.txt — English original for reference
-            3. templates/language_review_template.md — review process and table format
-            4. glossary/CLAUDE.md — SY terminology and capitalization rules
-            5. glossary/terms_lookup.yaml — term dictionary
-            6. glossary/terms_context.yaml — disambiguation context
-            (CLAUDE.md is auto-loaded — no need to read it)
+            1. talks/${{ matrix.talk_id }}/transcript_uk.txt – the translation to review
+            2. talks/${{ matrix.talk_id }}/transcript_en.txt – English original for reference
+            3. templates/language_review_template.md – review process and table format
+            4. glossary/CLAUDE.md – SY terminology and capitalization rules
+            5. glossary/terms_lookup.yaml – term dictionary
+            6. glossary/terms_context.yaml – disambiguation context
+            (CLAUDE.md is auto-loaded – no need to read it)
 
             PROCESS (follow templates/language_review_template.md):
 
-            Step 1 — Reviewer L (Language):
+            Step 1 – Reviewer L (Language):
             Check orthography, grammar, punctuation:
             - Spelling, incorrect word forms, mixed Latin/Cyrillic characters
-            - Comma usage, quotation marks «», em-dash ` — `, ellipsis `...`
+            - Comma usage, quotation marks «», em-dash ` – `, ellipsis `...`
             - Case forms, verb conjugations, gender agreement
             - Missing/extra spaces around punctuation
 
-            Step 2 — Reviewer S (SY Domain):
+            Step 2 – Reviewer S (SY Domain):
             Check terminology and capitalization:
             - Deity pronoun capitalization per CLAUDE.md rules
             - Glossary term consistency against terms_lookup.yaml
@@ -282,19 +282,19 @@ jobs:
             - Language names lowercase in Ukrainian
             - Spiritual term capitalization (Дхарма, Інкарнація, Пуджа, Дух, Істина, Стопи)
 
-            Step 3 — Critic:
+            Step 3 – Critic:
             Review ALL corrections from L and S:
             - Remove false positives (where original was correct)
             - Remove trivial style preferences (not real errors)
             - Keep only genuine errors with clear justification
             - Resolve conflicts between L and S suggestions
 
-            Step 4 — Apply:
+            Step 4 – Apply:
             Apply all Critic-approved corrections to talks/${{ matrix.talk_id }}/transcript_uk.txt
             Save the full review report (with all tables) to talks/${{ matrix.talk_id }}/review_report.md
 
             Be thorough but precise. Only change what genuinely needs correction.
-            Do not use TodoWrite — this runs in CI, no one sees progress updates.
+            Do not use TodoWrite – this runs in CI, no one sees progress updates.
 
       - name: Upload translation artifacts
         if: "!cancelled()"
@@ -411,7 +411,7 @@ jobs:
             TALK: talks/${{ matrix.talk_id }}/
             Read meta.yaml to discover all videos for this talk.
 
-            STEP 0 — Compute boundaries:
+            STEP 0 – Compute boundaries:
             Before building, determine the talk's time boundaries. Run:
               python3 -c "
               import re, json
@@ -426,9 +426,9 @@ jobs:
               print(f'Whisper: {len(segs)} segments, ends at {w_end_tc}')
               "
             Replace FIRST_VIDEO_SLUG with the actual first video slug from meta.yaml.
-            Save both boundaries — EN SRT end and whisper end.
+            Save both boundaries – EN SRT end and whisper end.
 
-            STEP 1 — Build mapping for the FIRST video:
+            STEP 1 – Build mapping for the FIRST video:
             Use the Task tool to spawn a builder sub-agent:
               - subagent_type: "general-purpose"
               - prompt: |
@@ -450,26 +450,26 @@ jobs:
                   - Whisper ends at {WHISPER_END_TIME}.
                   While EN SRT blocks are available, use them for timing (via builder_data).
                   If the Ukrainian transcript continues BEYOND the EN SRT end but whisper
-                  still has data — keep mapping using whisper timestamps directly
+                  still has data – keep mapping using whisper timestamps directly
                   (query whisper segments with builder_data, use their start/end times).
                   Your mapping MUST NOT extend beyond the whisper end time.
-                  Map ALL text from transcript_uk.txt — do not stop early.
+                  Map ALL text from transcript_uk.txt – do not stop early.
 
                   CRITICAL TEXT RULE: COPY text EXACTLY from transcript_uk.txt. Do NOT
                   translate, rephrase, or improve. Not a single word changed. Your ONLY
                   job is splitting and timing. The text column must be a verbatim copy-paste.
 
                   HEADER: transcript_uk.txt starts with a translated header (date, title,
-                  location, "Мова промови:" line) followed by a blank line. SKIP the header —
+                  location, "Мова промови:" line) followed by a blank line. SKIP the header –
                   start reading text from after the blank line.
 
                   Process in ~50-block chunks. Output mapping format:
                   block# | start_timecode | end_timecode | ukrainian_text
-                  Do not use TodoWrite — this runs in CI.
+                  Do not use TodoWrite – this runs in CI.
                   Do NOT write Python scripts to generate or fix the mapping.
             Replace FIRST_VIDEO_SLUG, {EN_END_TIME}, and {WHISPER_END_TIME} with actual values.
 
-            STEP 2 — Build SRT from mapping:
+            STEP 2 – Build SRT from mapping:
             After sub-agent completes, run:
               mkdir -p "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final"
               python -m tools.build_srt \
@@ -477,7 +477,7 @@ jobs:
                 --output "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
                 --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/build_report.txt"
 
-            STEP 3 — Validate the FIRST video:
+            STEP 3 – Validate the FIRST video:
               python -m tools.validate_subtitles \
                 --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
                 --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
@@ -485,29 +485,29 @@ jobs:
                 --skip-duration-check \
                 --report "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/report.txt"
 
-            If validation fails on text mismatch or CPL — these are mapping problems.
+            If validation fails on text mismatch or CPL – these are mapping problems.
             Fix ONLY the specific blocks in uk.map by rewriting the whole file via cat heredoc,
             then re-run build_srt (STEP 2) and re-validate.
-            NEVER write Python scripts to fix the mapping — fix manually block by block.
-            CPS and duration are handled by build_srt — do NOT try to fix them in the mapping.
+            NEVER write Python scripts to fix the mapping – fix manually block by block.
+            CPS and duration are handled by build_srt – do NOT try to fix them in the mapping.
 
-            STEP 4 — Handle remaining videos:
+            STEP 4 – Handle remaining videos:
             For each additional video in meta.yaml, detect offset:
               python -m tools.offset_srt detect \
                 --srt1 "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/source/en.srt" \
                 --srt2 "talks/${{ matrix.talk_id }}/NEXT_VIDEO_SLUG/source/en.srt"
-            If offset detected — apply it:
+            If offset detected – apply it:
               mkdir -p "talks/${{ matrix.talk_id }}/NEXT_VIDEO_SLUG/final"
               python -m tools.offset_srt apply \
                 --srt "talks/${{ matrix.talk_id }}/FIRST_VIDEO_SLUG/final/uk.srt" \
                 --offset-ms OFFSET \
                 --output "talks/${{ matrix.talk_id }}/NEXT_VIDEO_SLUG/final/uk.srt"
             IMPORTANT: Do NOT trim or modify the offset SRT file after applying.
-            If no offset (different content) — spawn another builder sub-agent for that video,
+            If no offset (different content) – spawn another builder sub-agent for that video,
             then run build_srt for its mapping too.
 
-            STEP 5 — Validate ALL remaining videos:
-            For offset videos (skip text and time checks — different video duration):
+            STEP 5 – Validate ALL remaining videos:
+            For offset videos (skip text and time checks – different video duration):
               python -m tools.validate_subtitles \
                 --srt "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/final/uk.srt" \
                 --transcript "talks/${{ matrix.talk_id }}/transcript_uk.txt" \
@@ -516,7 +516,7 @@ jobs:
                 --report "talks/${{ matrix.talk_id }}/OFFSET_VIDEO_SLUG/final/report.txt"
 
             Once validation passes, STOP. Do not review or rebuild.
-            Do not use TodoWrite — this runs in CI, no one sees progress updates.
+            Do not use TodoWrite – this runs in CI, no one sees progress updates.
 
       - name: Upload build artifacts
         if: "!cancelled()"
@@ -533,7 +533,7 @@ jobs:
         run: |
           TALK="talks/${{ matrix.talk_id }}"
 
-          # Find the longest video (by whisper duration) — that's the one built by the agent
+          # Find the longest video (by whisper duration) – that's the one built by the agent
           BUILT_SLUG=$(python3 -c "
           import json, yaml
           with open('$TALK/meta.yaml') as f:
@@ -574,7 +574,7 @@ jobs:
               --report "$VIDEO/final/report.txt"
           done
 
-  # Single commit job — collects all artifacts and pushes
+  # Single commit job – collects all artifacts and pushes
   commit:
     needs: [discover, translate-and-review, build-subtitles]
     if: |

@@ -122,7 +122,7 @@ Run: `python -m tools.download --manifest queue.yaml`
 | Parameter | Target | Hard Limit |
 |-----------|--------|------------|
 | CPS (chars/sec) | ≤15 | ≤20 |
-| CPL (chars/line) | — | ≤84 |
+| CPL (chars/line) | – | ≤84 |
 | Lines per block | 1 (single-line mode) | 1 |
 | Min duration | ≥1.2s | ≥1.0s |
 | Max duration | ≤15s | ≤21s |
