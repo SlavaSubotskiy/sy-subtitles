@@ -4,7 +4,7 @@
   SRT: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/final/uk.srt
   Transcript: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/transcript_uk.txt
   Whisper: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/source/whisper.json
-  SRT blocks: 1150
+  SRT blocks: 1151
   Whisper segments: 1083
   (duration hard fail skipped — builder mode)
 
@@ -33,16 +33,16 @@
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 1150
+  Total blocks: 1151
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 1150
-  CPS: avg=11.4, median=11.7, max=22.6
-  CPS > target: 52 (4.5%)
-  CPS > hard max: 2 (0.2%)
+  Total blocks: 1151
+  CPS: avg=11.4, median=11.7, max=20.0
+  CPS > target: 54 (4.7%)
+  CPS > hard max: 0 (0.0%)
   CPL: avg=44.3, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
@@ -53,16 +53,16 @@
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #783: CPS=22.6 (66ch/2.9s) "Тоді ви дізнаєтесь значення. Це не ментальне значення, це ре..."
-    #1028: CPS=21.7 (80ch/3.7s) "Шрі Матаджі: Я їду завтра і повернуся через два місяці. Візь..."
     #793: CPS=20.0 (24ch/1.2s) "одразу починає сміятися."
-    #1041: CPS=20.0 (32ch/1.6s) "Шукач: Перетворіть і його також."
+    #1029: CPS=20.0 (24ch/1.2s) "Візьміть Мою фотографію."
+    #1042: CPS=20.0 (32ch/1.6s) "Шукач: Перетворіть і його також."
     #978: CPS=20.0 (81ch/4.1s) "Дітей ніколи не можна тримати тут. Усі Мої учні виїжджають і..."
     #979: CPS=20.0 (71ch/3.6s) "Шукач: Ось у чому річ. Його старший брат навчається в універ..."
     #976: CPS=20.0 (69ch/3.5s) "Коли ви приземлилися на такому болотистому ґрунті, тоді чого..."
     #975: CPS=20.0 (65ch/3.3s) "Коли приїхали в таку брудну країну, як можна отримати щось д..."
-    #1050: CPS=20.0 (61ch/3.1s) "Шрі Матаджі: Гаразд, перестаньте приймати цей імбир з цукром..."
+    #1051: CPS=20.0 (61ch/3.1s) "Шрі Матаджі: Гаразд, перестаньте приймати цей імбир з цукром..."
     #1025: CPS=20.0 (56ch/2.8s) "Англійський йоґ м'яко перебиває: «Час іти, Шрі Матаджі»."
+    #1024: CPS=20.0 (55ch/2.8s) "Просто подивіться на його здоров'я. Така молода людина."
 
 ============================================================
   SUMMARY
@@ -73,14 +73,14 @@
   [PASS] Sequential numbering
   [PASS] CPL ≤ 84
   [PASS] Gap ≥ 80ms
-  [FAIL] CPS ≤ 20.0
+  [PASS] CPS ≤ 20.0
 
   Avg CPS: 11.4 (target ≤15.0)
-  CPS > 15.0: 52 blocks
-  CPS > 20.0: 2 blocks
+  CPS > 15.0: 54 blocks
+  CPS > 20.0: 0 blocks
   CPL > 84: 0 blocks
   Duration < 1200ms: 0 blocks
   Duration > 21000ms: 0 blocks
   Gaps < 80ms: 0 blocks
 
-  Overall: FAILED
+  Overall: PASSED
