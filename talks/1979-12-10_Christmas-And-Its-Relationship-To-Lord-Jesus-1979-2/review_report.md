@@ -3,59 +3,53 @@
 ## Process
 
 Review `transcript_uk.txt` (full paragraphed Ukrainian text) using 2 parallel reviewers + 1 critic filter.
-
-### Input Format
-
-Full paragraphed text from `transcript_uk.txt` (150 paragraphs, ~50 KB).
+This is review round 2 (previous round applied 5 corrections).
 
 ## Results
 
 ### L. Language (Orthography + Grammar + Punctuation)
 | # | Paragraph | Error | Context | Fix |
 |---|-----------|-------|---------|-----|
-| L1 | 6 | Missing comma before "що" in subordinate clause | "того що вони не є цим тілом" | "того, що вони не є цим тілом" |
-| L2 | 78 | Non-standard ellipsis (6 dots) | "......Тепер ці люди знають" | "...Тепер ці люди знають" |
+| L1 | 8 | Missing commas around parenthetical word "зрештою" (вставне слово) | «Концепція – це **зрештою** є концепція» | «Концепція – це**,** зрештою**,** є концепція» |
+| L2 | 11 | Incorrect preposition variant "зі" before single consonant "п" + vowel | сидіння **зі** похмурим виглядом | сидіння **з** похмурим виглядом |
 
 ### S. SY Domain (Capitalization + Terminology + Consistency)
 | # | Paragraph | Error | Context | Fix |
 |---|-----------|-------|---------|-----|
-| S1 | 11 | Shri Mataji pronoun lowercase | "я не знаю чому, але вони беруть шампанське" | "Я не знаю чому" |
-| S2 | 15 | Shri Mataji pronoun lowercase | "Як я бачила тут людей" | "Як Я бачила тут людей" |
-| S3 | 18 | Inconsistent transliteration of Sanskrit term | "«саншая»" (para 18) vs "«самшая»" (para 20) | "«самшая»" in para 18 to match para 20 |
-| S4 | 32 | Lowercase "пуджу" (glossary requires Пуджа uppercase) | "свою пуджу вдома" | "свою Пуджу вдома" |
+| S1 | 18 | Inconsistent transliteration of Sanskrit saṃśaya (anusvara ṃ → м, not н); paragraph 20 already has correct "самшая" | це **саншая**, це сумнів | це **самшая**, це сумнів |
+| S2 | 32 | Lowercase "пуджу" — glossary requires Пуджа uppercase (ceremony name) | я роблю свою **пуджу** вдома | я роблю свою **Пуджу** вдома |
 
 ### Critic Filter
 | Source | # | Verdict | Reason |
 |--------|---|---------|--------|
-| L | L1 | Keep | Standard Ukrainian grammar: comma required before "що" as subordinate clause conjunction |
-| L | L2 | Remove | Transcription convention for recording gap, not a regular text ellipsis; mirrors English original notation |
-| S | S1 | Keep | Clear violation of Shri Mataji pronoun capitalization rule (CLAUDE.md) |
-| S | S2 | Keep | Clear violation of Shri Mataji pronoun capitalization rule (CLAUDE.md) |
-| S | S3 | Keep | Same Sanskrit term (samshaya) must be transliterated consistently; "самшая" is correct (anusvara assimilates before sibilant) |
-| S | S4 | Keep | Glossary entry: Puja = Пуджа (uppercase, ceremony name); rule applies even in quoted speech |
+| L | L1 | Keep | "зрештою" is a standard parenthetical word (вставне слово) in Ukrainian and requires comma delimitation per punctuation rules. Genuine omission. |
+| L | L2 | Keep | Preposition "зі" is used before consonant clusters starting with з/с/ш/щ + consonant. "Похмурим" starts with single consonant "п" + vowel "о" — standard "з" is required. |
+| S | S1 | Keep | Sanskrit "saṃśaya" has anusvara (ṃ) before palatal sibilant (ś), which assimilates to "м" in Ukrainian transliteration. "самшая" is correct and already used in paragraph 20. "саншая" with "н" is an error. |
+| S | S2 | Keep | Glossary explicitly lists "Пуджа – uppercase (ceremony name)". Rule applies regardless of syntactic position or quoted speech context. |
 
 ### Approved Corrections
 | # | Paragraph | Error | Fix |
 |---|-----------|-------|-----|
-| 1 | 6 | Missing comma: "того що" | "того, що" |
-| 2 | 11 | Shri Mataji pronoun: "я не знаю чому" | "Я не знаю чому" |
-| 3 | 15 | Shri Mataji pronoun: "Як я бачила" | "Як Я бачила" |
-| 4 | 18 | Inconsistent transliteration: "саншая" | "самшая" |
-| 5 | 32 | Lowercase ceremony name: "пуджу" | "Пуджу" |
+| 1 | 8 | Missing commas around "зрештою" | це зрештою є → це, зрештою, є |
+| 2 | 11 | Wrong preposition variant "зі" | зі похмурим → з похмурим |
+| 3 | 18 | Incorrect transliteration "саншая" | саншая → самшая |
+| 4 | 32 | Lowercase ceremony name "пуджу" | пуджу → Пуджу |
 
 ## Summary
 
-- Language (L): 2 issues found, 1 approved by Critic
-- SY Domain (S): 4 issues found, 4 approved by Critic
-- Total corrections applied: 5
+- Language (L): 2 issues found, 2 approved by Critic
+- SY Domain (S): 2 issues found, 2 approved by Critic
+- Total corrections applied: 4
 
 ## Notes
 
 The translation is of high quality overall. Key observations:
 
-- **Deity pronouns**: Christ pronouns (Він/Його/Йому/Собою) are correctly uppercase throughout all 150 paragraphs, with only 2 Shri Mataji pronoun oversights
-- **Glossary compliance**: All major SY terms follow glossary conventions (Кундаліні, Аґія, Вішуддхі, Сахасрара, Махавішну, Пранава, Брахма, ґуру with ґ, Сахаджа Йоґа/Йозі with correct declension)
-- **Quotation marks**: Consistently «» throughout, no German or English quote marks found
-- **Em-dash**: Consistently ` – ` with spaces
-- **Spiritual terms**: Дух, Інкарнація, Істина correctly uppercase; его/суперего correctly lowercase
-- **Blessing formula**: "Нехай Бог благословить усіх вас" matches glossary exactly (para 35)
+- **Deity pronouns**: Christ pronouns (Він/Його/Йому/Собою/Свій) are correctly uppercase throughout. Shri Mataji pronouns (Я/Мені/Моє/Мій) are consistently uppercase (previous round fixed 2 oversights).
+- **Glossary compliance**: All major SY terms follow glossary conventions — Кундаліні, Аґія, Вішуддхі, Сахасрара, Махавішну, Пранава, Брахма, Вірата, ракшаси, ґани, Майя. Proper ґ used throughout (ґуру, Аґія, Ґуру Нанак, Джаґадамба, Ґанеша).
+- **Sahaja Yoga declension**: "Сахаджа Йозі" (locative) correctly uses ґ→з alternation per glossary context.
+- **Quotation marks**: Consistently «» throughout, no German „" or English "" found.
+- **Em-dash**: Consistently ` – ` (U+2013) with spaces.
+- **Spiritual terms**: Дух, Інкарнація, Істина correctly uppercase; его/суперего correctly lowercase per glossary.
+- **Blessing formula**: "Нехай Бог благословить усіх вас" (paragraph 35) matches glossary formula exactly.
+- **Regular person pronouns**: Correctly lowercase in quoted speech and dialogue sections.

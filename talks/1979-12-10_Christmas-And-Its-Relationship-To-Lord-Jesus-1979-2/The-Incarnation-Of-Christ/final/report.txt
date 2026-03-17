@@ -4,18 +4,18 @@
   SRT: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/final/uk.srt
   Transcript: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/transcript_uk.txt
   Whisper: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/source/whisper.json
-  SRT blocks: 1151
+  SRT blocks: 1062
   Whisper segments: 1083
   (duration hard fail skipped — builder mode)
 
 ============================================================
   CHECK 1: Text preservation
 ============================================================
-  Transcript chars: 52087
-  SRT chars: 52087
+  Transcript chars: 52339
+  SRT chars: 52339
   Exact normalized match: OK
-  Transcript words: 8507
-  SRT words: 8507
+  Transcript words: 8518
+  SRT words: 8518
   Word-level match: OK
 
 ============================================================
@@ -27,42 +27,42 @@
   CHECK 3: Time range (vs whisper)
 ============================================================
   Whisper range: 00:00:00,880 — 01:28:45,850
-  SRT range:     00:00:00,880 — 01:26:57,310
+  SRT range:     00:00:00,880 — 01:28:47,850
   Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 1151
+  Total blocks: 1062
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 1151
-  CPS: avg=11.4, median=11.7, max=20.0
-  CPS > target: 54 (4.7%)
-  CPS > hard max: 0 (0.0%)
-  CPL: avg=44.3, max=84
+  Total blocks: 1062
+  CPS: avg=11.4, median=11.5, max=89.6
+  CPS > target: 33 (3.1%)
+  CPS > hard max: 2 (0.2%)
+  CPL: avg=48.3, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
-  Duration < min: 0
+  Duration < min: 2
   Duration > max: 0
   Overlaps: 0
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #793: CPS=20.0 (24ch/1.2s) "одразу починає сміятися."
-    #1029: CPS=20.0 (24ch/1.2s) "Візьміть Мою фотографію."
-    #1042: CPS=20.0 (32ch/1.6s) "Шукач: Перетворіть і його також."
-    #978: CPS=20.0 (81ch/4.1s) "Дітей ніколи не можна тримати тут. Усі Мої учні виїжджають і..."
-    #979: CPS=20.0 (71ch/3.6s) "Шукач: Ось у чому річ. Його старший брат навчається в універ..."
-    #976: CPS=20.0 (69ch/3.5s) "Коли ви приземлилися на такому болотистому ґрунті, тоді чого..."
-    #975: CPS=20.0 (65ch/3.3s) "Коли приїхали в таку брудну країну, як можна отримати щось д..."
-    #1051: CPS=20.0 (61ch/3.1s) "Шрі Матаджі: Гаразд, перестаньте приймати цей імбир з цукром..."
-    #1025: CPS=20.0 (56ch/2.8s) "Англійський йоґ м'яко перебиває: «Час іти, Шрі Матаджі»."
-    #1024: CPS=20.0 (55ch/2.8s) "Просто подивіться на його здоров'я. Така молода людина."
+    #725: CPS=89.6 (25ch/0.3s) "[Чоловік:] [НЕРОЗБІРЛИВО]"
+    #724: CPS=36.9 (45ch/1.2s) "Добре? Ви читали «Рамаяну» чи ні, або вашу..."
+    #723: CPS=20.0 (75ch/3.8s) "[Шрі Матаджі:] Яке значення того, що Бхарата носив «падуки» ..."
+    #738: CPS=20.0 (65ch/3.3s) "будь-хто, хто бачить Мою цю річ [бінді], одразу починає смія..."
+    #947: CPS=20.0 (63ch/3.2s) "Діти мають думати про себе. Просто подивіться на його здоров..."
+    #721: CPS=20.0 (60ch/3.0s) "[Чоловік:] Ні. «ПАДАТАН»... можу... я знаю значення цього..."
+    #746: CPS=20.0 (56ch/2.8s) "[Шрі Матаджі:] Дуже погано, Я знаю. В Індії так. Згодна."
+    #949: CPS=20.0 (55ch/2.8s) "Англійський йоґ тихо перебиває: «Час іти, Шрі Матаджі.»"
+    #719: CPS=20.0 (53ch/2.7s) "Ви – індус, ви розумієте це. [Звучить як «ПАДАТРАН»]."
+    #714: CPS=20.0 (48ch/2.4s) "[Чоловік говорить до Шрі Матаджі майже нечутно:]"
 
 ============================================================
   SUMMARY
@@ -73,14 +73,14 @@
   [PASS] Sequential numbering
   [PASS] CPL ≤ 84
   [PASS] Gap ≥ 80ms
-  [PASS] CPS ≤ 20.0
+  [FAIL] CPS ≤ 20.0
 
   Avg CPS: 11.4 (target ≤15.0)
-  CPS > 15.0: 54 blocks
-  CPS > 20.0: 0 blocks
+  CPS > 15.0: 33 blocks
+  CPS > 20.0: 2 blocks
   CPL > 84: 0 blocks
-  Duration < 1200ms: 0 blocks
+  Duration < 1200ms: 2 blocks
   Duration > 21000ms: 0 blocks
   Gaps < 80ms: 0 blocks
 
-  Overall: PASSED
+  Overall: FAILED
