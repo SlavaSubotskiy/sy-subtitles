@@ -78,7 +78,7 @@ cat >> path/to/uk_corrected.srt << 'SRTEOF'
 SRTEOF
 ```
 
-Use ~100 blocks per chunk (5 chunks for a typical talk).
+Use ~150 blocks per chunk (2-3 chunks for a typical talk).
 
 When both videos share the same text (different timecodes only), translate the first video manually, then use a Python script to copy the Ukrainian text with the second video's timecodes.
 

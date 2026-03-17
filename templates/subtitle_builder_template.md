@@ -119,7 +119,7 @@ MAPEOF
 
 ### Step 2 – Build mapping sentence by sentence
 
-Work through the talk in **~50-block chunks**.
+Work through the talk in **~80-block chunks**.
 
 **Before each chunk**, anchor to the correct EN position:
 
@@ -129,7 +129,7 @@ Work through the talk in **~50-block chunks**.
 4. Note the returned EN block number and its `Timing` timecodes
 5. Query EN blocks starting from that number:
 ```bash
-python -m tools.builder_data query --en-srt EN_SRT --whisper-json WHISPER_JSON --from FOUND_NUM --to FOUND_NUM+40
+python -m tools.builder_data query --en-srt EN_SRT --whisper-json WHISPER_JSON --from FOUND_NUM --to FOUND_NUM+70
 ```
 6. Use **THESE** timecodes, not sequential ones from the previous chunk's end
 

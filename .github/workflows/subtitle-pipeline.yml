@@ -150,8 +150,6 @@ jobs:
       - name: Translate to Ukrainian
         if: inputs.translate != false
         uses: anthropics/claude-code-action@v1
-        env:
-          CLAUDE_CODE_MAX_OUTPUT_TOKENS: "64000"
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
@@ -191,9 +189,9 @@ jobs:
             Read all glossary files in parallel in one turn.
 
             WRITING STRATEGY (important – the transcript is too large for a single Write):
-            Write the translation in LARGE chunks of ~15-20 KB each using bash:
+            Write the translation in LARGE chunks of ~30-40 KB each using bash:
             ```bash
-            # First chunk – create file (aim for ~20-30 paragraphs per chunk)
+            # First chunk – create file (aim for ~40-60 paragraphs per chunk)
             cat > talks/${{ matrix.talk_id }}/transcript_uk.txt << 'UKEOF'
             Перший абзац...
             ...багато абзаців...
@@ -205,7 +203,7 @@ jobs:
             ...багато абзаців...
             UKEOF
             ```
-            Use 3-5 chunks TOTAL for the whole file. Do NOT write small chunks of 5-10 lines.
+            Use 2-3 chunks TOTAL for the whole file. Do NOT write small chunks of 5-10 lines.
             Do not summarize, abbreviate, or skip any paragraphs.
             After writing, verify paragraph count matches EN (grep -c '^.' on both files).
             If counts differ – you MUST fix the translation before finishing.
@@ -248,8 +246,6 @@ jobs:
       - name: Review translation (2+1)
         if: inputs.review != false
         uses: anthropics/claude-code-action@v1
-        env:
-          CLAUDE_CODE_MAX_OUTPUT_TOKENS: "64000"
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
@@ -466,7 +462,7 @@ jobs:
                   location, "Мова промови:" line) followed by a blank line. SKIP the header –
                   start reading text from after the blank line.
 
-                  Process in ~50-block chunks. Output mapping format:
+                  Process in ~80-block chunks. Output mapping format:
                   block# | start_timecode | end_timecode | ukrainian_text
                   Do not use TodoWrite – this runs in CI.
                   Do NOT write Python scripts to generate or fix the mapping.
