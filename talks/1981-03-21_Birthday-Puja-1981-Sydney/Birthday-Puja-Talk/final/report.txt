@@ -1,0 +1,71 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1981-03-21_Birthday-Puja-1981-Sydney/Birthday-Puja-Talk/final/uk.srt
+  Transcript: talks/1981-03-21_Birthday-Puja-1981-Sydney/transcript_uk.txt
+  Whisper: talks/1981-03-21_Birthday-Puja-1981-Sydney/Birthday-Puja-Talk/source/whisper.json
+  SRT blocks: 374
+  Whisper segments: 380
+  (text preservation check skipped — offset video)
+  (time range check skipped — offset video)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 374
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 374
+  CPS: avg=9.3, median=9.0, max=15.0
+  CPS > target: 0 (0.0%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=48.2, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #208: CPS=15.0 (82ch/5.5s) "Тож наскільки мудрість є важливою, що ви навіть стаєте Сакші..."
+    #142: CPS=15.0 (76ch/5.1s) "І якщо ми залишимо наші привʼязаності, наші матеріальні проб..."
+    #50: CPS=15.0 (55ch/3.7s) "Я наведу вам дуже простий приклад: Я їхала до Гонконгу,"
+    #157: CPS=15.0 (52ch/3.5s) "цей магнетизм у них, магнетизм, що є в Матері Землі,"
+    #233: CPS=15.0 (52ch/3.5s) "Увага була, як у тварин, лише на їжі, можна сказати:"
+    #113: CPS=15.0 (49ch/3.3s) "Як тільки ви почнете рахувати свої благословення,"
+    #78: CPS=15.0 (43ch/2.9s) "і ми повинні відчувати плани Божественного."
+    #108: CPS=15.0 (43ch/2.9s) "ви повинні відступити і подивитися на себе:"
+    #83: CPS=15.0 (40ch/2.7s) "ви знаєте, як вам слід балансувати себе."
+    #368: CPS=15.0 (80ch/5.3s) "Тому що духовна особа не повинна пересуватися з місця на міс..."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 9.3 (target ≤15.0)
+  CPS > 15.0: 0 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
