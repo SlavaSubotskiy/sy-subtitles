@@ -4,7 +4,7 @@
   SRT: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/final/uk.srt
   Transcript: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/transcript_uk.txt
   Whisper: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/source/whisper.json
-  SRT blocks: 1324
+  SRT blocks: 1062
   Whisper segments: 1083
   (duration hard fail skipped — builder mode)
 
@@ -27,61 +27,60 @@
   CHECK 3: Time range (vs whisper)
 ============================================================
   Whisper range: 00:00:00,880 — 01:28:45,850
-  SRT range:     00:00:00,880 — 01:30:04,000
-  WARNING: SRT ends 78150ms after speech
-  Time range: WARNING
+  SRT range:     00:00:00,880 — 01:26:06,850
+  Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 1324
+  Total blocks: 1062
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 1324
-  CPS: avg=11.0, median=10.8, max=57.5
-  CPS > target: 92 (6.9%)
-  CPS > hard max: 25 (1.9%)
-  CPL: avg=38.5, max=78
+  Total blocks: 1062
+  CPS: avg=11.3, median=11.6, max=24.2
+  CPS > target: 58 (5.5%)
+  CPS > hard max: 4 (0.4%)
+  CPL: avg=48.3, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
-  Duration < min: 10
-  Duration > max: 3
+  Duration < min: 0
+  Duration > max: 0
   Overlaps: 0
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #780: CPS=57.5 (69ch/1.2s) "[Шрі Матаджі:] Ось саме так, саме так, саме так, саме так, с..."
-    #1095: CPS=33.1 (39ch/1.2s) "англійці теж були дуже хорошими людьми,"
-    #1090: CPS=33.0 (29ch/0.9s) "Ти стаєш англійцем. Так? Гей?"
-    #802: CPS=32.1 (25ch/0.8s) "[Чоловік:] [НЕРОЗБІРЛИВО]"
-    #1256: CPS=28.9 (37ch/1.3s) "отримують реалізацію, не ми, індійці."
-    #810: CPS=28.4 (44ch/1.6s) "Наприклад, бачите, індійці завжди запитують:"
-    #1121: CPS=27.7 (31ch/1.1s) "Індійці зовсім не шукають Бога,"
-    #779: CPS=25.0 (37ch/1.5s) "[Чоловік:] Ми прийшли за реалізацією."
-    #1116: CPS=25.0 (21ch/0.8s) "тому що шукають Бога,"
-    #1276: CPS=24.7 (42ch/1.7s) "Ви відчуваєте прохолодний вітерець у руці?"
+    #901: CPS=24.2 (35ch/1.4s) "Шрі Матаджі: Що з ним відбувається?"
+    #922: CPS=21.9 (42ch/1.9s) "Бідолахи, вони були дуже хорошими людьми –"
+    #965: CPS=20.9 (61ch/2.9s) "Вони – віддані, шукають Бога. Щодо відданих – це інша справа..."
+    #912: CPS=20.2 (59ch/2.9s) "і ось чому моє серце таке, що Мати прийде...[нерозбірливо]."
+    #767: CPS=20.0 (67ch/3.4s) "Тож, тепер ті, хто сьогодні нові люди, будь ласка, виходьте ..."
+    #905: CPS=20.0 (63ch/3.2s) "Коли приїхали в таку брудну країну – як можете отримати хоро..."
+    #736: CPS=20.0 (62ch/3.1s) "Як Я бачила в Англії, будь-хто, хто бачить Мою цю річ [бінді..."
+    #706: CPS=20.0 (60ch/3.0s) "Хтось із реалізованих душ, задайте Мені питання, будь ласка."
+    #714: CPS=20.0 (55ch/2.8s) "[Мані:] ...Взуття на столі. Хто Вона... [НЕРОЗБІРЛИВО]?"
+    #703: CPS=20.0 (51ch/2.6s) "Ось так, саме такий має бути дух. Просто попросіть!"
 
 ============================================================
   SUMMARY
 ============================================================
   [PASS] Text preservation
   [PASS] No overlaps
-  [FAIL] Time range
+  [PASS] Time range
   [PASS] Sequential numbering
   [PASS] CPL ≤ 84
   [PASS] Gap ≥ 80ms
   [FAIL] CPS ≤ 20.0
 
-  Avg CPS: 11.0 (target ≤15.0)
-  CPS > 15.0: 92 blocks
-  CPS > 20.0: 25 blocks
+  Avg CPS: 11.3 (target ≤15.0)
+  CPS > 15.0: 58 blocks
+  CPS > 20.0: 4 blocks
   CPL > 84: 0 blocks
-  Duration < 1200ms: 10 blocks
-  Duration > 21000ms: 3 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
   Gaps < 80ms: 0 blocks
 
   Overall: FAILED
