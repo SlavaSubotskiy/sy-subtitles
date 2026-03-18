@@ -462,7 +462,7 @@ jobs:
                   location, "Мова промови:" line) followed by a blank line. SKIP the header –
                   start reading text from after the blank line.
 
-                  Process in ~80-block chunks. Output mapping format:
+                  Process in ~50-block chunks. Output mapping format:
                   block# | start_timecode | end_timecode | ukrainian_text
                   Do not use TodoWrite – this runs in CI.
                   Do NOT write Python scripts to generate or fix the mapping.
