@@ -27,6 +27,7 @@ from .srt_utils import load_whisper_json, ms_to_time
 # --- Configuration ---
 CHUNK_TARGET = 50
 CHUNK_MAX = 80
+CHUNK_MAX_PARAS = 15
 
 
 # ---------------------------------------------------------------------------
@@ -109,11 +110,11 @@ def make_chunks(uk_blocks, para_boundaries):
 
     for p_idx in para_indices:
         p_size = len(para_blocks.get(p_idx, []))
-        if current_size + p_size > CHUNK_MAX and current_paras:
+        if (current_size + p_size > CHUNK_MAX or len(current_paras) >= CHUNK_MAX_PARAS) and current_paras:
             chunks.append(current_paras)
             current_paras = [p_idx]
             current_size = p_size
-        elif current_size + p_size >= CHUNK_TARGET:
+        elif current_size + p_size >= CHUNK_TARGET or len(current_paras) + 1 >= CHUNK_MAX_PARAS:
             current_paras.append(p_idx)
             chunks.append(current_paras)
             current_paras = []
