@@ -4,7 +4,7 @@
   SRT: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/final/uk.srt
   Transcript: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/transcript_uk.txt
   Whisper: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/source/whisper.json
-  SRT blocks: 1132
+  SRT blocks: 1094
   Whisper segments: 1083
   (duration hard fail skipped — builder mode)
 
@@ -12,11 +12,15 @@
   CHECK 1: Text preservation
 ============================================================
   Transcript chars: 52339
-  SRT chars: 52339
-  Exact normalized match: OK
+  SRT chars: 50843
+  Exact normalized match: MISMATCH
   Transcript words: 8518
-  SRT words: 8518
-  Word-level match: OK
+  SRT words: 8265
+  Word-level match: MISMATCH
+
+  First difference at word 7171:
+    Transcript: ...не слухає. [Нерозбірливо] Шрі Матаджі: Тепер усі...
+    SRT:        ...не слухає. [Нерозбірливо] Ти добре спиш? Ти...
 
 ============================================================
   CHECK 2: Timing overlaps
@@ -27,47 +31,47 @@
   CHECK 3: Time range (vs whisper)
 ============================================================
   Whisper range: 00:00:00,880 — 01:28:45,850
-  SRT range:     00:00:00,880 — 01:27:45,350
+  SRT range:     00:00:01,880 — 01:27:43,265
   Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 1132
+  Total blocks: 1094
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 1132
-  CPS: avg=13.0, median=11.7, max=999.0
-  CPS > target: 33 (2.9%)
-  CPS > hard max: 6 (0.5%)
-  CPL: avg=45.2, max=84
+  Total blocks: 1094
+  CPS: avg=11.2, median=11.8, max=39.4
+  CPS > target: 20 (1.8%)
+  CPS > hard max: 1 (0.1%)
+  CPL: avg=45.5, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
-  Duration < min: 5
+  Duration < min: 3
   Duration > max: 2
   Overlaps: 0
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #904: CPS=999.0 (60ch/-38.2s) "Шрі Матаджі: Тепер усі діти хороші, чого ви втрачаєте серце?"
-    #915: CPS=999.0 (10ch/-0.1s) "Тут пекло."
-    #1131: CPS=61.7 (74ch/1.2s) "[Шрі Матаджі продовжує і розмовляє з деякими іншими гінді та..."
-    #1129: CPS=28.8 (30ch/1.0s) "Дихальні вправи, ви робили...?"
-    #1128: CPS=24.5 (73ch/3.0s) "І потім повертається до «дихального» чоловіка:] Ви робили як..."
-    #1130: CPS=20.6 (44ch/2.1s) "[Чоловік:] ...Дихальні вправи, зовсім трохи."
-    #1124: CPS=20.0 (10ch/0.5s) "Все добре."
-    #985: CPS=20.0 (55ch/2.8s) "Англійський йоґ тихо перебиває: «Час іти, Шрі Матаджі.»"
-    #1127: CPS=20.0 (54ch/2.7s) "[Мати розмовляє зі сльозливою індійською жінкою гінді."
+    #948: CPS=39.4 (43ch/1.1s) "Шрі Матаджі: Добре. [Мати продовжує гінді.]"
     #695: CPS=20.0 (53ch/2.7s) "Ви – індус, ви розумієте це. [Звучить як «ПАДАТРАН»]."
+    #945: CPS=20.0 (35ch/1.8s) "Просто подивіться на його здоров'я."
+    #762: CPS=20.0 (28ch/1.4s) "Шрі Матаджі: Набагато краще!"
+    #951: CPS=20.0 (18ch/0.9s) "Візьміть Моє фото."
+    #946: CPS=19.9 (19ch/1.0s) "Така молода людина."
+    #703: CPS=19.9 (26ch/1.3s) "[Шрі Матаджі:] Тоді добре."
+    #947: CPS=19.1 (55ch/2.9s) "Англійський йоґ тихо перебиває: «Час іти, Шрі Матаджі.»"
+    #966: CPS=18.8 (31ch/1.7s) "Щодо відданих – це інша справа."
+    #965: CPS=17.9 (29ch/1.6s) "Вони – віддані, шукають Бога."
 
 ============================================================
   SUMMARY
 ============================================================
-  [PASS] Text preservation
+  [FAIL] Text preservation
   [PASS] No overlaps
   [PASS] Time range
   [PASS] Sequential numbering
@@ -75,11 +79,11 @@
   [PASS] Gap ≥ 80ms
   [FAIL] CPS ≤ 20.0
 
-  Avg CPS: 13.0 (target ≤15.0)
-  CPS > 15.0: 33 blocks
-  CPS > 20.0: 6 blocks
+  Avg CPS: 11.2 (target ≤15.0)
+  CPS > 15.0: 20 blocks
+  CPS > 20.0: 1 blocks
   CPL > 84: 0 blocks
-  Duration < 1200ms: 5 blocks
+  Duration < 1200ms: 3 blocks
   Duration > 21000ms: 2 blocks
   Gaps < 80ms: 0 blocks
 
