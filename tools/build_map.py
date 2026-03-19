@@ -268,9 +268,9 @@ def cmd_prepare(args):
 
         matrix_items.append({"chunk_idx": idx, "n_blocks": len(blocks)})
 
-    # Output matrix for GitHub Actions
+    # Output matrix JSON to stdout (only line on stdout)
     matrix = {"include": matrix_items}
-    print(f"\nMatrix: {json.dumps(matrix)}")
+    print(json.dumps(matrix))
 
     # Also save metadata
     meta = {
