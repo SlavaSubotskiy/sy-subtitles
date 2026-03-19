@@ -173,7 +173,7 @@ def format_whisper_for_chunk(whisper_segments, start_ms, end_ms):
     return "\n".join(lines)
 
 
-def build_chunk_prompt(uk_blocks, en_text, whisper_text):
+def build_chunk_prompt(uk_blocks, en_text, whisper_text, time_start_ms, time_end_ms):
     """Build the full prompt for one chunk."""
     blocks_text = "\n".join(f"#{b['id']}: {b['text']}" for b in uk_blocks)
 
@@ -183,6 +183,12 @@ You have 3 sources:
 1. UKRAINIAN BLOCKS — subtitle text needing timecodes
 2. ENGLISH TRANSCRIPT — accurate English text (meaning reference)
 3. WHISPER DATA — English words with timestamps from audio (timing source)
+
+IMPORTANT TIME BOUNDARIES:
+- This chunk covers audio from {ms_to_time(time_start_ms)} to {ms_to_time(time_end_ms)}
+- Block #{uk_blocks[0]["id"]} must start at or after {ms_to_time(time_start_ms)}
+- Block #{uk_blocks[-1]["id"]} must end at or before {ms_to_time(time_end_ms)}
+- All timecodes must be within this range and sequential
 
 Match Ukrainian blocks to English meaning, then find corresponding whisper
 word timestamps. Use the whisper word START time for block start, and the
@@ -254,7 +260,7 @@ def cmd_prepare(args):
 
         en_text = "\n\n".join(f"[P{p + 1}] {en_paras[p]}" for p in para_idxs if p < len(en_paras))
         whisper_text = format_whisper_for_chunk(whisper_segs, chunk["time_start_ms"], chunk["time_end_ms"])
-        prompt = build_chunk_prompt(blocks, en_text, whisper_text)
+        prompt = build_chunk_prompt(blocks, en_text, whisper_text, chunk["time_start_ms"], chunk["time_end_ms"])
 
         prompt_file = work / f"chunk_{idx}.txt"
         with open(prompt_file, "w", encoding="utf-8") as f:
