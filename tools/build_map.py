@@ -338,10 +338,19 @@ def cmd_assemble(args):
         all_timecodes.update(chunk_tc)
         print(f"  Chunk {idx}: {len(chunk_tc)} timecodes", file=sys.stderr)
 
+    # Check completeness
+    expected = {b["id"] for b in uk_blocks}
+    got = set(all_timecodes.keys())
+    missing = sorted(expected - got)
+    if missing:
+        errors.append(f"{len(missing)} blocks missing timecodes: {missing[:20]}{'...' if len(missing) > 20 else ''}")
+
     if errors:
         for e in errors:
             print(f"  ERROR: {e}", file=sys.stderr)
         sys.exit(1)
+
+    print(f"  Total: {len(all_timecodes)}/{len(uk_blocks)} blocks", file=sys.stderr)
 
     # Check completeness
     expected = {b["id"] for b in uk_blocks}
