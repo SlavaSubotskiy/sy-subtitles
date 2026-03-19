@@ -416,7 +416,6 @@ jobs:
   # Phase 2: LLM determines timecodes (parallel matrix)
   build-chunks:
     needs: prepare-build
-    if: needs.prepare-build.result == 'success'
     strategy:
       matrix: ${{ fromJson(needs.prepare-build.outputs.chunk_matrix) }}
       fail-fast: false
