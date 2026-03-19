@@ -390,9 +390,8 @@ jobs:
             --talk-dir "$TALK" \
             --video-slug "$FIRST_VIDEO" > /tmp/matrix_raw.json
 
-          # Matrix is minimal — just chunk indices
-          cat /tmp/matrix_raw.json
-          echo "chunk_matrix=$(cat /tmp/matrix_raw.json)" >> "$GITHUB_OUTPUT"
+          # DEBUG: hardcoded matrix for testing
+          echo 'chunk_matrix={"include":[{"ci":0},{"ci":1},{"ci":2}]}' >> "$GITHUB_OUTPUT"
 
       - name: Upload chunk files
         uses: actions/upload-artifact@v4
