@@ -479,12 +479,19 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
 
-      - name: Debug file locations
+      - name: Place chunk results into work dir
         run: |
-          echo "=== All chunk files ==="
-          find . -name "chunk_*" -type f 2>/dev/null || true
-          echo "=== Talk dir ==="
-          find talks/${{ needs.prepare-build.outputs.talk_id }} -type f 2>/dev/null | head -30 || true
+          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
+          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
+          WORK="$TALK/$VIDEO/work"
+          mkdir -p "$WORK"
+          # Move result files from talk root to work dir (LCA stripping)
+          for f in "$TALK"/chunk_*_result.txt; do
+            [ -f "$f" ] && mv "$f" "$WORK/" && echo "Placed: $(basename $f)"
+          done
+          echo "Work dir:"
+          ls "$WORK"/chunk_*_result.txt 2>/dev/null | wc -l
+          echo "result files"
 
       - name: Assemble mapping and build SRT
         run: |
