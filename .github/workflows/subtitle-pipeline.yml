@@ -367,21 +367,23 @@ jobs:
           ")
           echo "first_video=$FIRST_VIDEO" >> "$GITHUB_OUTPUT"
 
-          # Run prepare
-          MATRIX=$(python -m tools.build_map prepare \
+          # Run prepare (JSON matrix goes to file, logs to stderr)
+          python -m tools.build_map prepare \
             --talk-dir "$TALK" \
-            --video-slug "$FIRST_VIDEO")
+            --video-slug "$FIRST_VIDEO" > /tmp/matrix_raw.json
 
           # Add talk_id and video_slug to each matrix item
-          MATRIX=$(MATRIX_JSON="$MATRIX" TALK_ID="${{ matrix.talk_id }}" VIDEO="$FIRST_VIDEO" python3 -c "
-          import json, os
-          m = json.loads(os.environ['MATRIX_JSON'])
+          python3 -c "
+          import json
+          with open('/tmp/matrix_raw.json') as f:
+            m = json.load(f)
           for item in m['include']:
-            item['talk_id'] = os.environ['TALK_ID']
-            item['video_slug'] = os.environ['VIDEO']
+            item['talk_id'] = '${{ matrix.talk_id }}'
+            item['video_slug'] = '$FIRST_VIDEO'
           print(json.dumps(m))
-          ")
-          echo "chunk_matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          " > /tmp/matrix.json
+
+          echo "chunk_matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
 
       - name: Upload chunk files
         uses: actions/upload-artifact@v4
