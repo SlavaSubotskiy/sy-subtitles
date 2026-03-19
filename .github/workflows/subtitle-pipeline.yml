@@ -401,6 +401,7 @@ jobs:
           print(json.dumps(m))
           " > /tmp/matrix.json
 
+          cat /tmp/matrix.json
           echo "chunk_matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
 
       - name: Upload chunk files
@@ -415,6 +416,7 @@ jobs:
   # Phase 2: LLM determines timecodes (parallel matrix)
   build-chunks:
     needs: prepare-build
+    if: needs.prepare-build.result == 'success'
     strategy:
       matrix: ${{ fromJson(needs.prepare-build.outputs.chunk_matrix) }}
       fail-fast: false
