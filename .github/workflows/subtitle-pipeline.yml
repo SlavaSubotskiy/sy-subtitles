@@ -420,7 +420,6 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.prepare-build.outputs.chunk_matrix) }}
       fail-fast: false
-    environment: main
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
