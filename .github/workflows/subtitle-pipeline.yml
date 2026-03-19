@@ -321,12 +321,11 @@ jobs:
       needs.discover.result == 'success' &&
       (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'skipped') &&
       (needs.whisper.result == 'success' || needs.whisper.result == 'skipped')
-    strategy:
-      matrix: ${{ fromJson(needs.discover.outputs.talk_matrix) }}
-      fail-fast: false
     runs-on: ubuntu-latest
     outputs:
       chunk_matrix: ${{ steps.prepare.outputs.chunk_matrix }}
+      talk_id: ${{ steps.prepare.outputs.talk_id }}
+      video_slug: ${{ steps.prepare.outputs.video_slug }}
     steps:
       - uses: actions/checkout@v4
       - run: git pull --rebase
@@ -335,8 +334,23 @@ jobs:
         if: needs.translate-and-review.result == 'success'
         uses: actions/download-artifact@v4
         with:
-          name: translation__${{ matrix.talk_id }}
-          path: talks/${{ matrix.talk_id }}
+          pattern: translation__*
+          merge-multiple: false
+
+      - name: Place translation artifacts
+        if: needs.translate-and-review.result == 'success'
+        run: |
+          for dir in translation__*/; do
+            [ -d "$dir" ] || continue
+            name="${dir%/}"
+            talk_id="${name#translation__}"
+            for f in transcript_uk.txt review_report.md; do
+              src=$(find "$dir" -name "$f" -type f | head -1)
+              if [ -n "$src" ]; then
+                cp "$src" "talks/$talk_id/$f"
+              fi
+            done
+          done
 
       - uses: actions/setup-python@v5
         with:
@@ -346,7 +360,9 @@ jobs:
       - name: Prepare chunks
         id: prepare
         run: |
-          TALK="talks/${{ matrix.talk_id }}"
+          TALK_ID="${{ inputs.talk_id }}"
+          TALK="talks/$TALK_ID"
+
           # Find first (longest) video
           FIRST_VIDEO=$(python3 -c "
           import json, yaml
@@ -365,9 +381,11 @@ jobs:
               best_slug = v['slug']
           print(best_slug)
           ")
-          echo "first_video=$FIRST_VIDEO" >> "$GITHUB_OUTPUT"
 
-          # Run prepare (JSON matrix goes to file, logs to stderr)
+          echo "talk_id=$TALK_ID" >> "$GITHUB_OUTPUT"
+          echo "video_slug=$FIRST_VIDEO" >> "$GITHUB_OUTPUT"
+
+          # Run prepare
           python -m tools.build_map prepare \
             --talk-dir "$TALK" \
             --video-slug "$FIRST_VIDEO" > /tmp/matrix_raw.json
@@ -378,7 +396,7 @@ jobs:
           with open('/tmp/matrix_raw.json') as f:
             m = json.load(f)
           for item in m['include']:
-            item['talk_id'] = '${{ matrix.talk_id }}'
+            item['talk_id'] = '$TALK_ID'
             item['video_slug'] = '$FIRST_VIDEO'
           print(json.dumps(m))
           " > /tmp/matrix.json
@@ -388,11 +406,11 @@ jobs:
       - name: Upload chunk files
         uses: actions/upload-artifact@v4
         with:
-          name: chunks__${{ matrix.talk_id }}
+          name: chunks__${{ inputs.talk_id }}
           path: |
-            talks/${{ matrix.talk_id }}/*/work/chunk_*.txt
-            talks/${{ matrix.talk_id }}/*/work/uk_blocks.json
-            talks/${{ matrix.talk_id }}/*/work/build_meta.json
+            talks/${{ inputs.talk_id }}/*/work/chunk_*.txt
+            talks/${{ inputs.talk_id }}/*/work/uk_blocks.json
+            talks/${{ inputs.talk_id }}/*/work/build_meta.json
 
   # Phase 2: LLM determines timecodes (parallel matrix)
   build-chunks:
@@ -462,11 +480,8 @@ jobs:
 
   # Phase 3: Assemble mapping, build SRT, validate, handle multi-video
   assemble-build:
-    needs: [discover, prepare-build, build-chunks]
+    needs: [prepare-build, build-chunks]
     if: "!cancelled() && needs.prepare-build.result == 'success'"
-    strategy:
-      matrix: ${{ fromJson(needs.discover.outputs.talk_matrix) }}
-      fail-fast: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -475,54 +490,31 @@ jobs:
       - name: Download chunk files
         uses: actions/download-artifact@v4
         with:
-          name: chunks__${{ matrix.talk_id }}
-          path: talks/${{ matrix.talk_id }}
+          name: chunks__${{ needs.prepare-build.outputs.talk_id }}
+          path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
       - name: Download chunk results
         uses: actions/download-artifact@v4
         with:
-          pattern: chunk_result__${{ matrix.talk_id }}__*
+          pattern: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__*
           merge-multiple: true
-          path: talks/${{ matrix.talk_id }}
+          path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
 
-      - name: Find first video
-        id: video
-        run: |
-          TALK="talks/${{ matrix.talk_id }}"
-          FIRST_VIDEO=$(python3 -c "
-          import json, yaml
-          with open('$TALK/meta.yaml') as f:
-            meta = yaml.safe_load(f)
-          best_slug, best_dur = None, 0
-          for v in meta['videos']:
-            wpath = f'$TALK/{v[\"slug\"]}/source/whisper.json'
-            try:
-              with open(wpath) as wf:
-                segs = json.load(wf)['segments']
-              dur = segs[-1]['end'] if segs else 0
-            except: dur = 0
-            if dur > best_dur:
-              best_dur = dur
-              best_slug = v['slug']
-          print(best_slug)
-          ")
-          echo "first_video=$FIRST_VIDEO" >> "$GITHUB_OUTPUT"
-
       - name: Assemble mapping and build SRT
         run: |
-          TALK="talks/${{ matrix.talk_id }}"
-          VIDEO="${{ steps.video.outputs.first_video }}"
+          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
+          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
           python -m tools.build_map assemble --talk-dir "$TALK" --video-slug "$VIDEO"
 
       - name: Handle offset videos
         run: |
-          TALK="talks/${{ matrix.talk_id }}"
-          FIRST="${{ steps.video.outputs.first_video }}"
+          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
+          FIRST="${{ needs.prepare-build.outputs.video_slug }}"
 
           python3 -c "
           import yaml
@@ -552,8 +544,8 @@ jobs:
 
       - name: Validate
         run: |
-          TALK="talks/${{ matrix.talk_id }}"
-          FIRST="${{ steps.video.outputs.first_video }}"
+          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
+          FIRST="${{ needs.prepare-build.outputs.video_slug }}"
 
           python3 -c "
           import yaml
@@ -580,16 +572,16 @@ jobs:
         if: "!cancelled()"
         uses: actions/upload-artifact@v4
         with:
-          name: subtitles__${{ matrix.talk_id }}
+          name: subtitles__${{ needs.prepare-build.outputs.talk_id }}
           path: |
-            talks/${{ matrix.talk_id }}/*/work/uk.map
-            talks/${{ matrix.talk_id }}/*/final/uk.srt
-            talks/${{ matrix.talk_id }}/*/final/report.txt
-            talks/${{ matrix.talk_id }}/*/final/build_report.txt
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/uk.map
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/uk.srt
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
 
   # Single commit job – collects all artifacts and pushes
   commit:
-    needs: [discover, translate-and-review, assemble-build]
+    needs: [translate-and-review, assemble-build]
     if: |
       always() &&
       !cancelled() &&
