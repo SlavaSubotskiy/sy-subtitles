@@ -479,6 +479,13 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
 
+      - name: Debug file locations
+        run: |
+          echo "=== Chunk files ==="
+          find talks/ -name "chunk_*" -type f 2>/dev/null || true
+          echo "=== Work dir ==="
+          ls -la talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/ 2>/dev/null || echo "not found"
+
       - name: Assemble mapping and build SRT
         run: |
           TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
