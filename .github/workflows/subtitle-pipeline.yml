@@ -422,51 +422,35 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Cache Claude Code
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.claude-code
-            ~/.local/share/claude-code
-          key: claude-code-${{ runner.os }}
-
       - name: Install Claude Code
         run: bun install -g @anthropic-ai/claude-code@latest
 
-      - name: Resolve executable paths
-        id: tools
+      - name: Determine timecodes for chunk ${{ matrix.ci }}
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
-          echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
+          TALK="${{ needs.prepare-build.outputs.talk_id }}"
+          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
+          CHUNK="${{ matrix.ci }}"
+          CHUNK_FILE="talks/$TALK/$VIDEO/work/chunk_${CHUNK}.txt"
+          RESULT_FILE="talks/$TALK/$VIDEO/work/chunk_${CHUNK}_result.txt"
 
-      - name: Determine timecodes for chunk ${{ matrix.chunk_idx }}
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          path_to_bun_executable: ${{ steps.tools.outputs.bun }}
-          path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 3 --dangerously-skip-permissions --model claude-sonnet-4-6"
-          show_full_output: true
-          prompt: |
-            Read the file talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}.txt
+          echo "Reading: $CHUNK_FILE"
+          PROMPT=$(cat "$CHUNK_FILE")
 
-            It contains Ukrainian subtitle blocks, English transcript, and whisper timing data.
-            Follow the instructions in the file to determine timecodes for each block.
+          echo "Calling claude --print..."
+          claude --print --model claude-sonnet-4-6 "$PROMPT" > "$RESULT_FILE"
 
-            Write your output to:
-            talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}_result.txt
-
-            The output file must contain ONLY lines in this format:
-            #<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>
-
-            Do not write anything else. Do not use TodoWrite.
+          echo "Result:"
+          cat "$RESULT_FILE"
+          echo "Lines: $(wc -l < "$RESULT_FILE")"
 
       - name: Upload chunk result
         if: "!cancelled()"
         uses: actions/upload-artifact@v4
         with:
           name: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__${{ matrix.ci }}
-          path: talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/chunk_${{ matrix.ci }}_result.txt
+          path: talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}_result.txt
 
   # Phase 3: Assemble mapping, build SRT, validate, handle multi-video
   assemble-build:
