@@ -458,6 +458,30 @@ jobs:
             exit 1
           fi
 
+          if [ "$GOT" -ne "$EXPECTED" ]; then
+            echo "::warning::Chunk $CHUNK: got $GOT timecodes, expected $EXPECTED"
+          fi
+
+          # Check for tiny durations (< 0.5s = bad timecodes)
+          BAD=$(python3 -c "
+          import re
+          tc_re = re.compile(r'#(\d+)\s*\|\s*(\d{2}:\d{2}:\d{2},\d{3})\s*\|\s*(\d{2}:\d{2}:\d{2},\d{3})')
+          def to_ms(t):
+              h,m,s = t.replace(',','.').split(':')
+              return int(float(h)*3600000 + float(m)*60000 + float(s)*1000)
+          bad = 0
+          for line in open('$RESULT_FILE'):
+              m = tc_re.search(line)
+              if m:
+                  d = to_ms(m.group(3)) - to_ms(m.group(2))
+                  if d < 500: bad += 1
+          print(bad)
+          ")
+          if [ "$BAD" -gt 0 ]; then
+            echo "::error::Chunk $CHUNK: $BAD blocks with duration < 0.5s (bad timecodes)"
+            exit 1
+          fi
+
       - name: Upload chunk result
         if: "!cancelled()"
         uses: actions/upload-artifact@v4
