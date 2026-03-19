@@ -436,34 +436,25 @@ jobs:
           RESULT_FILE="talks/$TALK/$VIDEO/work/chunk_${CHUNK}_result.txt"
 
           RAW_FILE="talks/$TALK/$VIDEO/work/chunk_${CHUNK}_raw.txt"
-
-          echo "=== Chunk $CHUNK: $(wc -c < "$CHUNK_FILE") bytes prompt ==="
-          PROMPT=$(cat "$CHUNK_FILE")
-
-          echo "Calling claude --print..."
-          claude --print --model claude-sonnet-4-6 "$PROMPT" > "$RAW_FILE" 2>&1
-
-          echo "=== Raw response ($(wc -l < "$RAW_FILE") lines, $(wc -c < "$RAW_FILE") bytes): ==="
-          cat "$RAW_FILE"
-
-          # Extract only timecode lines
-          grep -E '^#[0-9]+ *\|' "$RAW_FILE" > "$RESULT_FILE" || true
-
           EXPECTED=$(grep -c '^#' "$CHUNK_FILE" || true)
-          GOT=$(wc -l < "$RESULT_FILE")
-          echo "=== Timecodes: $GOT / $EXPECTED expected ==="
+          PROMPT=$(cat "$CHUNK_FILE")
+          MAX_RETRIES=3
 
-          if [ "$GOT" -eq 0 ]; then
-            echo "::error::Chunk $CHUNK: no timecodes in response"
-            exit 1
-          fi
+          for ATTEMPT in $(seq 1 $MAX_RETRIES); do
+            echo "=== Chunk $CHUNK attempt $ATTEMPT/$MAX_RETRIES ($(wc -c < "$CHUNK_FILE") bytes prompt) ==="
 
-          if [ "$GOT" -ne "$EXPECTED" ]; then
-            echo "::warning::Chunk $CHUNK: got $GOT timecodes, expected $EXPECTED"
-          fi
+            claude --print --model claude-sonnet-4-6 "$PROMPT" > "$RAW_FILE" 2>&1
 
-          # Check for tiny durations (< 0.5s = bad timecodes)
-          BAD=$(python3 -c "
+            echo "=== Raw response ($(wc -l < "$RAW_FILE") lines, $(wc -c < "$RAW_FILE") bytes): ==="
+            cat "$RAW_FILE"
+
+            # Extract only timecode lines
+            grep -E '^#[0-9]+ *\|' "$RAW_FILE" > "$RESULT_FILE" || true
+            GOT=$(wc -l < "$RESULT_FILE")
+            echo "=== Timecodes: $GOT / $EXPECTED expected ==="
+
+            # Check for tiny durations (< 0.5s = bad timecodes)
+            BAD=$(python3 -c "
           import re
           tc_re = re.compile(r'#(\d+)\s*\|\s*(\d{2}:\d{2}:\d{2},\d{3})\s*\|\s*(\d{2}:\d{2}:\d{2},\d{3})')
           def to_ms(t):
@@ -477,10 +468,19 @@ jobs:
                   if d < 500: bad += 1
           print(bad)
           ")
-          if [ "$BAD" -gt 0 ]; then
-            echo "::error::Chunk $CHUNK: $BAD blocks with duration < 0.5s (bad timecodes)"
-            exit 1
-          fi
+
+            if [ "$GOT" -ge "$EXPECTED" ] && [ "$BAD" -eq 0 ]; then
+              echo "=== Chunk $CHUNK: PASS (attempt $ATTEMPT) ==="
+              break
+            fi
+
+            echo "::warning::Chunk $CHUNK attempt $ATTEMPT: got=$GOT expected=$EXPECTED bad_duration=$BAD"
+            if [ "$ATTEMPT" -eq "$MAX_RETRIES" ]; then
+              echo "::error::Chunk $CHUNK: FAILED after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            sleep 5
+          done
 
       - name: Upload chunk result
         if: "!cancelled()"
