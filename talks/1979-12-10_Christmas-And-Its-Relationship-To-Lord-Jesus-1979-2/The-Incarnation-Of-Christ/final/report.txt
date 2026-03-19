@@ -4,7 +4,7 @@
   SRT: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/final/uk.srt
   Transcript: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/transcript_uk.txt
   Whisper: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/source/whisper.json
-  SRT blocks: 1062
+  SRT blocks: 1132
   Whisper segments: 1083
   (duration hard fail skipped — builder mode)
 
@@ -27,42 +27,42 @@
   CHECK 3: Time range (vs whisper)
 ============================================================
   Whisper range: 00:00:00,880 — 01:28:45,850
-  SRT range:     00:00:00,880 — 01:26:06,850
+  SRT range:     00:00:00,880 — 01:27:45,350
   Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 1062
+  Total blocks: 1132
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 1062
-  CPS: avg=11.3, median=11.6, max=24.2
-  CPS > target: 58 (5.5%)
-  CPS > hard max: 4 (0.4%)
-  CPL: avg=48.3, max=84
+  Total blocks: 1132
+  CPS: avg=13.0, median=11.7, max=999.0
+  CPS > target: 33 (2.9%)
+  CPS > hard max: 6 (0.5%)
+  CPL: avg=45.2, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
-  Duration < min: 0
-  Duration > max: 0
+  Duration < min: 5
+  Duration > max: 2
   Overlaps: 0
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #901: CPS=24.2 (35ch/1.4s) "Шрі Матаджі: Що з ним відбувається?"
-    #922: CPS=21.9 (42ch/1.9s) "Бідолахи, вони були дуже хорошими людьми –"
-    #965: CPS=20.9 (61ch/2.9s) "Вони – віддані, шукають Бога. Щодо відданих – це інша справа..."
-    #912: CPS=20.2 (59ch/2.9s) "і ось чому моє серце таке, що Мати прийде...[нерозбірливо]."
-    #767: CPS=20.0 (67ch/3.4s) "Тож, тепер ті, хто сьогодні нові люди, будь ласка, виходьте ..."
-    #905: CPS=20.0 (63ch/3.2s) "Коли приїхали в таку брудну країну – як можете отримати хоро..."
-    #736: CPS=20.0 (62ch/3.1s) "Як Я бачила в Англії, будь-хто, хто бачить Мою цю річ [бінді..."
-    #706: CPS=20.0 (60ch/3.0s) "Хтось із реалізованих душ, задайте Мені питання, будь ласка."
-    #714: CPS=20.0 (55ch/2.8s) "[Мані:] ...Взуття на столі. Хто Вона... [НЕРОЗБІРЛИВО]?"
-    #703: CPS=20.0 (51ch/2.6s) "Ось так, саме такий має бути дух. Просто попросіть!"
+    #904: CPS=999.0 (60ch/-38.2s) "Шрі Матаджі: Тепер усі діти хороші, чого ви втрачаєте серце?"
+    #915: CPS=999.0 (10ch/-0.1s) "Тут пекло."
+    #1131: CPS=61.7 (74ch/1.2s) "[Шрі Матаджі продовжує і розмовляє з деякими іншими гінді та..."
+    #1129: CPS=28.8 (30ch/1.0s) "Дихальні вправи, ви робили...?"
+    #1128: CPS=24.5 (73ch/3.0s) "І потім повертається до «дихального» чоловіка:] Ви робили як..."
+    #1130: CPS=20.6 (44ch/2.1s) "[Чоловік:] ...Дихальні вправи, зовсім трохи."
+    #1124: CPS=20.0 (10ch/0.5s) "Все добре."
+    #985: CPS=20.0 (55ch/2.8s) "Англійський йоґ тихо перебиває: «Час іти, Шрі Матаджі.»"
+    #1127: CPS=20.0 (54ch/2.7s) "[Мати розмовляє зі сльозливою індійською жінкою гінді."
+    #695: CPS=20.0 (53ch/2.7s) "Ви – індус, ви розумієте це. [Звучить як «ПАДАТРАН»]."
 
 ============================================================
   SUMMARY
@@ -75,12 +75,12 @@
   [PASS] Gap ≥ 80ms
   [FAIL] CPS ≤ 20.0
 
-  Avg CPS: 11.3 (target ≤15.0)
-  CPS > 15.0: 58 blocks
-  CPS > 20.0: 4 blocks
+  Avg CPS: 13.0 (target ≤15.0)
+  CPS > 15.0: 33 blocks
+  CPS > 20.0: 6 blocks
   CPL > 84: 0 blocks
-  Duration < 1200ms: 0 blocks
-  Duration > 21000ms: 0 blocks
+  Duration < 1200ms: 5 blocks
+  Duration > 21000ms: 2 blocks
   Gaps < 80ms: 0 blocks
 
   Overall: FAILED
