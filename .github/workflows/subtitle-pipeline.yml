@@ -390,19 +390,9 @@ jobs:
             --talk-dir "$TALK" \
             --video-slug "$FIRST_VIDEO" > /tmp/matrix_raw.json
 
-          # Add talk_id and video_slug to each matrix item
-          python3 -c "
-          import json
-          with open('/tmp/matrix_raw.json') as f:
-            m = json.load(f)
-          for item in m['include']:
-            item['talk_id'] = '$TALK_ID'
-            item['video_slug'] = '$FIRST_VIDEO'
-          print(json.dumps(m))
-          " > /tmp/matrix.json
-
-          cat /tmp/matrix.json
-          echo "chunk_matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
+          # Matrix is minimal — just chunk indices
+          cat /tmp/matrix_raw.json
+          echo "chunk_matrix=$(cat /tmp/matrix_raw.json)" >> "$GITHUB_OUTPUT"
 
       - name: Upload chunk files
         uses: actions/upload-artifact@v4
@@ -426,8 +416,8 @@ jobs:
       - name: Download chunk files
         uses: actions/download-artifact@v4
         with:
-          name: chunks__${{ matrix.talk_id }}
-          path: talks/${{ matrix.talk_id }}
+          name: chunks__${{ needs.prepare-build.outputs.talk_id }}
+          path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -458,13 +448,13 @@ jobs:
           claude_args: "--max-turns 3 --dangerously-skip-permissions --model claude-sonnet-4-6"
           show_full_output: true
           prompt: |
-            Read the file talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/work/chunk_${{ matrix.chunk_idx }}.txt
+            Read the file talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}.txt
 
             It contains Ukrainian subtitle blocks, English transcript, and whisper timing data.
             Follow the instructions in the file to determine timecodes for each block.
 
             Write your output to:
-            talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/work/chunk_${{ matrix.chunk_idx }}_result.txt
+            talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}_result.txt
 
             The output file must contain ONLY lines in this format:
             #<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>
@@ -475,8 +465,8 @@ jobs:
         if: "!cancelled()"
         uses: actions/upload-artifact@v4
         with:
-          name: chunk_result__${{ matrix.talk_id }}__${{ matrix.chunk_idx }}
-          path: talks/${{ matrix.talk_id }}/*/work/chunk_${{ matrix.chunk_idx }}_result.txt
+          name: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__${{ matrix.ci }}
+          path: talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/chunk_${{ matrix.ci }}_result.txt
 
   # Phase 3: Assemble mapping, build SRT, validate, handle multi-video
   assemble-build:

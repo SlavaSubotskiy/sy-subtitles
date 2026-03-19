@@ -266,7 +266,7 @@ def cmd_prepare(args):
             file=sys.stderr,
         )
 
-        matrix_items.append({"chunk_idx": idx, "n_blocks": len(blocks)})
+        matrix_items.append({"ci": idx})
 
     # Output matrix JSON to stdout (only line on stdout)
     matrix = {"include": matrix_items}
