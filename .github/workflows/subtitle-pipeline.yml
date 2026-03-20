@@ -12,6 +12,10 @@ on:
         description: 'Talk directory name (e.g., 1993-09-19_Ganesha-Puja-Cabella)'
         required: true
         type: string
+      whisper:
+        description: 'Run whisper step'
+        type: boolean
+        default: true
       translate:
         description: 'Run translate step'
         type: boolean
@@ -107,7 +111,7 @@ jobs:
   # Run Whisper for talks that don't have whisper.json yet
   whisper:
     needs: discover
-    if: needs.discover.outputs.needs_whisper == 'true'
+    if: inputs.whisper != false && needs.discover.outputs.needs_whisper == 'true'
     strategy:
       matrix: ${{ fromJson(needs.discover.outputs.whisper_matrix) }}
       fail-fast: false
