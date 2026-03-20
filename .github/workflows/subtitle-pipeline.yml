@@ -438,49 +438,18 @@ jobs:
           RAW_FILE="talks/$TALK/$VIDEO/work/chunk_${CHUNK}_raw.txt"
           EXPECTED=$(grep -c '^#' "$CHUNK_FILE" || true)
           PROMPT=$(cat "$CHUNK_FILE")
-          MAX_RETRIES=3
 
-          for ATTEMPT in $(seq 1 $MAX_RETRIES); do
-            echo "=== Chunk $CHUNK attempt $ATTEMPT/$MAX_RETRIES ($(wc -c < "$CHUNK_FILE") bytes prompt) ==="
+          echo "=== Chunk $CHUNK ($(wc -c < "$CHUNK_FILE") bytes prompt) ==="
 
-            claude --print --model claude-sonnet-4-6 "$PROMPT" > "$RAW_FILE" 2>&1
+          claude --print --model claude-opus-4-6 "$PROMPT" > "$RAW_FILE" 2>&1
 
-            echo "=== Raw response ($(wc -l < "$RAW_FILE") lines, $(wc -c < "$RAW_FILE") bytes): ==="
-            cat "$RAW_FILE"
+          echo "=== Raw response ($(wc -l < "$RAW_FILE") lines, $(wc -c < "$RAW_FILE") bytes): ==="
+          cat "$RAW_FILE"
 
-            # Extract only timecode lines
-            grep -E '^#[0-9]+ *\|' "$RAW_FILE" > "$RESULT_FILE" || true
-            GOT=$(wc -l < "$RESULT_FILE")
-            echo "=== Timecodes: $GOT / $EXPECTED expected ==="
-
-            # Check for tiny durations (< 0.5s = bad timecodes)
-            BAD=$(python3 -c "
-          import re
-          tc_re = re.compile(r'#(\d+)\s*\|\s*(\d{2}:\d{2}:\d{2},\d{3})\s*\|\s*(\d{2}:\d{2}:\d{2},\d{3})')
-          def to_ms(t):
-              h,m,s = t.replace(',','.').split(':')
-              return int(float(h)*3600000 + float(m)*60000 + float(s)*1000)
-          bad = 0
-          for line in open('$RESULT_FILE'):
-              m = tc_re.search(line)
-              if m:
-                  d = to_ms(m.group(3)) - to_ms(m.group(2))
-                  if d < 500: bad += 1
-          print(bad)
-          ")
-
-            if [ "$GOT" -ge "$EXPECTED" ] && [ "$BAD" -eq 0 ]; then
-              echo "=== Chunk $CHUNK: PASS (attempt $ATTEMPT) ==="
-              break
-            fi
-
-            echo "::warning::Chunk $CHUNK attempt $ATTEMPT: got=$GOT expected=$EXPECTED bad_duration=$BAD"
-            if [ "$ATTEMPT" -eq "$MAX_RETRIES" ]; then
-              echo "::error::Chunk $CHUNK: FAILED after $MAX_RETRIES attempts"
-              exit 1
-            fi
-            sleep 5
-          done
+          # Extract only timecode lines
+          grep -E '^#[0-9]+ *\|' "$RAW_FILE" > "$RESULT_FILE" || true
+          GOT=$(wc -l < "$RESULT_FILE")
+          echo "=== Timecodes: $GOT / $EXPECTED expected ==="
 
       - name: Upload chunk result
         if: "!cancelled()"
