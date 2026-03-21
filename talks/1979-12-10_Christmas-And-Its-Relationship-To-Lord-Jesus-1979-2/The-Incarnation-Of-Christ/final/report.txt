@@ -4,7 +4,7 @@
   SRT: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/final/uk.srt
   Transcript: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/transcript_uk.txt
   Whisper: talks/1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ/source/whisper.json
-  SRT blocks: 1062
+  SRT blocks: 1130
   Whisper segments: 1083
   (duration hard fail skipped — builder mode)
 
@@ -12,11 +12,15 @@
   CHECK 1: Text preservation
 ============================================================
   Transcript chars: 52339
-  SRT chars: 52339
-  Exact normalized match: OK
+  SRT chars: 52219
+  Exact normalized match: MISMATCH
   Transcript words: 8518
-  SRT words: 8518
-  Word-level match: OK
+  SRT words: 8502
+  Word-level match: MISMATCH
+
+  First difference at word 8501:
+    Transcript: ...вправи, ви робили...? [Чоловік:]...
+    SRT:        ...вправи, ви робили...? Слайд-презентація...
 
 ============================================================
   CHECK 2: Timing overlaps
@@ -27,47 +31,47 @@
   CHECK 3: Time range (vs whisper)
 ============================================================
   Whisper range: 00:00:00,880 — 01:28:45,850
-  SRT range:     00:00:00,880 — 01:26:06,850
+  SRT range:     00:00:01,880 — 01:27:42,020
   Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 1062
+  Total blocks: 1130
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 1062
-  CPS: avg=11.3, median=11.6, max=24.2
-  CPS > target: 58 (5.5%)
-  CPS > hard max: 4 (0.4%)
-  CPL: avg=48.3, max=84
+  Total blocks: 1130
+  CPS: avg=12.6, median=12.2, max=103.0
+  CPS > target: 84 (7.4%)
+  CPS > hard max: 36 (3.2%)
+  CPL: avg=45.2, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
-  Duration < min: 0
-  Duration > max: 0
+  Duration < min: 46
+  Duration > max: 1
   Overlaps: 0
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #901: CPS=24.2 (35ch/1.4s) "Шрі Матаджі: Що з ним відбувається?"
-    #922: CPS=21.9 (42ch/1.9s) "Бідолахи, вони були дуже хорошими людьми –"
-    #965: CPS=20.9 (61ch/2.9s) "Вони – віддані, шукають Бога. Щодо відданих – це інша справа..."
-    #912: CPS=20.2 (59ch/2.9s) "і ось чому моє серце таке, що Мати прийде...[нерозбірливо]."
-    #767: CPS=20.0 (67ch/3.4s) "Тож, тепер ті, хто сьогодні нові люди, будь ласка, виходьте ..."
-    #905: CPS=20.0 (63ch/3.2s) "Коли приїхали в таку брудну країну – як можете отримати хоро..."
-    #736: CPS=20.0 (62ch/3.1s) "Як Я бачила в Англії, будь-хто, хто бачить Мою цю річ [бінді..."
-    #706: CPS=20.0 (60ch/3.0s) "Хтось із реалізованих душ, задайте Мені питання, будь ласка."
-    #714: CPS=20.0 (55ch/2.8s) "[Мані:] ...Взуття на столі. Хто Вона... [НЕРОЗБІРЛИВО]?"
-    #703: CPS=20.0 (51ch/2.6s) "Ось так, саме такий має бути дух. Просто попросіть!"
+    #920: CPS=103.0 (69ch/0.7s) "Шукач: Він просто ходить з поганими хлопцями і тиняється; а ..."
+    #923: CPS=94.0 (63ch/0.7s) "Коли приїхали в таку брудну країну – як можете отримати хоро..."
+    #930: CPS=91.0 (61ch/0.7s) "Шрі Матаджі: Університет цього місця – яка від нього користь..."
+    #932: CPS=88.1 (59ch/0.7s) "і ось чому моє серце таке, що Мати прийде...[нерозбірливо]."
+    #909: CPS=85.1 (57ch/0.7s) "Приїхавши в пекло, ви хочете, щоб ваші діти не страждали;"
+    #924: CPS=79.1 (53ch/0.7s) "коли ви опинились на такому болоті – то чого боятися?"
+    #922: CPS=77.6 (52ch/0.7s) "Шрі Матаджі: Що ще станеться в такій брудній країні?"
+    #908: CPS=76.1 (51ch/0.7s) "сюди в це пекло – які діти тут залишаться хорошими?"
+    #929: CPS=71.6 (48ch/0.7s) "Його старший брат навчається тут в університеті."
+    #938: CPS=69.6 (55ch/0.8s) "Доки він не покращиться – вона не зможе бути в порядку."
 
 ============================================================
   SUMMARY
 ============================================================
-  [PASS] Text preservation
+  [FAIL] Text preservation
   [PASS] No overlaps
   [PASS] Time range
   [PASS] Sequential numbering
@@ -75,12 +79,12 @@
   [PASS] Gap ≥ 80ms
   [FAIL] CPS ≤ 20.0
 
-  Avg CPS: 11.3 (target ≤15.0)
-  CPS > 15.0: 58 blocks
-  CPS > 20.0: 4 blocks
+  Avg CPS: 12.6 (target ≤15.0)
+  CPS > 15.0: 84 blocks
+  CPS > 20.0: 36 blocks
   CPL > 84: 0 blocks
-  Duration < 1200ms: 0 blocks
-  Duration > 21000ms: 0 blocks
+  Duration < 1200ms: 46 blocks
+  Duration > 21000ms: 1 blocks
   Gaps < 80ms: 0 blocks
 
   Overall: FAILED
