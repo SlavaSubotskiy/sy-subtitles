@@ -445,7 +445,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 3 --dangerously-skip-permissions --model claude-sonnet-4-6"
+          claude_args: "--max-turns 10 --dangerously-skip-permissions --model claude-sonnet-4-6"
           show_full_output: true
           prompt: |
             Read the file talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}.txt
