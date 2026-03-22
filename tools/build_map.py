@@ -126,8 +126,9 @@ def make_chunks(uk_blocks, para_boundaries):
     if current_paras:
         chunks.append(current_paras)
 
+    # Split oversized paragraph groups into sub-chunks
     result = []
-    for i, para_idxs in enumerate(chunks):
+    for para_idxs in chunks:
         blocks = []
         for p_idx in para_idxs:
             blocks.extend(para_blocks.get(p_idx, []))
@@ -137,15 +138,34 @@ def make_chunks(uk_blocks, para_boundaries):
         time_start = min(s for s, _ in valid) if valid else 0
         time_end = max(e for _, e in valid) if valid else 0
 
-        result.append(
-            {
-                "idx": i,
-                "para_indices": para_idxs,
-                "blocks": blocks,
-                "time_start_ms": time_start,
-                "time_end_ms": time_end,
-            }
-        )
+        if len(blocks) <= CHUNK_MAX:
+            result.append(
+                {
+                    "idx": len(result),
+                    "para_indices": para_idxs,
+                    "blocks": blocks,
+                    "time_start_ms": time_start,
+                    "time_end_ms": time_end,
+                }
+            )
+        else:
+            # Split oversized group into sub-chunks of CHUNK_TARGET
+            total_dur = time_end - time_start if time_end > time_start else 0
+            for j in range(0, len(blocks), CHUNK_TARGET):
+                sub_blocks = blocks[j : j + CHUNK_TARGET]
+                frac_start = j / len(blocks)
+                frac_end = min((j + CHUNK_TARGET) / len(blocks), 1.0)
+                sub_start = time_start + int(total_dur * frac_start)
+                sub_end = time_start + int(total_dur * frac_end)
+                result.append(
+                    {
+                        "idx": len(result),
+                        "para_indices": para_idxs,
+                        "blocks": sub_blocks,
+                        "time_start_ms": sub_start,
+                        "time_end_ms": sub_end,
+                    }
+                )
     return result
 
 
@@ -363,7 +383,7 @@ def cmd_prepare(args):
                 timing_text = format_en_srt_for_chunk(en_srt_blocks, chunk["time_start_ms"], chunk["time_end_ms"])
             if no_coverage:
                 # No EN SRT coverage — fall back to whisper for this chunk
-                # Find nearest covered paragraphs before/after
+                # Find nearest covered paragraphs before/after for full range
                 prev_end = 0
                 next_start = int(whisper_segs[-1]["end"] * 1000) if whisper_segs else 0
                 for p in range(min(chunk["para_indices"]) - 1, -1, -1):
@@ -374,12 +394,22 @@ def cmd_prepare(args):
                     if para_bounds[p][0] > 0:
                         next_start = para_bounds[p][0]
                         break
-                chunk["time_start_ms"] = prev_end
-                chunk["time_end_ms"] = next_start
-                timing_text = format_whisper_for_chunk(whisper_segs, prev_end, next_start)
+                # Use sub-chunk proportional time within the full range
+                chunk["time_start_ms"] = (
+                    prev_end + int((next_start - prev_end) * (blocks[0]["id"] - 1) / max(uk_blocks[-1]["id"], 1))
+                    if blocks
+                    else prev_end
+                )
+                chunk["time_end_ms"] = (
+                    prev_end + int((next_start - prev_end) * blocks[-1]["id"] / max(uk_blocks[-1]["id"], 1))
+                    if blocks
+                    else next_start
+                )
+                timing_text = format_whisper_for_chunk(whisper_segs, chunk["time_start_ms"], chunk["time_end_ms"])
                 chunk_ts = "whisper"
                 print(
-                    f"      No EN SRT coverage — whisper fallback {ms_to_time(prev_end)}..{ms_to_time(next_start)}",
+                    f"      No EN SRT — whisper fallback "
+                    f"{ms_to_time(chunk['time_start_ms'])}..{ms_to_time(chunk['time_end_ms'])}",
                     file=sys.stderr,
                 )
         else:
