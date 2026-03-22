@@ -1,0 +1,90 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet/final/uk.srt
+  Transcript: talks/1984-03-22_Birthday-Puja/transcript_uk.txt
+  Whisper: talks/1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet/source/whisper.json
+  SRT blocks: 617
+  Whisper segments: 439
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 31239
+  SRT chars: 31098
+  Exact normalized match: MISMATCH
+  Transcript words: 5128
+  SRT words: 5109
+  Word-level match: MISMATCH
+
+  First difference at word 19:
+    Transcript: ...[Переклад з маратхі] [Промова англійською] [Переклад з...
+    SRT:        ...[Переклад з маратхі] Я вклоняюся всім сахаджа...
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs whisper)
+============================================================
+  Whisper range: 00:00:02,120 — 02:44:45,730
+  SRT range:     00:00:01,239 — 00:42:41,546
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 617
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 617
+  CPS: avg=15.5, median=16.2, max=27.0
+  CPS > target: 341 (55.3%)
+  CPS > hard max: 77 (12.5%)
+  CPL: avg=49.4, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 5
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #399: CPS=27.0 (84ch/3.1s) "Однак бути традиційною – це не значить, що заміжня жінка пов..."
+    #137: CPS=26.7 (83ch/3.1s) "Тож краще не думати багато про це, кажучи: «Я засмучений, у ..."
+    #213: CPS=26.7 (84ch/3.1s) "або вийдуть на сцену, або зможуть показати свою спритність, ..."
+    #176: CPS=26.4 (82ch/3.1s) "З іншого боку, вони впадуть до стоп факіра чи садху, якщо по..."
+    #432: CPS=26.4 (82ch/3.1s) "Що я можу для вас зробити?» Ви знаєте, цар Харішчандра подар..."
+    #367: CPS=26.4 (82ch/3.1s) "про Сахаджа Йоґу – що Шрі Матаджі дала нам Сахаджа Йоґу, і м..."
+    #257: CPS=26.1 (83ch/3.2s) "Сьогодні вони (на вершині справ) літають у небі, а наступног..."
+    #423: CPS=26.0 (81ch/3.1s) "घृणा वाटते – Я тебе ненавиджу)», наші люди поб'ють вас і від..."
+    #188: CPS=25.7 (80ch/3.1s) "По-друге, якщо щось негативне є в нас, його наслідки відобра..."
+    #366: CPS=25.7 (80ch/3.1s) "Запрошуйте жінок на зустрічі (відомі як програми Халді-Кумку..."
+
+============================================================
+  SUMMARY
+============================================================
+  [FAIL] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [FAIL] CPS ≤ 20.0
+
+  Avg CPS: 15.5 (target ≤15.0)
+  CPS > 15.0: 341 blocks
+  CPS > 20.0: 77 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 5 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: FAILED
