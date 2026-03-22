@@ -356,12 +356,36 @@ def cmd_prepare(args):
         para_idxs = chunk["para_indices"]
 
         en_text = "\n\n".join(f"[P{p + 1}] {en_paras[p]}" for p in para_idxs if p < len(en_paras))
+        chunk_ts = timing_source
         if timing_source == "en-srt" and en_srt_blocks:
-            timing_text = format_en_srt_for_chunk(en_srt_blocks, chunk["time_start_ms"], chunk["time_end_ms"])
+            no_coverage = chunk["time_start_ms"] == 0 and chunk["time_end_ms"] == 0
+            if not no_coverage:
+                timing_text = format_en_srt_for_chunk(en_srt_blocks, chunk["time_start_ms"], chunk["time_end_ms"])
+            if no_coverage:
+                # No EN SRT coverage — fall back to whisper for this chunk
+                # Find nearest covered paragraphs before/after
+                prev_end = 0
+                next_start = int(whisper_segs[-1]["end"] * 1000) if whisper_segs else 0
+                for p in range(min(chunk["para_indices"]) - 1, -1, -1):
+                    if p < len(para_bounds) and para_bounds[p][1] > 0:
+                        prev_end = para_bounds[p][1]
+                        break
+                for p in range(max(chunk["para_indices"]) + 1, len(para_bounds)):
+                    if para_bounds[p][0] > 0:
+                        next_start = para_bounds[p][0]
+                        break
+                chunk["time_start_ms"] = prev_end
+                chunk["time_end_ms"] = next_start
+                timing_text = format_whisper_for_chunk(whisper_segs, prev_end, next_start)
+                chunk_ts = "whisper"
+                print(
+                    f"      No EN SRT coverage — whisper fallback {ms_to_time(prev_end)}..{ms_to_time(next_start)}",
+                    file=sys.stderr,
+                )
         else:
             timing_text = format_whisper_for_chunk(whisper_segs, chunk["time_start_ms"], chunk["time_end_ms"])
         prompt = build_chunk_prompt(
-            blocks, en_text, timing_text, chunk["time_start_ms"], chunk["time_end_ms"], timing_source
+            blocks, en_text, timing_text, chunk["time_start_ms"], chunk["time_end_ms"], chunk_ts
         )
 
         prompt_file = work / f"chunk_{idx}.txt"
