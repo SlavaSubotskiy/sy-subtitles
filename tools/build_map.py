@@ -295,16 +295,50 @@ def cmd_prepare(args):
     # Step 2: Paragraph boundaries
     print("Finding paragraph boundaries...", file=sys.stderr)
     if timing_source == "en-srt" and en_srt_blocks:
-        # Use EN SRT for boundaries
-        from .generate_map import assign_blocks_to_paragraphs
+        # Use SequenceMatcher to align EN transcript to EN SRT blocks
+        en_words_seq = []
+        for p_idx, para in enumerate(en_paras):
+            for word in para.split():
+                nw = _normalize(word)
+                if nw:
+                    en_words_seq.append((nw, p_idx))
 
-        para_groups = assign_blocks_to_paragraphs(en_paras, en_srt_blocks)
-        para_bounds = []
-        for group in para_groups:
-            if group:
-                para_bounds.append((group[0]["start_ms"], group[-1]["end_ms"]))
-            else:
-                para_bounds.append((0, 0))
+        srt_words_seq = []
+        for block in en_srt_blocks:
+            for word in block["text"].split():
+                nw = _normalize(word)
+                if nw:
+                    srt_words_seq.append((nw, block["idx"]))
+
+        if en_words_seq and srt_words_seq:
+            matcher = SequenceMatcher(
+                None,
+                [w[0] for w in en_words_seq],
+                [w[0] for w in srt_words_seq],
+                autojunk=False,
+            )
+            srt_lookup = {b["idx"]: b for b in en_srt_blocks}
+            para_block_ids = {}  # para_idx -> set of block_idx
+            for op, i1, i2, j1, _j2 in matcher.get_opcodes():
+                if op == "equal":
+                    for k in range(i2 - i1):
+                        _, p_idx = en_words_seq[i1 + k]
+                        _, b_idx = srt_words_seq[j1 + k]
+                        para_block_ids.setdefault(p_idx, set()).add(b_idx)
+
+            para_bounds = []
+            for p_idx in range(len(en_paras)):
+                b_ids = para_block_ids.get(p_idx, set())
+                if b_ids:
+                    blocks_in_para = [srt_lookup[bid] for bid in sorted(b_ids) if bid in srt_lookup]
+                    if blocks_in_para:
+                        para_bounds.append((blocks_in_para[0]["start_ms"], blocks_in_para[-1]["end_ms"]))
+                    else:
+                        para_bounds.append((0, 0))
+                else:
+                    para_bounds.append((0, 0))
+        else:
+            para_bounds = [(0, 0)] * len(en_paras)
     else:
         para_bounds = find_paragraph_boundaries(en_paras, whisper_segs)
     covered = sum(1 for s, e in para_bounds if s > 0 or e > 0)
