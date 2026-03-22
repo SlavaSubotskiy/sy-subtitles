@@ -173,9 +173,52 @@ def format_whisper_for_chunk(whisper_segments, start_ms, end_ms):
     return "\n".join(lines)
 
 
-def build_chunk_prompt(uk_blocks, en_text, whisper_text, time_start_ms, time_end_ms):
+def format_en_srt_for_chunk(en_srt_blocks, start_ms, end_ms):
+    """Format EN SRT blocks for a chunk's time range."""
+    margin = 5000
+    lines = []
+    for b in en_srt_blocks:
+        if b["end_ms"] < start_ms - margin or b["start_ms"] > end_ms + margin:
+            continue
+        lines.append(f"EN#{b['idx']} [{ms_to_time(b['start_ms'])} -> {ms_to_time(b['end_ms'])}]: {b['text']}")
+    return "\n".join(lines)
+
+
+def build_chunk_prompt(uk_blocks, en_text, timing_text, time_start_ms, time_end_ms, timing_source="whisper"):
     """Build the full prompt for one chunk."""
     blocks_text = "\n".join(f"#{b['id']}: {b['text']}" for b in uk_blocks)
+
+    if timing_source == "en-srt":
+        return f"""Determine start and end timecodes for each Ukrainian subtitle block.
+
+You have 3 sources:
+1. UKRAINIAN BLOCKS — subtitle text needing timecodes
+2. ENGLISH TRANSCRIPT — accurate English text (meaning reference)
+3. ENGLISH SUBTITLES — EN SRT blocks with timecodes (timing source)
+
+IMPORTANT TIME BOUNDARIES:
+- This chunk covers audio from {ms_to_time(time_start_ms)} to {ms_to_time(time_end_ms)}
+- Block #{uk_blocks[0]["id"]} must start at or after {ms_to_time(time_start_ms)}
+- Block #{uk_blocks[-1]["id"]} must end at or before {ms_to_time(time_end_ms)}
+- All timecodes must be within this range and sequential
+
+Match Ukrainian blocks to English meaning, then find the corresponding
+EN SRT block(s) and use their timecodes. If a Ukrainian block maps to
+multiple EN SRT blocks, use the start of the first and end of the last.
+
+ENGLISH TRANSCRIPT:
+{en_text}
+
+ENGLISH SUBTITLES (timing source):
+{timing_text}
+
+UKRAINIAN BLOCKS:
+{blocks_text}
+
+Output ONLY lines in this exact format, one per block:
+#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>
+
+Blocks must be sequential and non-overlapping."""
 
     return f"""Determine start and end timecodes for each Ukrainian subtitle block.
 
@@ -198,7 +241,7 @@ ENGLISH TRANSCRIPT:
 {en_text}
 
 WHISPER DATA:
-{whisper_text}
+{timing_text}
 
 UKRAINIAN BLOCKS:
 {blocks_text}
@@ -220,12 +263,20 @@ def cmd_prepare(args):
     video = talk / args.video_slug
     work = video / "work"
     work.mkdir(parents=True, exist_ok=True)
+    timing_source = getattr(args, "timing_source", "whisper")
 
     # Load
-    print("Loading inputs...", file=sys.stderr)
+    print(f"Loading inputs (timing: {timing_source})...", file=sys.stderr)
     uk_paras = load_transcript(str(talk / "transcript_uk.txt"))
     en_paras = load_transcript(str(talk / "transcript_en.txt"))
     whisper_segs = load_whisper_json(str(video / "source" / "whisper.json"))
+
+    en_srt_blocks = None
+    if timing_source == "en-srt":
+        from .srt_utils import parse_srt
+
+        en_srt_blocks = parse_srt(str(video / "source" / "en.srt"))
+        print(f"  EN SRT: {len(en_srt_blocks)} blocks", file=sys.stderr)
 
     print(f"  UK: {len(uk_paras)} paragraphs", file=sys.stderr)
     print(f"  EN: {len(en_paras)} paragraphs", file=sys.stderr)
@@ -243,7 +294,19 @@ def cmd_prepare(args):
 
     # Step 2: Paragraph boundaries
     print("Finding paragraph boundaries...", file=sys.stderr)
-    para_bounds = find_paragraph_boundaries(en_paras, whisper_segs)
+    if timing_source == "en-srt" and en_srt_blocks:
+        # Use EN SRT for boundaries
+        from .generate_map import assign_blocks_to_paragraphs
+
+        para_groups = assign_blocks_to_paragraphs(en_paras, en_srt_blocks)
+        para_bounds = []
+        for group in para_groups:
+            if group:
+                para_bounds.append((group[0]["start_ms"], group[-1]["end_ms"]))
+            else:
+                para_bounds.append((0, 0))
+    else:
+        para_bounds = find_paragraph_boundaries(en_paras, whisper_segs)
     covered = sum(1 for s, e in para_bounds if s > 0 or e > 0)
     print(f"  {covered}/{len(en_paras)} paragraphs mapped", file=sys.stderr)
 
@@ -259,8 +322,13 @@ def cmd_prepare(args):
         para_idxs = chunk["para_indices"]
 
         en_text = "\n\n".join(f"[P{p + 1}] {en_paras[p]}" for p in para_idxs if p < len(en_paras))
-        whisper_text = format_whisper_for_chunk(whisper_segs, chunk["time_start_ms"], chunk["time_end_ms"])
-        prompt = build_chunk_prompt(blocks, en_text, whisper_text, chunk["time_start_ms"], chunk["time_end_ms"])
+        if timing_source == "en-srt" and en_srt_blocks:
+            timing_text = format_en_srt_for_chunk(en_srt_blocks, chunk["time_start_ms"], chunk["time_end_ms"])
+        else:
+            timing_text = format_whisper_for_chunk(whisper_segs, chunk["time_start_ms"], chunk["time_end_ms"])
+        prompt = build_chunk_prompt(
+            blocks, en_text, timing_text, chunk["time_start_ms"], chunk["time_end_ms"], timing_source
+        )
 
         prompt_file = work / f"chunk_{idx}.txt"
         with open(prompt_file, "w", encoding="utf-8") as f:
@@ -393,6 +461,12 @@ def main():
     prep = sub.add_parser("prepare", help="Split text and write chunk files")
     prep.add_argument("--talk-dir", required=True)
     prep.add_argument("--video-slug", required=True)
+    prep.add_argument(
+        "--timing-source",
+        choices=["whisper", "en-srt"],
+        default="whisper",
+        help="Timing source: whisper (default) or en-srt (for non-English talks)",
+    )
 
     asm = sub.add_parser("assemble", help="Collect chunk results and build SRT")
     asm.add_argument("--talk-dir", required=True)

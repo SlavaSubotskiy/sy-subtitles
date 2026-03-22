@@ -28,6 +28,13 @@ on:
         description: 'Run build step (subtitle builder agent)'
         type: boolean
         default: true
+      timing_source:
+        description: 'Timing source for builder: whisper (default) or en-srt (for non-English talks)'
+        type: choice
+        options:
+          - whisper
+          - en-srt
+        default: whisper
 
 permissions:
   contents: write
@@ -388,7 +395,8 @@ jobs:
           # Run prepare
           python -m tools.build_map prepare \
             --talk-dir "$TALK" \
-            --video-slug "$FIRST_VIDEO" > /tmp/matrix_raw.json
+            --video-slug "$FIRST_VIDEO" \
+            --timing-source "${{ inputs.timing_source || 'whisper' }}" > /tmp/matrix_raw.json
 
           echo "chunk_matrix=$(cat /tmp/matrix_raw.json)" >> "$GITHUB_OUTPUT"
 
