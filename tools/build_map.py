@@ -25,8 +25,8 @@ from .generate_map import split_sentences, split_text_to_lines
 from .srt_utils import load_whisper_json, ms_to_time
 
 # --- Configuration ---
-CHUNK_TARGET = 50
-CHUNK_MAX = 80
+CHUNK_TARGET = 30
+CHUNK_MAX = 50
 CHUNK_MAX_PARAS = 15
 
 
