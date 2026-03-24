@@ -195,7 +195,9 @@ def format_whisper_for_chunk(whisper_segments, start_ms, end_ms):
 
 def format_en_srt_for_chunk(en_srt_blocks, start_ms, end_ms):
     """Format EN SRT blocks for a chunk's time range."""
-    margin = 5000
+    # Use 50% of chunk duration as margin to cover boundary overlaps
+    chunk_dur = max(end_ms - start_ms, 10000)
+    margin = chunk_dur // 2
     lines = []
     for b in en_srt_blocks:
         if b["end_ms"] < start_ms - margin or b["start_ms"] > end_ms + margin:
