@@ -409,10 +409,117 @@ jobs:
             talks/${{ inputs.talk_id }}/*/work/uk_blocks.json
             talks/${{ inputs.talk_id }}/*/work/build_meta.json
 
-  # Phase 2: LLM determines timecodes (parallel matrix)
+  # Phase 2a: EN-SRT mode — single agent session (no chunks)
+  build-en-srt:
+    needs: prepare-build
+    if: ${{ !cancelled() && needs.prepare-build.result == 'success' && (inputs.timing_source == 'en-srt') }}
+    environment: main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: git pull --rebase
+
+      - name: Download translation artifacts
+        if: needs.translate-and-review.result == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: translation__*
+          merge-multiple: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+
+      - name: Prepare UK blocks
+        run: |
+          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
+          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
+          mkdir -p "$TALK/$VIDEO/work"
+          python -m tools.build_map prepare \
+            --talk-dir "$TALK" \
+            --video-slug "$VIDEO" \
+            --timing-source en-srt > /dev/null
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Cache Claude Code
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.claude-code
+            ~/.local/share/claude-code
+          key: claude-code-${{ runner.os }}
+      - name: Install Claude Code
+        run: bun install -g @anthropic-ai/claude-code@latest
+      - name: Resolve executable paths
+        id: tools
+        run: |
+          echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
+          echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
+
+      - name: Build subtitles from EN SRT
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          path_to_bun_executable: ${{ steps.tools.outputs.bun }}
+          path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
+          claude_args: "--max-turns 40 --dangerously-skip-permissions --model claude-sonnet-4-6"
+          show_full_output: true
+          prompt: |
+            You have English subtitles with timecodes and Ukrainian subtitle blocks
+            that translate the same speech. For each Ukrainian block, find the English
+            subtitle(s) with the same meaning and assign their timecodes.
+
+            TALK: talks/${{ needs.prepare-build.outputs.talk_id }}
+            VIDEO: ${{ needs.prepare-build.outputs.video_slug }}
+
+            Step 1 — Read inputs:
+            - EN SRT: talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/source/en.srt
+            - UK blocks: talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/uk_blocks.json
+
+            Step 2 — For each UK block, find the EN SRT block(s) with the same meaning:
+            - If one UK block = one EN SRT block → copy start and end timecodes
+            - If one UK block covers multiple EN SRT blocks → use start of first, end of last
+            - If multiple UK blocks map to one EN SRT block → split its time range
+
+            Step 3 — Write all timecodes to:
+            talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/uk.map
+
+            Format: block_id | start_timecode | end_timecode | text
+            Example: 1 | 00:00:01,000 | 00:00:05,000 | Перший блок субтитрів.
+
+            The text column must come from uk_blocks.json — copy exactly, do not modify.
+            Write in chunks of ~200 lines using bash cat with heredoc and append (>>).
+            Every UK block must have a timecode. Do not skip any blocks.
+            Do not use TodoWrite.
+
+      - name: Build SRT from mapping
+        run: |
+          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
+          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
+          mkdir -p "$TALK/$VIDEO/final"
+          python -m tools.build_srt \
+            --mapping "$TALK/$VIDEO/work/uk.map" \
+            --output "$TALK/$VIDEO/final/uk.srt" \
+            --report "$TALK/$VIDEO/final/build_report.txt"
+
+      - name: Upload build artifacts
+        if: "!cancelled()"
+        uses: actions/upload-artifact@v4
+        with:
+          name: subtitles__${{ needs.prepare-build.outputs.talk_id }}
+          path: |
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/uk.map
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/uk.srt
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
+
+  # Phase 2b: Whisper mode — parallel matrix chunks
   build-chunks:
     needs: prepare-build
-    if: ${{ !cancelled() && needs.prepare-build.result == 'success' }}
+    if: ${{ !cancelled() && needs.prepare-build.result == 'success' && (inputs.timing_source != 'en-srt') }}
     environment: main
     strategy:
       matrix: ${{ fromJson(needs.prepare-build.outputs.chunk_matrix) }}
@@ -480,7 +587,9 @@ jobs:
   # Phase 3: Assemble mapping, build SRT, validate, handle multi-video
   assemble-build:
     needs: [prepare-build, build-chunks]
-    if: "!cancelled() && needs.prepare-build.result == 'success'"
+    if: |
+      !cancelled() && needs.prepare-build.result == 'success' &&
+      needs.build-chunks.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -594,7 +703,8 @@ jobs:
 
   # Single commit job – collects all artifacts and pushes
   commit:
-    needs: [translate-and-review, assemble-build]
+    needs: [translate-and-review, assemble-build, build-en-srt]
+    # commit runs after any build path completes
     if: |
       always() &&
       !cancelled() &&
