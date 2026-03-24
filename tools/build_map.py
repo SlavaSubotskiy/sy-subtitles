@@ -209,36 +209,20 @@ def build_chunk_prompt(uk_blocks, en_text, timing_text, time_start_ms, time_end_
     blocks_text = "\n".join(f"#{b['id']}: {b['text']}" for b in uk_blocks)
 
     if timing_source == "en-srt":
-        return f"""Determine start and end timecodes for each Ukrainian subtitle block.
+        return f"""Here are English subtitles with timecodes and Ukrainian subtitle blocks that translate the same speech.
 
-You have 3 sources:
-1. UKRAINIAN BLOCKS — subtitle text needing timecodes
-2. ENGLISH TRANSCRIPT — accurate English text (meaning reference)
-3. ENGLISH SUBTITLES — EN SRT blocks with timecodes (timing source)
+For each Ukrainian block, find the English subtitle(s) with the same meaning and copy the timecodes.
+If a Ukrainian block covers multiple English subtitles, use start of first and end of last.
+If multiple Ukrainian blocks fit one English subtitle, split its time range proportionally.
 
-IMPORTANT TIME BOUNDARIES:
-- This chunk covers audio from {ms_to_time(time_start_ms)} to {ms_to_time(time_end_ms)}
-- Block #{uk_blocks[0]["id"]} must start at or after {ms_to_time(time_start_ms)}
-- Block #{uk_blocks[-1]["id"]} must end at or before {ms_to_time(time_end_ms)}
-- All timecodes must be within this range and sequential
-
-Match Ukrainian blocks to English meaning, then find the corresponding
-EN SRT block(s) and use their timecodes. If a Ukrainian block maps to
-multiple EN SRT blocks, use the start of the first and end of the last.
-
-ENGLISH TRANSCRIPT:
-{en_text}
-
-ENGLISH SUBTITLES (timing source):
+ENGLISH SUBTITLES:
 {timing_text}
 
 UKRAINIAN BLOCKS:
 {blocks_text}
 
-Output ONLY lines in this exact format, one per block:
-#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>
-
-Blocks must be sequential and non-overlapping."""
+Output ONLY:
+#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>"""
 
     return f"""Determine start and end timecodes for each Ukrainian subtitle block.
 
