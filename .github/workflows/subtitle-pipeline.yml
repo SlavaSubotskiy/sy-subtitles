@@ -40,9 +40,6 @@ permissions:
   contents: write
   id-token: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   discover:
     runs-on: ubuntu-latest
@@ -52,7 +49,7 @@ jobs:
       whisper_matrix: ${{ steps.find.outputs.whisper_matrix }}
       needs_whisper: ${{ steps.find.outputs.needs_whisper }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 2
 
@@ -136,13 +133,13 @@ jobs:
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
       - name: Cache Claude Code
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.claude-code
@@ -308,7 +305,7 @@ jobs:
 
       - name: Upload translation artifacts
         if: "!cancelled()"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: translation__${{ matrix.talk_id }}
           if-no-files-found: warn
@@ -334,12 +331,12 @@ jobs:
       talk_id: ${{ steps.prepare.outputs.talk_id }}
       video_slug: ${{ steps.prepare.outputs.video_slug }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: git pull --rebase
 
       - name: Download translation artifacts
         if: needs.translate-and-review.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: translation__*
           merge-multiple: false
@@ -359,7 +356,7 @@ jobs:
             done
           done
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
@@ -401,7 +398,7 @@ jobs:
           echo "chunk_matrix=$(cat /tmp/matrix_raw.json)" >> "$GITHUB_OUTPUT"
 
       - name: Upload chunk files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: chunks__${{ inputs.talk_id }}
           path: |
@@ -416,18 +413,18 @@ jobs:
     environment: main
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: git pull --rebase
 
       - name: Download translation artifacts
         if: needs.translate-and-review.result == 'success'
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: translation__*
           merge-multiple: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
@@ -445,7 +442,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
       - name: Cache Claude Code
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.claude-code
@@ -507,7 +504,7 @@ jobs:
 
       - name: Upload build artifacts
         if: "!cancelled()"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: subtitles__${{ needs.prepare-build.outputs.talk_id }}
           path: |
@@ -526,10 +523,10 @@ jobs:
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download chunk files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: chunks__${{ needs.prepare-build.outputs.talk_id }}
           path: talks/${{ needs.prepare-build.outputs.talk_id }}
@@ -538,7 +535,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Cache Claude Code
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.claude-code
@@ -578,7 +575,7 @@ jobs:
 
       - name: Upload chunk result
         if: "!cancelled()"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__${{ matrix.ci }}
           path: |
@@ -592,23 +589,23 @@ jobs:
       needs.build-chunks.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: git pull --rebase
 
       - name: Download chunk files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: chunks__${{ needs.prepare-build.outputs.talk_id }}
           path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
       - name: Download chunk results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__*
           merge-multiple: true
           path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
@@ -692,7 +689,7 @@ jobs:
 
       - name: Upload build artifacts
         if: "!cancelled()"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: subtitles__${{ needs.prepare-build.outputs.talk_id }}
           path: |
@@ -712,21 +709,21 @@ jobs:
       (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'failure' || needs.translate-and-review.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Pull latest
         run: git pull --rebase
 
       - name: Download translation artifacts
         if: needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'failure'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: translation__*
           merge-multiple: false
 
       - name: Download subtitle artifacts
         if: needs.assemble-build.result == 'success' || needs.assemble-build.result == 'failure'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: subtitles__*
           merge-multiple: false

@@ -27,9 +27,6 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   discover:
     runs-on: ubuntu-latest
@@ -37,10 +34,10 @@ jobs:
       matrix: ${{ steps.build.outputs.matrix }}
       has_jobs: ${{ steps.build.outputs.has_jobs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -112,15 +109,15 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Cache pip packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: pip-whisper-${{ hashFiles('requirements.txt') }}
@@ -135,7 +132,7 @@ jobs:
           pip install openai-whisper
 
       - name: Cache Whisper model
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/whisper
           key: whisper-medium
@@ -162,7 +159,7 @@ jobs:
         run: rm -rf /tmp/whisper_work
 
       - name: Upload whisper artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: whisper__${{ matrix.talk_id }}__${{ matrix.video_slug }}
           path: talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json
@@ -172,10 +169,10 @@ jobs:
     if: needs.discover.outputs.has_jobs == 'true' && !cancelled()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download all whisper artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: whisper__*
           merge-multiple: false
