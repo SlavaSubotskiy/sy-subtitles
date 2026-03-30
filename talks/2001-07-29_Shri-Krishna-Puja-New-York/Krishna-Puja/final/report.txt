@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/2001-07-29_Shri-Krishna-Puja-New-York/Krishna-Puja/final/uk.srt
+  Transcript: talks/2001-07-29_Shri-Krishna-Puja-New-York/transcript_uk.txt
+  Whisper: talks/2001-07-29_Shri-Krishna-Puja-New-York/Krishna-Puja/source/whisper.json
+  SRT blocks: 519
+  Whisper segments: 730
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 25896
+  SRT chars: 25896
+  Exact normalized match: OK
+  Transcript words: 4274
+  SRT words: 4274
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs whisper)
+============================================================
+  Whisper range: 00:00:25,840 — 01:37:02,300
+  SRT range:     00:00:46,960 — 00:50:33,720
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 519
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 519
+  CPS: avg=9.6, median=9.3, max=15.0
+  CPS > target: 0 (0.0%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=48.9, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #340: CPS=15.0 (18ch/1.2s) "Ви так задоволені."
+    #187: CPS=15.0 (82ch/5.5s) "Він сказав: «Якщо ви славите Мене, якщо ви здійснюєте бхакті..."
+    #463: CPS=15.0 (82ch/5.5s) "терпіти безглуздя, якщо хтось говорить — це означає, що ви н..."
+    #462: CPS=15.0 (76ch/5.1s) "Ви повинні знати, ви повинні володіти цим знанням, оскільки ..."
+    #434: CPS=15.0 (67ch/4.5s) "Якщо хтось намагається вас пригнічувати, не намагайтеся це т..."
+    #376: CPS=15.0 (55ch/3.7s) "кожній країні, вони повинні консультувати кожну країну,"
+    #420: CPS=15.0 (43ch/2.9s) "Бог свідок, його може засмоктати всередину."
+    #351: CPS=15.0 (80ch/5.3s) "всі вони є Реалізованими Душами, ця людина дуже насолоджуєть..."
+    #208: CPS=15.0 (37ch/2.5s) "Тепер не звинувачуйте в цьому Крішну."
+    #356: CPS=15.0 (37ch/2.5s) "Це щось дивовижне, що сталося з вами,"
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 9.6 (target ≤15.0)
+  CPS > 15.0: 0 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
