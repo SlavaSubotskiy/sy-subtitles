@@ -722,58 +722,47 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           pattern: translation__*
-          path: /tmp/artifacts
+          path: /tmp/translation
 
       - name: Download subtitle artifacts
         if: needs.assemble-build.result == 'success' || needs.assemble-build.result == 'failure'
         uses: actions/download-artifact@v6
         with:
           pattern: subtitles__*
-          path: /tmp/artifacts
+          path: /tmp/subtitles
 
       - name: Place artifacts into talk directories
         run: |
-          # Debug: show artifact structure
-          echo "=== Artifact contents ==="
-          find /tmp/artifacts -type f 2>/dev/null || echo "(empty)"
-          echo "========================="
+          TALK_ID="${{ inputs.talk_id }}"
 
-          REPO="${GITHUB_WORKSPACE}"
-          ART="/tmp/artifacts"
-          [ -d "$ART" ] || { echo "No artifacts"; exit 0; }
-
-          # Place translation artifacts
-          for dir in "$ART"/translation__*/; do
-            [ -d "$dir" ] || continue
-            name="$(basename "$dir")"
-            talk_id="${name#translation__}"
-            echo "Processing translation: $talk_id"
-
+          # Translation
+          if [ -d /tmp/translation ]; then
+            echo "=== Translation artifacts ==="
+            find /tmp/translation -type f
             for f in transcript_uk.txt review_report.md; do
-              src=$(find "$dir" -name "$f" -type f | head -1)
+              src=$(find /tmp/translation -name "$f" -type f | head -1)
               if [ -n "$src" ]; then
-                mkdir -p "$REPO/talks/$talk_id"
-                cp "$src" "$REPO/talks/$talk_id/$f"
-                echo "  -> talks/$talk_id/$f"
+                cp "$src" "talks/$TALK_ID/$f"
+                echo "  -> talks/$TALK_ID/$f"
               fi
             done
-          done
+          fi
 
-          # Place subtitle artifacts
-          for dir in "$ART"/subtitles__*/; do
-            [ -d "$dir" ] || continue
-            name="$(basename "$dir")"
-            talk_id="${name#subtitles__}"
-            echo "Processing subtitles: $talk_id"
-
-            find "$dir" \( -name "uk.srt" -o -name "uk.map" -o -name "report.txt" -o -name "build_report.txt" \) | while read src; do
-              rel="${src#$dir}"
-              dest="$REPO/talks/$talk_id/$rel"
-              mkdir -p "$(dirname "$dest")"
-              cp "$src" "$dest"
-              echo "  -> talks/$talk_id/$rel"
+          # Subtitles
+          if [ -d /tmp/subtitles ]; then
+            echo "=== Subtitle artifacts ==="
+            find /tmp/subtitles -type f
+            find /tmp/subtitles \( -name "uk.srt" -o -name "uk.map" -o -name "report.txt" -o -name "build_report.txt" \) | while read src; do
+              # Preserve video slug subdirectory
+              rel=$(echo "$src" | grep -o '[^/]*/\(work\|final\)/[^/]*$')
+              if [ -n "$rel" ]; then
+                dest="talks/$TALK_ID/$rel"
+                mkdir -p "$(dirname "$dest")"
+                cp "$src" "$dest"
+                echo "  -> $dest"
+              fi
             done
-          done
+          fi
 
       - name: Commit & push
         run: |
