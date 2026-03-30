@@ -722,55 +722,56 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           pattern: translation__*
-          merge-multiple: false
+          path: /tmp/artifacts
 
       - name: Download subtitle artifacts
         if: needs.assemble-build.result == 'success' || needs.assemble-build.result == 'failure'
         uses: actions/download-artifact@v6
         with:
           pattern: subtitles__*
-          merge-multiple: false
+          path: /tmp/artifacts
 
       - name: Place artifacts into talk directories
         run: |
           # Debug: show artifact structure
           echo "=== Artifact contents ==="
-          find translation__* subtitles__* -type f 2>/dev/null || true
+          find /tmp/artifacts -type f 2>/dev/null || echo "(empty)"
           echo "========================="
 
+          REPO="${GITHUB_WORKSPACE}"
+          ART="/tmp/artifacts"
+          [ -d "$ART" ] || { echo "No artifacts"; exit 0; }
+
           # Place translation artifacts
-          for dir in translation__*/; do
+          for dir in "$ART"/translation__*/; do
             [ -d "$dir" ] || continue
-            name="${dir%/}"
+            name="$(basename "$dir")"
             talk_id="${name#translation__}"
             echo "Processing translation: $talk_id"
 
-            # Find files anywhere in artifact dir (upload-artifact strips LCA)
             for f in transcript_uk.txt review_report.md; do
               src=$(find "$dir" -name "$f" -type f | head -1)
               if [ -n "$src" ]; then
-                mkdir -p "talks/$talk_id"
-                cp "$src" "talks/$talk_id/$f"
+                mkdir -p "$REPO/talks/$talk_id"
+                cp "$src" "$REPO/talks/$talk_id/$f"
                 echo "  -> talks/$talk_id/$f"
               fi
             done
           done
 
-          # Place subtitle artifacts (per-talk, contains all videos)
-          # Artifact structure: subtitles__TALK/VIDEO/final/{uk.srt,report.txt}
-          # (upload-artifact strips LCA = talks/TALK/)
-          for dir in subtitles__*/; do
+          # Place subtitle artifacts
+          for dir in "$ART"/subtitles__*/; do
             [ -d "$dir" ] || continue
-            name="${dir%/}"
+            name="$(basename "$dir")"
             talk_id="${name#subtitles__}"
             echo "Processing subtitles: $talk_id"
 
             find "$dir" \( -name "uk.srt" -o -name "uk.map" -o -name "report.txt" -o -name "build_report.txt" \) | while read src; do
-              rel="${src#$name/}"
-              dest="talks/$talk_id/$rel"
+              rel="${src#$dir}"
+              dest="$REPO/talks/$talk_id/$rel"
               mkdir -p "$(dirname "$dest")"
               cp "$src" "$dest"
-              echo "  -> $dest"
+              echo "  -> talks/$talk_id/$rel"
             done
           done
 
