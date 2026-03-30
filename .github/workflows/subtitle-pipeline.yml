@@ -1,4 +1,5 @@
 name: Subtitle Pipeline
+run-name: "${{ inputs.talk_id || 'auto' }} [${{ inputs.whisper == false && ' ' || 'W' }}${{ inputs.translate == false && ' ' || 'T' }}${{ inputs.review == false && ' ' || 'R' }}${{ inputs.build == false && ' ' || 'B' }}] ${{ inputs.timing_source == 'en-srt' && '(en-srt)' || '' }}"
 
 on:
   push:
