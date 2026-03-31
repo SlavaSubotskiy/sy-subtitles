@@ -119,7 +119,11 @@ function parseTranscript(text) {{
     }}
   }}
   var body = lines.slice(bodyStart).join('\\n');
-  return body.split(/\\n\\s*\\n/).map(function(p) {{ return p.trim(); }}).filter(Boolean);
+  // Detect format: if double newlines exist, split on them; otherwise single newlines
+  if (/\\n\\s*\\n/.test(body)) {{
+    return body.split(/\\n\\s*\\n/).map(function(p) {{ return p.trim(); }}).filter(Boolean);
+  }}
+  return body.split('\\n').map(function(p) {{ return p.trim(); }}).filter(Boolean);
 }}
 
 Promise.all([
