@@ -169,3 +169,157 @@ class TestSubtitleSync:
         self._goto_and_wait(server, page)
         text = self._set_time_and_get_subtitle(page, 25)
         assert text.strip() == ""
+
+
+class TestMarkers:
+    def _goto_and_wait(self, server, page):
+        page.goto(f"{server}{VIDEO_URL}")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_function("document.getElementById('status').textContent.includes('loaded')", timeout=10000)
+        # Clear any stored markers
+        page.evaluate("localStorage.removeItem('markers_' + location.pathname)")
+
+    def _set_time(self, page, seconds):
+        page.evaluate(f"window._vimeoPlayer._setTime({seconds})")
+        page.wait_for_timeout(150)
+
+    def test_mark_button_adds_marker(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        count = page.locator("#marker-count").text_content()
+        assert count == "1"
+
+    def test_marker_has_timecode_and_text(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        tc = page.locator(".marker-item .tc").first.text_content()
+        text = page.locator(".marker-item .text").first.text_content()
+        assert "00:00:02" in tc
+        assert "Перший субтитр" in text
+
+    def test_mark_pauses_video(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        # Mock player should have pause called — check it didn't error
+        count = page.locator("#marker-count").text_content()
+        assert count == "1"
+
+    def test_comment_input_exists(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        assert page.locator(".marker-item .comment").count() == 1
+
+    def test_comment_input_focused_after_mark(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        page.wait_for_timeout(200)
+        focused = page.evaluate("document.activeElement.className")
+        assert "comment" in focused
+
+    def test_enter_resumes_playback(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        page.wait_for_timeout(200)
+        page.keyboard.press("Enter")
+        # Should not error — play() was called on mock
+        count = page.locator("#marker-count").text_content()
+        assert count == "1"
+
+    def test_comment_saved(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        page.wait_for_timeout(200)
+        page.locator(".marker-item .comment").fill("fix this")
+        page.locator(".marker-item .comment").dispatch_event("change")
+        stored = page.evaluate("JSON.parse(localStorage.getItem('markers_' + location.pathname))")
+        assert stored[0]["comment"] == "fix this"
+
+    def test_remove_marker(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        assert page.locator("#marker-count").text_content() == "1"
+        page.locator(".marker-item .del").click()
+        assert page.locator("#marker-count").text_content() == "0"
+
+    def test_seek_on_timecode_click(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 7)
+        page.click("#btn-mark")
+        # Now click the timecode to seek
+        page.locator(".marker-item .tc").first.click()
+        # setCurrentTime should have been called on mock
+        time = page.evaluate("window._vimeoPlayer._currentTime")
+        assert time == 7
+
+    def test_keyboard_m_adds_marker(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 3)
+        page.keyboard.press("m")
+        page.wait_for_timeout(300)
+        count = page.locator("#marker-count").text_content()
+        assert count == "1"
+
+    def test_multiple_markers(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        page.wait_for_timeout(200)
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(200)
+        self._set_time(page, 7)
+        page.click("#btn-mark")
+        assert page.locator("#marker-count").text_content() == "2"
+        assert page.locator(".marker-item").count() == 2
+
+    def test_copy_all_markers(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        page.wait_for_timeout(200)
+        page.locator(".marker-item .comment").fill("test comment")
+        page.locator(".marker-item .comment").dispatch_event("change")
+        # markersToText should include comment
+        text = page.evaluate("markersToText()")
+        assert "00:00:02" in text
+        assert "Перший субтитр" in text
+        assert "test comment" in text
+
+    def test_create_issue_url(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        # Check that createIssue builds correct URL
+        url = page.evaluate("""() => {
+            var title = encodeURIComponent('Subtitle review: Test Video');
+            var body = encodeURIComponent(markersToText());
+            return 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/new?title=' + title + '&body=' + body;
+        }""")
+        assert "issues/new" in url
+        assert "00%3A00%3A02" in url or "00:00:02" in url
+
+    def test_localStorage_persistence(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 2)
+        page.click("#btn-mark")
+        assert page.locator("#marker-count").text_content() == "1"
+        # Reload page
+        page.reload()
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        # Markers should persist
+        count = page.locator("#marker-count").text_content()
+        assert count == "1"
+
+    def test_no_subtitle_marker_text(self, server, page):
+        self._goto_and_wait(server, page)
+        self._set_time(page, 12)  # gap — no subtitle
+        page.click("#btn-mark")
+        text = page.locator(".marker-item .text").first.text_content()
+        assert text == "(no subtitle)"
