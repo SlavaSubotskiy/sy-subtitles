@@ -131,30 +131,31 @@ The pipeline runs: Whisper → Translate → Review → Build subtitles → Comm
 # Download talk from amruta.org
 python -m tools.download --url "https://www.amruta.org/..." [--what all|srt|text]
 
-# Build SRT from mapping table (used by subtitle builder agent)
-python -m tools.build_srt --mapping PATH --output PATH --report PATH
+# Build subtitle mapping (deterministic orchestrator + LLM timing)
+python -m tools.build_map prepare --talk-dir PATH --video-slug SLUG [--timing-source whisper|en-srt]
+python -m tools.build_map assemble --talk-dir PATH --video-slug SLUG
 
-# Query EN blocks with whisper timestamps (used by subtitle builder agent)
-python -m tools.builder_data info --en-srt PATH --whisper-json PATH
-python -m tools.builder_data query --en-srt PATH --whisper-json PATH --from N --to N
-python -m tools.builder_data search --en-srt PATH --whisper-json PATH --text "KEYWORD"
+# Build SRT from mapping table
+python -m tools.build_srt --mapping PATH --output PATH --report PATH
 
 # Validate SRT subtitles
 python -m tools.validate_subtitles --srt PATH --transcript PATH [--whisper-json PATH] --report PATH \
   [--skip-text-check] [--skip-time-check] [--skip-cps-check] [--skip-duration-check]
 
+# Sync transcript edits into existing SRT (for PR workflow)
+python -m tools.sync_transcript_to_srt --talk-dir PATH --video-slug SLUG \
+  --old-transcript OLD --new-transcript NEW
+
 # Detect and apply timecode offset between videos
 python -m tools.offset_srt detect --srt1 PATH --srt2 PATH
 python -m tools.offset_srt apply --srt PATH --offset-ms N --output PATH
 
-# Optimize SRT timing (legacy workflow)
+# Optimize SRT timing
 python -m tools.optimize_srt --srt PATH [--json PATH] --output PATH
+
+# Generate preview site (GitHub Pages)
+python -m tools.generate_preview --output-dir PATH --talks-dir talks
 
 # Export SRT to plain text
 python -m tools.text_export --srt PATH --output PATH [--meta PATH] [--double-spacing]
-
-# Other tools
-python -m tools.extract_review --srt PATH [-o PATH]
-python -m tools.scrape_listing --output glossary/corpus/index.yaml --cookie "..."
-python -m tools.fetch_transcripts --index glossary/corpus/index.yaml --cookie "..."
 ```

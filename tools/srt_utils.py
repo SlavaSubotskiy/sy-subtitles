@@ -161,16 +161,13 @@ def format_stats(stats, label=""):
     lines.append(f"{'=' * 60}")
     lines.append(f"  {label}")
     lines.append(f"{'=' * 60}")
+    n = max(stats["total_blocks"], 1)
     lines.append(f"  Total blocks: {stats['total_blocks']}")
     lines.append(f"  CPS: avg={stats['avg_cps']:.1f}, median={stats['median_cps']:.1f}, max={stats['max_cps']:.1f}")
-    lines.append(
-        f"  CPS > target: {stats['cps_over_target']} ({stats['cps_over_target'] / stats['total_blocks'] * 100:.1f}%)"
-    )
-    lines.append(
-        f"  CPS > hard max: {stats['cps_over_hard']} ({stats['cps_over_hard'] / stats['total_blocks'] * 100:.1f}%)"
-    )
+    lines.append(f"  CPS > target: {stats['cps_over_target']} ({stats['cps_over_target'] / n * 100:.1f}%)")
+    lines.append(f"  CPS > hard max: {stats['cps_over_hard']} ({stats['cps_over_hard'] / n * 100:.1f}%)")
     lines.append(f"  CPL: avg={stats['avg_cpl']:.1f}, max={stats['max_cpl']}")
-    lines.append(f"  CPL > max: {stats['cpl_over_max']} ({stats['cpl_over_max'] / stats['total_blocks'] * 100:.1f}%)")
+    lines.append(f"  CPL > max: {stats['cpl_over_max']} ({stats['cpl_over_max'] / n * 100:.1f}%)")
     lines.append(
         f"  Chars > max block: {stats['chars_over_max']} ({stats['chars_over_max'] / stats['total_blocks'] * 100:.1f}%)"
     )

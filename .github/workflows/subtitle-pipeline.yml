@@ -422,7 +422,6 @@ jobs:
       - run: git pull --rebase
 
       - name: Download translation artifacts
-        if: needs.translate-and-review.result == 'success'
         continue-on-error: true
         uses: actions/download-artifact@v6
         with:

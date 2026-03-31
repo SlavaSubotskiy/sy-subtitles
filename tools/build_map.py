@@ -494,13 +494,6 @@ def cmd_assemble(args):
 
     print(f"  Total: {len(all_timecodes)}/{len(uk_blocks)} blocks", file=sys.stderr)
 
-    # Check completeness
-    expected = {b["id"] for b in uk_blocks}
-    got = set(all_timecodes.keys())
-    missing = expected - got
-    if missing:
-        print(f"  WARNING: {len(missing)} blocks without timecodes", file=sys.stderr)
-
     # Build mapping
     output_map = str(work / "uk.map")
     map_lines = []
