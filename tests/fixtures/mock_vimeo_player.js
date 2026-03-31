@@ -6,17 +6,22 @@ window.Vimeo = {
       this._currentTime = 0;
       this._callbacks = {};
       // Replace iframe with a visible div
-      if (element && element.tagName === 'IFRAME') {
-        var div = document.createElement('div');
-        div.id = 'mock-player';
-        div.style.cssText = 'width:100%;height:300px;background:#222;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;position:relative;';
-        div.textContent = 'Mock Vimeo Player';
+      var div = document.createElement('div');
+      div.id = 'mock-player';
+      div.style.cssText = 'width:100%;height:300px;background:#222;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;position:relative;';
+      div.textContent = 'Mock Vimeo Player';
+      if (element && element.parentNode) {
+        element.parentNode.style.cssText = 'position:relative;height:300px;';
         element.parentNode.replaceChild(div, element);
-        // Store player instance globally for test access
-        window._vimeoPlayer = this;
+      } else {
+        document.body.appendChild(div);
       }
+      window._vimeoPlayer = this;
     }
     ready() { return Promise.resolve(); }
+    pause() { return Promise.resolve(); }
+    play() { return Promise.resolve(); }
+    setCurrentTime(sec) { this._currentTime = sec; return Promise.resolve(); }
     on(event, callback) {
       this._callbacks[event] = this._callbacks[event] || [];
       this._callbacks[event].push(callback);

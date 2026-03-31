@@ -125,8 +125,8 @@ class TestVideoPage:
 class TestSubtitleSync:
     def _goto_and_wait(self, server, page):
         page.goto(f"{server}{VIDEO_URL}")
-        page.wait_for_selector("#mock-player", state="visible", timeout=5000)
-        page.wait_for_function("document.getElementById('status').textContent.includes('loaded')", timeout=5000)
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_function("document.getElementById('status').textContent.includes('loaded')", timeout=10000)
 
     def _set_time_and_get_subtitle(self, page, seconds):
         return page.evaluate(

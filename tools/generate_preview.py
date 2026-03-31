@@ -49,6 +49,7 @@ def generate_video_page(
     parser_js = get_srt_parser_js()
 
     issue_repo = "SlavaSubotskiy/sy-subtitles"
+    enter_handler = 'onkeydown="if(event.key==&#39;Enter&#39;){this.blur();window._player.play();}"'
 
     return f"""<!DOCTYPE html>
 <html lang="uk">
@@ -198,8 +199,8 @@ function addMarker() {{
   var t = window._getCurrentTime();
   var text = window._getCurrentSubtitle() || '(no subtitle)';
   markers.push({{ time: t, tc: fmtTime(t), text: text, comment: '' }});
+  window._player.pause();
   saveAndRender();
-  // Focus the comment input of the new marker
   var inputs = document.querySelectorAll('.marker-item .comment');
   if (inputs.length) inputs[inputs.length - 1].focus();
 }}
@@ -234,10 +235,12 @@ function renderMarkers() {{
     var comment = (m.comment || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     li.innerHTML = '<div style="display:flex;align-items:center;gap:8px;width:100%">' +
       '<span class="tc" onclick="seekTo(' + m.time + ')">' + m.tc + '</span>' +
-      '<span class="text">' + m.text.replace(/</g, '&lt;') + '</span>' +
-      '<span class="del" onclick="removeMarker(' + i + ')">&#x2715;</span></div>' +
+      '<span class="text">' + m.text.replace(/</g, '&lt;') + '</span></div>' +
+      '<div style="display:flex;align-items:center;gap:4px">' +
       '<input class="comment" type="text" placeholder="comment..." value="' + comment + '" ' +
-      'onchange="updateComment(' + i + ', this.value)">';
+      'onchange="updateComment(' + i + ', this.value)" ' +
+      '{enter_handler}>' +
+      '<span class="del" onclick="removeMarker(' + i + ')">&#x2715;</span></div>';
     list.appendChild(li);
   }});
 }}
