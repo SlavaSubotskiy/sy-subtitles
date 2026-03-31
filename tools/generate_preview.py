@@ -315,8 +315,19 @@ def generate_index_page(entries: list, review_entries: list | None = None, base_
 
     review_set = {e["talk_id"] for e in (review_entries or [])}
 
+    # Add review-only talks (have transcripts but no SRT yet)
+    for e in review_entries or []:
+        tid = e["talk_id"]
+        if tid not in talks:
+            talks[tid] = {
+                "talk_id": tid,
+                "talk_title": e.get("talk_title", tid),
+                "date": e.get("date", ""),
+                "videos": [],
+            }
+
     items = []
-    for t in talks.values():
+    for t in sorted(talks.values(), key=lambda x: x.get("date", "")):
         review_link = ""
         if t["talk_id"] in review_set:
             rurl = f"{base_url}/{t['talk_id']}/review/"
