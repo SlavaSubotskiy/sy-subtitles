@@ -753,7 +753,7 @@ jobs:
         run: |
           TALK_ID="${{ inputs.talk_id }}"
           BASE="https://slavasubotskiy.github.io/sy-subtitles"
-          echo "## Subtitle Preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 🎬 Subtitle Preview" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           for dir in /tmp/preview/$TALK_ID/*/; do
             [ -d "$dir" ] || continue
@@ -761,7 +761,7 @@ jobs:
             echo "- [$SLUG]($BASE/$TALK_ID/$SLUG/)" >> "$GITHUB_STEP_SUMMARY"
           done
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "[All previews]($BASE/)" >> "$GITHUB_STEP_SUMMARY"
+          echo "📋 [All previews]($BASE/)" >> "$GITHUB_STEP_SUMMARY"
 
   # Single commit job – collects all artifacts and pushes
   commit:
