@@ -761,16 +761,19 @@ jobs:
           git push
 
       - name: Summary
+        if: always()
         run: |
-          {
-            echo "## Subtitle Preview"
-            echo ""
-            echo "${{ steps.gen.outputs.urls }}" | while read url; do
-              [ -n "$url" ] && echo "- [$url]($url)"
-            done
-            echo ""
-            echo "[All previews](https://slavasubotskiy.github.io/sy-subtitles/)"
-          } >> "$GITHUB_STEP_SUMMARY"
+          TALK_ID="${{ inputs.talk_id }}"
+          BASE="https://slavasubotskiy.github.io/sy-subtitles"
+          echo "## Subtitle Preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          for dir in /tmp/preview/$TALK_ID/*/; do
+            [ -d "$dir" ] || continue
+            SLUG=$(basename "$dir")
+            echo "- [$SLUG]($BASE/$TALK_ID/$SLUG/)" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "[All previews]($BASE/)" >> "$GITHUB_STEP_SUMMARY"
 
   # Single commit job – collects all artifacts and pushes
   commit:
