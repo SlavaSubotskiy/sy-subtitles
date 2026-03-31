@@ -69,7 +69,7 @@ body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSy
   padding: 12px 16px;
   background: rgba(0, 0, 0, 0.85);
   color: #fff;
-  font-size: 20px;
+  font-size: 40px;
   line-height: 1.4;
   text-align: center;
   border-radius: 0 0 4px 4px;
