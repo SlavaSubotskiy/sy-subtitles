@@ -701,6 +701,47 @@ jobs:
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
 
+  # Deploy subtitle preview to GitHub Pages
+  preview-deploy:
+    needs: [commit]
+    if: needs.commit.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - run: git pull --rebase
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+
+      - name: Generate preview
+        run: |
+          python -m tools.generate_preview \
+            --talk-dir "talks/${{ inputs.talk_id }}" \
+            --output-dir /tmp/preview
+
+      - name: Deploy to gh-pages
+        run: |
+          git fetch origin gh-pages
+          git worktree add /tmp/gh-pages gh-pages
+          cp -r /tmp/preview/*/ /tmp/gh-pages/ 2>/dev/null || true
+          # Regenerate index
+          python -m tools.generate_preview \
+            --scan-dir /tmp/gh-pages \
+            --index-only \
+            --output-dir /tmp/gh-pages \
+            --base-url "/sy-subtitles"
+          cd /tmp/gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --cached --quiet && { echo "No preview changes"; exit 0; }
+          git commit -m "Preview: ${{ inputs.talk_id }}"
+          git push
+
   # Single commit job – collects all artifacts and pushes
   commit:
     needs: [translate-and-review, assemble-build, build-en-srt]
