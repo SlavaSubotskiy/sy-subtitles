@@ -48,6 +48,8 @@ def generate_video_page(
     """Generate HTML preview page that fetches SRT dynamically."""
     parser_js = get_srt_parser_js()
 
+    issue_repo = "SlavaSubotskiy/sy-subtitles"
+
     return f"""<!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -65,27 +67,34 @@ body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSy
 .video-wrap {{ position: relative; padding-bottom: 56.25%; height: 0; }}
 .video-wrap iframe {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }}
 #subtitle-overlay {{
-  position: relative;
-  width: 100%;
-  min-height: 60px;
-  padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.85);
-  color: #fff;
-  font-size: 40px;
-  line-height: 1.4;
-  text-align: center;
-  border-radius: 0 0 4px 4px;
+  position: relative; width: 100%; min-height: 60px; padding: 12px 16px;
+  background: rgba(0,0,0,0.85); color: #fff; font-size: 40px;
+  line-height: 1.4; text-align: center; border-radius: 0 0 4px 4px;
 }}
 #subtitle-overlay:empty {{ min-height: 20px; }}
 #subtitle-overlay:empty::after {{ content: '\\200B'; }}
-.time-display {{
-  text-align: center;
-  padding: 8px;
-  color: #666;
-  font-size: 13px;
-  font-family: monospace;
-}}
-#status {{ text-align: center; padding: 8px; color: #888; font-size: 13px; }}
+.controls {{ display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px; }}
+.controls button {{ background: #333; color: #fff; border: 1px solid #555; border-radius: 6px;
+  padding: 8px 16px; font-size: 14px; cursor: pointer; touch-action: manipulation; }}
+.controls button:active {{ background: #555; }}
+#time-display {{ color: #666; font-size: 13px; font-family: monospace; }}
+#status {{ text-align: center; padding: 4px; color: #888; font-size: 13px; }}
+.markers {{ max-width: 960px; margin: 0 auto; padding: 0 8px; }}
+.markers summary {{ color: #888; cursor: pointer; padding: 8px; font-size: 14px; }}
+.markers summary:hover {{ color: #fff; }}
+.marker-actions {{ display: flex; gap: 8px; padding: 8px 0; }}
+.marker-actions button {{ background: #2a4a2a; color: #8f8; border: 1px solid #4a4; border-radius: 6px;
+  padding: 6px 14px; font-size: 13px; cursor: pointer; }}
+.marker-actions button.issue {{ background: #3a2a4a; color: #c8f; border-color: #84c; }}
+.marker-actions button:active {{ opacity: 0.7; }}
+.marker-list {{ list-style: none; }}
+.marker-item {{ display: flex; align-items: flex-start; gap: 8px; padding: 6px 0;
+  border-bottom: 1px solid #333; font-size: 14px; }}
+.marker-item .tc {{ color: #6af; cursor: pointer; white-space: nowrap; font-family: monospace; min-width: 70px; }}
+.marker-item .tc:hover {{ text-decoration: underline; }}
+.marker-item .text {{ color: #ccc; flex: 1; word-break: break-word; }}
+.marker-item .del {{ color: #666; cursor: pointer; padding: 0 4px; }}
+.marker-item .del:hover {{ color: #f66; }}
 </style>
 </head>
 <body>
@@ -100,8 +109,22 @@ body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSy
       allow="autoplay; fullscreen" allowfullscreen></iframe>
   </div>
   <div id="subtitle-overlay"></div>
-  <div class="time-display" id="time-display">00:00:00</div>
+  <div class="controls">
+    <span id="time-display">00:00:00</span>
+    <button id="btn-mark" onclick="addMarker()">&#x1F4CC; Mark</button>
+  </div>
   <div id="status">Loading subtitles...</div>
+</div>
+
+<div class="markers">
+  <details id="markers-panel" open>
+    <summary>Markers (<span id="marker-count">0</span>)</summary>
+    <div class="marker-actions">
+      <button onclick="copyMarkers()">Copy all</button>
+      <button class="issue" onclick="createIssue()">Create issue</button>
+    </div>
+    <ul class="marker-list" id="marker-list"></ul>
+  </details>
 </div>
 
 <script src="https://player.vimeo.com/api/player.js"></script>
@@ -116,6 +139,12 @@ body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSy
   var player = new Vimeo.Player(iframe);
   var subtitles = [];
   var lastText = '';
+  var currentSeconds = 0;
+
+  // Expose for marker functions
+  window._player = player;
+  window._getCurrentTime = function() {{ return currentSeconds; }};
+  window._getCurrentSubtitle = function() {{ return lastText; }};
 
   fetch('{srt_raw_url}')
     .then(function(r) {{ return r.ok ? r.text() : Promise.reject('HTTP ' + r.status); }})
@@ -130,6 +159,7 @@ body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSy
     }});
 
   player.on('timeupdate', function(data) {{
+    currentSeconds = data.seconds;
     var ms = Math.round(data.seconds * 1000);
     var active = findActiveSubtitle(subtitles, ms);
     var text = active ? active.text : '';
@@ -144,6 +174,82 @@ body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSy
     timeDisplay.textContent = h + ':' + m + ':' + sec;
   }});
 }})();
+
+// --- Markers ---
+var STORAGE_KEY = 'markers_' + location.pathname;
+var markers = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+renderMarkers();
+
+document.addEventListener('keydown', function(e) {{
+  if (e.key === 'm' || e.key === 'M') {{ if (e.target.tagName !== 'INPUT') addMarker(); }}
+}});
+
+function fmtTime(sec) {{
+  var h = String(Math.floor(sec / 3600)).padStart(2, '0');
+  var m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+  var s = String(Math.floor(sec % 60)).padStart(2, '0');
+  return h + ':' + m + ':' + s;
+}}
+
+function addMarker() {{
+  var t = window._getCurrentTime();
+  var text = window._getCurrentSubtitle() || '(no subtitle)';
+  markers.push({{ time: t, tc: fmtTime(t), text: text }});
+  saveAndRender();
+}}
+
+function removeMarker(i) {{
+  markers.splice(i, 1);
+  saveAndRender();
+}}
+
+function seekTo(sec) {{
+  window._player.setCurrentTime(sec);
+}}
+
+function saveAndRender() {{
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(markers));
+  renderMarkers();
+}}
+
+function renderMarkers() {{
+  var list = document.getElementById('marker-list');
+  var count = document.getElementById('marker-count');
+  count.textContent = markers.length;
+  list.innerHTML = '';
+  markers.forEach(function(m, i) {{
+    var li = document.createElement('li');
+    li.className = 'marker-item';
+    li.innerHTML = '<span class="tc" onclick="seekTo(' + m.time + ')">' + m.tc + '</span>' +
+      '<span class="text">' + m.text.replace(/</g, '&lt;') + '</span>' +
+      '<span class="del" onclick="removeMarker(' + i + ')">&#x2715;</span>';
+    list.appendChild(li);
+  }});
+}}
+
+function markersToText() {{
+  var title = document.title;
+  var lines = ['# ' + title, ''];
+  markers.forEach(function(m) {{
+    lines.push('- **' + m.tc + '** ' + m.text);
+  }});
+  return lines.join('\\n');
+}}
+
+function copyMarkers() {{
+  navigator.clipboard.writeText(markersToText()).then(function() {{
+    var btn = document.querySelector('.marker-actions button');
+    var orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(function() {{ btn.textContent = orig; }}, 1500);
+  }});
+}}
+
+function createIssue() {{
+  var title = encodeURIComponent('Subtitle review: {html.escape(video_title)}');
+  var body = encodeURIComponent(markersToText());
+  window.open('https://github.com/{issue_repo}/issues/new?title=' + title + '&body=' + body);
+}}
 </script>
 </body>
 </html>"""
