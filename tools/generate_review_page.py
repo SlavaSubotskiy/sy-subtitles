@@ -246,8 +246,8 @@ function issueBody() {{
     lines.push('| P# | English | Ukrainian | Comment |');
     lines.push('|----|---------|-----------|---------|');
     markIdxs.forEach(function(idx) {{
-      var en = (enParas[idx] || '').substring(0, 80);
-      var uk = (state.edits[idx] || ukParas[idx] || '').substring(0, 80);
+      var en = enParas[idx] || '';
+      var uk = state.edits[idx] || ukParas[idx] || '';
       var comment = state.marks[idx] || '';
       lines.push('| P' + (idx + 1) + ' | ' + en + ' | ' + uk + ' | ' + comment + ' |');
     }});
@@ -259,9 +259,15 @@ function issueBody() {{
     editIdxs.forEach(function(idx) {{
       var orig = ukParas[idx] || '';
       var edited = state.edits[idx];
-      lines.push('**P' + (idx + 1) + '**');
-      lines.push('- Before: ' + orig.substring(0, 120));
-      lines.push('- After: ' + edited.substring(0, 120));
+      lines.push('<details><summary><b>P' + (idx + 1) + '</b></summary>');
+      lines.push('');
+      lines.push('**Before:**');
+      lines.push('> ' + orig.split('\\n').join('\\n> '));
+      lines.push('');
+      lines.push('**After:**');
+      lines.push('> ' + edited.split('\\n').join('\\n> '));
+      lines.push('');
+      lines.push('</details>');
       lines.push('');
     }});
   }}
