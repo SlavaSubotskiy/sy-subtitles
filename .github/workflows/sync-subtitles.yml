@@ -1,0 +1,120 @@
+name: Sync Subtitles
+run-name: "Sync: ${{ github.event.pull_request.title }}"
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'talks/*/transcript_uk.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+
+      - name: Detect changed transcripts
+        id: detect
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD" | grep 'talks/.*/transcript_uk.txt' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Changed: $CHANGED"
+          fi
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGED" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "base_sha=$BASE" >> "$GITHUB_OUTPUT"
+
+      - name: Sync, optimize, validate
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          BASE_SHA="${{ steps.detect.outputs.base_sha }}"
+
+          echo "${{ steps.detect.outputs.files }}" | while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            TALK_DIR=$(dirname "$file")
+            TALK_ID=$(basename "$TALK_DIR")
+            echo ""
+            echo "=========================================="
+            echo "  $TALK_ID"
+            echo "=========================================="
+
+            # Get old transcript version
+            git show "$BASE_SHA:$file" > /tmp/old_transcript.txt 2>/dev/null || {
+              echo "  New file — skip"
+              continue
+            }
+
+            python3 -c "
+          import yaml
+          with open('$TALK_DIR/meta.yaml') as f:
+              meta = yaml.safe_load(f)
+          for v in meta.get('videos', []):
+              print(v['slug'])
+          " | while IFS= read -r slug; do
+              SRT="$TALK_DIR/$slug/final/uk.srt"
+              [ -f "$SRT" ] || { echo "  $slug: no uk.srt — skip"; continue; }
+
+              echo "  --- $slug ---"
+
+              # 1. Sync text
+              echo "  [1/3] Sync text..."
+              python -m tools.sync_transcript_to_srt \
+                --talk-dir "$TALK_DIR" \
+                --video-slug "$slug" \
+                --old-transcript /tmp/old_transcript.txt \
+                --new-transcript "$file" || {
+                  echo "  FAIL: text sync failed (likely needs full agent rebuild)"
+                  continue
+                }
+
+              # 2. Optimize (adjust CPS/timing)
+              WHISPER="$TALK_DIR/$slug/source/whisper.json"
+              WHISPER_ARG=""
+              [ -f "$WHISPER" ] && WHISPER_ARG="--json $WHISPER"
+              echo "  [2/3] Optimize..."
+              python -m tools.optimize_srt \
+                --srt "$SRT" \
+                $WHISPER_ARG \
+                --output "$SRT" \
+                --report "$TALK_DIR/$slug/final/report.txt" || {
+                  echo "  WARN: optimizer failed"
+                }
+
+              # 3. Validate
+              echo "  [3/3] Validate..."
+              python -m tools.validate_subtitles \
+                --srt "$SRT" \
+                --transcript "$file" \
+                --skip-time-check --skip-duration-check \
+                --report "$TALK_DIR/$slug/final/report.txt" || {
+                  echo "  WARN: validation has issues (may need full rebuild)"
+                }
+            done
+          done
+
+      - name: Commit
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add talks/*/*/final/uk.srt talks/*/*/final/report.txt
+          git diff --cached --quiet && { echo "No subtitle changes"; exit 0; }
+          git commit -m "Sync subtitles from transcript edits"
+          git push
