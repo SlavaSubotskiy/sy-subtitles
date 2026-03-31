@@ -729,18 +729,6 @@ jobs:
             --output-dir /tmp/preview \
             --base-url "/sy-subtitles"
 
-          # Collect preview URLs for summary
-          TALK_ID="${{ inputs.talk_id }}"
-          URLS=""
-          for dir in /tmp/preview/$TALK_ID/*/; do
-            [ -d "$dir" ] || continue
-            SLUG=$(basename "$dir")
-            URLS="${URLS}https://slavasubotskiy.github.io/sy-subtitles/${TALK_ID}/${SLUG}/\n"
-          done
-          echo "urls<<EOF" >> "$GITHUB_OUTPUT"
-          echo -e "$URLS" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
       - name: Deploy to gh-pages
         run: |
           git fetch origin gh-pages
