@@ -753,8 +753,8 @@ jobs:
               SLUG=$(basename "$vdir")
               echo "- [$SLUG]($BASE/$TALK_ID/$SLUG/)" >> "$GITHUB_STEP_SUMMARY"
             done
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "📋 [All previews]($BASE/)" >> "$GITHUB_STEP_SUMMARY"
 
   # Single commit job – collects all artifacts and pushes
