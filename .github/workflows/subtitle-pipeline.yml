@@ -762,13 +762,15 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## 🎬 Subtitle Preview" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.gen.outputs.urls }}" | while read url; do
-            [ -n "$url" ] && echo "- [$url]($url)" >> $GITHUB_STEP_SUMMARY
-          done
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "[📋 All previews](https://slavasubotskiy.github.io/sy-subtitles/)" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Subtitle Preview"
+            echo ""
+            echo "${{ steps.gen.outputs.urls }}" | while read url; do
+              [ -n "$url" ] && echo "- [$url]($url)"
+            done
+            echo ""
+            echo "[All previews](https://slavasubotskiy.github.io/sy-subtitles/)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # Single commit job – collects all artifacts and pushes
   commit:
