@@ -331,6 +331,23 @@ class TestReviewIssue:
         # Second paragraph should be original
         assert "Другий абзац" in transcript
 
+    def test_build_edited_transcript_has_header(self, server, page):
+        self._wait_ready(server, page)
+        transcript = page.evaluate("buildEditedTranscript()")
+        assert "Мова промови:" in transcript
+
+    def test_build_edited_transcript_separator(self, server, page):
+        """Separator between paragraphs should match original format."""
+        self._wait_ready(server, page)
+        transcript = page.evaluate("buildEditedTranscript()")
+        # SAMPLE_UK uses double newlines
+        assert "\n\n" in transcript
+
+    def test_open_editor_uses_window_open(self, server, page):
+        self._wait_ready(server, page)
+        uses_open = page.evaluate("openEditor.toString().includes('window.open')")
+        assert uses_open
+
     def test_issue_body_has_edits(self, server, page):
         self._wait_ready(server, page)
         cell = page.locator(".cell.uk").first

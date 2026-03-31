@@ -109,29 +109,43 @@ var state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{{"marks":{{}},"edi
 var enParas = [];
 var ukParas = [];
 
+var ukHeader = '';
+var ukSeparator = '\\n';
+var ukRawText = '';
+
 function parseTranscript(text) {{
   var lines = text.split('\\n');
   var bodyStart = 0;
+  var header = '';
   for (var i = 0; i < Math.min(lines.length, 10); i++) {{
     if (/^(Talk Language:|Language:|Мова промови:|Мова:)/i.test(lines[i].trim())) {{
       bodyStart = i + 1;
+      header = lines.slice(0, bodyStart).join('\\n');
       break;
     }}
   }}
   var body = lines.slice(bodyStart).join('\\n');
-  // Detect format: if double newlines exist, split on them; otherwise single newlines
-  if (/\\n\\s*\\n/.test(body)) {{
-    return body.split(/\\n\\s*\\n/).map(function(p) {{ return p.trim(); }}).filter(Boolean);
+  var useDouble = /\\n\\s*\\n/.test(body);
+  var paras;
+  if (useDouble) {{
+    paras = body.split(/\\n\\s*\\n/).map(function(p) {{ return p.trim(); }}).filter(Boolean);
+  }} else {{
+    paras = body.split('\\n').map(function(p) {{ return p.trim(); }}).filter(Boolean);
   }}
-  return body.split('\\n').map(function(p) {{ return p.trim(); }}).filter(Boolean);
+  return {{ header: header, separator: useDouble ? '\\n\\n' : '\\n', paragraphs: paras }};
 }}
 
 Promise.all([
   fetch(EN_URL).then(function(r) {{ return r.ok ? r.text() : Promise.reject('EN: ' + r.status); }}),
   fetch(UK_URL).then(function(r) {{ return r.ok ? r.text() : Promise.reject('UK: ' + r.status); }})
 ]).then(function(texts) {{
-  enParas = parseTranscript(texts[0]);
-  ukParas = parseTranscript(texts[1]);
+  var en = parseTranscript(texts[0]);
+  var uk = parseTranscript(texts[1]);
+  enParas = en.paragraphs;
+  ukParas = uk.paragraphs;
+  ukHeader = uk.header;
+  ukSeparator = uk.separator;
+  ukRawText = texts[1];
   render();
   document.getElementById('status').style.display = 'none';
 }}).catch(function(err) {{
@@ -282,16 +296,17 @@ function createIssue() {{
 }}
 
 function buildEditedTranscript() {{
-  // Reconstruct full transcript with edits applied
-  var lines = [];
+  // Reconstruct full transcript with header and original separator
+  var paras = [];
   for (var i = 0; i < ukParas.length; i++) {{
     if (state.edits[i] !== undefined) {{
-      lines.push(state.edits[i]);
+      paras.push(state.edits[i]);
     }} else {{
-      lines.push(ukParas[i]);
+      paras.push(ukParas[i]);
     }}
   }}
-  return lines.join('\\n');
+  var body = paras.join(ukSeparator);
+  return ukHeader ? ukHeader + ukSeparator + body + '\\n' : body + '\\n';
 }}
 
 function openEditor() {{
