@@ -95,6 +95,9 @@ body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSy
 .marker-item .text {{ color: #ccc; flex: 1; word-break: break-word; }}
 .marker-item .del {{ color: #666; cursor: pointer; padding: 0 4px; }}
 .marker-item .del:hover {{ color: #f66; }}
+.marker-item .comment {{ width: 100%; background: #2a2a2a; color: #eee; border: 1px solid #444;
+  border-radius: 4px; padding: 4px 8px; font-size: 13px; margin-top: 4px; }}
+.marker-item .comment:focus {{ border-color: #6af; outline: none; }}
 </style>
 </head>
 <body>
@@ -194,8 +197,16 @@ function fmtTime(sec) {{
 function addMarker() {{
   var t = window._getCurrentTime();
   var text = window._getCurrentSubtitle() || '(no subtitle)';
-  markers.push({{ time: t, tc: fmtTime(t), text: text }});
+  markers.push({{ time: t, tc: fmtTime(t), text: text, comment: '' }});
   saveAndRender();
+  // Focus the comment input of the new marker
+  var inputs = document.querySelectorAll('.marker-item .comment');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}}
+
+function updateComment(i, val) {{
+  markers[i].comment = val;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(markers));
 }}
 
 function removeMarker(i) {{
@@ -220,9 +231,13 @@ function renderMarkers() {{
   markers.forEach(function(m, i) {{
     var li = document.createElement('li');
     li.className = 'marker-item';
-    li.innerHTML = '<span class="tc" onclick="seekTo(' + m.time + ')">' + m.tc + '</span>' +
+    var comment = (m.comment || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    li.innerHTML = '<div style="display:flex;align-items:center;gap:8px;width:100%">' +
+      '<span class="tc" onclick="seekTo(' + m.time + ')">' + m.tc + '</span>' +
       '<span class="text">' + m.text.replace(/</g, '&lt;') + '</span>' +
-      '<span class="del" onclick="removeMarker(' + i + ')">&#x2715;</span>';
+      '<span class="del" onclick="removeMarker(' + i + ')">&#x2715;</span></div>' +
+      '<input class="comment" type="text" placeholder="comment..." value="' + comment + '" ' +
+      'onchange="updateComment(' + i + ', this.value)">';
     list.appendChild(li);
   }});
 }}
@@ -231,7 +246,9 @@ function markersToText() {{
   var title = document.title;
   var lines = ['# ' + title, ''];
   markers.forEach(function(m) {{
-    lines.push('- **' + m.tc + '** ' + m.text);
+    var line = '- **' + m.tc + '** ' + m.text;
+    if (m.comment) line += ' — _' + m.comment + '_';
+    lines.push(line);
   }});
   return lines.join('\\n');
 }}
