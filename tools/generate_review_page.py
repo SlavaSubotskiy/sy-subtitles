@@ -275,8 +275,29 @@ function createIssue() {{
   window.open('https://github.com/' + REPO + '/issues/new?title=' + title + '&body=' + body + '&labels=review');
 }}
 
+function buildEditedTranscript() {{
+  // Reconstruct full transcript with edits applied
+  var lines = [];
+  for (var i = 0; i < ukParas.length; i++) {{
+    if (state.edits[i] !== undefined) {{
+      lines.push(state.edits[i]);
+    }} else {{
+      lines.push(ukParas[i]);
+    }}
+  }}
+  return lines.join('\\n');
+}}
+
 function openEditor() {{
-  window.open(EDIT_URL);
+  var hasEdits = Object.keys(state.edits).length > 0;
+  if (hasEdits) {{
+    navigator.clipboard.writeText(buildEditedTranscript()).then(function() {{
+      alert('Edited transcript copied to clipboard.\\nGitHub editor will open — select all (Ctrl+A) and paste (Ctrl+V).');
+      window.open(EDIT_URL);
+    }});
+  }} else {{
+    window.open(EDIT_URL);
+  }}
 }}
 </script>
 </body>
