@@ -1,13 +1,14 @@
 """Generate GitHub Pages preview site for subtitle review.
 
-Each video gets a self-contained HTML page with:
-- Vimeo embedded player
-- JavaScript-driven SRT subtitle overlay
-- No external dependencies beyond Vimeo Player SDK
+Scans all talks with uk.srt and generates:
+- Per-video page: Vimeo embed + dynamic SRT fetch from GitHub raw
+- Index page listing all available previews
+
+SRT files are NOT embedded — fetched at runtime from main branch.
 
 Usage:
-    python -m tools.generate_preview --talk-dir talks/TALK --output-dir /tmp/site
-    python -m tools.generate_preview --scan-dir /tmp/site --index-only --output-dir /tmp/site
+    python -m tools.generate_preview --output-dir /tmp/site
+    python -m tools.generate_preview --output-dir /tmp/site --repo SlavaSubotskiy/sy-subtitles
 """
 
 import argparse
@@ -17,6 +18,10 @@ import sys
 from pathlib import Path
 
 import yaml
+
+GITHUB_RAW = "https://raw.githubusercontent.com"
+DEFAULT_REPO = "SlavaSubotskiy/sy-subtitles"
+DEFAULT_BRANCH = "main"
 
 
 def vimeo_url_to_embed(url: str) -> str:
@@ -37,14 +42,11 @@ def generate_video_page(
     talk_title: str,
     video_title: str,
     vimeo_embed_url: str,
-    srt_content: str,
+    srt_raw_url: str,
     base_url: str = "",
 ) -> str:
-    """Generate a self-contained HTML preview page for one video."""
+    """Generate HTML preview page that fetches SRT dynamically."""
     parser_js = get_srt_parser_js()
-    # In <script type="text/plain">, content is not parsed as HTML.
-    # Only need to prevent </script> from closing the tag early.
-    safe_srt = srt_content.replace("</script>", "<\\/script>")
 
     return f"""<!DOCTYPE html>
 <html lang="uk">
@@ -83,6 +85,7 @@ body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSy
   font-size: 13px;
   font-family: monospace;
 }}
+#status {{ text-align: center; padding: 8px; color: #888; font-size: 13px; }}
 </style>
 </head>
 <body>
@@ -98,22 +101,33 @@ body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSy
   </div>
   <div id="subtitle-overlay"></div>
   <div class="time-display" id="time-display">00:00:00</div>
+  <div id="status">Loading subtitles...</div>
 </div>
-
-<script id="srt-data" type="text/plain">{safe_srt}</script>
 
 <script src="https://player.vimeo.com/api/player.js"></script>
 <script>
 {parser_js}
 
 (function() {{
-  var srtText = document.getElementById('srt-data').textContent;
-  var subtitles = parseSRT(srtText);
   var overlay = document.getElementById('subtitle-overlay');
   var timeDisplay = document.getElementById('time-display');
+  var status = document.getElementById('status');
   var iframe = document.getElementById('vimeo-player');
   var player = new Vimeo.Player(iframe);
+  var subtitles = [];
   var lastText = '';
+
+  fetch('{srt_raw_url}')
+    .then(function(r) {{ return r.ok ? r.text() : Promise.reject('HTTP ' + r.status); }})
+    .then(function(text) {{
+      subtitles = parseSRT(text);
+      status.textContent = subtitles.length + ' subtitles loaded';
+      setTimeout(function() {{ status.style.display = 'none'; }}, 3000);
+    }})
+    .catch(function(err) {{
+      status.textContent = 'Failed to load subtitles: ' + err;
+      status.style.color = '#f66';
+    }});
 
   player.on('timeupdate', function(data) {{
     var ms = Math.round(data.seconds * 1000);
@@ -174,102 +188,76 @@ a:hover {{ text-decoration: underline; }}
 </html>"""
 
 
-def generate_site(talk_dir: str, output_dir: str, base_url: str = "", video_slug: str | None = None):
-    """Generate preview pages for a talk."""
-    talk_path = Path(talk_dir)
-    out = Path(output_dir)
-
-    meta_file = talk_path / "meta.yaml"
-    if not meta_file.exists():
-        print(f"No meta.yaml in {talk_path}", file=sys.stderr)
-        return []
-
-    with open(meta_file) as f:
-        meta = yaml.safe_load(f)
-
-    talk_title = meta.get("title", talk_path.name)
-    talk_id = talk_path.name
-    date = meta.get("date", talk_id[:10])
+def scan_all_talks(talks_dir: str) -> list:
+    """Scan talks directory for all videos with uk.srt."""
+    talks = Path(talks_dir)
     entries = []
 
-    for v in meta.get("videos", []):
-        slug = v["slug"]
-        if video_slug and slug != video_slug:
-            continue
-        srt_path = talk_path / slug / "final" / "uk.srt"
-        if not srt_path.exists():
-            print(f"  Skip {slug}: no uk.srt", file=sys.stderr)
-            continue
+    for meta_path in sorted(talks.glob("*/meta.yaml")):
+        talk_dir = meta_path.parent
+        talk_id = talk_dir.name
 
-        vimeo_url = v.get("vimeo_url", "")
-        embed_url = vimeo_url_to_embed(vimeo_url)
-        srt_content = srt_path.read_text(encoding="utf-8")
-        vtitle = v.get("title", slug)
+        with open(meta_path) as f:
+            meta = yaml.safe_load(f)
 
-        page_html = generate_video_page(talk_title, vtitle, embed_url, srt_content, base_url)
+        talk_title = meta.get("title", talk_id)
+        date = str(meta.get("date", talk_id[:10]))
 
-        page_dir = out / talk_id / slug
-        page_dir.mkdir(parents=True, exist_ok=True)
-        (page_dir / "index.html").write_text(page_html, encoding="utf-8")
-        print(f"  Generated: {talk_id}/{slug}/index.html", file=sys.stderr)
+        for v in meta.get("videos", []):
+            slug = v["slug"]
+            srt_path = talk_dir / slug / "final" / "uk.srt"
+            if not srt_path.exists():
+                continue
 
-        entries.append(
-            {
-                "talk_id": talk_id,
-                "talk_title": talk_title,
-                "video_slug": slug,
-                "video_title": vtitle,
-                "date": str(date),
-            }
-        )
-
-    return entries
-
-
-def scan_existing_previews(site_dir: str) -> list:
-    """Scan existing preview site for index generation."""
-    entries = []
-    site = Path(site_dir)
-    for index_html in site.rglob("index.html"):
-        parts = index_html.relative_to(site).parts
-        if len(parts) == 3:  # talk_id/video_slug/index.html
-            talk_id, video_slug = parts[0], parts[1]
             entries.append(
                 {
                     "talk_id": talk_id,
-                    "talk_title": talk_id,
-                    "video_slug": video_slug,
-                    "video_title": video_slug,
-                    "date": talk_id[:10],
+                    "talk_title": talk_title,
+                    "video_slug": slug,
+                    "video_title": v.get("title", slug),
+                    "vimeo_url": v.get("vimeo_url", ""),
+                    "date": date,
                 }
             )
+
     return entries
+
+
+def generate_site(
+    entries: list, output_dir: str, base_url: str = "", repo: str = DEFAULT_REPO, branch: str = DEFAULT_BRANCH
+):
+    """Generate full preview site from entries."""
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    for e in entries:
+        embed_url = vimeo_url_to_embed(e["vimeo_url"])
+        srt_raw_url = f"{GITHUB_RAW}/{repo}/{branch}/talks/{e['talk_id']}/{e['video_slug']}/final/uk.srt"
+
+        page_html = generate_video_page(e["talk_title"], e["video_title"], embed_url, srt_raw_url, base_url)
+
+        page_dir = out / e["talk_id"] / e["video_slug"]
+        page_dir.mkdir(parents=True, exist_ok=True)
+        (page_dir / "index.html").write_text(page_html, encoding="utf-8")
+        print(f"  {e['talk_id']}/{e['video_slug']}/", file=sys.stderr)
+
+    # Index
+    index_html = generate_index_page(entries, base_url)
+    (out / "index.html").write_text(index_html, encoding="utf-8")
+    print(f"Index: {len(entries)} entries", file=sys.stderr)
 
 
 def main():
     p = argparse.ArgumentParser(description="Generate subtitle preview site")
-    p.add_argument("--talk-dir", help="Talk directory to generate preview for")
-    p.add_argument("--video-slug", help="Generate for specific video only")
-    p.add_argument("--output-dir", required=True, help="Output directory for HTML files")
-    p.add_argument("--base-url", default="", help="Base URL for links (e.g. /sy-subtitles)")
-    p.add_argument("--scan-dir", help="Scan existing site directory for index")
-    p.add_argument("--index-only", action="store_true", help="Only regenerate index page")
+    p.add_argument("--output-dir", required=True, help="Output directory")
+    p.add_argument("--base-url", default="", help="Base URL for links")
+    p.add_argument("--repo", default=DEFAULT_REPO, help="GitHub repo (owner/name)")
+    p.add_argument("--branch", default=DEFAULT_BRANCH, help="Branch for raw URLs")
+    p.add_argument("--talks-dir", default="talks", help="Talks directory to scan")
     args = p.parse_args()
 
-    out = Path(args.output_dir)
-    out.mkdir(parents=True, exist_ok=True)
-    entries = []
-
-    if args.talk_dir and not args.index_only:
-        entries = generate_site(args.talk_dir, args.output_dir, args.base_url, args.video_slug)
-
-    if args.scan_dir:
-        entries = scan_existing_previews(args.scan_dir)
-
-    # Always write index
-    index_html = generate_index_page(entries, args.base_url)
-    (out / "index.html").write_text(index_html, encoding="utf-8")
-    print(f"Index: {out}/index.html ({len(entries)} entries)", file=sys.stderr)
+    entries = scan_all_talks(args.talks_dir)
+    generate_site(entries, args.output_dir, args.base_url, args.repo, args.branch)
 
 
 if __name__ == "__main__":

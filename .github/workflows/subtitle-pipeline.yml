@@ -712,8 +712,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: main
       - run: git pull --rebase
 
       - uses: actions/setup-python@v6
@@ -721,11 +719,9 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
 
-      - name: Generate preview
-        id: gen
+      - name: Generate full preview site
         run: |
           python -m tools.generate_preview \
-            --talk-dir "talks/${{ inputs.talk_id }}" \
             --output-dir /tmp/preview \
             --base-url "/sy-subtitles"
 
@@ -733,32 +729,31 @@ jobs:
         run: |
           git fetch origin gh-pages
           git worktree add /tmp/gh-pages gh-pages
-          cp -r /tmp/preview/*/ /tmp/gh-pages/ 2>/dev/null || true
-          # Regenerate index
-          python -m tools.generate_preview \
-            --scan-dir /tmp/gh-pages \
-            --index-only \
-            --output-dir /tmp/gh-pages \
-            --base-url "/sy-subtitles"
+          # Replace entire site with fresh generation
+          find /tmp/gh-pages -maxdepth 1 -not -name '.git' -not -name '.gitignore' -not -path /tmp/gh-pages -exec rm -rf {} +
+          cp -r /tmp/preview/* /tmp/gh-pages/
           cd /tmp/gh-pages
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
+          git add -A
           git diff --cached --quiet && { echo "No preview changes"; exit 0; }
-          git commit -m "Preview: ${{ inputs.talk_id }}"
+          git commit -m "Update preview site"
           git push
 
       - name: Summary
         if: always()
         run: |
-          TALK_ID="${{ inputs.talk_id }}"
           BASE="https://slavasubotskiy.github.io/sy-subtitles"
           echo "## 🎬 Subtitle Preview" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          for dir in /tmp/preview/$TALK_ID/*/; do
+          for dir in /tmp/preview/*/; do
             [ -d "$dir" ] || continue
-            SLUG=$(basename "$dir")
-            echo "- [$SLUG]($BASE/$TALK_ID/$SLUG/)" >> "$GITHUB_STEP_SUMMARY"
+            TALK=$(basename "$dir")
+            for vdir in "$dir"*/; do
+              [ -d "$vdir" ] || continue
+              SLUG=$(basename "$vdir")
+              echo "- [$TALK / $SLUG]($BASE/$TALK/$SLUG/)" >> "$GITHUB_STEP_SUMMARY"
+            done
           done
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "📋 [All previews]($BASE/)" >> "$GITHUB_STEP_SUMMARY"

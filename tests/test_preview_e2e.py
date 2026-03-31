@@ -24,10 +24,11 @@ SAMPLE_SRT = """1
 
 @pytest.fixture(scope="module")
 def preview_site(tmp_path_factory):
-    from tools.generate_preview import generate_index_page, generate_site
+    from tools.generate_preview import generate_site, scan_all_talks
 
     base = tmp_path_factory.mktemp("site")
-    talk = base / "talks" / "2001-01-01_Test"
+    talks = base / "talks"
+    talk = talks / "2001-01-01_Test"
     talk.mkdir(parents=True)
     meta = {
         "title": "Test Talk",
@@ -40,8 +41,8 @@ def preview_site(tmp_path_factory):
     (video / "uk.srt").write_text(SAMPLE_SRT, encoding="utf-8")
 
     out = base / "out"
-    entries = generate_site(str(talk), str(out))
-    (out / "index.html").write_text(generate_index_page(entries), encoding="utf-8")
+    entries = scan_all_talks(str(talks))
+    generate_site(entries, str(out))
     return out
 
 
@@ -77,13 +78,15 @@ def browser():
 def page(server, mock_player_js, browser):
     ctx = browser.new_context()
     pg = ctx.new_page()
+    # Mock Vimeo Player SDK
     pg.route(
         "**/player.vimeo.com/api/player.js",
-        lambda route: route.fulfill(
-            status=200,
-            content_type="application/javascript",
-            body=mock_player_js,
-        ),
+        lambda route: route.fulfill(status=200, content_type="application/javascript", body=mock_player_js),
+    )
+    # Mock SRT fetch — return our test SRT
+    pg.route(
+        "**/raw.githubusercontent.com/**",
+        lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_SRT),
     )
     yield pg
     pg.close()
@@ -112,31 +115,30 @@ class TestVideoPage:
         page.goto(f"{server}{VIDEO_URL}")
         page.wait_for_selector("#mock-player", state="visible", timeout=5000)
 
-    def test_srt_data_embedded(self, server, page):
+    def test_subtitles_loaded(self, server, page):
         page.goto(f"{server}{VIDEO_URL}")
-        srt = page.locator("#srt-data").text_content()
-        assert "Перший субтитр" in srt
-        assert "Другий субтитр" in srt
+        page.wait_for_selector("#mock-player", state="visible", timeout=5000)
+        # Wait for SRT fetch to complete
+        page.wait_for_function("document.getElementById('status').textContent.includes('loaded')", timeout=5000)
 
 
 class TestSubtitleSync:
     def _goto_and_wait(self, server, page):
         page.goto(f"{server}{VIDEO_URL}")
         page.wait_for_selector("#mock-player", state="visible", timeout=5000)
-        # Small delay for JS initialization
-        page.wait_for_timeout(500)
+        page.wait_for_function("document.getElementById('status').textContent.includes('loaded')", timeout=5000)
 
     def _set_time_and_get_subtitle(self, page, seconds):
-        """Set mock player time and return subtitle text."""
-        return page.evaluate(f"""() => {{
+        return page.evaluate(
+            f"""() => {{
             window._vimeoPlayer._setTime({seconds});
-            // Wait a tick for event handlers
             return new Promise(resolve => {{
                 setTimeout(() => {{
                     resolve(document.getElementById('subtitle-overlay').textContent);
                 }}, 100);
             }});
-        }}""")
+        }}"""
+        )
 
     def test_no_subtitle_at_zero(self, server, page):
         self._goto_and_wait(server, page)

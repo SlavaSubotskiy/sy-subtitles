@@ -1,14 +1,13 @@
 """Tests for generate_preview.py — Python unit + integration tests."""
 
-import json
-
 import pytest
+import yaml
 
 from tools.generate_preview import (
     generate_index_page,
     generate_site,
     generate_video_page,
-    scan_existing_previews,
+    scan_all_talks,
     vimeo_url_to_embed,
 )
 
@@ -32,14 +31,7 @@ class TestVimeoUrlToEmbed:
         assert "player.vimeo.com" in vimeo_url_to_embed(url)
 
 
-SAMPLE_SRT = """1
-00:00:01,000 --> 00:00:05,000
-Привіт світе
-
-2
-00:00:06,000 --> 00:00:10,000
-Другий блок
-"""
+SAMPLE_SRT_URL = "https://raw.githubusercontent.com/test/repo/main/talks/test/V/final/uk.srt"
 
 
 class TestGenerateVideoPage:
@@ -48,7 +40,7 @@ class TestGenerateVideoPage:
             talk_title="Test Talk",
             video_title="Test Video",
             vimeo_embed_url="https://player.vimeo.com/video/12345?h=abc",
-            srt_content=SAMPLE_SRT,
+            srt_raw_url=SAMPLE_SRT_URL,
             base_url="/sy-subtitles",
         )
 
@@ -62,9 +54,12 @@ class TestGenerateVideoPage:
         assert "<iframe" in self.html
         assert "player.vimeo.com/video/12345" in self.html
 
-    def test_has_srt_data(self):
-        assert 'id="srt-data"' in self.html
-        assert "Привіт світе" in self.html
+    def test_fetches_srt_dynamically(self):
+        assert "fetch(" in self.html
+        assert SAMPLE_SRT_URL in self.html
+
+    def test_no_embedded_srt(self):
+        assert 'id="srt-data"' not in self.html
 
     def test_has_player_sdk(self):
         assert "player.vimeo.com/api/player.js" in self.html
@@ -82,8 +77,8 @@ class TestGenerateVideoPage:
     def test_has_index_link(self):
         assert 'href="/sy-subtitles/"' in self.html
 
-    def test_srt_content_preserved(self):
-        assert "Другий блок" in self.html
+    def test_has_loading_status(self):
+        assert "Loading subtitles" in self.html
 
 
 class TestGenerateIndexPage:
@@ -97,82 +92,74 @@ class TestGenerateIndexPage:
                 "date": "2001-07-29",
             }
         ]
-        html = generate_index_page(entries, "/base")
-        assert "Test Talk" in html
-        assert "Video One" in html
-        assert "/base/2001-07-29_Test/Video-1/" in html
+        result = generate_index_page(entries, "/base")
+        assert "Test Talk" in result
+        assert "Video One" in result
+        assert "/base/2001-07-29_Test/Video-1/" in result
 
     def test_empty(self):
-        html = generate_index_page([], "")
-        assert "No previews yet" in html
+        result = generate_index_page([], "")
+        assert "No previews yet" in result
 
     def test_sorted_by_date(self):
         entries = [
             {"talk_id": "b", "talk_title": "ZZZ-Second", "video_slug": "v", "video_title": "V", "date": "2002"},
             {"talk_id": "a", "talk_title": "AAA-First", "video_slug": "v", "video_title": "V", "date": "2001"},
         ]
-        html = generate_index_page(entries)
-        assert html.index("AAA-First") < html.index("ZZZ-Second")
+        result = generate_index_page(entries)
+        assert result.index("AAA-First") < result.index("ZZZ-Second")
 
 
 # --- Integration tests ---
 
 
 @pytest.fixture
-def sample_talk(tmp_path):
-    """Create a minimal talk directory structure."""
-    talk = tmp_path / "talks" / "2001-01-01_Test-Talk"
-    talk.mkdir(parents=True)
+def sample_talks(tmp_path):
+    """Create minimal talk directory structure."""
+    talks = tmp_path / "talks"
 
-    meta = {
+    talk1 = talks / "2001-01-01_Test-Talk"
+    talk1.mkdir(parents=True)
+    meta1 = {
         "title": "Test Talk",
         "date": "2001-01-01",
         "videos": [
-            {
-                "slug": "Test-Video",
-                "title": "Test Video Title",
-                "vimeo_url": "https://vimeo.com/12345/abcdef",
-            }
+            {"slug": "Test-Video", "title": "Test Video Title", "vimeo_url": "https://vimeo.com/12345/abcdef"},
         ],
     }
-    (talk / "meta.yaml").write_text(
-        json.dumps(meta).replace("{", "{\n").replace(",", ",\n"),
-        encoding="utf-8",
-    )
-
-    # Actually write valid YAML
-    import yaml
-
-    (talk / "meta.yaml").write_text(yaml.dump(meta, allow_unicode=True), encoding="utf-8")
-
-    video_dir = talk / "Test-Video" / "final"
+    (talk1 / "meta.yaml").write_text(yaml.dump(meta1, allow_unicode=True), encoding="utf-8")
+    video_dir = talk1 / "Test-Video" / "final"
     video_dir.mkdir(parents=True)
-    (video_dir / "uk.srt").write_text(SAMPLE_SRT, encoding="utf-8")
+    (video_dir / "uk.srt").write_text("1\n00:00:01,000 --> 00:00:05,000\nTest\n", encoding="utf-8")
 
-    return talk
+    # Talk without SRT — should be skipped
+    talk2 = talks / "2002-01-01_No-Srt"
+    talk2.mkdir(parents=True)
+    meta2 = {"title": "No SRT", "date": "2002-01-01", "videos": [{"slug": "V", "title": "V", "vimeo_url": ""}]}
+    (talk2 / "meta.yaml").write_text(yaml.dump(meta2, allow_unicode=True), encoding="utf-8")
+
+    return talks
 
 
-def test_generate_site_creates_files(sample_talk, tmp_path):
-    out = tmp_path / "site"
-    entries = generate_site(str(sample_talk), str(out))
+def test_scan_all_talks(sample_talks):
+    entries = scan_all_talks(str(sample_talks))
     assert len(entries) == 1
+    assert entries[0]["talk_id"] == "2001-01-01_Test-Talk"
+
+
+def test_generate_site_creates_files(sample_talks, tmp_path):
+    entries = scan_all_talks(str(sample_talks))
+    out = tmp_path / "site"
+    generate_site(entries, str(out))
+    assert (out / "index.html").exists()
     assert (out / "2001-01-01_Test-Talk" / "Test-Video" / "index.html").exists()
 
 
-def test_generate_site_html_valid(sample_talk, tmp_path):
+def test_generated_html_fetches_srt(sample_talks, tmp_path):
+    entries = scan_all_talks(str(sample_talks))
     out = tmp_path / "site"
-    generate_site(str(sample_talk), str(out))
-    html = (out / "2001-01-01_Test-Talk" / "Test-Video" / "index.html").read_text()
-    assert "<!DOCTYPE html>" in html
-    assert "player.vimeo.com/video/12345" in html
-    assert "Привіт світе" in html
-
-
-def test_scan_existing_previews(tmp_path):
-    # Create fake preview structure
-    (tmp_path / "2001-01-01_Talk" / "Video-1").mkdir(parents=True)
-    (tmp_path / "2001-01-01_Talk" / "Video-1" / "index.html").write_text("<html></html>")
-    entries = scan_existing_previews(str(tmp_path))
-    assert len(entries) == 1
-    assert entries[0]["talk_id"] == "2001-01-01_Talk"
-    assert entries[0]["video_slug"] == "Video-1"
+    generate_site(entries, str(out))
+    page = (out / "2001-01-01_Test-Talk" / "Test-Video" / "index.html").read_text()
+    assert "fetch(" in page
+    assert "raw.githubusercontent.com" in page
+    assert "uk.srt" in page
