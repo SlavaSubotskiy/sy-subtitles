@@ -743,18 +743,17 @@ jobs:
       - name: Summary
         if: always()
         run: |
+          TALK_ID="${{ inputs.talk_id }}"
           BASE="https://slavasubotskiy.github.io/sy-subtitles"
           echo "## 🎬 Subtitle Preview" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          for dir in /tmp/preview/*/; do
-            [ -d "$dir" ] || continue
-            TALK=$(basename "$dir")
-            for vdir in "$dir"*/; do
+          if [ -d "/tmp/preview/$TALK_ID" ]; then
+            for vdir in /tmp/preview/$TALK_ID/*/; do
               [ -d "$vdir" ] || continue
               SLUG=$(basename "$vdir")
-              echo "- [$TALK / $SLUG]($BASE/$TALK/$SLUG/)" >> "$GITHUB_STEP_SUMMARY"
+              echo "- [$SLUG]($BASE/$TALK_ID/$SLUG/)" >> "$GITHUB_STEP_SUMMARY"
             done
-          done
+          fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "📋 [All previews]($BASE/)" >> "$GITHUB_STEP_SUMMARY"
 
