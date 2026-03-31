@@ -708,7 +708,7 @@ jobs:
   # Deploy subtitle preview to GitHub Pages
   preview-deploy:
     needs: [commit]
-    if: inputs.preview != false && needs.commit.result == 'success'
+    if: ${{ !cancelled() && inputs.preview != false }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
