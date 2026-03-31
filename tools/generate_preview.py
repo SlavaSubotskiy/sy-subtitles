@@ -44,6 +44,8 @@ def generate_video_page(
     vimeo_embed_url: str,
     srt_raw_url: str,
     base_url: str = "",
+    talk_id: str = "",
+    video_slug: str = "",
 ) -> str:
     """Generate HTML preview page that fetches SRT dynamically."""
     parser_js = get_srt_parser_js()
@@ -245,13 +247,34 @@ function renderMarkers() {{
   }});
 }}
 
+var META = {{
+  repo: '{issue_repo}',
+  talkTitle: '{html.escape(talk_title)}',
+  videoTitle: '{html.escape(video_title)}',
+  srtPath: 'talks/{talk_id}/{video_slug}/final/uk.srt',
+  transcriptPath: 'talks/{talk_id}/transcript_uk.txt',
+  previewUrl: location.href
+}};
+
 function markersToText() {{
-  var title = document.title;
-  var lines = ['# ' + title, ''];
+  var repo = META.repo;
+  var gh = 'https://github.com/' + repo;
+  var lines = [
+    '## ' + META.talkTitle + ' — ' + META.videoTitle,
+    '',
+    '| | |',
+    '|---|---|',
+    '| Preview | ' + META.previewUrl + ' |',
+    '| SRT | [`' + META.srtPath + '`](' + gh + '/blob/main/' + META.srtPath + ') |',
+    '| Transcript | [`' + META.transcriptPath + '`](' + gh + '/blob/main/' + META.transcriptPath + ') |',
+    '',
+    '### Markers',
+    '',
+    '| Time | Subtitle | Comment |',
+    '|------|----------|---------|'
+  ];
   markers.forEach(function(m) {{
-    var line = '- **' + m.tc + '** ' + m.text;
-    if (m.comment) line += ' — _' + m.comment + '_';
-    lines.push(line);
+    lines.push('| ' + m.tc + ' | ' + m.text + ' | ' + (m.comment || '') + ' |');
   }});
   return lines.join('\\n');
 }}
@@ -266,9 +289,9 @@ function copyMarkers() {{
 }}
 
 function createIssue() {{
-  var title = encodeURIComponent('Subtitle review: {html.escape(video_title)}');
+  var title = encodeURIComponent('Subtitle review: ' + META.videoTitle);
   var body = encodeURIComponent(markersToText());
-  window.open('https://github.com/{issue_repo}/issues/new?title=' + title + '&body=' + body);
+  window.open('https://github.com/' + META.repo + '/issues/new?title=' + title + '&body=' + body + '&labels=review');
 }}
 </script>
 </body>
@@ -360,7 +383,15 @@ def generate_site(
         embed_url = vimeo_url_to_embed(e["vimeo_url"])
         srt_raw_url = f"{GITHUB_RAW}/{repo}/{branch}/talks/{e['talk_id']}/{e['video_slug']}/final/uk.srt"
 
-        page_html = generate_video_page(e["talk_title"], e["video_title"], embed_url, srt_raw_url, base_url)
+        page_html = generate_video_page(
+            e["talk_title"],
+            e["video_title"],
+            embed_url,
+            srt_raw_url,
+            base_url,
+            talk_id=e["talk_id"],
+            video_slug=e["video_slug"],
+        )
 
         page_dir = out / e["talk_id"] / e["video_slug"]
         page_dir.mkdir(parents=True, exist_ok=True)
