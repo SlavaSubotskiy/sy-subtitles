@@ -92,13 +92,20 @@ class TestGenerateIndexPage:
                 "date": "2001-07-29",
             }
         ]
-        result = generate_index_page(entries, "/base")
+        result = generate_index_page(entries, base_url="/base")
         assert "Test Talk" in result
         assert "Video One" in result
         assert "/base/2001-07-29_Test/Video-1/" in result
 
+    def test_with_review_entries(self):
+        entries = [{"talk_id": "t1", "talk_title": "Talk", "video_slug": "v", "video_title": "V", "date": "2001"}]
+        reviews = [{"talk_id": "t1", "talk_title": "Talk", "date": "2001"}]
+        result = generate_index_page(entries, reviews, "/base")
+        assert "review translation" in result
+        assert "/base/t1/review/" in result
+
     def test_empty(self):
-        result = generate_index_page([], "")
+        result = generate_index_page([], base_url="")
         assert "No previews yet" in result
 
     def test_sorted_by_date(self):
@@ -106,7 +113,7 @@ class TestGenerateIndexPage:
             {"talk_id": "b", "talk_title": "ZZZ-Second", "video_slug": "v", "video_title": "V", "date": "2002"},
             {"talk_id": "a", "talk_title": "AAA-First", "video_slug": "v", "video_title": "V", "date": "2001"},
         ]
-        result = generate_index_page(entries)
+        result = generate_index_page(entries, base_url="")
         assert result.index("AAA-First") < result.index("ZZZ-Second")
 
 

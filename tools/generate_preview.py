@@ -298,18 +298,43 @@ function createIssue() {{
 </html>"""
 
 
-def generate_index_page(entries: list, base_url: str = "") -> str:
-    """Generate index page listing all available previews."""
-    rows = []
+def generate_index_page(entries: list, review_entries: list | None = None, base_url: str = "") -> str:
+    """Generate index page — talks grouped with review link + video previews."""
+    # Group videos by talk
+    talks = {}
     for e in sorted(entries, key=lambda x: x.get("date", "")):
-        link = f"{base_url}/{e['talk_id']}/{e['video_slug']}/"
-        rows.append(
-            f"<tr><td>{html.escape(e.get('date', ''))}</td>"
-            f'<td><a href="{link}">{html.escape(e.get("talk_title", e["talk_id"]))}</a></td>'
-            f"<td>{html.escape(e.get('video_title', e['video_slug']))}</td></tr>"
+        tid = e["talk_id"]
+        if tid not in talks:
+            talks[tid] = {
+                "talk_id": tid,
+                "talk_title": e.get("talk_title", tid),
+                "date": e.get("date", ""),
+                "videos": [],
+            }
+        talks[tid]["videos"].append(e)
+
+    review_set = {e["talk_id"] for e in (review_entries or [])}
+
+    items = []
+    for t in talks.values():
+        review_link = ""
+        if t["talk_id"] in review_set:
+            rurl = f"{base_url}/{t['talk_id']}/review/"
+            review_link = f' &middot; <a href="{rurl}" style="color:#c8f">review translation</a>'
+
+        videos_html = ""
+        for v in t["videos"]:
+            vurl = f"{base_url}/{v['talk_id']}/{v['video_slug']}/"
+            videos_html += f'<div style="margin:4px 0 4px 16px"><a href="{vurl}">{html.escape(v.get("video_title", v["video_slug"]))}</a></div>'
+
+        items.append(
+            f'<div class="talk-item">'
+            f'<div class="talk-header">{html.escape(t["date"])} &mdash; <strong>{html.escape(t["talk_title"])}</strong>{review_link}</div>'
+            f"{videos_html}"
+            f"</div>"
         )
 
-    table = "\n".join(rows) if rows else "<tr><td colspan=3>No previews yet</td></tr>"
+    content = "\n".join(items) if items else "<p>No previews yet</p>"
 
     return f"""<!DOCTYPE html>
 <html lang="uk">
@@ -320,19 +345,15 @@ def generate_index_page(entries: list, base_url: str = "") -> str:
 <style>
 body {{ background: #1a1a1a; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }}
 h1 {{ font-size: 20px; margin-bottom: 16px; }}
-table {{ border-collapse: collapse; width: 100%; max-width: 800px; }}
-th, td {{ text-align: left; padding: 8px 12px; border-bottom: 1px solid #333; }}
-th {{ color: #888; font-size: 13px; }}
 a {{ color: #6af; text-decoration: none; }}
 a:hover {{ text-decoration: underline; }}
+.talk-item {{ padding: 12px 0; border-bottom: 1px solid #333; max-width: 800px; }}
+.talk-header {{ font-size: 15px; color: #ccc; }}
 </style>
 </head>
 <body>
-<h1>Subtitle Preview</h1>
-<table>
-<tr><th>Date</th><th>Talk</th><th>Video</th></tr>
-{table}
-</table>
+<h1>Subtitle Preview &amp; Review</h1>
+{content}
 </body>
 </html>"""
 
@@ -373,7 +394,12 @@ def scan_all_talks(talks_dir: str) -> list:
 
 
 def generate_site(
-    entries: list, output_dir: str, base_url: str = "", repo: str = DEFAULT_REPO, branch: str = DEFAULT_BRANCH
+    entries: list,
+    output_dir: str,
+    base_url: str = "",
+    repo: str = DEFAULT_REPO,
+    branch: str = DEFAULT_BRANCH,
+    talks_dir: str = "talks",
 ):
     """Generate full preview site from entries."""
     out = Path(output_dir)
@@ -398,10 +424,17 @@ def generate_site(
         (page_dir / "index.html").write_text(page_html, encoding="utf-8")
         print(f"  {e['talk_id']}/{e['video_slug']}/", file=sys.stderr)
 
+    # Generate review pages
+    from .generate_review_page import generate_review_site, scan_talks_with_transcripts
+
+    review_entries = scan_talks_with_transcripts(talks_dir)
+    # Use talks_dir if available
+    generate_review_site(review_entries, str(out), base_url, repo, branch)
+
     # Index
-    index_html = generate_index_page(entries, base_url)
+    index_html = generate_index_page(entries, review_entries, base_url)
     (out / "index.html").write_text(index_html, encoding="utf-8")
-    print(f"Index: {len(entries)} entries", file=sys.stderr)
+    print(f"Index: {len(entries)} previews, {len(review_entries)} reviews", file=sys.stderr)
 
 
 def main():
@@ -414,7 +447,7 @@ def main():
     args = p.parse_args()
 
     entries = scan_all_talks(args.talks_dir)
-    generate_site(entries, args.output_dir, args.base_url, args.repo, args.branch)
+    generate_site(entries, args.output_dir, args.base_url, args.repo, args.branch, args.talks_dir)
 
 
 if __name__ == "__main__":
