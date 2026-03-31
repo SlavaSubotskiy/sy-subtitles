@@ -1,0 +1,83 @@
+Here are English subtitles with timecodes and Ukrainian subtitle blocks that translate the same speech.
+
+For each Ukrainian block, find the English subtitle(s) with the same meaning and copy the timecodes.
+If a Ukrainian block covers multiple English subtitles, use start of first and end of last.
+If multiple Ukrainian blocks fit one English subtitle, split its time range proportionally.
+
+ENGLISH SUBTITLES:
+EN#127 [00:18:06,160 -> 00:18:12,308]: And mainly, the person should feel peaceful, he should say, “I met so and so and felt so peaceful! How peaceful he himself is!”
+EN#128 [00:18:12,308 -> 00:18:18,742]: One may be a great scholar, but have you ever heard, that people touch the feet of those who have mastered the Vedas?
+EN#129 [00:18:18,742 -> 00:18:26,800]: On the other hand, they will fall at the feet of a faqir or sadhu if seen on road!
+EN#130 [00:18:26,800 -> 00:18:32,620]: Howsoever erudite may you be in Sahaja Yoga but of what use it is if you are not peaceful?
+EN#131 [00:18:32,620 -> 00:18:37,395]: Who will regard you as sadhu if you do not have peaceful attention?
+EN#132 [00:18:37,395 -> 00:18:42,221]: This should be remembered.
+EN#133 [00:18:42,221 -> 00:18:47,455]: First thing is, dignity and peace should be ingrained in a person (Sahaja Yogi) and should manifest in his demeanors.
+EN#134 [00:18:47,455 -> 00:18:54,880]: Frivolousness, all the time giggling is very common in Sahaja Yogis since they are joyful within.
+EN#135 [00:18:54,880 -> 00:18:56,484]: But giggling is improper.
+EN#136 [00:18:56,484 -> 00:18:59,187]: One should keep to his dignity.
+EN#137 [00:18:59,187 -> 00:19:04,070]: It should be inbuilt in one’s lifestyle and seen in how one conducts oneself.
+EN#138 [00:19:04,070 -> 00:19:08,489]: Secondly, if anything is negative in us, its effects are reflected in the behavior.
+EN#139 [00:19:08,489 -> 00:19:12,113]: If a person is negative, he or she will always make mistakes.
+EN#140 [00:19:12,113 -> 00:19:15,380]: A mistake in this, a mistake in that, somewhere or the other he will keep making mistakes.
+EN#141 [00:19:15,380 -> 00:19:18,466]: Then he says, “How did it happen Shri Mataji? How did I make that mistake?”
+EN#142 [00:19:18,466 -> 00:19:19,877]: How did you make that mistake?
+EN#143 [00:19:19,877 -> 00:19:24,560]: Something has to be wrong in you otherwise why would it happen? What is wrong?
+EN#144 [00:19:24,560 -> 00:19:27,828]: “There is negativity in me. I have negativity, is it not? Then I shall take it out!”
+EN#145 [00:19:27,828 -> 00:19:32,724]: But you should not come and tell Shri Mataji, “Shri Mataji what can I do, I do everything, but it does not work out!”
+EN#146 [00:19:32,724 -> 00:19:35,220]: You do everything but not from your heart.
+EN#147 [00:19:35,220 -> 00:19:39,596]: If whatever you do is not from your heart, then its results do not reach you.
+EN#148 [00:19:39,596 -> 00:19:44,140]: I have seen of a plethora of men, they told me, “Shri Mataji we work so hard, but negativity does not leave us”.
+EN#149 [00:19:44,140 -> 00:19:45,390]: How will the negativity not leave?
+EN#150 [00:19:45,390 -> 00:19:49,859]: You are not the negativity, then how it will not leave?
+EN#151 [00:19:49,859 -> 00:19:53,039]: Everything can be thrown out, provided one makes efforts.
+EN#152 [00:19:53,039 -> 00:20:01,040]: Quite a number of half-baked persons are in the Sahaja Yoga even now. So you should take care.
+EN#153 [00:20:01,040 -> 00:20:05,087]: Some of them have joined the Sahaja Yoga due to the temptation of making money.
+EN#154 [00:20:05,087 -> 00:20:13,820]: Some people come with the hope that they will able to make money, or get prominence or will move on the stage, or be able to show their smartness or get leadership.
+EN#155 [00:20:13,820 -> 00:20:22,237]: But they will also change, realizing that their falsehood is known to all, and it is meaningless and people laugh at them.
+EN#156 [00:20:22,237 -> 00:20:24,970]: Many such, big guns (guys?) hang around.
+EN#157 [00:20:24,970 -> 00:20:30,411]: One gentleman was to go to Delhi to attend My program.
+EN#158 [00:20:30,411 -> 00:20:35,281]: He said, “I cannot go to Delhi. I am very busy. I am so and so. This has happened and that has happened”.
+EN#159 [00:20:35,281 -> 00:20:53,636]: So, a Sahaja Yogini-she was small (in height) but wise- said, “Tell that man to take even one program, as Shri Mataji has done, at Mavlankar hall and see whether even four persons attend.
+EN#160 [00:20:53,636 -> 00:20:54,304]: Nobody will come even if he offers money.
+EN#161 [00:20:54,304 -> 00:21:01,858]: You may be a minister or some big shot, but four persons will not come at your programs even after you have paid money.
+EN#162 [00:21:01,858 -> 00:21:13,361]: What do you think you are? Do you have any authority over anyone? Do you love anyone? Does anyone have regards for you from the heart? Nobody will come.
+EN#163 [00:21:13,361 -> 00:21:16,734]: As you are a minister some may come to flatter you.
+EN#164 [00:21:16,734 -> 00:21:24,072]: But you arrange your program at Mavlankar hall, not even four persons will turn up even after advertising and spending lacs of rupees.
+EN#165 [00:21:24,072 -> 00:21:27,526]: Attendance by four persons will be a big thing, owing to your good luck.”
+EN#166 [00:21:27,526 -> 00:21:38,191]: It means such persons who take leadership, think no end of themselves, who think they are special, show their own smartness, are finally pulled down.
+EN#167 [00:21:38,191 -> 00:21:40,726]: It always happens in the ashrams, too.
+
+UKRAINIAN BLOCKS:
+#214: Але вони також зміняться, усвідомивши, що їхня фальш відома всім,
+#215: і це безглуздо, і люди сміються з них.
+#216: Багато таких великих цабе тиняються навколо.
+#217: Один чоловік мав їхати до Делі на Мою програму.
+#218: Він сказав: «Я не можу їхати до Делі.
+#219: Я дуже зайнятий.
+#220: Я такий-то і такий-то.
+#221: Сталося те і це».
+#222: Тож одна сахаджа йоґиня – вона була маленька (на зріст),
+#223: але мудра – сказала: «Скажіть тій людині провести хоча
+#224: б одну програму, як це зробила Шрі Матаджі, в Мавланкар Холл,
+#225: і подивіться, чи прийдуть хоча б четверо людей.
+#226: Ніхто не прийде, навіть якщо він запропонує гроші.
+#227: Ви можете бути міністром чи якоюсь великою шишкою, але четверо людей не прийдуть
+#228: на ваші програми навіть після того, як ви заплатите гроші.
+#229: Ким ви себе вважаєте?
+#230: Чи маєте ви якусь владу над кимось?
+#231: Чи любите ви когось?
+#232: Чи поважає вас хтось від серця?
+#233: Ніхто не прийде.
+#234: Оскільки ви міністр, деякі можуть прийти, щоб вам підлеститися.
+#235: Але організуйте свою програму в Мавланкар Холл – навіть четверо
+#236: людей не з'являться навіть після реклами та витрат лакхів рупій.
+#237: Присутність чотирьох осіб буде великою справою, завдяки вашому щастю».
+#238: Це означає, що такі люди, які беруть на себе лідерство,
+#239: думають про себе невісь що, які
+#240: вважають себе особливими,
+#241: показують свою власну спритність – зрештою бувають скинуті.
+#242: Це завжди трапляється і в ашрамах.
+#243: Така людина вважає себе особливою і починає поводитися як особлива.
+
+Output ONLY:
+#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>

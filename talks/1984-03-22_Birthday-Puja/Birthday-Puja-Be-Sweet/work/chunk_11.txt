@@ -1,0 +1,211 @@
+Determine start and end timecodes for each Ukrainian subtitle block.
+
+You have 3 sources:
+1. UKRAINIAN BLOCKS — subtitle text needing timecodes
+2. ENGLISH TRANSCRIPT — accurate English text (meaning reference)
+3. ENGLISH SUBTITLES — EN SRT blocks with timecodes (timing source)
+
+IMPORTANT TIME BOUNDARIES:
+- This chunk covers audio from 00:35:49,468 to 00:38:43,230
+- Block #500 must start at or after 00:35:49,468
+- Block #549 must end at or before 00:38:43,230
+- All timecodes must be within this range and sequential
+
+Match Ukrainian blocks to English meaning, then find the corresponding
+EN SRT block(s) and use their timecodes. If a Ukrainian block maps to
+multiple EN SRT blocks, use the start of the first and end of the last.
+
+ENGLISH TRANSCRIPT:
+[P3] I have just told them (Indian Sahaja Yogis) that you should not try to copy the western style of ego-oriented society where people use harsh words, because then we think that we have modernized ourselves, you see. To say harsh words to somebody, “What do I care! I hate you!” All these sentences we have never used, you see, which is unknown to us. I mean, anybody to say like that is unmannerliness. How can you say such a thing: “I hate you!”?
+But now I have heard people talking like this in our country. “I hate you.” “What’s wrong with us?” “Who are you to say that?” Like that we do not talk. You see, his is not the way to talk at all. Any person who comes from a good family would not talk like this because it reflects on the family. But the language is more copied here than there.
+I am surprised sometimes when I hear the people [how] they talk in the buses, in the taxies, in the things; the way they use language is, you see, is something I can’t understand. So I have asked them that the language should be full of love and with our own traditional style, the way…
+You see, we wouldn’t even scold our children. If you have to scold the children, we use a language which makes them over honourable (Bahumanarthi): [(Marathi) Damle Sahab has put on a kurta pyjama, so, “You are looking like Shivaji Maharaj. Welcome Shivaji Maharaj.” We should speak in such respectful language so that they would not get scared. Correction if it is to be done], we used to do it this way; but the correction of the other side is not proper because that never it corrects. You see, that’s why you cannot control your children. You are all the time insulting them, insulting others, insulting methods, you see, and this emotional blackmail and all this nonsense is not at all traditional in this country. And those who’ll try to do it will be thrown out. I can tell you, in Sahaja Yoga you cannot work out.
+You should not have all these ideas of insulting people, of bringing them into situations where they can be insulted. This is all modern style. So we should not do like that in Sahaja Yoga. We should behave in such a way that we should be dignified people. Behoving our style is our tradition, is Sahaja Yogis’ tradition is this that we talk to people in the most sophisticated manner, in the sweetest manner, in the most affectionate manner and inviting manner. And that is how we all should speak.
+So, this is [the] first thing I ask that in
+your expression of your love there should not be a thing that you should shout.
+Now, I do shout at some people who have bhoots in them, but by that the bhoots
+run away. But if you shout, you get the bhoots. The bhoots don’t run away, they
+get at you; so better not do it. If you have My powers you can do that; but you
+don’t have. If you shout at the person who has bhoots (Shri Mataji
+laughs), you get
+the bhoots.
+So be careful, don’t try My tricks. You see, I am a different type of a person and I do everything so understandingly, which you do not. So, when you follow Me, you should follow Me the way I am, on the side where I forgive, the way I am loving, I am affectionate; not where I am terrible.
+You shouldn’t do that because My terrible nature has got the undercurrent of My Love, which you don’t have, and you don’t have these powers. So don’t try those tricks with anybody else. You have no right to shout at anyone or to get angry, because if you shout, you get back all these bhoots into you.
+They want, they provoke you, they provoke you so that you get caught up into it and you get absolutely ruined, the more you try to do it. So, the best thing is to stand in the centre and have affection and love – the power that I have given you. That you have [to] develop – that power of love.
+First you develop that power of love. Then you
+don’t have to worry, you don’t have to shout, you don’t have to say anything. Your power
+will become the Krita (active), it will work out itself and create that beautiful atmosphere that we
+want to do. We don’t want anybody to be ruined.
+But if you start shouting at people, they’ll all run away. Specially in the ego-oriented society, you should not shout at all! That will not appeal to anyone. If you shout at anyone in the ego-oriented society, you will always distract them and they’ll run away.
+So I have to tell you, that you might be the highest of highest, first thing [that] you have to give Me today is that in your talk, in your behaviour, in your heart, you will reside one with Love. And the second thing I want to ask is that you should be peaceful people. Try to have peace with yourself. Don’t fight with yourself.
+Now, the western people have one problem [that] they fight with themselves. “How is it this is happening to me? I am so bad. I am no good. I have done this. I am so bad.” If you go on fighting with yourself, then you will become week.
+On the contrary, you must say, “I am so good. What’s wrong with me? I’ve got realization. What’s wrong with me?”Have that confidence in oneself, and then it will work out. And as result of that only you start shouting at others.
+But supposing you understand that there is nothing wrong with you, you have to be peaceful. We all have to be very peaceful people and you have seen, My peaceful nature has solved so many problems just like that. So try to achieve that peace within you.
+That peace should not be lost at any cost, and should not be also expressed outside in a way, like I sometimes. My peace itself becomes terrible. But you don’t have that kind of a possibility, so you just don’t do it. You just don’t do it, never do it that way. Try to be extremely peaceful, try to make your forehead relaxed.
+Many people come to Me with [face] like this,
+you see (distorted, twisted face), then I just know that there is a big bhoot on the head sitting, then I
+shout at them. Keep your forehead relaxed, relaxed. “I am not doing anything, Mother
+is doing everything. Relax, relax, relax.” If you relax you’ll find that your
+heart will open.
+“My heart cannot open.” Why, why can’t you open your heart? Because you have no trust in yourself. Try to trust yourself. Open your Agnya, open your Ekadasha and your Sahasrara, and your heart will open. Once your Sahasrara is open, your heart will open automatically, so you will have a peaceful life.
+So today I am asking for two things from you. It’s a funny thing that a Mother has to ask for a gift. And the gift you have to give – first one – is that you should be peaceful people. You should express peacefulness through your own character, talking. But it doesn’t mean that you should be people who are bleak, or who are – we can say that – are morbid people or people who tolerate nonsense.
+No, there is a way of resistance. But a resistance, of a peaceful resistance, that you are not afraid of anything; you are not frightened of anything; you are not going to bow down to anything; you are not going to compromise with anything, but you are peaceful. That sort of a temperament you must develop and also express outside, is very important.
+And [the] second one is the…, this peace and all this should express your love to others, love to others. Like now, everywhere, within next one or two years we’ll have ashrams, I am sure of that. And in the ashram, I would like to see people having loving, caring, affectionate, patronising, beautiful attitude towards the people who come there.
+On the contrary, if you do not have, your ashrams will be all reduced to zero. It has happened in many places; it will happen everywhere. So, you don’t blame Me, “Why our ashrams don’t run good?” It will be your responsibility to see that it is your Mother’s House and people are coming to the Mother’s House. And how a Mother would treat these people, with love, affection, with whatever you have.
+You can starve, but give to others, look after them. Give them all the kindness and sweetness so that the impression of people… Even if you are slightest not like that, people will think, “This is a very arrogant personality. And how can it be?”
+So you have to be a top class person to be in charge of an ashram. If a person who is a mediocre, he should not appoint. By God’s grace, I’m sure, by next year you’ll have all the lands in your hand, and all your ashrams will start by next year in every country.
+May God bless you.
+This is what I give you on My birthday today that you all will have your ashrams properly established by the end of next year. But first two things you must…, the conditions are there. First two conditions should be there. If you are not good for that, God will never give you an ashram, because He doesn’t want to give ashram to some funny people. It’s become sort of a recluse for people who have no place anywhere [to] come and sit in the ashram.
+So unless and until you have people of that level who will remain peaceful and loving, you will not establish. But if you do, I’m sure, by next year you should be able to have ashrams in every place.
+May God Bless you.
+
+ENGLISH SUBTITLES (timing source):
+EN#47 [00:35:45,066 -> 00:35:48,218]: The bhoots don't run away, they get
+at you; so better not do it.
+EN#48 [00:35:48,419 -> 00:35:50,673]: If you have My powers you can do that;
+but you don’t have.
+EN#49 [00:35:50,874 -> 00:35:55,092]: If you shout at the person who has bhoots,
+you get the bhoots.
+EN#50 [00:35:55,293 -> 00:35:59,934]: So be careful, don’t try My tricks. You
+see, I am a different type of a person
+EN#51 [00:36:00,135 -> 00:36:03,221]: and I do everything so understandingly,
+which you do not.
+EN#52 [00:36:03,422 -> 00:36:07,311]: So, when you follow Me, you should
+follow Me the way I am,
+EN#53 [00:36:07,512 -> 00:36:09,856]: on the side where I forgive,
+EN#54 [00:36:10,057 -> 00:36:13,873]: the way I am loving, I am affectionate;
+not where I am terrible.
+EN#55 [00:36:14,074 -> 00:36:18,123]: You shouldn't do that because My terrible
+nature has got the undercurrent
+EN#56 [00:36:18,324 -> 00:36:21,139]: of My Love, which you don’t have,
+and you don’t have these powers.
+EN#57 [00:36:21,347 -> 00:36:23,805]: So don’t try those tricks with anybody
+else.
+EN#58 [00:36:24,006 -> 00:36:27,061]: You have no right to shout at anyone
+or to get angry,
+EN#59 [00:36:27,262 -> 00:36:30,619]: because if you shout, you get back
+all these bhoots into you.
+EN#60 [00:36:30,820 -> 00:36:34,647]: They want, they provoke you. They provoke
+you so that you get caught up into it
+EN#61 [00:36:34,848 -> 00:36:38,535]: and you get absolutely ruined, the more
+you try to do it.
+EN#62 [00:36:38,736 -> 00:36:45,807]: So, the best thing is to stand in
+the centre and have affection and love -
+EN#63 [00:36:46,023 -> 00:36:49,956]: the power that I have given you. That you
+have [to] develop - that power of love.
+EN#64 [00:36:50,157 -> 00:36:53,657]: First you develop that power of love.
+Then you don’t have to worry,
+EN#65 [00:36:53,858 -> 00:36:56,525]: you don’t have to shout, you don't have
+to say anything.
+EN#66 [00:36:56,726 -> 00:37:01,237]: Your power will become the Krita (active),
+it will work out itself
+EN#67 [00:37:01,438 -> 00:37:04,711]: and create that beautiful atmosphere
+that we want to do.
+EN#68 [00:37:04,912 -> 00:37:06,769]: We don't want anybody to be ruined.
+EN#69 [00:37:06,970 -> 00:37:09,808]: But if you start shouting at people,
+they’ll all run away.
+EN#70 [00:37:10,009 -> 00:37:14,020]: Specially in the ego-oriented society,
+you should not shout at all!
+EN#71 [00:37:14,221 -> 00:37:16,032]: That will not appeal to anyone.
+EN#72 [00:37:16,233 -> 00:37:19,535]: If you shout at anyone in the ego-oriented
+society,
+EN#73 [00:37:19,736 -> 00:37:22,189]: you will always distract them and they'll
+run away.
+EN#74 [00:37:22,390 -> 00:37:26,194]: So I have to tell you, that you might be
+the highest of highest,
+EN#75 [00:37:26,395 -> 00:37:30,675]: first thing [that] you have to give Me
+today is that in your talk,
+EN#76 [00:37:30,876 -> 00:37:37,385]: in your behaviour, in your heart, you will
+reside one with Love.
+EN#77 [00:37:37,586 -> 00:37:42,002]: And the second thing I want to ask is that
+you should be peaceful people.
+EN#78 [00:37:42,211 -> 00:37:45,734]: Try to have peace with yourself.
+Don’t fight with yourself.
+EN#79 [00:37:45,935 -> 00:37:50,214]: Now, the western people have one problem
+[that] they fight with themselves.
+EN#80 [00:37:50,415 -> 00:37:53,652]: “How is it this is happening to me?
+I am so bad. I am no good.
+EN#81 [00:37:53,853 -> 00:37:55,383]: I have done this. I am so bad.”
+EN#82 [00:37:55,584 -> 00:37:59,044]: If you go on fighting with yourself,
+then you will become week.
+EN#83 [00:37:59,245 -> 00:38:01,922]: On the contrary, you must say, “I am
+so good. What’s wrong with me?
+EN#84 [00:38:02,130 -> 00:38:04,651]: I’ve got realization. What’s wrong with me?
+EN#85 [00:38:04,852 -> 00:38:07,294]: Have that confidence in oneself, and then
+it will work out.
+EN#86 [00:38:07,495 -> 00:38:10,810]: And as result of that only you start
+shouting at others.
+EN#87 [00:38:11,011 -> 00:38:13,220]: But supposing you understand
+EN#88 [00:38:13,421 -> 00:38:16,397]: that there is nothing wrong with you,
+you have to be peaceful.
+EN#89 [00:38:16,598 -> 00:38:19,582]: We all have to be very peaceful people
+and you have seen,
+EN#90 [00:38:19,783 -> 00:38:23,737]: My peaceful nature has solved so many
+problems just like that.
+EN#91 [00:38:23,938 -> 00:38:29,530]: So try to achieve that peace within you.
+That peace should not be lost at any cost,
+EN#92 [00:38:29,731 -> 00:38:34,048]: and should not be also expressed outside
+in a way, like I sometimes.
+EN#93 [00:38:34,249 -> 00:38:38,069]: My peace itself becomes terrible.
+EN#94 [00:38:38,270 -> 00:38:41,859]: But you don’t have that kind of
+a possibility, so you just don’t do it.
+EN#95 [00:38:42,060 -> 00:38:44,713]: You just don’t do it, never do it that way.
+EN#96 [00:38:44,914 -> 00:38:50,574]: Try to be extremely peaceful, try to make
+your forehead relaxed.
+
+UKRAINIAN BLOCKS:
+#500: Якщо ви кричите на людину,
+#501: яка має бхутів (Шрі Матаджі сміється), ви отримуєте бхутів.
+#502: Тож будьте обережні, не пробуйте Мої прийоми.
+#503: Розумієте, Я – інший тип особистості, і Я роблю все так обдумано, чого ви не робите.
+#504: Тож, коли ви наслідуєте Мене, ви повинні наслідувати Мене такою, якою Я є,
+#505: з того боку, де Я прощаю, де Я люблю, Я ніжна; а не там, де Я жахлива.
+#506: Ви не повинні цього робити, тому що Моя жахлива природа має підтечію Моєї Любові,
+#507: якої у вас немає, і у вас немає цих сил.
+#508: Тож не пробуйте ці прийоми з кимось іншим.
+#509: Ви не маєте права кричати на когось чи гніватися,
+#510: бо якщо ви кричите, ви отримуєте назад усіх цих бхутів.
+#511: Вони хочуть, вони провокують вас, вони провокують вас, щоб ви потрапили в це,
+#512: і ви повністю зруйнувалися, чим більше ви це пробуєте.
+#513: Тож найкраще – стояти в центрі та мати ніжність і любов – силу, яку Я вам дала.
+#514: Ви повинні розвивати цю силу любові.
+#515: Спочатку розвиньте цю силу любові.
+#516: Тоді вам не потрібно хвилюватися,
+#517: вам не потрібно кричати, вам не потрібно нічого казати.
+#518: Ваша сила стане Крітою (активною),
+#519: вона спрацює сама і створить ту прекрасну атмосферу, яку ми хочемо створити.
+#520: Ми не хочемо, щоб хтось був зруйнований.
+#521: Але якщо ви почнете кричати на людей, вони всі втечуть.
+#522: Особливо в его-орієнтованому суспільстві ви взагалі не повинні кричати!
+#523: Це нікого не вразить.
+#524: Якщо ви кричите на когось в его-орієнтованому суспільстві,
+#525: ви завжди їх відштовхнете, і вони втечуть.
+#526: Тож Я маю вам сказати, що ви можете бути найвищими з найвищих,
+#527: але перше, що ви маєте дати Мені сьогодні
+#528: – це те, що у вашій мові, у вашій поведінці,
+#529: у вашому серці ви будете перебувати єдині з Любов'ю.
+#530: І друге, що Я хочу попросити – це щоб ви були мирними людьми.
+#531: Намагайтеся мати мир із собою.
+#532: Не боріться з собою.
+#533: Тепер, у західних людей є одна проблема – вони борються з собою.
+#534: «Як це зі мною трапляється?
+#535: Я такий поганий.
+#536: Я нікуди не гожуся.
+#537: Я зробив те.
+#538: Я такий поганий».
+#539: Якщо ви продовжуєте боротися з собою, тоді ви ослабнете.
+#540: Навпаки, ви повинні казати: «Я такий хороший.
+#541: Що зі мною не так?
+#542: Я отримав реалізацію.
+#543: Що зі мною не так?» Майте цю впевненість у собі, і тоді все спрацює.
+#544: І саме внаслідок цього ви починаєте кричати на інших.
+#545: Але припустімо, ви розумієте, що з вами все гаразд, тоді ви повинні бути мирними.
+#546: Ми всі повинні бути дуже мирними людьми, і ви бачили,
+#547: Моя мирна природа вирішила стільки проблем просто так.
+#548: Тож намагайтеся досягти цього миру всередині себе.
+#549: Цей мир не повинен бути втрачений за жодну ціну
+
+Output ONLY lines in this exact format, one per block:
+#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>
+
+Blocks must be sequential and non-overlapping.

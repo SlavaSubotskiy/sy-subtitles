@@ -1,0 +1,86 @@
+Here are English subtitles with timecodes and Ukrainian subtitle blocks that translate the same speech.
+
+For each Ukrainian block, find the English subtitle(s) with the same meaning and copy the timecodes.
+If a Ukrainian block covers multiple English subtitles, use start of first and end of last.
+If multiple Ukrainian blocks fit one English subtitle, split its time range proportionally.
+
+ENGLISH SUBTITLES:
+EN#277 [00:30:35,654 -> 00:30:41,072]: Nobody thought that a sahib had come although he had spent lot of money on the bow.
+EN#278 [00:30:41,072 -> 00:30:42,134]: What is the need for all this?
+EN#279 [00:30:42,134 -> 00:30:46,794]: We have beautiful clothes that have come to us by tradition in our country.
+EN#280 [00:30:46,794 -> 00:30:51,575]: When we wear them, they are comfortable and keep us cool, as well as appear decent and beautiful.
+EN#281 [00:30:51,575 -> 00:30:57,518]: So, it is not at all necessary to blindly follow others. As far as possible one should keep to traditions.
+EN#282 [00:30:57,518 -> 00:31:05,782]: Especially, in the ashrams the traditions should be followed to welcome the visitors and interact with them.
+EN#283 [00:31:05,782 -> 00:31:08,527]: We don’t have such words as, “Get out”.
+EN#284 [00:31:08,527 -> 00:31:15,335]: We never utter the words, like, “Get out” and every now and then ask, “What’s wrong”.
+EN#285 [00:31:15,335 -> 00:31:20,278]: Nor do we say, “I hate you”. Had we ever spoken these words our father would have thrashed us.
+EN#286 [00:31:20,278 -> 00:31:25,834]: The expression, “I hate you” is frequently used in the English language. You say, “I hate you”, who are you to say this?
+EN#287 [00:31:25,834 -> 00:31:29,449]: If someone utters its Marathi translation, “Malaa tujhi ghrunaa waatate (मला तुझी घृणा वाटते – I hate you)”
+EN#288 [00:31:29,449 -> 00:31:35,262]: our people will thrash you and respond, ”Is it so? We will set right your nose.”
+EN#289 [00:31:35,262 -> 00:31:42,160]: This is the way they speak in the west. We will not learn this English style or the western style. It is not good.
+EN#290 [00:31:42,160 -> 00:31:45,375]: What do they mean by, “I hate you”? This is not our way of talking.
+EN#291 [00:31:45,375 -> 00:31:51,280]: If there is a visitor we welcome him with the words,” What a great fortune of ours that you have come. Please come in. What can I do for you?”
+EN#292 [00:31:51,280 -> 00:31:55,413]: You know, King Harishchandra gifted his whole kingdom.
+EN#293 [00:31:55,413 -> 00:31:57,443]: His child was killed!
+EN#294 [00:31:57,443 -> 00:32:01,600]: We used to give whatever our guest asked for.
+EN#295 [00:32:01,600 -> 00:32:05,555]: But now we do not want this style of the English or the westerner.
+EN#296 [00:32:05,555 -> 00:32:10,698]: Never allow these terrible, abusive words to set on your tongue.
+EN#297 [00:32:10,698 -> 00:32:16,959]: We should use gentle and respectful language to interact as people from innocent families do.
+EN#298 [00:32:16,959 -> 00:32:20,058]: Your mother is extremely innocent and so you should also be.
+EN#299 [00:32:20,058 -> 00:32:24,427]: I am surprised when I hear people use bad words.
+EN#300 [00:32:24,427 -> 00:32:26,505]: Now your mothers are changed. Now I am your mother.
+EN#301 [00:32:26,505 -> 00:32:31,889]: If your mother uses bad words you should forget about it and imbibe My way.
+EN#302 [00:32:31,889 -> 00:32:33,739]: You should never ever use harsh or bad language.
+EN#303 [00:32:33,739 -> 00:32:40,684]: The main point I want to emphasize is that the light of love and peace should completely manifest from you.
+EN#304 [00:32:40,684 -> 00:32:44,305]: Others should say that such and such person is love and peace personified.
+EN#305 [00:32:44,305 -> 00:32:49,690]: I shall be very glad to hear these words.
+EN#306 [00:32:49,690 -> 00:32:54,113]: So, today, I ask (request) from you the gift of love and peace.
+EN#307 [00:32:55,609 -> 00:33:03,410]: I have just told them that you should not try to
+copy the western style of ego-oriented society
+EN#308 [00:33:03,504 -> 00:33:07,930]: where people use harsh words, because then we
+think that we have modernized ourselves, you see.
+EN#309 [00:33:08,010 -> 00:33:13,160]: To say harsh words to somebody,
+“What do I care! I hate you!”
+EN#310 [00:33:13,240 -> 00:33:17,474]: All these sentences we have never used, you see, which is unknown to us.
+EN#311 [00:33:17,555 -> 00:33:22,704]: I mean, anybody to say like that is unmannerliness.
+How can you say such a thing: “I hate you!”?
+EN#312 [00:33:22,791 -> 00:33:26,800]: But now I have heard people talking
+like this in our country. “I hate you.”
+EN#313 [00:33:26,880 -> 00:33:32,110]: “What’s wrong with us?”
+“Who are you to say that?”
+EN#314 [00:33:32,190 -> 00:33:36,180]: Like that we do not talk. You see,
+his is not the way to talk at all.
+EN#315 [00:33:36,279 -> 00:33:40,400]: Any person who comes from a
+good family would not talk like this
+
+UKRAINIAN BLOCKS:
+#424: Ми виправимо тобі ніс».
+#425: Ось так вони говорять на Заході.
+#426: Ми не будемо вчити цей англійський стиль чи західний стиль.
+#427: Це нехорошо.
+#428: Що вони мають на увазі під «Я тебе ненавиджу»?
+#429: Це не наш спосіб спілкування.
+#430: Якщо є гість, ми вітаємо його словами: «Яке велике щастя для нас, що ви прийшли.
+#431: Будь ласка, заходьте.
+#432: Що я можу для вас зробити?» Ви знаєте, цар Харішчандра подарував усе своє царство.
+#433: Його дитину було вбито!
+#434: Ми давали все, що просив наш гість.
+#435: Але тепер ми не хочемо цього стилю англійців чи західних людей.
+#436: Ніколи не дозволяйте цим жахливим, образливим словам осідати на вашому язиці.
+#437: Ми повинні використовувати лагідну й шанобливу мову для спілкування,
+#438: як люди з невинних родин.
+#439: Ваша Мати надзвичайно невинна, і тому ви також повинні бути такими.
+#440: Я дивуюся, коли чую, як люди вживають погані слова.
+#441: Тепер ваші матері змінилися.
+#442: Тепер Я – ваша Мати.
+#443: Якщо ваша мати вживає погані слова, вам слід забути про це і перейняти Мій спосіб.
+#444: Ви ніколи, ніколи не повинні вживати грубих чи поганих слів.
+#445: Головне, що Я хочу підкреслити – це те,
+#446: що світло любові та миру повинно повністю проявитися від вас.
+#447: Інші повинні казати, що такий-то і такий-то – це уособлення любові та миру.
+#448: Я буду дуже рада почути ці слова.
+#449: Тож сьогодні Я прошу (вимагаю) від вас дарунок любові та миру.
+[Промова англійською]
+
+Output ONLY:
+#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>

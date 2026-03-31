@@ -1,0 +1,83 @@
+Here are English subtitles with timecodes and Ukrainian subtitle blocks that translate the same speech.
+
+For each Ukrainian block, find the English subtitle(s) with the same meaning and copy the timecodes.
+If a Ukrainian block covers multiple English subtitles, use start of first and end of last.
+If multiple Ukrainian blocks fit one English subtitle, split its time range proportionally.
+
+ENGLISH SUBTITLES:
+EN#151 [00:19:49,859 -> 00:19:53,039]: Everything can be thrown out, provided one makes efforts.
+EN#152 [00:19:53,039 -> 00:20:01,040]: Quite a number of half-baked persons are in the Sahaja Yoga even now. So you should take care.
+EN#153 [00:20:01,040 -> 00:20:05,087]: Some of them have joined the Sahaja Yoga due to the temptation of making money.
+EN#154 [00:20:05,087 -> 00:20:13,820]: Some people come with the hope that they will able to make money, or get prominence or will move on the stage, or be able to show their smartness or get leadership.
+EN#155 [00:20:13,820 -> 00:20:22,237]: But they will also change, realizing that their falsehood is known to all, and it is meaningless and people laugh at them.
+EN#156 [00:20:22,237 -> 00:20:24,970]: Many such, big guns (guys?) hang around.
+EN#157 [00:20:24,970 -> 00:20:30,411]: One gentleman was to go to Delhi to attend My program.
+EN#158 [00:20:30,411 -> 00:20:35,281]: He said, “I cannot go to Delhi. I am very busy. I am so and so. This has happened and that has happened”.
+EN#159 [00:20:35,281 -> 00:20:53,636]: So, a Sahaja Yogini-she was small (in height) but wise- said, “Tell that man to take even one program, as Shri Mataji has done, at Mavlankar hall and see whether even four persons attend.
+EN#160 [00:20:53,636 -> 00:20:54,304]: Nobody will come even if he offers money.
+EN#161 [00:20:54,304 -> 00:21:01,858]: You may be a minister or some big shot, but four persons will not come at your programs even after you have paid money.
+EN#162 [00:21:01,858 -> 00:21:13,361]: What do you think you are? Do you have any authority over anyone? Do you love anyone? Does anyone have regards for you from the heart? Nobody will come.
+EN#163 [00:21:13,361 -> 00:21:16,734]: As you are a minister some may come to flatter you.
+EN#164 [00:21:16,734 -> 00:21:24,072]: But you arrange your program at Mavlankar hall, not even four persons will turn up even after advertising and spending lacs of rupees.
+EN#165 [00:21:24,072 -> 00:21:27,526]: Attendance by four persons will be a big thing, owing to your good luck.”
+EN#166 [00:21:27,526 -> 00:21:38,191]: It means such persons who take leadership, think no end of themselves, who think they are special, show their own smartness, are finally pulled down.
+EN#167 [00:21:38,191 -> 00:21:40,726]: It always happens in the ashrams, too.
+EN#168 [00:21:40,726 -> 00:21:44,547]: Such a person thinks himself to be a special one and starts behaving like a special one.
+EN#169 [00:21:44,547 -> 00:21:49,203]: But he who thinks he is special is a big fool.
+EN#170 [00:21:49,203 -> 00:21:51,679]: All laugh at him, “Ha Ha.. see! He has climbed the green gram bush” (Saying in Marathi meaning that the person is boasting about himself).
+EN#171 [00:21:51,679 -> 00:21:54,393]: In Marathi all these words are there.
+EN#172 [00:21:54,393 -> 00:21:59,135]: "He has climbed the green gram bush”. The viceroy sat on the raft.
+EN#173 [00:21:59,135 -> 00:22:02,805]: Then everyone understands how the person is.
+EN#174 [00:22:02,805 -> 00:22:12,840]: Thus, everyone knows everything about everyone,
+EN#175 [00:22:12,840 -> 00:22:14,576]: and no one has any respect for such a person.
+EN#176 [00:22:14,576 -> 00:22:24,910]: By pretending that someone is great or giving oneself a false prestige, nobody gets respect from others because everyone is quite intelligent.
+EN#177 [00:22:24,910 -> 00:22:29,241]: You can fool others for some days but then others will beat you with shoes, spit at you.
+EN#178 [00:22:29,241 -> 00:22:35,620]: Today they are (at the helm of affairs) flying in the sky and the second day they fall into the ditches. Why does it happen?
+EN#179 [00:22:35,620 -> 00:22:37,122]: One should think about it.
+EN#180 [00:22:37,122 -> 00:22:40,342]: Why do these kinds of people meet with this fate?
+EN#181 [00:22:40,342 -> 00:22:43,711]: Today they are at a higher position so why do they suddenly fall down?
+EN#182 [00:22:43,711 -> 00:22:51,159]: The reason is that falsehood has a specialty that it is disgusting and comes to light one day or other.
+EN#183 [00:22:51,159 -> 00:22:55,022]: Those who are praising you and pampering you are false.
+EN#184 [00:22:55,022 -> 00:22:57,090]: They are bound to fall, and you will also fall.
+EN#185 [00:22:57,090 -> 00:23:04,269]: So, when the Kundalini is awakened within us, we can say Chandi has been awakened in this country.
+EN#186 [00:23:04,269 -> 00:23:06,514]: What does it mean?
+EN#187 [00:23:06,514 -> 00:23:11,507]: When the Kundalini has been awakened, we have to be straight forward and truthful.
+EN#188 [00:23:11,507 -> 00:23:16,120]: If somebody tries to play falsehood, he will certainly fall.
+EN#189 [00:23:16,120 -> 00:23:17,937]: We need not worry.
+EN#190 [00:23:17,937 -> 00:23:21,344]: He will be exposed in front of all. See how fake he is and he has these faults.
+EN#191 [00:23:21,344 -> 00:23:28,246]: They all will be uncovered. This is one part of Sahaja Yoga of throwing special light.
+
+UKRAINIAN BLOCKS:
+#244: Але той, хто вважає себе особливим – великий дурень.
+#245: Усі сміються з нього: «Ха-ха... дивись!
+#246: Він заліз на кущ мунґа» (маратхійський вислів,
+#247: що означає, що людина хвалиться собою).
+#248: На маратхі є всі ці слова.
+#249: «Він заліз на кущ мунґа».
+#250: Віце-король сів на пліт.
+#251: Тоді кожен розуміє, якою є ця людина.
+#252: Таким чином, кожен знає все про кожного, і ніхто не має поваги до такої людини.
+#253: Удаючи, що хтось великий, або надаючи собі фальшивого престижу,
+#254: ніхто не отримує поваги від інших, бо всі досить розумні.
+#255: Ви можете обманювати інших кілька днів,
+#256: але потім інші будуть бити вас черевиками, плювати на вас.
+#257: Сьогодні вони (на вершині справ) літають у небі, а наступного дня падають у канави.
+#258: Чому це трапляється?
+#259: Слід подумати про це.
+#260: Чому ці люди зустрічають таку долю?
+#261: Сьогодні вони на вищій позиції, то чому вони раптом падають?
+#262: Причина в тому, що фальш має ту особливість,
+#263: що вона огидна і рано чи пізно виходить на світло.
+#264: Ті, хто вас хвалять і пестять – фальшиві.
+#265: Вони приречені впасти, і ви також впадете.
+#266: Тож, коли Кундаліні пробуджена в нас, ми можемо сказати,
+#267: що Чанді була пробуджена в цій країні.
+#268: Що це означає?
+#269: Коли Кундаліні пробуджена, ми повинні бути прямолінійними та правдивими.
+#270: Якщо хтось намагається грати у фальш, він неодмінно впаде.
+#271: Нам не потрібно хвилюватися.
+#272: Він буде викритий перед усіма.
+#273: Дивіться, який він фальшивий і які в нього вади.
+
+Output ONLY:
+#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>

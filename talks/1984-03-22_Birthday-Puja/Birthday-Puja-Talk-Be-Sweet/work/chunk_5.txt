@@ -1,0 +1,88 @@
+Here are English subtitles with timecodes and Ukrainian subtitle blocks that translate the same speech.
+
+For each Ukrainian block, find the English subtitle(s) with the same meaning and copy the timecodes.
+If a Ukrainian block covers multiple English subtitles, use start of first and end of last.
+If multiple Ukrainian blocks fit one English subtitle, split its time range proportionally.
+
+ENGLISH SUBTITLES:
+EN#60 [00:12:46,329 -> 00:12:49,214]: You saw, yesterday they were in thousands.
+EN#61 [00:12:49,214 -> 00:12:54,641]: However, how many among them were real, matured and knowledgeable Sahaja Yogis?
+EN#62 [00:12:54,641 -> 00:12:59,780]: Even now Sahaja Yogis pay more attention to their household problems.
+EN#63 [00:12:59,780 -> 00:13:04,634]: You know, I can solve them in a minute and in Sahaja Yoga they are being solved in a minute.
+EN#64 [00:13:04,634 -> 00:13:10,170]: But unnecessarily you worry about them and destroy yourselves.
+EN#65 [00:13:10,170 -> 00:13:19,230]: Second thing is animosity in the people which has been there since very long time. Now that we are Sahaja Yogis we should give it up.
+EN#66 [00:13:19,230 -> 00:13:24,562]: All things, all points regarding enmity, should be cleared up.
+EN#67 [00:13:24,562 -> 00:13:27,616]: Whatever mistakes we have made should be got rid of.
+EN#68 [00:13:27,616 -> 00:13:33,320]: Whichever ill-feelings that have come in our minds about each other let it clear out,
+EN#69 [00:13:33,320 -> 00:13:36,383]: because we have now become clean, we are now like mirrors.
+EN#70 [00:13:36,383 -> 00:13:39,000]: So, no dirt can stick to us.
+EN#71 [00:13:39,000 -> 00:13:45,342]: (Shree mataji telling to turn off )
+EN#72 [00:13:45,342 -> 00:13:53,239]: In this respect one thing should be kept in mind; how much our Mother forgives,
+EN#73 [00:13:53,239 -> 00:14:02,893]: how much She has to tolerate in this regard and how many things She tolerates, how She manages, how She accommodates all.
+EN#74 [00:14:02,893 -> 00:14:04,951]: We have our mother as our role model.
+EN#75 [00:14:04,951 -> 00:14:07,568]: If She can bear with so much, why we cannot?
+EN#76 [00:14:07,568 -> 00:14:12,004]: Why can we not bring such feelings in us as forget and forgive?
+EN#77 [00:14:12,004 -> 00:14:16,949]: Howsoever may a person be, we should respect him, and help him in his ascent and transformation.
+EN#78 [00:14:16,949 -> 00:14:21,762]: When you have this magic, you should not think about what happened in the past and who did what.
+EN#79 [00:14:21,762 -> 00:14:30,733]: Many people behave little different with newcomers. They will have you as examples as to see with how much love you interact with people.
+EN#80 [00:14:30,733 -> 00:14:36,486]: Now I think, here we may have our own land then Ashram too.
+EN#81 [00:14:36,486 -> 00:14:41,342]: But when four persons (Sahaja Yogis) are kept there they will start driving away persons whoever may come.
+EN#82 [00:14:41,342 -> 00:14:42,716]: I have seen this happening every time.
+EN#83 [00:14:42,716 -> 00:14:46,542]: Let the Ashram be set up anywhere, Sahaja Yogis who stay there ask persons who go there,” Why have you come here?
+EN#84 [00:14:46,542 -> 00:14:52,440]: Who are you? You don’t come here. You cannot stay here. This is not all right, that is not all right etc.”
+EN#85 [00:14:52,440 -> 00:14:54,843]: This is how (rudely) the Sahaja yogis start treating them.
+EN#86 [00:14:54,843 -> 00:14:56,296]: Does it behoove of you?
+EN#87 [00:14:56,296 -> 00:15:00,553]: If this is how we start treating the people, is it proper behavior?
+EN#88 [00:15:00,553 -> 00:15:07,178]: I agree that some people are not suitable for Sahaja Yoga because they are troublemakers while some people are not capable of doing anything.
+EN#89 [00:15:07,178 -> 00:15:12,704]: We cannot afford to snub them.
+EN#90 [00:15:12,704 -> 00:15:16,156]: Slowly we should bring them all to be amongst us.
+EN#91 [00:15:16,156 -> 00:15:25,091]: Those who are bad and gone cases, I will think about them and expel them. But you should be peaceful about them.
+EN#92 [00:15:25,091 -> 00:15:27,836]: First thing we should do is to bring peace in our life.
+EN#93 [00:15:27,836 -> 00:15:30,830]: We should become extremely peaceful. I always tell you.
+EN#94 [00:15:30,830 -> 00:15:37,239]: I agree, you have to face too many difficulties in life, but you must bring peace in life.
+EN#95 [00:15:37,239 -> 00:15:42,167]: You should give me this present on my birthday, “Shri Mataji we shall keep peace in our lives.”
+EN#96 [00:15:42,167 -> 00:15:45,150]: You should be extremely peaceful, peaceful (cool) like ice.
+EN#97 [00:15:45,150 -> 00:15:47,764]: You should be extremely tolerant.
+EN#98 [00:15:47,764 -> 00:15:53,944]: Without that it will not work out. Even after you bear with all, you will have no problem. Everything will clear out from the Sahasrara.
+EN#99 [00:15:53,944 -> 00:15:57,319]: Whatever you say, you bear with, all will go away (from the Sahasrara).
+EN#100 [00:15:57,319 -> 00:16:03,213]: So, it is better not to think much about it saying, I am distressed, I have this trouble etc. What is all this,
+EN#101 [00:16:03,213 -> 00:16:05,593]: any way!
+You have become saints now, what distress can you have?
+EN#102 [00:16:05,593 -> 00:16:07,769]: Can distress (or sorrow?) stay with a saint?
+EN#103 [00:16:07,769 -> 00:16:19,618]: You should now have a conviction; now that we have become saints, we have become very great, how can afflictions and distresses, stay with us?
+EN#104 [00:16:19,618 -> 00:16:25,965]: We are the ones who heal others’ afflictions, like soap we wash all. How can we become dirty?
+
+UKRAINIAN BLOCKS:
+#124: Перше, що ми повинні зробити – це принести мир у наше життя.
+#125: Ми повинні стати надзвичайно мирними.
+#126: Я завжди вам це кажу.
+#127: Я згодна, вам доводиться стикатися з надто багатьма труднощами в житті,
+#128: але ви повинні принести мир у життя.
+#129: Ви повинні дати Мені цей подарунок на Мій день народження:
+#130: «Шрі Матаджі, ми будемо зберігати мир у наших життях».
+#131: Ви повинні бути надзвичайно мирними, мирними (прохолодними) як лід.
+#132: Ви повинні бути надзвичайно терплячими.
+#133: Без цього нічого не вийде.
+#134: Навіть після того, як ви все витерпите, у вас не буде жодних проблем.
+#135: Все вичиститься через Сахасрару.
+#136: Що б ви не сказали, що б ви не витерпіли, все піде геть (через Сахасрару).
+#137: Тож краще не думати багато про це, кажучи: «Я засмучений, у мене ця проблема» тощо.
+#138: Що це все таке, зрештою!
+#139: Ви стали святими тепер, яке засмучення у вас може бути?
+#140: Чи може засмучення (чи горе?) залишатися зі святим?
+#141: Ви повинні тепер мати переконання: тепер, коли ми стали святими,
+#142: ми стали дуже великими, як можуть біди та засмучення залишатися з нами?
+#143: Ми ті, хто зцілює біди інших, як мило ми все відмиваємо.
+#144: Як ми можемо забруднитися?
+#145: Як тільки у вас буде це тверде переконання, перше, що ви отримаєте – це мир.
+#146: Перш за все, ви станете мирними всередині.
+#147: І як тільки ви станете мирними, ви почнете бачити все в правильній перспективі.
+#148: Доки мир не встановлений всередині, ви не зможете бачити нічого
+#149: в правильній перспективі, а будете бачити все з ніг на голову.
+#150: Формування думки про когось, оцінка ситуації – це такі речі,
+#151: що якщо ваш розум неспокійний, ви не зможете бачити їх чітко.
+#152: Тому ви повинні мати мир, встановлений всередині.
+#153: Моліться за мир.
+
+Output ONLY:
+#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>

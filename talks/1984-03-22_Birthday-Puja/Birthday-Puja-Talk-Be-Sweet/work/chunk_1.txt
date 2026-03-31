@@ -1,0 +1,62 @@
+Here are English subtitles with timecodes and Ukrainian subtitle blocks that translate the same speech.
+
+For each Ukrainian block, find the English subtitle(s) with the same meaning and copy the timecodes.
+If a Ukrainian block covers multiple English subtitles, use start of first and end of last.
+If multiple Ukrainian blocks fit one English subtitle, split its time range proportionally.
+
+ENGLISH SUBTITLES:
+EN#1 [00:06:37,444 -> 00:06:47,000]: I bow to all Sahaja Yogis, saints.
+EN#2 [00:06:47,000 -> 00:07:03,252]: It is no longer a birthday after the age of sixty years, but one should remember that the life is getting shorter day by day
+EN#3 [00:07:03,252 -> 00:07:24,073]: and hence the progress (in Sahaja Yoga) should also be correspondingly faster.
+EN#4 [00:07:24,073 -> 00:07:35,695]: It is a matter of joy that you have celebrated my birthday with so much enthusiasm.
+EN#5 [00:07:35,695 -> 00:07:39,165]: There was so much enthusiasm and love.
+EN#6 [00:07:39,165 -> 00:07:41,340]: I was overjoyed.
+EN#7 [00:07:41,340 -> 00:07:53,673]: Sahaja Yogis have to work (for Sahaja yoga) while leading the worldly lives.
+EN#8 [00:07:53,673 -> 00:07:59,323]: They have to look after their children, households, and parents while practicing Sahaja Yoga.
+EN#9 [00:07:59,323 -> 00:08:01,298]: I also do the same.
+EN#10 [00:08:01,298 -> 00:08:21,516]: I also take care of the world (as a family) while looking after my family, my brothers and sisters, all the relations and my husband.
+EN#11 [00:08:21,516 -> 00:08:23,854]: No one should be left aside.
+EN#12 [00:08:23,854 -> 00:08:26,961]: So, it is a very difficult task (to manage both).
+EN#13 [00:08:26,961 -> 00:08:34,129]: Women panic when a daughter or a son falls sick, something goes wrong somewhere, husband is bad etc.
+EN#14 [00:08:34,129 -> 00:08:41,082]: Similarly, men get jittery with a problem in jobs, reduction in salary, financial constraints etc.
+EN#15 [00:08:41,082 -> 00:08:47,300]: Also, various other incidents that bring pressure on the minds.
+EN#16 [00:08:47,300 -> 00:08:50,780]: However, in these very circumstances the Sahaja Yoga has to be established.
+EN#17 [00:08:50,780 -> 00:09:01,706]: If you are away from water and are thirsty, and say that you suppress your thirst, then there is nothing special in it.
+EN#18 [00:09:01,706 -> 00:09:09,190]: But you are real Sahaja Yogis when you are detached even when water is available around you.
+EN#19 [00:09:09,190 -> 00:09:13,446]: At the beginning many people used to tell Me their family problems,
+EN#20 [00:09:13,446 -> 00:09:17,337]: “My mother is like this, my father is like that, this is how my husband behaves and also about others”.
+
+UKRAINIAN BLOCKS:
+#4: Я вклоняюся всім сахаджа йоґам, святим.
+#5: Після шістдесяти років це вже не день народження,
+#6: але слід пам'ятати, що життя коротшає
+#7: з кожним днем, і тому прогрес (у Сахаджа Йозі) повинен бути відповідно швидшим.
+#8: Це справа радості, що ви відсвяткували Мій день народження з таким ентузіазмом.
+#9: Було стільки ентузіазму та любові.
+#10: Я була переповнена радістю.
+#11: Сахаджа йоґи повинні працювати (для Сахаджа Йоґи), ведучи мирське життя.
+#12: Вони повинні піклуватися про своїх дітей,
+#13: домівки та батьків, практикуючи Сахаджа Йоґу.
+#14: Я також роблю те саме.
+#15: Я також піклуюся про світ (як про родину), одночасно дбаючи про Свою сім'ю,
+#16: Своїх братів і сестер, усіх родичів та Свого чоловіка.
+#17: Ніхто не повинен бути залишений осторонь.
+#18: Тож це дуже складне завдання (поєднувати і те, й інше).
+#19: Жінки впадають у паніку, коли дочка чи син хворіє,
+#20: щось іде не так десь, чоловік поганий тощо.
+#21: Так само чоловіки нервують через проблеми на роботі,
+#22: зменшення зарплати, фінансові труднощі тощо.
+#23: Також різні інші події тиснуть на розум.
+#24: Однак саме за цих обставин Сахаджа Йоґа має бути встановлена.
+#25: Якщо ви далеко від води й відчуваєте спрагу, і кажете,
+#26: що ви придушуєте свою спрагу, то в цьому немає нічого особливого.
+#27: Але ви справжні сахаджа йоґи, коли ви відсторонені, навіть коли вода є навколо вас.
+#28: На початку багато людей розповідали Мені свої сімейні проблеми: «Моя мати така,
+#29: мій батько такий, ось як поводиться мій чоловік, і також про інших».
+#30: Поступово це зменшилося, і в Сахаджа Йозі людина прийшла до такого стану,
+#31: що він або вона почали відчувати своє особисте (мирське) життя як драму.
+#32: Тепер, учора Я помітила, що в людях пробудилося відчуття,
+#33: що вони повинні зробити щось для решти світу, і Я була дуже щаслива з цього приводу.
+
+Output ONLY:
+#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>

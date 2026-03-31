@@ -1,0 +1,85 @@
+Here are English subtitles with timecodes and Ukrainian subtitle blocks that translate the same speech.
+
+For each Ukrainian block, find the English subtitle(s) with the same meaning and copy the timecodes.
+If a Ukrainian block covers multiple English subtitles, use start of first and end of last.
+If multiple Ukrainian blocks fit one English subtitle, split its time range proportionally.
+
+ENGLISH SUBTITLES:
+EN#233 [00:26:55,200 -> 00:26:59,160]: And having achieved it, we have to distribute it, we have to give it to the people, have to cure the people.
+EN#234 [00:26:59,160 -> 00:27:04,170]: Let the people be benefited. We should compassionately view them and treat them with love.
+EN#235 [00:27:04,170 -> 00:27:14,954]: Once it starts growing, we can set right the condition of not just this country but that of hundreds.
+EN#236 [00:27:14,954 -> 00:27:19,513]: But first of all, you should be ready. I will not be able to do it alone.
+EN#237 [00:27:19,513 -> 00:27:29,924]: For example, I speak through this microphone but something more is necessary to carry its sound.
+EN#238 [00:27:29,924 -> 00:27:31,025]: Same with you.
+EN#239 [00:27:31,025 -> 00:27:40,563]: If you are completely hollow, then this power will so beautifully flow through you that it will be as what I said yesterday;
+EN#240 [00:27:40,563 -> 00:27:43,486]: the time has come for this to happen. The lotus of the universe has to open.
+EN#241 [00:27:43,486 -> 00:27:53,139]: The thousand petal lotus (the Sahasrara or the Sahasradala Kamal) of the universe has to open.
+EN#242 [00:27:53,139 -> 00:27:55,388]: For that, you are each petal of that lotus.
+EN#243 [00:27:55,388 -> 00:27:57,565]: It is not very difficult job.
+EN#244 [00:27:57,565 -> 00:28:03,323]: All should do little hard work viz meditation, and the chakra cleansing.
+EN#245 [00:28:03,323 -> 00:28:08,017]: Take your house as the Ashram and yourself as the residents of the Ashram.
+EN#246 [00:28:08,017 -> 00:28:16,677]: Getting up early in the morning and completing meditation and Puja, proceed with your routine chores. Then meditate in the evening too.
+EN#247 [00:28:16,677 -> 00:28:21,371]: You should also go at public programs.
+EN#248 [00:28:21,371 -> 00:28:25,070]: See whether you can open a meditation centre in that area and start one, if you can.
+EN#249 [00:28:25,070 -> 00:28:27,942]: Make friends with people, invite them to Sahaja Yoga centers. Invite ladies for get-togethers (known as the Haldi-Kumkum programs)
+EN#250 [00:28:27,942 -> 00:28:32,605]: and tell them about Sahaja Yoga, that Shri Mataji has given us the Sahaja Yoga and we have had these benefits.
+EN#251 [00:28:32,605 -> 00:28:37,306]: Share the good news of Sahaja Yoga with as many people as possible. This way you should, spread Sahaja Yoga.
+EN#252 [00:28:37,306 -> 00:28:42,878]: You should be kind and loving with those who are still half-baked and guide them such as, “Do this way so that you will be better.”
+EN#253 [00:28:42,878 -> 00:28:44,548]: Getting irritated with them will not help.
+EN#254 [00:28:44,548 -> 00:28:47,688]: They need to be guided with love and affection. This is the first thing which I tell you.
+EN#255 [00:28:47,688 -> 00:28:54,141]: Connect with all with love. Your loving style of interaction impresses them most.
+EN#256 [00:28:54,141 -> 00:28:57,177]: Once I told a lady to go to Delhi to the ashram.
+EN#257 [00:28:57,177 -> 00:29:00,160]: She told me, “Shri Mataji, it’s all monkeys’ rule there
+EN#258 [00:29:00,160 -> 00:29:05,013]: and I do not want to go among the monkeys.
+EN#259 [00:29:05,013 -> 00:29:07,074]: How (kindly) you deal with the people and how those monkeys do!”
+EN#260 [00:29:07,074 -> 00:29:10,008]: I did not understand as to how monkeys live there.
+EN#261 [00:29:10,008 -> 00:29:15,793]: So, she said, “Whosoever I talked to, had already climbed the green gram bush.”
+EN#262 [00:29:15,793 -> 00:29:19,448]: I replied, “All right, I will talk to them, and it will ok”.
+EN#263 [00:29:19,448 -> 00:29:29,096]: I tell you, it would not be so bad, but see how our behavior impresses the people. A little snobbishness by you spoils the impression.
+EN#264 [00:29:29,096 -> 00:29:31,229]: You should be extremely humble.
+EN#265 [00:29:31,229 -> 00:29:38,800]: Secondly, I want to tell you, you should be conforming to Indian tradition.
+EN#266 [00:29:38,800 -> 00:29:47,776]: Suppose, we set up ashram here and a jeans clad lady with western hair style is there and greeting visitors with “Hi..” then the visitors will think,” What is this ashram”?
+EN#267 [00:29:47,776 -> 00:29:52,237]: Ours is not a modern ashram. Ours is a ashram of ancient traditions.
+EN#268 [00:29:52,237 -> 00:29:58,939]: We may bring modern gadgets and know modern methods, but that does not mean we should follow modern ways of life.
+EN#269 [00:29:58,939 -> 00:30:03,690]: We will not do that. Being traditional modern is different from being glamorous.
+EN#270 [00:30:03,690 -> 00:30:06,223]: Sahaja Yoga does not accept glamour.
+EN#271 [00:30:06,223 -> 00:30:07,733]: Glamour is not all acceptable in Sahaja Yoga.
+EN#272 [00:30:07,733 -> 00:30:12,816]: However, being traditional is not for a married woman to bear weird looks.
+EN#273 [00:30:12,816 -> 00:30:17,648]: It is decided that even widows should be properly dressed up according to traditions.
+EN#274 [00:30:17,648 -> 00:30:24,005]: So, we have to be traditional. Men should also be traditional and not show off like Sahibs wearing suits and ties.
+EN#275 [00:30:24,005 -> 00:30:33,345]: Only the other day I told, that to get the bearing of a Sahib somebody wore a bow,
+
+UKRAINIAN BLOCKS:
+#364: і відкрийте, якщо можете.
+#365: Заводьте дружбу з людьми, запрошуйте їх до центрів Сахаджа Йоґи.
+#366: Запрошуйте жінок на зустрічі (відомі як програми Халді-Кумкум) і розповідайте їм
+#367: про Сахаджа Йоґу – що Шрі Матаджі дала нам Сахаджа Йоґу, і ми отримали такі блага.
+#368: Діліться радісною вісткою про Сахаджа Йоґу з якомога більшою кількістю людей.
+#369: Ось так ви повинні поширювати Сахаджа Йоґу.
+#370: Ви повинні бути добрими та люблячими до тих, хто ще напівзрілий,
+#371: і наставляти їх так: «Робіть ось так, і вам буде краще».
+#372: Дратуватися на них не допоможе.
+#373: Їх потрібно наставляти з любов'ю і ніжністю.
+#374: Це перше, що Я вам кажу.
+#375: З'єднуйтесь з усіма любов'ю.
+#376: Ваша любляча манера спілкування вражає їх найбільше.
+#377: Одного разу Я сказала одній жінці їхати до Делі в ашрам.
+#378: Вона сказала Мені: «Шрі Матаджі, там правлять мавпи, і я не хочу їхати до мавп.
+#379: Як (доброзичливо) Ви ставитеся до людей,
+#380: і як ці мавпи!» Я не зрозуміла, як мавпи живуть там.
+#381: Тож вона сказала: «Кожен, з ким я розмовляла, вже заліз на кущ мунґа».
+#382: Я відповіла: «Гаразд, Я поговорю з ними, і все буде добре».
+#383: Кажу вам, все було б не так погано,
+#384: але подивіться, як наша поведінка впливає на людей.
+#385: Трохи снобізму з вашого боку – і враження зіпсовано.
+#386: Ви повинні бути надзвичайно смиренними.
+#387: По-друге, Я хочу вам сказати, що ви повинні дотримуватися індійських традицій.
+#388: Припустимо, ми організуємо тут ашрам,
+#389: а там жінка в джинсах із західною зачіскою вітає
+#390: відвідувачів: «Хай...», тоді відвідувачі подумають:
+#391: «Що це за ашрам?» Наш – це не сучасний ашрам.
+#392: Наш – це ашрам стародавніх традицій.
+#393: Ми можемо привозити сучасні пристрої та знати сучасні методи,
+
+Output ONLY:
+#<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>
