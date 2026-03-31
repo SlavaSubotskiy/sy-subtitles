@@ -300,6 +300,37 @@ class TestReviewIssue:
         assert "P1" in body
         assert "First paragraph" in body
 
+    def test_issue_body_full_text_not_truncated(self, server, page):
+        self._wait_ready(server, page)
+        page.locator(".cell.uk").first.click()
+        page.keyboard.press("Control+m")
+        body = page.evaluate("issueBody()")
+        # Full paragraph text must be present, not truncated
+        assert "First paragraph." in body
+
+    def test_issue_body_edits_in_details(self, server, page):
+        self._wait_ready(server, page)
+        cell = page.locator(".cell.uk").first
+        cell.click()
+        cell.fill("Edited paragraph text")
+        cell.dispatch_event("input")
+        body = page.evaluate("issueBody()")
+        assert "<details>" in body
+        assert "Before:" in body
+        assert "After:" in body
+        assert "Edited paragraph text" in body
+
+    def test_build_edited_transcript(self, server, page):
+        self._wait_ready(server, page)
+        cell = page.locator(".cell.uk").first
+        cell.click()
+        cell.fill("Змінений абзац")
+        cell.dispatch_event("input")
+        transcript = page.evaluate("buildEditedTranscript()")
+        assert "Змінений абзац" in transcript
+        # Second paragraph should be original
+        assert "Другий абзац" in transcript
+
     def test_issue_body_has_edits(self, server, page):
         self._wait_ready(server, page)
         cell = page.locator(".cell.uk").first
@@ -309,3 +340,47 @@ class TestReviewIssue:
         body = page.evaluate("issueBody()")
         assert "Suggested edits" in body
         assert "Changed text" in body
+
+
+class TestReviewCounter:
+    def _wait_ready(self, server, page):
+        page.goto(f"{server}{REVIEW_URL}")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=5000)
+        page.evaluate("localStorage.removeItem('review_2001-01-01_Test')")
+
+    def test_counter_hidden_initially(self, server, page):
+        self._wait_ready(server, page)
+        assert page.locator("#counter").get_attribute("style") == "display:none"
+
+    def test_counter_visible_after_mark(self, server, page):
+        self._wait_ready(server, page)
+        page.locator(".cell.uk").first.click()
+        page.keyboard.press("Control+m")
+        assert page.locator("#counter").is_visible()
+
+    def test_counter_visible_after_edit(self, server, page):
+        self._wait_ready(server, page)
+        cell = page.locator(".cell.uk").first
+        cell.click()
+        cell.fill("Edit")
+        cell.dispatch_event("input")
+        assert page.locator("#counter").is_visible()
+
+
+class TestParseTranscript:
+    def _wait_ready(self, server, page):
+        page.goto(f"{server}{REVIEW_URL}")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=5000)
+
+    def test_single_newline_format(self, server, page):
+        """EN transcript uses single newlines — should parse into separate paragraphs."""
+        self._wait_ready(server, page)
+        # SAMPLE_EN has single newlines after header
+        en_count = page.locator(".cell.en").count()
+        assert en_count == 2  # "First paragraph." and "Second paragraph."
+
+    def test_double_newline_format(self, server, page):
+        """UK transcript uses double newlines — should parse into separate paragraphs."""
+        self._wait_ready(server, page)
+        uk_count = page.locator(".cell.uk").count()
+        assert uk_count == 2
