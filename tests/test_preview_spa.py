@@ -273,6 +273,312 @@ class TestReviewView:
         assert page.locator("a[href='#/']").count() >= 1
 
 
+class TestDirectNavigation:
+    """Tests for navigating directly to preview/review URLs (without index first)."""
+
+    def test_direct_preview_loads_manifest(self, server, page):
+        """Navigating directly to preview URL should load manifest automatically."""
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        # Manifest should have been loaded
+        cache = page.evaluate("localStorage.getItem('sy_tree_cache')")
+        assert cache is not None
+
+    def test_direct_preview_shows_title(self, server, page):
+        """Direct preview navigation should show talk title from manifest."""
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        title = page.locator("#p-title").text_content()
+        assert "Test Talk" in title
+
+    def test_direct_preview_subtitle_sync(self, server, page):
+        """Subtitles should work when navigating directly to preview URL."""
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(1000)  # Wait for SRT fetch
+        text = page.evaluate("""() => {
+            window._vimeoPlayer._setTime(2);
+            return new Promise(resolve => {
+                setTimeout(() => resolve(document.getElementById('subtitle-overlay').textContent), 200);
+            });
+        }""")
+        assert text == "Перший субтитр"
+
+    def test_direct_review_loads_manifest(self, server, page):
+        """Navigating directly to review URL should load manifest automatically."""
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.en').length > 0", timeout=10000)
+        cache = page.evaluate("localStorage.getItem('sy_tree_cache')")
+        assert cache is not None
+
+    def test_direct_review_shows_title(self, server, page):
+        """Direct review navigation should show talk title."""
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.en').length > 0", timeout=10000)
+        title = page.locator("#r-title").text_content()
+        assert "Test Talk" in title
+
+    def test_direct_review_shows_content(self, server, page):
+        """Direct review navigation should display transcript paragraphs."""
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.en').length > 0", timeout=10000)
+        en = page.locator(".cell.en").count()
+        uk = page.locator(".cell.uk").count()
+        assert en == 2
+        assert uk == 2
+
+
+class TestPreviewSubtitles:
+    """Detailed subtitle behavior tests."""
+
+    def _goto_preview(self, server, page):
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(1000)
+
+    def test_subtitle_appears_at_correct_time(self, server, page):
+        """Subtitle should appear when time is within its range."""
+        self._goto_preview(server, page)
+        text = page.evaluate("""() => {
+            window._vimeoPlayer._setTime(1.5);
+            return new Promise(resolve => {
+                setTimeout(() => resolve(document.getElementById('subtitle-overlay').textContent), 200);
+            });
+        }""")
+        assert text == "Перший субтитр"
+
+    def test_subtitle_disappears_between_blocks(self, server, page):
+        """No subtitle when time is between blocks (5.0-6.0 gap)."""
+        self._goto_preview(server, page)
+        text = page.evaluate("""() => {
+            window._vimeoPlayer._setTime(5.5);
+            return new Promise(resolve => {
+                setTimeout(() => resolve(document.getElementById('subtitle-overlay').textContent), 200);
+            });
+        }""")
+        assert text == ""
+
+    def test_second_subtitle_block(self, server, page):
+        """Second subtitle block should display correctly."""
+        self._goto_preview(server, page)
+        text = page.evaluate("""() => {
+            window._vimeoPlayer._setTime(7);
+            return new Promise(resolve => {
+                setTimeout(() => resolve(document.getElementById('subtitle-overlay').textContent), 200);
+            });
+        }""")
+        assert text == "Другий субтитр"
+
+    def test_no_subtitle_before_first_block(self, server, page):
+        """No subtitle before the first block starts."""
+        self._goto_preview(server, page)
+        text = page.evaluate("""() => {
+            window._vimeoPlayer._setTime(0.5);
+            return new Promise(resolve => {
+                setTimeout(() => resolve(document.getElementById('subtitle-overlay').textContent), 200);
+            });
+        }""")
+        assert text == ""
+
+    def test_no_subtitle_after_last_block(self, server, page):
+        """No subtitle after all blocks end."""
+        self._goto_preview(server, page)
+        text = page.evaluate("""() => {
+            window._vimeoPlayer._setTime(15);
+            return new Promise(resolve => {
+                setTimeout(() => resolve(document.getElementById('subtitle-overlay').textContent), 200);
+            });
+        }""")
+        assert text == ""
+
+    def test_time_display_updates(self, server, page):
+        """Time display should update on timeupdate event."""
+        self._goto_preview(server, page)
+        text = page.evaluate("""() => {
+            window._vimeoPlayer._setTime(65);
+            return new Promise(resolve => {
+                setTimeout(() => resolve(document.getElementById('time-display').textContent), 200);
+            });
+        }""")
+        assert text == "00:01:05"
+
+
+class TestMarkers:
+    """Marker functionality tests."""
+
+    def _goto_preview(self, server, page):
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(1000)
+
+    def test_marker_persists_in_localStorage(self, server, page):
+        """Markers should be saved to localStorage."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        data = page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')")
+        assert data is not None
+        markers = json.loads(data)
+        assert len(markers) == 1
+        assert markers[0]["text"] == "Перший субтитр"
+
+    def test_marker_count_increments(self, server, page):
+        """Adding multiple markers updates the count."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.click("#btn-mark")
+        count = page.locator("#marker-count").text_content()
+        assert count == "2"
+
+    def test_marker_remove(self, server, page):
+        """Removing a marker updates count and list."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        assert page.locator("#marker-count").text_content() == "1"
+        page.click(".marker-item .del")
+        assert page.locator("#marker-count").text_content() == "0"
+
+    def test_marker_comment_input(self, server, page):
+        """Marker should have a comment input field."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        inputs = page.locator(".marker-item .comment")
+        assert inputs.count() == 1
+
+    def test_marker_no_subtitle_text(self, server, page):
+        """Marker added when no subtitle shows '(no subtitle)' text."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(0.5)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        data = json.loads(page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')"))
+        assert data[0]["text"] == "(no subtitle)"
+
+
+class TestReviewEditing:
+    """Review page editing functionality tests."""
+
+    def _goto_review(self, server, page):
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+
+    def test_edit_marks_cell(self, server, page):
+        """Editing a UK cell should add 'edited' class."""
+        self._goto_review(server, page)
+        cell = page.locator(".cell.uk").first
+        cell.click()
+        cell.press("End")
+        cell.type(" edited")
+        cell.press("Tab")
+        page.wait_for_timeout(200)
+        assert "edited" in (cell.get_attribute("class") or "")
+
+    def test_edit_persists_to_localStorage(self, server, page):
+        """Edits should be saved to localStorage."""
+        self._goto_review(server, page)
+        cell = page.locator(".cell.uk").first
+        cell.click()
+        cell.press("End")
+        cell.type(" edited")
+        cell.press("Tab")
+        page.wait_for_timeout(200)
+        data = page.evaluate("localStorage.getItem('review_2001-01-01_Test-Talk')")
+        assert data is not None
+        state = json.loads(data)
+        assert "edits" in state
+
+    def test_edit_counter_shows(self, server, page):
+        """Edit counter should appear after editing."""
+        self._goto_review(server, page)
+        cell = page.locator(".cell.uk").first
+        cell.click()
+        cell.press("End")
+        cell.type(" edited")
+        cell.press("Tab")
+        page.wait_for_timeout(200)
+        counter = page.locator("#review-counter")
+        assert counter.is_visible()
+
+    def test_uk_content(self, server, page):
+        """UK cells should show translated content."""
+        self._goto_review(server, page)
+        text = page.locator(".cell.uk").first.text_content()
+        assert "Перший абзац" in text
+
+    def test_paragraph_numbers(self, server, page):
+        """Cells should show paragraph numbers (P1, P2...)."""
+        self._goto_review(server, page)
+        text = page.locator(".cell.en").first.text_content()
+        assert "P1" in text
+
+
+class TestHashNavigation:
+    """Tests for SPA hash-based routing."""
+
+    def test_index_default(self, server, page):
+        """Empty hash should show index view."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert page.locator("#view-index").get_attribute("class") == "view active"
+
+    def test_navigate_index_to_preview(self, server, page):
+        """Clicking preview link should navigate to preview view."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        page.click("a[href*='preview']")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        assert "active" in (page.locator("#view-preview").get_attribute("class") or "")
+
+    def test_back_link_from_preview(self, server, page):
+        """Back link from preview should return to index."""
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.click("#view-preview a[href='#/']")
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert "active" in (page.locator("#view-index").get_attribute("class") or "")
+
+    def test_navigate_index_to_review(self, server, page):
+        """Clicking review link should navigate to review view."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        page.click("a[href*='review']")
+        page.wait_for_function("document.querySelectorAll('.cell.en').length > 0", timeout=10000)
+        assert "active" in (page.locator("#view-review").get_attribute("class") or "")
+
+    def test_back_link_from_review(self, server, page):
+        """Back link from review should return to index."""
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.en').length > 0", timeout=10000)
+        page.click("#view-review a[href='#/']")
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert "active" in (page.locator("#view-index").get_attribute("class") or "")
+
+    def test_page_title_updates_preview(self, server, page):
+        """Page title should update for preview view."""
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        assert "Preview" in page.title()
+
+    def test_page_title_updates_review(self, server, page):
+        """Page title should update for review view."""
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.en').length > 0", timeout=10000)
+        assert "Review" in page.title()
+
+    def test_page_title_index(self, server, page):
+        """Index page should have base title."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert page.title() == "SY Subtitles — Index"
+
+
 class TestCaching:
     def test_cache_written_to_localStorage(self, server, page):
         goto_spa(page, server)

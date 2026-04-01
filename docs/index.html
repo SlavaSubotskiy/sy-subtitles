@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Subtitle Preview & Review</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>SY Subtitles</title>
 <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
 <script src="https://player.vimeo.com/api/player.js"></script>
 <style>
@@ -88,7 +90,7 @@ a:hover { text-decoration: underline; }
 
 <!-- === INDEX VIEW === -->
 <div id="view-index" class="view">
-  <div class="header"><h1>Subtitle Preview & Review</h1></div>
+  <div class="header"><h1>SY Subtitles</h1></div>
   <div id="index-status" class="status">Loading...</div>
   <div id="index-content" style="padding: 0 20px;"></div>
 </div>
@@ -179,7 +181,7 @@ var PAGES_BASE = location.pathname.replace(/\/[^/]*$/, '');
 // ============================================================
 // App version — cache auto-invalidates on update
 // ============================================================
-var APP_VERSION = '5';
+var APP_VERSION = '6';
 (function() {
   var cached = localStorage.getItem('sy_app_version');
   if (cached !== APP_VERSION) {
@@ -197,15 +199,30 @@ var manifest = null;
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
 
+function ensureManifest() {
+  if (manifest) return Promise.resolve(manifest);
+  return loadManifest().then(function(m) { manifest = m; return m; });
+}
+
 function route() {
   var hash = location.hash.slice(1) || '/';
   document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
 
   if (hash.startsWith('/preview/')) {
     var parts = hash.split('/'); // ['', 'preview', talk_id, video_slug]
-    showPreview(parts[2], parts[3]);
+    document.getElementById('view-preview').classList.add('active');
+    ensureManifest().then(function() {
+      showPreview(parts[2], parts[3]);
+    }).catch(function() {
+      showPreview(parts[2], parts[3]); // Still try without manifest
+    });
   } else if (hash.startsWith('/review/')) {
-    showReview(hash.split('/')[2]);
+    document.getElementById('view-review').classList.add('active');
+    ensureManifest().then(function() {
+      showReview(hash.split('/')[2]);
+    }).catch(function() {
+      showReview(hash.split('/')[2]);
+    });
   } else {
     showIndex();
   }
@@ -311,7 +328,7 @@ function buildManifest(tree) {
 // ============================================================
 function showIndex() {
   document.getElementById('view-index').classList.add('active');
-  document.title = 'Subtitle Preview & Review';
+  document.title = 'SY Subtitles — Index';
   var statusEl = document.getElementById('index-status');
   var contentEl = document.getElementById('index-content');
 
@@ -387,29 +404,46 @@ function showPreview(talkId, videoSlug) {
   try { previewState.markers = JSON.parse(localStorage.getItem(mkey) || '[]'); } catch(e) {}
   renderMarkers();
 
-  fetch(srtUrl)
-    .then(function(r) { return r.ok ? r.text() : Promise.reject('HTTP ' + r.status); })
-    .then(function(text) { previewState.subtitles = parseSRT(text); })
-    .catch(function() {});
-
-  // Setup player events
-  try {
-    var player = new Vimeo.Player(iframe);
-    previewState.player = player;
-    player.on('timeupdate', function(data) {
-      previewState.currentTime = data.seconds;
-      var ms = Math.round(data.seconds * 1000);
-      var active = findActiveSubtitle(previewState.subtitles, ms);
-      var text = active ? active.text : '';
-      if (text !== previewState.lastText) {
-        document.getElementById('subtitle-overlay').textContent = text;
-        previewState.lastText = text;
-      }
-      var s = Math.floor(data.seconds);
-      document.getElementById('time-display').textContent =
-        String(Math.floor(s/3600)).padStart(2,'0') + ':' + String(Math.floor((s%3600)/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  var srtLoaded = fetch(srtUrl)
+    .then(function(r) { return r.ok ? r.text() : Promise.reject('SRT fetch failed: HTTP ' + r.status); })
+    .then(function(text) {
+      previewState.subtitles = parseSRT(text);
+      console.log('[SPA] SRT loaded:', previewState.subtitles.length, 'blocks');
+    })
+    .catch(function(err) {
+      console.warn('[SPA] SRT error:', err);
+      document.getElementById('subtitle-overlay').textContent = 'Error loading subtitles';
     });
-  } catch(e) {}
+
+  // Setup player events — wait for both player ready and SRT
+  if (embedUrl) {
+    try {
+      var player = new Vimeo.Player(iframe);
+      previewState.player = player;
+      player.ready().then(function() {
+        console.log('[SPA] Vimeo player ready');
+        player.on('timeupdate', function(data) {
+          previewState.currentTime = data.seconds;
+          var ms = Math.round(data.seconds * 1000);
+          var active = findActiveSubtitle(previewState.subtitles, ms);
+          var text = active ? active.text : '';
+          if (text !== previewState.lastText) {
+            document.getElementById('subtitle-overlay').textContent = text;
+            previewState.lastText = text;
+          }
+          var s = Math.floor(data.seconds);
+          document.getElementById('time-display').textContent =
+            String(Math.floor(s/3600)).padStart(2,'0') + ':' + String(Math.floor((s%3600)/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+        });
+      }).catch(function(err) {
+        console.warn('[SPA] Vimeo player error:', err);
+      });
+    } catch(e) {
+      console.warn('[SPA] Vimeo Player init error:', e);
+    }
+  } else {
+    console.warn('[SPA] No embed URL — video info not available');
+  }
 }
 
 function vimeoEmbed(url) {
