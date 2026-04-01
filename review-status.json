@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-01T20:17:56.531618+00:00",
+  "updated_at": "2026-04-01T20:20:14.332246+00:00",
   "talks": {
     "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2": {
       "status": "pending",
@@ -29,8 +29,8 @@
     "1992-07-19_Guru-Puja": {
       "status": "pending",
       "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
+      "issue_number": 2,
+      "updated_at": "2026-04-01T20:20:03Z"
     },
     "1993-09-19_Ganesha-Puja-Cabella": {
       "status": "approved",
