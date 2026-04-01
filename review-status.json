@@ -15,10 +15,10 @@
       "updated_at": null
     },
     "1983-07-24_Guru-Puja-Awakening-The-Principle-Of-Guru": {
-      "status": "pending",
-      "reviewer": null,
+      "status": "approved",
+      "reviewer": "SlavaSubotskiy",
       "issue_number": null,
-      "updated_at": null
+      "updated_at": "2026-04-01T20:00:00Z"
     },
     "1984-03-22_Birthday-Puja": {
       "status": "approved",
