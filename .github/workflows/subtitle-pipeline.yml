@@ -1,5 +1,5 @@
 name: Subtitle Pipeline
-run-name: "${{ inputs.talk_id || 'auto' }} | ${{ inputs.whisper != false && 'whisper' || '' }}${{ inputs.translate != false && ' translate' || '' }}${{ inputs.review != false && ' review' || '' }}${{ inputs.build != false && ' build' || '' }}${{ inputs.preview != false && ' preview' || '' }}${{ inputs.timing_source == 'en-srt' && ' (en-srt)' || '' }}"
+run-name: "${{ inputs.talk_id || 'auto' }} | ${{ inputs.whisper != false && 'whisper' || '' }}${{ inputs.translate != false && ' translate' || '' }}${{ inputs.review != false && ' review' || '' }}${{ inputs.build != false && ' build' || '' }}${{ inputs.timing_source == 'en-srt' && ' (en-srt)' || '' }}"
 
 on:
   push:
@@ -36,10 +36,6 @@ on:
           - whisper
           - en-srt
         default: whisper
-      preview:
-        description: 'Deploy subtitle preview to GitHub Pages'
-        type: boolean
-        default: true
 
 permissions:
   contents: write
@@ -703,58 +699,6 @@ jobs:
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/uk.srt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
-
-  # Deploy subtitle preview to GitHub Pages
-  preview-deploy:
-    needs: [commit]
-    if: ${{ !cancelled() && inputs.preview != false }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - run: git pull --rebase
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-      - run: pip install -r requirements.txt
-
-      - name: Generate full preview site
-        run: |
-          python -m tools.generate_preview \
-            --output-dir /tmp/preview \
-            --base-url "/sy-subtitles"
-
-      - name: Deploy to gh-pages
-        run: |
-          git fetch origin gh-pages
-          git worktree add /tmp/gh-pages gh-pages
-          # Replace entire site with fresh generation
-          find /tmp/gh-pages -maxdepth 1 -not -name '.git' -not -name '.gitignore' -not -path /tmp/gh-pages -exec rm -rf {} +
-          cp -r /tmp/preview/* /tmp/gh-pages/
-          cd /tmp/gh-pages
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet && { echo "No preview changes"; exit 0; }
-          git commit -m "Update preview site"
-          git push
-
-      - name: Summary
-        if: always()
-        run: |
-          TALK_ID="${{ inputs.talk_id }}"
-          BASE="https://slavasubotskiy.github.io/sy-subtitles"
-          echo "## 🎬 Subtitle Preview" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          if [ -d "/tmp/preview/$TALK_ID" ]; then
-            for vdir in /tmp/preview/$TALK_ID/*/; do
-              [ -d "$vdir" ] || continue
-              SLUG=$(basename "$vdir")
-              echo "- [$SLUG]($BASE/$TALK_ID/$SLUG/)" >> "$GITHUB_STEP_SUMMARY"
-            done
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-          fi
-          echo "📋 [All previews]($BASE/)" >> "$GITHUB_STEP_SUMMARY"
 
   # Single commit job – collects all artifacts and pushes
   commit:

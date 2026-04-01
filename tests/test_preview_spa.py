@@ -1,4 +1,4 @@
-"""E2E tests for the dynamic SPA preview (v2.html / preview-spa.html)."""
+"""E2E tests for the dynamic SPA preview (v2.html / index.html)."""
 
 import functools
 import http.server
@@ -51,7 +51,7 @@ MOCK_TREE = {
 
 @pytest.fixture(scope="module")
 def spa_path():
-    return Path(__file__).parent.parent / "docs" / "preview-spa.html"
+    return Path(__file__).parent.parent / "docs" / "index.html"
 
 
 @pytest.fixture(scope="module")
@@ -155,7 +155,7 @@ def page(server, mock_player_js, browser):
     ctx.close()
 
 
-SPA_URL = "/preview-spa.html"
+SPA_URL = "/index.html"
 
 
 def goto_spa(page, server, hash=""):
