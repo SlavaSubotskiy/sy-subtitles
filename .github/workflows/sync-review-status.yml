@@ -26,6 +26,14 @@ jobs:
           import json, subprocess
           from datetime import datetime, timezone
 
+          # Load existing statuses (preserve manually set entries)
+          existing = {}
+          try:
+              with open("review-status.json") as f:
+                  existing = json.load(f).get("talks", {})
+          except (FileNotFoundError, json.JSONDecodeError):
+              pass
+
           result = subprocess.run(
               ["gh", "issue", "list",
                "--search", "label:review:pending,review:in-progress,review:approved",
@@ -35,7 +43,7 @@ jobs:
           )
           issues = json.loads(result.stdout) if result.returncode == 0 else []
 
-          talks = {}
+          # Merge: Issues override existing entries for matched talk_ids
           for issue in issues:
               title = issue["title"]
               talk_id = None
@@ -55,7 +63,7 @@ jobs:
                   status = "pending"
 
               assignees = [a["login"] for a in issue.get("assignees", [])]
-              talks[talk_id] = {
+              existing[talk_id] = {
                   "status": status,
                   "reviewer": assignees[0] if assignees else None,
                   "issue_number": issue["number"],
@@ -65,12 +73,12 @@ jobs:
           output = {
               "version": 1,
               "updated_at": datetime.now(timezone.utc).isoformat(),
-              "talks": talks
+              "talks": existing
           }
           with open("review-status.json", "w") as f:
               json.dump(output, f, indent=2, ensure_ascii=False)
               f.write("\n")
-          print(f"Synced {len(talks)} talk statuses")
+          print(f"Synced {len(existing)} talk statuses ({len(issues)} from issues)")
           PYEOF
 
       - name: Commit
