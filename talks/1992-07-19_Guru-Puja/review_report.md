@@ -67,11 +67,45 @@ Full paragraphed text from `transcript_uk.txt` (61 lines, 60 paragraphs of Guru 
 | S3 | 25 | Divine Power pronoun lowercase | «Вона також гнівна, Вона гнівна» |
 | S4 | 19 | Inconsistent capitalization of «реалізація» | «реалізацію іншим» |
 
+## Results — Pass 3 (2 additional corrections, applied)
+
+### L. Language (Orthography + Grammar + Punctuation)
+| # | Paragraph | Error | Context | Fix |
+|---|-----------|-------|---------|-----|
+| L6 | 29 | Wrong verb: «одягнути» = to dress a person; «надіти» = to put on a specific item | «ви одягнете йому на голову корону» | «ви надінете йому на голову корону» |
+| L7 | 54 | Non-standard dialectal form «стілько»; standard Ukrainian is «стільки» | «скинув стілько людей з пагорбів» | «скинув стільки людей з пагорбів» |
+
+### S. SY Domain (Capitalization + Terminology + Consistency)
+| # | Paragraph | Error | Context | Fix |
+|---|-----------|-------|---------|-----|
+| — | — | No additional issues found | — | — |
+
+### Critic Filter — Pass 3
+| Source | # | Verdict | Reason |
+|--------|---|---------|--------|
+| L | L6 | Keep | Genuine grammatical error. «Одягати/одягнути» = to dress someone (person as object). «Надівати/надіти» = to put on an item (item as object). A crown is an item, not clothing. Standard dictionaries confirm this distinction. |
+| L | L7 | Keep | Genuine spelling error. «Стілько» is a western Ukrainian dialectal variant. Standard form «стільки» is used elsewhere in the same text (para 15: «Ми стільки разів їздили тією дорогою»). |
+
+### All Approved Corrections (Pass 1 + Pass 2 + Pass 3)
+| # | Paragraph | Error | Fix |
+|---|-----------|-------|-----|
+| L1 | 57 | Wrong case «яку» with «кидати виклик» | «якій нині кидають виклик» |
+| L2 | 10 | Missing commas around appositive | «і, як сахаджа йоґ, це стає» |
+| L3 | 52 | Missing commas around comparison | «людина, як Я, обговорювала» |
+| L4 | 16 | Missing comma after «Отже» | «Отже, тепер, коли» |
+| L5 | 31 | Incorrect ґ in non-Sanskrit word | «гірлянду з тулсі» |
+| L6 | 29 | Wrong verb «одягнете» for putting on item | «надінете йому на голову корону» |
+| L7 | 54 | Dialectal form «стілько» | «стільки людей з пагорбів» |
+| S1 | 28 | SM pronoun lowercase | «Я не знаю» |
+| S2 | 29 | SM pronoun lowercase | «Я думаю» |
+| S3 | 25 | Divine Power pronoun lowercase | «Вона також гнівна, Вона гнівна» |
+| S4 | 19 | Inconsistent capitalization of «реалізація» | «реалізацію іншим» |
+
 ## Summary
 
-- Language (L): 5 issues found, 5 approved by Critic
+- Language (L): 7 issues found, 7 approved by Critic
 - SY Domain (S): 4 issues found, 4 approved by Critic
-- Total corrections applied: 9 (7 in pass 1, 2 in pass 2)
+- Total corrections applied: 11 (7 in pass 1, 2 in pass 2, 2 in pass 3)
 
 ## Quality Notes
 
@@ -82,6 +116,7 @@ The translation is of high quality overall:
 - SY terminology matches glossary: Кундаліні, Нірвічара, Сакші, Рітамбхара Праг'я, Парамчайтанья, бхакті, бадхи, Принцип Ґуру
 - Declension of «Сахаджа Йоґа» correct: genitive «Йоґи», locative «Йозі» (ґ→з), accusative «Йоґу»
 - «сахаджа йоґ/йоґи» correctly lowercase as common noun
-- Deity pronoun capitalization correct in 40+ instances (only 3 missed in pass 1)
+- Deity pronoun capitalization correct in 40+ instances
 - Spiritual terms capitalized per rules: Дух, Істина, Пуджа
-- Standard closing «Нехай Бог благословить вас.» matches EN (no "all" in original)
+- Correct handling of complex dialogue passages with multiple speakers (para 54-55)
+- Standard closing «Нехай Бог благословить вас.» matches EN
