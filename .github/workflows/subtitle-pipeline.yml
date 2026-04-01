@@ -40,6 +40,11 @@ on:
 permissions:
   contents: write
   id-token: write
+  issues: write
+
+env:
+  MODEL_HEAVY: claude-opus-4-6
+  MODEL_LIGHT: claude-sonnet-4-6
 
 jobs:
   discover:
@@ -163,7 +168,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 80 --dangerously-skip-permissions --model claude-opus-4-6"
+          claude_args: "--max-turns 80 --dangerously-skip-permissions --model ${{ env.MODEL_HEAVY }}"
           show_full_output: true
           prompt: |
             You are translating a Sahaja Yoga lecture from English to Ukrainian.
@@ -259,7 +264,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 60 --dangerously-skip-permissions --model claude-opus-4-6"
+          claude_args: "--max-turns 60 --dangerously-skip-permissions --model ${{ env.MODEL_HEAVY }}"
           show_full_output: true
           prompt: |
             Perform a 2+1 language review on the Ukrainian translation.
@@ -308,6 +313,7 @@ jobs:
         if: "!cancelled()"
         uses: actions/upload-artifact@v6
         with:
+          retention-days: 7
           name: translation__${{ matrix.talk_id }}
           if-no-files-found: warn
           path: |
@@ -401,6 +407,7 @@ jobs:
       - name: Upload chunk files
         uses: actions/upload-artifact@v6
         with:
+          retention-days: 7
           name: chunks__${{ inputs.talk_id }}
           path: |
             talks/${{ inputs.talk_id }}/*/work/chunk_*.txt
@@ -464,7 +471,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 40 --dangerously-skip-permissions --model claude-sonnet-4-6"
+          claude_args: "--max-turns 40 --dangerously-skip-permissions --model ${{ env.MODEL_LIGHT }}"
           show_full_output: true
           prompt: |
             You have English subtitles with timecodes and Ukrainian subtitle blocks
@@ -508,6 +515,7 @@ jobs:
         if: "!cancelled()"
         uses: actions/upload-artifact@v6
         with:
+          retention-days: 7
           name: subtitles__${{ needs.prepare-build.outputs.talk_id }}
           path: |
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/uk.map
@@ -559,7 +567,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 10 --dangerously-skip-permissions --model claude-sonnet-4-6"
+          claude_args: "--max-turns 10 --dangerously-skip-permissions --model ${{ env.MODEL_LIGHT }}"
           show_full_output: true
           prompt: |
             Read the file talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}.txt
@@ -579,6 +587,7 @@ jobs:
         if: "!cancelled()"
         uses: actions/upload-artifact@v6
         with:
+          retention-days: 7
           name: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__${{ matrix.ci }}
           path: |
             talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}_result.txt
@@ -693,6 +702,7 @@ jobs:
         if: "!cancelled()"
         uses: actions/upload-artifact@v6
         with:
+          retention-days: 7
           name: subtitles__${{ needs.prepare-build.outputs.talk_id }}
           path: |
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/uk.map

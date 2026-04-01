@@ -16,6 +16,7 @@ import argparse
 import glob as globmod
 import os
 import re
+import shutil
 import subprocess
 
 import requests
@@ -250,6 +251,8 @@ class AmrutaDownloader:
 
     def download_vimeo_subs(self, vimeo_url, output_dir):
         """Download English subtitles from Vimeo via yt-dlp, rename to en.srt."""
+        if not shutil.which("yt-dlp"):
+            raise RuntimeError("yt-dlp not found in PATH. Install: pip install yt-dlp")
         os.makedirs(output_dir, exist_ok=True)
         cmd = [
             "yt-dlp",
