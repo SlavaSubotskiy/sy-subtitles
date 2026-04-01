@@ -309,6 +309,24 @@ jobs:
             Be thorough but precise. Only change what genuinely needs correction.
             Do not use TodoWrite – this runs in CI, no one sees progress updates.
 
+      - name: Record glossary version
+        if: "!cancelled()"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TALK_DIR="talks/${{ matrix.talk_id }}"
+          GTAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "pre-release")
+          python3 -c "
+          import json
+          from pathlib import Path
+          p = Path('$TALK_DIR/glossary.json')
+          data = json.loads(p.read_text()) if p.exists() else {}
+          data['translated_with'] = '$GTAG'
+          data['reviewed_with'] = '$GTAG'
+          p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n')
+          print(f'Glossary version: $GTAG')
+          "
+
       - name: Upload translation artifacts
         if: "!cancelled()"
         uses: actions/upload-artifact@v6
@@ -319,6 +337,7 @@ jobs:
           path: |
             talks/${{ matrix.talk_id }}/transcript_uk.txt
             talks/${{ matrix.talk_id }}/review_report.md
+            talks/${{ matrix.talk_id }}/glossary.json
 
   # --- Build subtitles: 3-phase pipeline (prepare → matrix chunks → assemble) ---
 
@@ -778,6 +797,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add talks/*/transcript_uk.txt talks/*/review_report.md \
+                talks/*/glossary.json \
                 talks/*/*/work/uk.map \
                 talks/*/*/final/uk.srt talks/*/*/final/report.txt \
                 talks/*/*/final/build_report.txt

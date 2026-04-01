@@ -1,0 +1,51 @@
+name: Glossary Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'glossary/terms_lookup.yaml'
+      - 'glossary/terms_context.yaml'
+      - 'glossary/chakra_map.yaml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine next version
+        id: version
+        run: |
+          # Find latest glossary-vN tag
+          LATEST=$(git tag -l 'glossary-v*' --sort=-v:refname | head -1)
+          if [ -z "$LATEST" ]; then
+            NEXT="glossary-v1"
+          else
+            NUM=${LATEST#glossary-v}
+            NEXT="glossary-v$((NUM + 1))"
+          fi
+          echo "tag=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "Next glossary version: $NEXT"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          CHANGES=$(git log --oneline -5 -- glossary/)
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes "$(cat <<EOF
+          Glossary updated.
+
+          Recent changes:
+          $CHANGES
+          EOF
+          )"
+          echo "Created release: $TAG"
