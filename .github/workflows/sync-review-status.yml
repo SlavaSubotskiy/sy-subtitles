@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  issues: read
+  issues: write
 
 jobs:
   sync:
@@ -17,6 +17,20 @@ jobs:
       contains(join(github.event.issue.labels.*.name, ','), 'review:')
     steps:
       - uses: actions/checkout@v4
+
+      - name: Auto-update labels on assign/close
+        if: >
+          github.event.action == 'assigned' ||
+          github.event.action == 'closed'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE=${{ github.event.issue.number }}
+          if [ "${{ github.event.action }}" = "assigned" ]; then
+            gh issue edit "$ISSUE" --remove-label "review:pending" --add-label "review:in-progress"
+          elif [ "${{ github.event.action }}" = "closed" ]; then
+            gh issue edit "$ISSUE" --remove-label "review:pending,review:in-progress" --add-label "review:approved"
+          fi
 
       - name: Generate review-status.json
         env:
