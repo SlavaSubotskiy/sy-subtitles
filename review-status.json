@@ -21,10 +21,10 @@
       "updated_at": null
     },
     "1984-03-22_Birthday-Puja": {
-      "status": "pending",
-      "reviewer": null,
+      "status": "approved",
+      "reviewer": "SlavaSubotskiy",
       "issue_number": null,
-      "updated_at": null
+      "updated_at": "2026-04-01T20:00:00Z"
     },
     "1992-07-19_Guru-Puja": {
       "status": "pending",
