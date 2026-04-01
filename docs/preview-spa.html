@@ -179,7 +179,7 @@ var PAGES_BASE = location.pathname.replace(/\/[^/]*$/, '');
 // ============================================================
 // App version — cache auto-invalidates on update
 // ============================================================
-var APP_VERSION = '4';
+var APP_VERSION = '5';
 (function() {
   var cached = localStorage.getItem('sy_app_version');
   if (cached !== APP_VERSION) {
@@ -277,21 +277,21 @@ function loadManifest() {
 
 function buildManifest(tree) {
   var talks = {};
+  // Pass 1: create all talks from meta.yaml
   tree.forEach(function(entry) {
-    var m;
-    // talks/{talk_id}/meta.yaml
-    m = entry.path.match(/^talks\/([^/]+)\/meta\.yaml$/);
+    var m = entry.path.match(/^talks\/([^/]+)\/meta\.yaml$/);
     if (m) {
       var tid = m[1];
       if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [] };
     }
-    // talks/{talk_id}/transcript_en.txt
+  });
+  // Pass 2: fill in transcripts and SRT
+  tree.forEach(function(entry) {
+    var m;
     m = entry.path.match(/^talks\/([^/]+)\/transcript_en\.txt$/);
     if (m && talks[m[1]]) talks[m[1]].hasEn = true;
-    // talks/{talk_id}/transcript_uk.txt
     m = entry.path.match(/^talks\/([^/]+)\/transcript_uk\.txt$/);
     if (m && talks[m[1]]) talks[m[1]].hasUk = true;
-    // talks/{talk_id}/{slug}/final/uk.srt
     m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/final\/uk\.srt$/);
     if (m && talks[m[1]] && talks[m[1]]._srtSlugs.indexOf(m[2]) === -1) talks[m[1]]._srtSlugs.push(m[2]);
   });

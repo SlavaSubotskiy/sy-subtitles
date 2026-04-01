@@ -32,18 +32,17 @@ SAMPLE_SRT = """1
 SAMPLE_EN = "Talk Language: English\n\nFirst paragraph.\n\nSecond paragraph.\n"
 SAMPLE_UK = "Мова промови: англійська\n\nПерший абзац.\n\nДругий абзац.\n"
 
-# Simulated GitHub Trees API response
+# Simulated GitHub Trees API response — ALPHABETICAL ORDER like real API
+# (final/uk.srt comes BEFORE meta.yaml — this is the order GitHub returns)
 MOCK_TREE = {
     "sha": "test123",
     "tree": [
+        {"path": "talks/2001-01-01_Test-Talk/Test-Video/final/uk.srt", "type": "blob"},
+        {"path": "talks/2001-01-01_Test-Talk/Test-Video/source/en.srt", "type": "blob"},
+        {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/source/en.srt", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/meta.yaml", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/transcript_en.txt", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/transcript_uk.txt", "type": "blob"},
-        {"path": "talks/2001-01-01_Test-Talk/Test-Video/final/uk.srt", "type": "blob"},
-        {"path": "talks/2001-01-01_Test-Talk/Test-Video/source/en.srt", "type": "blob"},
-        # Test-Video-2 has NO uk.srt
-        {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/source/en.srt", "type": "blob"},
-        # Talk without UK transcript
         {"path": "talks/2002-01-01_No-Uk/meta.yaml", "type": "blob"},
         {"path": "talks/2002-01-01_No-Uk/transcript_en.txt", "type": "blob"},
     ],
