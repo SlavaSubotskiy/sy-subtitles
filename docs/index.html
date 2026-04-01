@@ -152,6 +152,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
   <div class="header">
     <h1><a href="#/">&larr; Index</a> &middot; <span id="r-title"></span></h1>
     <div class="header-actions">
+      <button onclick="SPA.revertAllEdits()" id="btn-revert-all" style="display:none">Revert all</button>
       <button class="issue" onclick="SPA.createReviewIssue()">Create Issue</button>
       <button class="primary" onclick="SPA.openEditor()">Open in GitHub Editor</button>
     </div>
@@ -711,12 +712,32 @@ function saveReview() {
   updateReviewCounter();
 }
 
+SPA.revertEdit = function(idx) {
+  delete reviewState.edits[idx];
+  var cell = document.querySelector('.cell.uk[data-idx="' + idx + '"]');
+  if (cell) {
+    cell.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (idx+1) + '</div>' + esc(reviewState.ukParas[idx] || '');
+    cell.classList.remove('edited');
+  }
+  saveReview();
+  showToast('Reverted P' + (idx+1));
+};
+
+SPA.revertAllEdits = function() {
+  if (!Object.keys(reviewState.edits).length) return;
+  reviewState.edits = {};
+  saveReview();
+  renderReview();
+  showToast('All edits reverted');
+};
+
 function updateReviewCounter() {
   var mc = Object.keys(reviewState.marks).length;
   var ec = Object.keys(reviewState.edits).length;
   document.getElementById('mark-count').textContent = mc;
   document.getElementById('edit-count').textContent = ec;
   document.getElementById('review-counter').style.display = (mc + ec > 0) ? 'block' : 'none';
+  document.getElementById('btn-revert-all').style.display = ec > 0 ? 'inline-block' : 'none';
 }
 
 document.addEventListener('keydown', function(e) {
@@ -789,6 +810,11 @@ function showToast(msg) {
 }
 function fmtTime(sec) {
   return String(Math.floor(sec/3600)).padStart(2,'0') + ':' + String(Math.floor((sec%3600)/60)).padStart(2,'0') + ':' + String(Math.floor(sec%60)).padStart(2,'0');
+}
+
+// Service Worker registration (skip on localhost for dev/test)
+if ('serviceWorker' in navigator && location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') {
+  navigator.serviceWorker.register('sw.js').catch(function() {});
 }
 </script>
 </body>
