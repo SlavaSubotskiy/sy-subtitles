@@ -32,6 +32,12 @@ a:hover { text-decoration: underline; }
 .talk-links { margin: 4px 0 0 16px; }
 .talk-links a { margin-right: 12px; font-size: 14px; }
 .pending { color: #666; font-size: 13px; }
+.review-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px;
+  font-weight: 500; margin-left: 8px; text-decoration: none !important; }
+.review-badge:hover { opacity: 0.8; }
+.review-badge.needs-review { background: #3d2800; color: #ffa500; border: 1px solid #664400; }
+.review-badge.in-review { background: #002244; color: #5eaeff; border: 1px solid #004488; }
+.review-badge.approved { background: #1a3a1a; color: #4ade80; border: 1px solid #2a5a2a; }
 
 /* --- Preview --- */
 .player-container { position: relative; width: 100%; max-width: 960px; margin: 20px auto; }
@@ -181,7 +187,7 @@ var PAGES_BASE = location.pathname.replace(/\/[^/]*$/, '');
 // ============================================================
 // App version — cache auto-invalidates on update
 // ============================================================
-var APP_VERSION = '6';
+var APP_VERSION = '7';
 (function() {
   var cached = localStorage.getItem('sy_app_version');
   if (cached !== APP_VERSION) {
@@ -195,6 +201,7 @@ var APP_VERSION = '6';
 // ============================================================
 var SPA = {};
 var manifest = null;
+var reviewStatus = null;
 
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
@@ -324,6 +331,16 @@ function buildManifest(tree) {
 }
 
 // ============================================================
+// Review Status (static JSON, zero API cost)
+// ============================================================
+function loadReviewStatus() {
+  return fetch('review-status.json')
+    .then(function(r) { return r.ok ? r.json() : { talks: {} }; })
+    .then(function(data) { reviewStatus = data; return data; })
+    .catch(function() { reviewStatus = { talks: {} }; return reviewStatus; });
+}
+
+// ============================================================
 // INDEX VIEW
 // ============================================================
 function showIndex() {
@@ -332,13 +349,15 @@ function showIndex() {
   var statusEl = document.getElementById('index-status');
   var contentEl = document.getElementById('index-content');
 
-  if (manifest) { renderIndex(contentEl); statusEl.style.display = 'none'; return; }
+  if (manifest && reviewStatus) { renderIndex(contentEl); statusEl.style.display = 'none'; return; }
 
   statusEl.textContent = 'Loading...';
   statusEl.style.display = 'block';
 
-  loadManifest().then(function(m) {
-    manifest = m;
+  Promise.all([
+    manifest ? Promise.resolve(manifest) : loadManifest().then(function(m) { manifest = m; return m; }),
+    reviewStatus ? Promise.resolve(reviewStatus) : loadReviewStatus()
+  ]).then(function() {
     renderIndex(contentEl);
     statusEl.style.display = 'none';
   }).catch(function(err) {
@@ -354,6 +373,16 @@ function renderIndex(el) {
     div.className = 'talk-item';
 
     var header = (t.date || t.id.substring(0, 10)) + ' — <strong>' + esc(t.title || t.id) + '</strong>';
+
+    // Review status badge
+    var st = (reviewStatus && reviewStatus.talks) ? reviewStatus.talks[t.id] : null;
+    if (st) {
+      var bc = st.status === 'approved' ? 'approved' : st.status === 'in-progress' ? 'in-review' : 'needs-review';
+      var bt = st.status === 'approved' ? 'approved' : st.status === 'in-progress' ? 'in review' + (st.reviewer ? ' (' + esc(st.reviewer) + ')' : '') : 'needs review';
+      var href = st.issue_number ? 'https://github.com/' + REPO + '/issues/' + st.issue_number : '#';
+      header += ' <a href="' + href + '" target="_blank" class="review-badge ' + bc + '">' + bt + '</a>';
+    }
+
     if (t.hasEn && t.hasUk) {
       header += ' &middot; <a href="#/review/' + t.id + '" style="color:#c8f">review translation</a>';
     }

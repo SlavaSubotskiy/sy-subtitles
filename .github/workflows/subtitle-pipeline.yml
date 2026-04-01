@@ -775,3 +775,39 @@ jobs:
           git commit -m "Build subtitles (full pipeline)"
           git pull --rebase
           git push
+
+      - name: Create review tracking issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TALK_ID="${{ inputs.talk_id }}"
+          # Check if issue already exists
+          EXISTING=$(gh issue list --search "Review: $TALK_ID in:title" --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$EXISTING" ]; then
+            echo "Review issue #$EXISTING already exists — resetting to pending"
+            gh issue reopen "$EXISTING" 2>/dev/null || true
+            gh issue edit "$EXISTING" --remove-label "review:approved,review:in-progress" --add-label "review:pending" 2>/dev/null || true
+          else
+            META_TITLE=$(python3 -c "import yaml; print(yaml.safe_load(open('talks/$TALK_ID/meta.yaml'))['title'])" 2>/dev/null || echo "$TALK_ID")
+            gh issue create \
+              --title "Review: $TALK_ID" \
+              --label "review:pending" \
+              --body "$(cat <<ISSUEEOF
+          ## $META_TITLE
+
+          | | |
+          |---|---|
+          | Talk | \`$TALK_ID\` |
+          | Review | [Open in SPA](https://slavasubotskiy.github.io/sy-subtitles/#/review/$TALK_ID) |
+          | Transcript | [\`transcript_uk.txt\`](https://github.com/${{ github.repository }}/blob/main/talks/$TALK_ID/transcript_uk.txt) |
+
+          ### How to review
+          1. Open the [SPA review page](https://slavasubotskiy.github.io/sy-subtitles/#/review/$TALK_ID)
+          2. Assign yourself to this issue to claim the review
+          3. Watch the video with subtitles, review the translation
+          4. Report problems as comments on this issue
+          5. When done, add the \`review:approved\` label
+          ISSUEEOF
+          )"
+          fi

@@ -32,6 +32,19 @@ SAMPLE_SRT = """1
 SAMPLE_EN = "Talk Language: English\n\nFirst paragraph.\n\nSecond paragraph.\n"
 SAMPLE_UK = "Мова промови: англійська\n\nПерший абзац.\n\nДругий абзац.\n"
 
+MOCK_REVIEW_STATUS = {
+    "version": 1,
+    "updated_at": "2026-04-01T00:00:00Z",
+    "talks": {
+        "2001-01-01_Test-Talk": {
+            "status": "pending",
+            "reviewer": None,
+            "issue_number": 42,
+            "updated_at": "2026-04-01T00:00:00Z",
+        },
+    },
+}
+
 # Simulated GitHub Trees API response — ALPHABETICAL ORDER like real API
 # (final/uk.srt comes BEFORE meta.yaml — this is the order GitHub returns)
 MOCK_TREE = {
@@ -145,6 +158,16 @@ def page(server, mock_player_js, browser):
             status=200,
             content_type="application/javascript",
             body=mock_player_js,
+        ),
+    )
+
+    # Mock review-status.json
+    pg.route(
+        "**/review-status.json",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(MOCK_REVIEW_STATUS),
         ),
     )
 
@@ -577,6 +600,163 @@ class TestHashNavigation:
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
         assert page.title() == "SY Subtitles — Index"
+
+
+class TestReviewStatus:
+    """Tests for review status badges on the index page."""
+
+    def test_pending_badge_shown(self, server, page):
+        """Talk with review:pending status should show 'needs review' badge."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        badge = page.locator(".review-badge.needs-review")
+        assert badge.count() >= 1
+        assert "needs review" in badge.first.text_content()
+
+    def test_badge_links_to_issue(self, server, page):
+        """Badge should link to the GitHub issue."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        badge = page.locator(".review-badge")
+        href = badge.first.get_attribute("href")
+        assert "/issues/42" in href
+
+    def test_in_progress_badge(self, server, page, browser):
+        """Talk with in-progress status should show reviewer name."""
+        ctx = browser.new_context()
+        pg = ctx.new_page()
+        # Mock with in-progress status
+        in_progress_status = {
+            "version": 1,
+            "updated_at": "2026-04-01T00:00:00Z",
+            "talks": {
+                "2001-01-01_Test-Talk": {
+                    "status": "in-progress",
+                    "reviewer": "YogiReviewer",
+                    "issue_number": 42,
+                    "updated_at": "2026-04-01T00:00:00Z",
+                },
+            },
+        }
+        pg.route(
+            "**/api.github.com/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                headers={"ETag": '"test-etag"'},
+                body=json.dumps(MOCK_TREE),
+            ),
+        )
+        pg.route(
+            "**/raw.githubusercontent.com/**/meta.yaml",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
+        )
+        pg.route(
+            "**/review-status.json",
+            lambda route: route.fulfill(
+                status=200, content_type="application/json", body=json.dumps(in_progress_status)
+            ),
+        )
+        pg.route(
+            "**/player.vimeo.com/api/player.js",
+            lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
+        )
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache'); localStorage.removeItem('sy_app_version');")
+        pg.goto(f"{server}/index.html")
+        pg.wait_for_selector(".talk-item", timeout=10000)
+        badge = pg.locator(".review-badge.in-review")
+        assert badge.count() >= 1
+        assert "YogiReviewer" in badge.first.text_content()
+        pg.close()
+        ctx.close()
+
+    def test_approved_badge(self, server, page, browser):
+        """Talk with approved status should show green badge."""
+        ctx = browser.new_context()
+        pg = ctx.new_page()
+        approved_status = {
+            "version": 1,
+            "updated_at": "2026-04-01T00:00:00Z",
+            "talks": {
+                "2001-01-01_Test-Talk": {
+                    "status": "approved",
+                    "reviewer": "YogiReviewer",
+                    "issue_number": 42,
+                    "updated_at": "2026-04-01T00:00:00Z",
+                },
+            },
+        }
+        pg.route(
+            "**/api.github.com/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                headers={"ETag": '"test-etag"'},
+                body=json.dumps(MOCK_TREE),
+            ),
+        )
+        pg.route(
+            "**/raw.githubusercontent.com/**/meta.yaml",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
+        )
+        pg.route(
+            "**/review-status.json",
+            lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps(approved_status)),
+        )
+        pg.route(
+            "**/player.vimeo.com/api/player.js",
+            lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
+        )
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache'); localStorage.removeItem('sy_app_version');")
+        pg.goto(f"{server}/index.html")
+        pg.wait_for_selector(".talk-item", timeout=10000)
+        badge = pg.locator(".review-badge.approved")
+        assert badge.count() >= 1
+        assert "approved" in badge.first.text_content()
+        pg.close()
+        ctx.close()
+
+    def test_no_status_file_graceful(self, server, page, browser):
+        """Missing review-status.json should not break the page."""
+        ctx = browser.new_context()
+        pg = ctx.new_page()
+        pg.route(
+            "**/api.github.com/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                headers={"ETag": '"test-etag"'},
+                body=json.dumps(MOCK_TREE),
+            ),
+        )
+        pg.route(
+            "**/raw.githubusercontent.com/**/meta.yaml",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
+        )
+        pg.route("**/review-status.json", lambda route: route.fulfill(status=404, body="Not found"))
+        pg.route(
+            "**/player.vimeo.com/api/player.js",
+            lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
+        )
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache'); localStorage.removeItem('sy_app_version');")
+        pg.goto(f"{server}/index.html")
+        pg.wait_for_selector(".talk-item", timeout=10000)
+        # Page loads fine, no badges shown
+        assert pg.locator(".review-badge").count() == 0
+        assert pg.locator(".talk-item").count() >= 1
+        pg.close()
+        ctx.close()
+
+    def test_talk_without_status_no_badge(self, server, page):
+        """Talk not in review-status.json should have no badge."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        # No-Uk talk has no status entry
+        items = page.locator(".talk-item").all()
+        for item in items:
+            text = item.text_content()
+            if "No-Uk" in text or "2002" in text:
+                assert item.locator(".review-badge").count() == 0
 
 
 class TestCaching:

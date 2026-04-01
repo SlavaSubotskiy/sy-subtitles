@@ -1,0 +1,84 @@
+name: Sync Review Status
+
+on:
+  issues:
+    types: [labeled, unlabeled, assigned, unassigned, closed, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      contains(join(github.event.issue.labels.*.name, ','), 'review:')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate review-status.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 << 'PYEOF'
+          import json, subprocess
+          from datetime import datetime, timezone
+
+          result = subprocess.run(
+              ["gh", "issue", "list",
+               "--search", "label:review:pending,review:in-progress,review:approved",
+               "--state", "all", "--json", "number,title,labels,assignees,updatedAt",
+               "--limit", "500"],
+              capture_output=True, text=True
+          )
+          issues = json.loads(result.stdout) if result.returncode == 0 else []
+
+          talks = {}
+          for issue in issues:
+              title = issue["title"]
+              talk_id = None
+              for prefix in ["Review: ", "Subtitle review: ", "Translation review: "]:
+                  if title.startswith(prefix):
+                      talk_id = title[len(prefix):].strip()
+                      break
+              if not talk_id:
+                  continue
+
+              labels = [l["name"] for l in issue.get("labels", [])]
+              if "review:approved" in labels:
+                  status = "approved"
+              elif "review:in-progress" in labels:
+                  status = "in-progress"
+              else:
+                  status = "pending"
+
+              assignees = [a["login"] for a in issue.get("assignees", [])]
+              talks[talk_id] = {
+                  "status": status,
+                  "reviewer": assignees[0] if assignees else None,
+                  "issue_number": issue["number"],
+                  "updated_at": issue["updatedAt"]
+              }
+
+          output = {
+              "version": 1,
+              "updated_at": datetime.now(timezone.utc).isoformat(),
+              "talks": talks
+          }
+          with open("docs/review-status.json", "w") as f:
+              json.dump(output, f, indent=2, ensure_ascii=False)
+              f.write("\n")
+          print(f"Synced {len(talks)} talk statuses")
+          PYEOF
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/review-status.json
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "Update review status"
+          git pull --rebase
+          git push
