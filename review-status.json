@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-01T20:16:01.709623+00:00",
+  "updated_at": "2026-04-01T20:17:56.531618+00:00",
   "talks": {
     "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2": {
       "status": "pending",
@@ -39,10 +39,10 @@
       "updated_at": "2026-04-01T20:00:00Z"
     },
     "2001-07-29_Shri-Krishna-Puja-New-York": {
-      "status": "pending",
-      "reviewer": null,
+      "status": "in-progress",
+      "reviewer": "SlavaSubotskiy",
       "issue_number": 1,
-      "updated_at": "2026-04-01T20:15:52Z"
+      "updated_at": "2026-04-01T20:17:55Z"
     }
   }
 }
