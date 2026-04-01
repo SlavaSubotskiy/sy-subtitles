@@ -1,0 +1,295 @@
+{
+  "generated_at": "2026-04-01T22:38:21.918142+00:00",
+  "totals": {
+    "talks": 12,
+    "with_en": 12,
+    "with_uk": 9,
+    "with_srt": 6,
+    "approved": 3,
+    "pending": 3,
+    "in_progress": 1
+  },
+  "talks": [
+    {
+      "id": "1979-02-25_Puja-In-Pune-Marathi",
+      "title": "Mahashivaratri Puja: The importance of Shiva",
+      "date": "1979-02-25",
+      "has_en": true,
+      "has_uk": false,
+      "review_status": null,
+      "glossary": {},
+      "videos": [
+        {
+          "slug": "Mahashivaratri-Puja",
+          "has_srt": false
+        }
+      ]
+    },
+    {
+      "id": "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2",
+      "title": "Christmas And Its Relationship To Lord Jesus",
+      "date": "1979-12-10",
+      "has_en": true,
+      "has_uk": true,
+      "review_status": "pending",
+      "glossary": {
+        "translated_with": "glossary-v1",
+        "reviewed_with": "glossary-v1"
+      },
+      "videos": [
+        {
+          "slug": "The-Incarnation-Of-Christ",
+          "has_srt": true,
+          "blocks": 1130,
+          "cps_avg": 12.6,
+          "cps_max": 103.0,
+          "cpl_avg": 45.2,
+          "cpl_max": 84
+        }
+      ]
+    },
+    {
+      "id": "1980-03-23_Birthday-Puja",
+      "title": "Birthday Puja Talk: Guarding Against Slothfulness",
+      "date": "1980-03-23",
+      "has_en": true,
+      "has_uk": true,
+      "review_status": null,
+      "glossary": {
+        "translated_with": "glossary-v1",
+        "reviewed_with": "glossary-v1"
+      },
+      "videos": [
+        {
+          "slug": "Birthday-Puja",
+          "has_srt": false
+        },
+        {
+          "slug": "Birthday-Puja",
+          "has_srt": false
+        }
+      ]
+    },
+    {
+      "id": "1981-03-21_Birthday-Puja-1981-Sydney",
+      "title": "Birthday Puja: A Great Day in History",
+      "date": "1981-03-21",
+      "has_en": true,
+      "has_uk": true,
+      "review_status": "approved",
+      "glossary": {
+        "translated_with": "glossary-v1",
+        "reviewed_with": "glossary-v1"
+      },
+      "videos": [
+        {
+          "slug": "Birthday-Puja",
+          "has_srt": true,
+          "blocks": 355,
+          "cps_avg": 9.4,
+          "cps_max": 15.0,
+          "cpl_avg": 51.4,
+          "cpl_max": 84
+        },
+        {
+          "slug": "Birthday-Puja-Talk",
+          "has_srt": true,
+          "blocks": 390,
+          "cps_avg": 9.3,
+          "cps_max": 15.0,
+          "cpl_avg": 46.4,
+          "cpl_max": 84
+        }
+      ]
+    },
+    {
+      "id": "1982-07-11_From-Heart-To-Sahastrar-Derby",
+      "title": "From Heart to Sahasrara",
+      "date": "1982-07-11",
+      "has_en": true,
+      "has_uk": true,
+      "review_status": null,
+      "glossary": {
+        "translated_with": "glossary-v1",
+        "reviewed_with": "glossary-v1"
+      },
+      "videos": [
+        {
+          "slug": "From-Heart-to-Sahasrara",
+          "has_srt": false
+        }
+      ]
+    },
+    {
+      "id": "1983-03-30_Celebration-Of-Birthday-In-Bombay",
+      "title": "Birthday Puja: Try to save as many as possible & Havan",
+      "date": "1983-03-30",
+      "has_en": true,
+      "has_uk": true,
+      "review_status": null,
+      "glossary": {
+        "translated_with": "glossary-v1",
+        "reviewed_with": "glossary-v1"
+      },
+      "videos": [
+        {
+          "slug": "Birthday-Puja-and-Havan",
+          "has_srt": false
+        },
+        {
+          "slug": "Birthday-Puja-English-Talk",
+          "has_srt": false
+        }
+      ]
+    },
+    {
+      "id": "1983-07-24_Guru-Puja-Awakening-The-Principle-Of-Guru",
+      "title": "Guru Puja: Awakening the Principle of Guru",
+      "date": "1983-07-24",
+      "has_en": true,
+      "has_uk": false,
+      "review_status": "approved",
+      "glossary": {},
+      "videos": [
+        {
+          "slug": "Talk",
+          "has_srt": true,
+          "blocks": 897,
+          "cps_avg": 12.0,
+          "cps_max": 44.4,
+          "cpl_avg": 39.7,
+          "cpl_max": 87
+        }
+      ]
+    },
+    {
+      "id": "1984-03-22_Birthday-Puja",
+      "title": "Birthday Puja: Be Sweet, Loving and Peaceful",
+      "date": "1984-03-22",
+      "has_en": true,
+      "has_uk": true,
+      "review_status": "pending",
+      "glossary": {
+        "translated_with": "glossary-v1",
+        "reviewed_with": "glossary-v1"
+      },
+      "videos": [
+        {
+          "slug": "Birthday-Puja-Talk-Be-Sweet",
+          "has_srt": false
+        }
+      ]
+    },
+    {
+      "id": "1992-02-25_Talk-To-Yogis-In-Christchurch",
+      "title": "Talk to Sahaja Yogis: Religion is Within",
+      "date": "1992-02-25",
+      "has_en": true,
+      "has_uk": false,
+      "review_status": null,
+      "glossary": {},
+      "videos": [
+        {
+          "slug": "Talk-to-Sahaja-Yogis-Religion-is-Within",
+          "has_srt": false
+        }
+      ]
+    },
+    {
+      "id": "1992-07-19_Guru-Puja",
+      "title": "Guru Puja: Gravity",
+      "date": "1992-07-19",
+      "has_en": true,
+      "has_uk": true,
+      "review_status": "pending",
+      "glossary": {
+        "translated_with": "glossary-v1",
+        "reviewed_with": "glossary-v1"
+      },
+      "videos": [
+        {
+          "slug": "Guru-Puja",
+          "has_srt": true,
+          "blocks": 600,
+          "cps_avg": 8.9,
+          "cps_max": 15.0,
+          "cpl_avg": 48.8,
+          "cpl_max": 84
+        },
+        {
+          "slug": "Guru-Puja-Talk-Gravity",
+          "has_srt": true,
+          "blocks": 600,
+          "cps_avg": 8.9,
+          "cps_max": 15.0,
+          "cpl_avg": 48.8,
+          "cpl_max": 84
+        }
+      ]
+    },
+    {
+      "id": "1993-09-19_Ganesha-Puja-Cabella",
+      "title": "Shri Ganesha Puja: Ritualism is not innocence",
+      "date": "1993-09-19",
+      "has_en": true,
+      "has_uk": true,
+      "review_status": "approved",
+      "glossary": {
+        "translated_with": "glossary-v1",
+        "reviewed_with": "glossary-v1"
+      },
+      "videos": [
+        {
+          "slug": "Ganesha-Puja",
+          "has_srt": true,
+          "blocks": 508,
+          "cps_avg": 9.4,
+          "cps_max": 15.0,
+          "cpl_avg": 42.7,
+          "cpl_max": 79
+        },
+        {
+          "slug": "Ganesha-Puja-Talk",
+          "has_srt": true,
+          "blocks": 508,
+          "cps_avg": 9.4,
+          "cps_max": 15.0,
+          "cpl_avg": 42.7,
+          "cpl_max": 79
+        }
+      ]
+    },
+    {
+      "id": "2001-07-29_Shri-Krishna-Puja-New-York",
+      "title": "Shri Krishna Puja: Ananya Bhakti",
+      "date": "2001-07-29",
+      "has_en": true,
+      "has_uk": true,
+      "review_status": "in-progress",
+      "glossary": {
+        "translated_with": "glossary-v1",
+        "reviewed_with": "glossary-v1"
+      },
+      "videos": [
+        {
+          "slug": "Krishna-Puja",
+          "has_srt": true,
+          "blocks": 519,
+          "cps_avg": 9.6,
+          "cps_max": 15.0,
+          "cpl_avg": 48.9,
+          "cpl_max": 84
+        },
+        {
+          "slug": "Krishna-Puja-Talk",
+          "has_srt": true,
+          "blocks": 519,
+          "cps_avg": 9.6,
+          "cps_max": 15.0,
+          "cpl_avg": 48.9,
+          "cpl_max": 84
+        }
+      ]
+    }
+  ]
+}

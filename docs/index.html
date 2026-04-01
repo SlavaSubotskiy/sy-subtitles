@@ -42,6 +42,13 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 .filter-btn.active { background: #333; color: #fff; border-color: #6af; }
 .filter-btn:hover { border-color: #888; }
 #search-input:focus { border-color: #6af; outline: none; }
+.stats-bar { display: flex; gap: 12px; flex-wrap: wrap; max-width: 800px; margin: 12px auto; padding: 0 20px; }
+.stat-card { background: #222; border: 1px solid #333; border-radius: 8px; padding: 10px 14px; min-width: 100px; }
+.stat-card .num { font-size: 22px; font-weight: 600; color: #fff; }
+.stat-card .label { font-size: 11px; color: #888; margin-top: 2px; }
+.stat-card.good .num { color: #4ade80; }
+.stat-card.warn .num { color: #ffa500; }
+.stat-card.info .num { color: #6af; }
 .review-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px;
   font-weight: 500; margin-left: 8px; text-decoration: none !important; }
 .review-badge:hover { opacity: 0.8; }
@@ -118,6 +125,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
       <button class="filter-btn" data-filter="approved" onclick="SPA.filterTalks('approved')">Approved</button>
     </div>
   </div>
+  <div id="stats-bar" class="stats-bar" style="display:none"></div>
   <div id="index-status" class="status">Loading...</div>
   <div id="index-content" style="padding: 0 20px;"></div>
 </div>
@@ -358,6 +366,32 @@ function buildManifest(tree) {
 // ============================================================
 // Review Status (static JSON, zero API cost)
 // ============================================================
+var projectStats = null;
+function loadStats() {
+  return fetch(RAW + '/stats.json')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) { projectStats = d; return d; })
+    .catch(function() { return null; });
+}
+
+function renderStats() {
+  var bar = document.getElementById('stats-bar');
+  if (!projectStats || !projectStats.totals) { bar.style.display = 'none'; return; }
+  var t = projectStats.totals;
+  var cards = [
+    { num: t.talks, label: 'Talks', cls: 'info' },
+    { num: t.with_uk, label: 'Translated', cls: 'info' },
+    { num: t.with_srt, label: 'With SRT', cls: 'info' },
+    { num: t.approved, label: 'Approved', cls: 'good' },
+    { num: t.pending, label: 'Pending', cls: 'warn' },
+  ];
+  bar.innerHTML = '';
+  cards.forEach(function(c) {
+    bar.innerHTML += '<div class="stat-card ' + c.cls + '"><div class="num">' + c.num + '</div><div class="label">' + c.label + '</div></div>';
+  });
+  bar.style.display = 'flex';
+}
+
 function loadReviewStatus() {
   return fetch(RAW + '/review-status.json')
     .then(function(r) { return r.ok ? r.json() : { talks: {} }; })
@@ -374,15 +408,17 @@ function showIndex() {
   var statusEl = document.getElementById('index-status');
   var contentEl = document.getElementById('index-content');
 
-  if (manifest && reviewStatus) { renderIndex(contentEl); statusEl.style.display = 'none'; return; }
+  if (manifest && reviewStatus) { renderStats(); renderIndex(contentEl); statusEl.style.display = 'none'; return; }
 
   statusEl.textContent = 'Loading...';
   statusEl.style.display = 'block';
 
   Promise.all([
     manifest ? Promise.resolve(manifest) : loadManifest().then(function(m) { manifest = m; return m; }),
-    reviewStatus ? Promise.resolve(reviewStatus) : loadReviewStatus()
+    reviewStatus ? Promise.resolve(reviewStatus) : loadReviewStatus(),
+    projectStats ? Promise.resolve(projectStats) : loadStats()
   ]).then(function() {
+    renderStats();
     renderIndex(contentEl);
     statusEl.style.display = 'none';
   }).catch(function(err) {
