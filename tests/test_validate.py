@@ -1,6 +1,20 @@
-"""Tests for tools.validate_subtitles — header stripping."""
+"""Tests for tools.validate_subtitles — header stripping and validation checks."""
 
-from tools.validate_subtitles import strip_header
+from tools.config import OptimizeConfig
+from tools.validate_subtitles import (
+    check_overlaps,
+    check_sequential_numbering,
+    check_statistics,
+    check_text_preservation,
+    extract_words,
+    normalize_text,
+    strip_header,
+    validate,
+)
+
+# ---------------------------------------------------------------------------
+#  strip_header
+# ---------------------------------------------------------------------------
 
 
 def test_strip_header_en():
@@ -42,3 +56,545 @@ def test_strip_header_header_beyond_10_lines():
     lines.append("Body text.")
     text = "\n".join(lines)
     assert strip_header(text) == text
+
+
+# ---------------------------------------------------------------------------
+#  Helpers for building test SRT / transcript files
+# ---------------------------------------------------------------------------
+
+
+def _write_srt(path, blocks):
+    """Write a minimal SRT file from a list of (idx, start, end, text) tuples.
+
+    *start* and *end* are SRT timecodes like ``"00:00:01,000"``.
+    """
+    lines = []
+    for idx, start, end, text in blocks:
+        lines.append(str(idx))
+        lines.append(f"{start} --> {end}")
+        lines.append(text)
+        lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_transcript(path, text):
+    path.write_text(text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+#  normalize_text / extract_words
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_text_collapses_whitespace():
+    assert normalize_text("  hello   world\nnew  ") == "hello world new"
+
+
+def test_extract_words_skips_punctuation():
+    words = extract_words("Hello, world! -- test.")
+    assert "Hello," in words
+    assert "world!" in words
+    # pure-punctuation token "--" should be dropped
+    assert "--" not in words
+
+
+# ---------------------------------------------------------------------------
+#  CHECK 1: Text preservation
+# ---------------------------------------------------------------------------
+
+
+def test_text_preservation_match(tmp_path):
+    """SRT text that exactly matches transcript should pass."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:03,000", "Привіт усім."),
+            (2, "00:00:03,500", "00:00:06,000", "Сьогодні ми зібрались тут."),
+        ],
+    )
+    _write_transcript(transcript_file, "Привіт усім. Сьогодні ми зібрались тут.")
+
+    from tools.srt_utils import parse_srt
+
+    blocks = parse_srt(str(srt_file))
+    report = []
+    result = check_text_preservation(blocks, str(transcript_file), report)
+    assert result is True
+
+
+def test_text_preservation_mismatch(tmp_path):
+    """Different words between transcript and SRT should fail."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:03,000", "Привіт усім."),
+            (2, "00:00:03,500", "00:00:06,000", "Сьогодні ІНШЕ СЛОВО."),
+        ],
+    )
+    _write_transcript(transcript_file, "Привіт усім. Сьогодні ми зібрались тут.")
+
+    from tools.srt_utils import parse_srt
+
+    blocks = parse_srt(str(srt_file))
+    report = []
+    result = check_text_preservation(blocks, str(transcript_file), report)
+    assert result is False
+
+
+def test_text_preservation_with_header(tmp_path):
+    """Header in transcript should be stripped before comparison."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:04,000", "Текст промови."),
+        ],
+    )
+    _write_transcript(
+        transcript_file,
+        "19 вересня 1993\nПуджа Ґанеші\nМова: англійська\n\nТекст промови.",
+    )
+
+    from tools.srt_utils import parse_srt
+
+    blocks = parse_srt(str(srt_file))
+    report = []
+    result = check_text_preservation(blocks, str(transcript_file), report)
+    assert result is True
+
+
+# ---------------------------------------------------------------------------
+#  CHECK 2: Overlap detection
+# ---------------------------------------------------------------------------
+
+
+def test_no_overlaps():
+    """Non-overlapping blocks should pass."""
+    blocks = [
+        {"idx": 1, "start_ms": 1000, "end_ms": 3000, "text": "A"},
+        {"idx": 2, "start_ms": 3100, "end_ms": 5000, "text": "B"},
+        {"idx": 3, "start_ms": 5100, "end_ms": 7000, "text": "C"},
+    ]
+    report = []
+    assert check_overlaps(blocks, report) is True
+
+
+def test_overlap_detected():
+    """Overlapping blocks should fail."""
+    blocks = [
+        {"idx": 1, "start_ms": 1000, "end_ms": 4000, "text": "A"},
+        {"idx": 2, "start_ms": 3500, "end_ms": 6000, "text": "B"},
+    ]
+    report = []
+    assert check_overlaps(blocks, report) is False
+    report_text = "\n".join(report)
+    assert "Overlapping blocks: 1" in report_text
+
+
+def test_adjacent_blocks_no_overlap():
+    """Blocks where end == start of next should NOT count as overlap."""
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 2000, "text": "A"},
+        {"idx": 2, "start_ms": 2000, "end_ms": 4000, "text": "B"},
+    ]
+    report = []
+    assert check_overlaps(blocks, report) is True
+
+
+# ---------------------------------------------------------------------------
+#  CHECK 4: Sequential numbering
+# ---------------------------------------------------------------------------
+
+
+def test_sequential_numbering_correct():
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 1000, "text": "A"},
+        {"idx": 2, "start_ms": 1100, "end_ms": 2000, "text": "B"},
+        {"idx": 3, "start_ms": 2100, "end_ms": 3000, "text": "C"},
+    ]
+    report = []
+    assert check_sequential_numbering(blocks, report) is True
+
+
+def test_sequential_numbering_wrong():
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 1000, "text": "A"},
+        {"idx": 3, "start_ms": 1100, "end_ms": 2000, "text": "B"},
+        {"idx": 5, "start_ms": 2100, "end_ms": 3000, "text": "C"},
+    ]
+    report = []
+    assert check_sequential_numbering(blocks, report) is False
+    report_text = "\n".join(report)
+    assert "Numbering errors: 2" in report_text
+
+
+def test_sequential_numbering_starting_from_zero():
+    """Numbering that starts at 0 instead of 1 should fail."""
+    blocks = [
+        {"idx": 0, "start_ms": 0, "end_ms": 1000, "text": "A"},
+        {"idx": 1, "start_ms": 1100, "end_ms": 2000, "text": "B"},
+    ]
+    report = []
+    assert check_sequential_numbering(blocks, report) is False
+
+
+# ---------------------------------------------------------------------------
+#  CPS / Duration / Gap statistics
+# ---------------------------------------------------------------------------
+
+
+def test_cps_within_limits():
+    """Block with low CPS should not trip any CPS counters."""
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 2000, "text": "0123456789"},
+    ]
+    config = OptimizeConfig()
+    report = []
+    stats = check_statistics(blocks, config, report)
+    assert stats["cps_over_target"] == 0
+    assert stats["cps_over_hard"] == 0
+
+
+def test_cps_exceeds_hard_max():
+    """Block with very high CPS should be flagged."""
+    text = "A" * 60
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 1000, "text": text},
+    ]
+    config = OptimizeConfig()
+    report = []
+    stats = check_statistics(blocks, config, report)
+    assert stats["cps_over_target"] == 1
+    assert stats["cps_over_hard"] == 1
+
+
+def test_cps_between_target_and_hard():
+    """Block between target (15) and hard max (20) — over target only."""
+    # 18 chars in 1 second = 18 CPS
+    text = "A" * 18
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 1000, "text": text},
+    ]
+    config = OptimizeConfig()
+    report = []
+    stats = check_statistics(blocks, config, report)
+    assert stats["cps_over_target"] == 1
+    assert stats["cps_over_hard"] == 0
+
+
+def test_duration_under_min():
+    """Block shorter than min_duration_ms (1200) should be flagged."""
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 500, "text": "Ok"},
+    ]
+    config = OptimizeConfig()
+    report = []
+    stats = check_statistics(blocks, config, report)
+    assert stats["duration_under_min"] == 1
+
+
+def test_duration_over_max():
+    """Block longer than max_duration_ms (21000) should be flagged."""
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 25000, "text": "Long text."},
+    ]
+    config = OptimizeConfig()
+    report = []
+    stats = check_statistics(blocks, config, report)
+    assert stats["duration_over_max"] == 1
+
+
+def test_duration_within_limits():
+    """Block within min/max duration should pass."""
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 3000, "text": "Normal block."},
+    ]
+    config = OptimizeConfig()
+    report = []
+    stats = check_statistics(blocks, config, report)
+    assert stats["duration_under_min"] == 0
+    assert stats["duration_over_max"] == 0
+
+
+# ---------------------------------------------------------------------------
+#  Gap validation
+# ---------------------------------------------------------------------------
+
+
+def test_gap_under_min():
+    """Gap smaller than min_gap_ms (80) should be flagged."""
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 2000, "text": "A"},
+        {"idx": 2, "start_ms": 2050, "end_ms": 4000, "text": "B"},
+    ]
+    config = OptimizeConfig()
+    report = []
+    stats = check_statistics(blocks, config, report)
+    assert stats["gap_under_min"] == 1
+
+
+def test_gap_sufficient():
+    """Gap equal to or above min_gap_ms should pass."""
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 2000, "text": "A"},
+        {"idx": 2, "start_ms": 2100, "end_ms": 4000, "text": "B"},
+    ]
+    config = OptimizeConfig()
+    report = []
+    stats = check_statistics(blocks, config, report)
+    assert stats["gap_under_min"] == 0
+
+
+def test_gap_exactly_at_min():
+    """Gap exactly equal to min_gap_ms should NOT be flagged."""
+    blocks = [
+        {"idx": 1, "start_ms": 0, "end_ms": 2000, "text": "A"},
+        {"idx": 2, "start_ms": 2080, "end_ms": 4000, "text": "B"},
+    ]
+    config = OptimizeConfig()
+    report = []
+    stats = check_statistics(blocks, config, report)
+    assert stats["gap_under_min"] == 0
+
+
+# ---------------------------------------------------------------------------
+#  Full validation run
+# ---------------------------------------------------------------------------
+
+
+def test_full_validate_pass(tmp_path):
+    """A well-formed SRT + transcript should pass all checks."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+    report_file = tmp_path / "report.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:04,000", "Hello everyone."),
+            (2, "00:00:04,200", "00:00:08,000", "Today we have gathered here."),
+            (3, "00:00:08,200", "00:00:12,000", "Thank you for coming."),
+        ],
+    )
+    _write_transcript(
+        transcript_file,
+        "Hello everyone. Today we have gathered here. Thank you for coming.",
+    )
+
+    passed, report = validate(
+        str(srt_file),
+        str(transcript_file),
+        report_path=str(report_file),
+    )
+
+    assert passed is True
+    assert report_file.exists()
+    report_text = "\n".join(report)
+    assert "Overall: PASSED" in report_text
+
+
+def test_full_validate_fail_overlap(tmp_path):
+    """Overlapping blocks should cause overall FAIL."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:05,000", "Hello."),
+            (2, "00:00:04,000", "00:00:08,000", "World."),
+        ],
+    )
+    _write_transcript(transcript_file, "Hello. World.")
+
+    passed, report = validate(str(srt_file), str(transcript_file))
+
+    assert passed is False
+    report_text = "\n".join(report)
+    assert "[FAIL] No overlaps" in report_text
+
+
+def test_full_validate_fail_numbering(tmp_path):
+    """Wrong numbering should cause overall FAIL."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:04,000", "Hello."),
+            (5, "00:00:04,200", "00:00:08,000", "World."),
+        ],
+    )
+    _write_transcript(transcript_file, "Hello. World.")
+
+    passed, report = validate(str(srt_file), str(transcript_file))
+
+    assert passed is False
+    report_text = "\n".join(report)
+    assert "[FAIL] Sequential numbering" in report_text
+
+
+def test_full_validate_fail_text_mismatch(tmp_path):
+    """Mismatched transcript text should cause overall FAIL."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:04,000", "Hello everyone."),
+        ],
+    )
+    _write_transcript(transcript_file, "Completely different text.")
+
+    passed, report = validate(str(srt_file), str(transcript_file))
+
+    assert passed is False
+    report_text = "\n".join(report)
+    assert "[FAIL] Text preservation" in report_text
+
+
+def test_full_validate_skip_text_check(tmp_path):
+    """When skip_text_check=True, text mismatch should not cause FAIL."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:04,000", "Hello."),
+        ],
+    )
+    _write_transcript(transcript_file, "Completely different text.")
+
+    passed, report = validate(
+        str(srt_file),
+        str(transcript_file),
+        skip_text_check=True,
+    )
+
+    assert passed is True
+    report_text = "\n".join(report)
+    assert "text preservation check skipped" in report_text
+
+
+def test_full_validate_fail_cps(tmp_path):
+    """Very high CPS should cause FAIL (when cps check is not skipped)."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    # 60 chars in 1.2 seconds = 50 CPS, far above hard_max_cps=20
+    long_text = "A" * 60
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:02,200", long_text),
+        ],
+    )
+    _write_transcript(transcript_file, long_text)
+
+    passed, report = validate(str(srt_file), str(transcript_file))
+
+    assert passed is False
+    report_text = "\n".join(report)
+    assert "[FAIL] CPS" in report_text
+
+
+def test_full_validate_skip_cps_check(tmp_path):
+    """When skip_cps_check=True, high CPS should not cause FAIL."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    long_text = "A" * 60
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:02,200", long_text),
+        ],
+    )
+    _write_transcript(transcript_file, long_text)
+
+    passed, report = validate(
+        str(srt_file),
+        str(transcript_file),
+        skip_cps_check=True,
+    )
+
+    report_text = "\n".join(report)
+    # CPS line should not appear as FAIL in the summary
+    assert "[FAIL] CPS" not in report_text
+
+
+def test_full_validate_fail_duration(tmp_path):
+    """Block too short should cause FAIL when duration check is active."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    # 500ms block — under min_duration_ms=1200
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:01,500", "Ok."),
+        ],
+    )
+    _write_transcript(transcript_file, "Ok.")
+
+    passed, report = validate(str(srt_file), str(transcript_file))
+
+    assert passed is False
+    report_text = "\n".join(report)
+    assert "[FAIL] Duration" in report_text
+
+
+def test_full_validate_skip_duration_check(tmp_path):
+    """When skip_duration_check=True, short blocks should not FAIL on duration."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:01,500", "Ok."),
+        ],
+    )
+    _write_transcript(transcript_file, "Ok.")
+
+    passed, report = validate(
+        str(srt_file),
+        str(transcript_file),
+        skip_duration_check=True,
+        skip_cps_check=True,
+    )
+
+    assert passed is True
+
+
+def test_full_validate_fail_gap(tmp_path):
+    """Gap under min_gap_ms should cause FAIL."""
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    # 30ms gap between blocks — under min_gap_ms=80
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:04,000", "Hello."),
+            (2, "00:00:04,030", "00:00:07,000", "World."),
+        ],
+    )
+    _write_transcript(transcript_file, "Hello. World.")
+
+    passed, report = validate(str(srt_file), str(transcript_file))
+
+    assert passed is False
+    report_text = "\n".join(report)
+    assert "[FAIL] Gap" in report_text
