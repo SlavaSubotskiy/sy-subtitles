@@ -8,7 +8,7 @@ Review `transcript_uk.txt` (full paragraphed Ukrainian text) using 2 parallel re
 
 Full paragraphed text from `transcript_uk.txt` (61 lines, 60 paragraphs of Guru Puja talk).
 
-## Results
+## Results — Pass 1 (7 corrections, applied)
 
 ### L. Language (Orthography + Grammar + Punctuation)
 | # | Paragraph | Error | Context | Fix |
@@ -25,7 +25,7 @@ Full paragraphed text from `transcript_uk.txt` (61 lines, 60 paragraphs of Guru 
 | S2 | 29 | Shri Mataji's first-person pronoun lowercase | «слабких точок, я думаю» | «слабких точок, Я думаю» |
 | S3 | 25 | Divine Power pronoun lowercase (inconsistent with para 23-24 where «Вона» is uppercase) | «Ця Сила не лише сповнена співчуття, вона також гнівна, вона гнівна.» | «...Вона також гнівна, Вона гнівна.» |
 
-### Critic Filter
+### Critic Filter — Pass 1
 | Source | # | Verdict | Reason |
 |--------|---|---------|--------|
 | L | L1 | Keep | Clear grammar error: «кидати виклик» governs dative (кому?/чому?), not accusative |
@@ -36,22 +36,42 @@ Full paragraphed text from `transcript_uk.txt` (61 lines, 60 paragraphs of Guru 
 | S | S2 | Keep | Same as S1; SM speaking about herself in first person |
 | S | S3 | Keep | EN source has uppercase "It" for the Divine Power; para 23 has «Вона настільки ефективна», para 24 has «Вона у вашому розпорядженні» — both uppercase. Para 25 should match |
 
-### Approved Corrections
+## Results — Pass 2 (2 additional corrections, applied)
+
+### L. Language (Orthography + Grammar + Punctuation)
+| # | Paragraph | Error | Context | Fix |
+|---|-----------|-------|---------|-----|
+| L5 | 31 | Incorrect ґ in non-Sanskrit word | «звичайну ґірлянду з тулсі» — "гірлянда" is a standard Ukrainian word (from French "guirlande"); the ґ convention applies only to Sanskrit/Hindi terms | «звичайну гірлянду з тулсі» |
+
+### S. SY Domain (Capitalization + Terminology + Consistency)
+| # | Paragraph | Error | Context | Fix |
+|---|-----------|-------|---------|-----|
+| S4 | 19 | Inconsistent capitalization of «реалізація» | «сили давати Реалізацію іншим» — all other 6 instances (paras 37, 41, 43, 56) use lowercase; glossary lists standalone form as lowercase | «сили давати реалізацію іншим» |
+
+### Critic Filter — Pass 2
+| Source | # | Verdict | Reason |
+|--------|---|---------|--------|
+| L | L5 | Keep | "Гірлянда" is a standard Ukrainian word borrowed from French centuries ago; the ґ transliteration convention in CLAUDE.md explicitly applies to "Sanskrit 'g'" only |
+| S | S4 | Keep | Standalone «реалізація» is listed lowercase in the glossary. 6 out of 7 instances use lowercase. One uppercase instance is an inconsistency that should be normalized |
+
+### All Approved Corrections (Pass 1 + Pass 2)
 | # | Paragraph | Error | Fix |
 |---|-----------|-------|-----|
 | L1 | 57 | Wrong case «яку» with «кидати виклик» | «якій нині кидають виклик» |
 | L2 | 10 | Missing commas around appositive | «і, як сахаджа йоґ, це стає» |
 | L3 | 52 | Missing commas around comparison | «людина, як Я, обговорювала» |
 | L4 | 16 | Missing comma after «Отже» | «Отже, тепер, коли» |
+| L5 | 31 | Incorrect ґ in non-Sanskrit word | «гірлянду з тулсі» |
 | S1 | 28 | SM pronoun lowercase | «Я не знаю» |
 | S2 | 29 | SM pronoun lowercase | «Я думаю» |
 | S3 | 25 | Divine Power pronoun lowercase | «Вона також гнівна, Вона гнівна» |
+| S4 | 19 | Inconsistent capitalization of «реалізація» | «реалізацію іншим» |
 
 ## Summary
 
-- Language (L): 4 issues found, 4 approved by Critic
-- SY Domain (S): 3 issues found, 3 approved by Critic
-- Total corrections applied: 7
+- Language (L): 5 issues found, 5 approved by Critic
+- SY Domain (S): 4 issues found, 4 approved by Critic
+- Total corrections applied: 9 (7 in pass 1, 2 in pass 2)
 
 ## Quality Notes
 
@@ -62,6 +82,6 @@ The translation is of high quality overall:
 - SY terminology matches glossary: Кундаліні, Нірвічара, Сакші, Рітамбхара Праг'я, Парамчайтанья, бхакті, бадхи, Принцип Ґуру
 - Declension of «Сахаджа Йоґа» correct: genitive «Йоґи», locative «Йозі» (ґ→з), accusative «Йоґу»
 - «сахаджа йоґ/йоґи» correctly lowercase as common noun
-- Deity pronoun capitalization correct in 40+ instances (only 3 missed)
+- Deity pronoun capitalization correct in 40+ instances (only 3 missed in pass 1)
 - Spiritual terms capitalized per rules: Дух, Істина, Пуджа
 - Standard closing «Нехай Бог благословить вас.» matches EN (no "all" in original)
