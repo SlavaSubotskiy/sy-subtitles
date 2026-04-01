@@ -33,10 +33,10 @@
       "updated_at": null
     },
     "1993-09-19_Ganesha-Puja-Cabella": {
-      "status": "pending",
-      "reviewer": null,
+      "status": "approved",
+      "reviewer": "SlavaSubotskiy",
       "issue_number": null,
-      "updated_at": null
+      "updated_at": "2026-04-01T20:00:00Z"
     },
     "2001-07-29_Shri-Krishna-Puja-New-York": {
       "status": "pending",
