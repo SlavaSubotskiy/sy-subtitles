@@ -1,48 +1,12 @@
 {
   "version": 1,
-  "updated_at": "2026-04-01T00:00:00Z",
+  "updated_at": "2026-04-01T20:11:10.519804+00:00",
   "talks": {
-    "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2": {
-      "status": "pending",
-      "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
-    },
-    "1981-03-21_Birthday-Puja-1981-Sydney": {
-      "status": "pending",
-      "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
-    },
-    "1983-07-24_Guru-Puja-Awakening-The-Principle-Of-Guru": {
-      "status": "approved",
-      "reviewer": "SlavaSubotskiy",
-      "issue_number": null,
-      "updated_at": "2026-04-01T20:00:00Z"
-    },
-    "1984-03-22_Birthday-Puja": {
-      "status": "approved",
-      "reviewer": "SlavaSubotskiy",
-      "issue_number": null,
-      "updated_at": "2026-04-01T20:00:00Z"
-    },
-    "1992-07-19_Guru-Puja": {
-      "status": "pending",
-      "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
-    },
-    "1993-09-19_Ganesha-Puja-Cabella": {
-      "status": "approved",
-      "reviewer": "SlavaSubotskiy",
-      "issue_number": null,
-      "updated_at": "2026-04-01T20:00:00Z"
-    },
     "2001-07-29_Shri-Krishna-Puja-New-York": {
       "status": "pending",
-      "reviewer": null,
+      "reviewer": "SlavaSubotskiy",
       "issue_number": 1,
-      "updated_at": "2026-04-01T19:00:00Z"
+      "updated_at": "2026-04-01T20:10:59Z"
     }
   }
 }
