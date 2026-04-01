@@ -1,0 +1,71 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1992-07-19_Guru-Puja/Guru-Puja-Talk-Gravity/final/uk.srt
+  Transcript: talks/1992-07-19_Guru-Puja/transcript_uk.txt
+  Whisper: talks/1992-07-19_Guru-Puja/Guru-Puja-Talk-Gravity/source/whisper.json
+  SRT blocks: 600
+  Whisper segments: 616
+  (text preservation check skipped — offset video)
+  (time range check skipped — offset video)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 600
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 600
+  CPS: avg=8.9, median=8.3, max=15.0
+  CPS > target: 0 (0.0%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=48.8, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #82: CPS=15.0 (79ch/5.3s) "Вони сказали: «Ми стільки разів їздили тією дорогою, ми ніко..."
+    #563: CPS=15.0 (73ch/4.9s) "Якщо у вас немає бхакті, ви не можете дістатися до Матері, н..."
+    #79: CPS=15.0 (64ch/4.3s) "Вони сказали: «Але в цілому Махараштрі немає червоного камін..."
+    #348: CPS=15.0 (64ch/4.3s) "Сахаджа йоґ ніколи не повинен говорити нічого різкого будь-к..."
+    #509: CPS=15.0 (64ch/4.3s) "Я маю на увазі, це щось подібне до того, якби така людина, я..."
+    #574: CPS=15.0 (64ch/4.3s) "всілякими дурними людьми; інтелектуалами, цими жахливими люд..."
+    #213: CPS=15.0 (55ch/3.7s) "Навпаки, Я б сказала, краще пробачте, тому що Бог знає,"
+    #543: CPS=15.0 (55ch/3.7s) "Тож він сперечався зі Мною з цього приводу, він сказав:"
+    #529: CPS=15.0 (52ch/3.5s) "Він сказав: «Як Вам ці мирські люди тут?» Я сказала:"
+    #198: CPS=15.0 (49ch/3.3s) "Тепер спробуйте зрозуміти частину про самоповагу!"
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 8.9 (target ≤15.0)
+  CPS > 15.0: 0 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
