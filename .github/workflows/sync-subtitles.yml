@@ -85,13 +85,13 @@ jobs:
                 continue
               fi
 
-              # 2. Validate (text preservation + structural checks)
+              # 2. Validate (text preservation + structural checks, report to stdout only)
               echo "  [2/2] Validate..."
               if ! python -m tools.validate_subtitles \
                 --srt "$SRT" \
                 --transcript "$file" \
                 --skip-time-check --skip-duration-check \
-                --report "$TALK_DIR/$slug/final/report.txt"; then
+                --report /dev/null; then
                 echo "::error::$TALK_ID/$slug: validation failed — needs full subtitle rebuild via pipeline"
                 echo "VALIDATE_FAILED=1" >> "$GITHUB_ENV"
               fi
@@ -103,7 +103,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add talks/*/*/final/uk.srt talks/*/*/final/report.txt
+          git add talks/*/*/final/uk.srt
           git diff --cached --quiet && { echo "No subtitle changes"; exit 0; }
           git commit -m "Sync subtitles from transcript edits"
           git push
