@@ -130,6 +130,55 @@ class TestSyncTextSwap:
         assert srt[2]["text"] == "Єдине речення другого абзацу."
         assert srt[2]["start_ms"] == 12000
 
+    def test_one_word_change_minimal_diff(self, talk_dir):
+        """Changing one word should only affect blocks in that paragraph, preserve everything else."""
+        from tools.srt_utils import parse_srt
+
+        srt_before = parse_srt(str(talk_dir / "Video" / "final" / "uk.srt"))
+        block_count_before = len(srt_before)
+        timecodes_before = [(b["start_ms"], b["end_ms"]) for b in srt_before]
+
+        # Change one word in first paragraph
+        new = (
+            HEADER + "Перше речення першого параграфу. Друге речення першого абзацу.\n\nЄдине речення другого абзацу.\n"
+        )
+        new_path = talk_dir / "new.txt"
+        new_path.write_text(new, encoding="utf-8")
+
+        result = sync_transcript(str(talk_dir), "Video", str(talk_dir / "transcript_uk_old.txt"), str(new_path))
+        assert result["changed"] == 1
+
+        srt_after = parse_srt(str(talk_dir / "Video" / "final" / "uk.srt"))
+        # Block count must be identical
+        assert len(srt_after) == block_count_before
+        # All timecodes must be identical
+        timecodes_after = [(b["start_ms"], b["end_ms"]) for b in srt_after]
+        assert timecodes_after == timecodes_before
+        # Changed block has new text
+        assert "параграфу" in srt_after[0]["text"]
+        # Unchanged blocks are untouched
+        assert srt_after[1]["text"] == srt_before[1]["text"]
+        assert srt_after[2]["text"] == srt_before[2]["text"]
+
+    def test_multiple_paragraph_changes_preserve_structure(self, talk_dir):
+        """Changing text in both paragraphs should still preserve block count and timecodes."""
+        from tools.srt_utils import parse_srt
+
+        srt_before = parse_srt(str(talk_dir / "Video" / "final" / "uk.srt"))
+        timecodes_before = [(b["start_ms"], b["end_ms"]) for b in srt_before]
+
+        new = HEADER + "Виправлене перше. Друге речення першого абзацу.\n\nВиправлений другий абзац.\n"
+        new_path = talk_dir / "new.txt"
+        new_path.write_text(new, encoding="utf-8")
+
+        result = sync_transcript(str(talk_dir), "Video", str(talk_dir / "transcript_uk_old.txt"), str(new_path))
+        assert result["changed"] == 2
+
+        srt_after = parse_srt(str(talk_dir / "Video" / "final" / "uk.srt"))
+        assert len(srt_after) == len(srt_before)
+        timecodes_after = [(b["start_ms"], b["end_ms"]) for b in srt_after]
+        assert timecodes_after == timecodes_before
+
 
 class TestSyncFails:
     def test_block_count_change_fails(self, talk_dir):

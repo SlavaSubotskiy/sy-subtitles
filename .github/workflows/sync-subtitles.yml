@@ -73,8 +73,8 @@ jobs:
 
               echo "  --- $slug ---"
 
-              # 1. Sync text
-              echo "  [1/3] Sync text..."
+              # 1. Sync text (text-only swap, preserves timecodes and block structure)
+              echo "  [1/2] Sync text..."
               if ! python -m tools.sync_transcript_to_srt \
                 --talk-dir "$TALK_DIR" \
                 --video-slug "$slug" \
@@ -85,22 +85,8 @@ jobs:
                 continue
               fi
 
-              # 2. Optimize (adjust CPS/timing)
-              WHISPER="$TALK_DIR/$slug/source/whisper.json"
-              WHISPER_ARG=""
-              [ -f "$WHISPER" ] && WHISPER_ARG="--json $WHISPER"
-              echo "  [2/3] Optimize..."
-              if ! python -m tools.optimize_srt \
-                --srt "$SRT" \
-                $WHISPER_ARG \
-                --output "$SRT" \
-                --report "$TALK_DIR/$slug/final/report.txt"; then
-                echo "::error::$TALK_ID/$slug: optimizer failed — needs full subtitle rebuild via pipeline"
-                echo "OPTIMIZE_FAILED=1" >> "$GITHUB_ENV"
-              fi
-
-              # 3. Validate
-              echo "  [3/3] Validate..."
+              # 2. Validate (text preservation + structural checks)
+              echo "  [2/2] Validate..."
               if ! python -m tools.validate_subtitles \
                 --srt "$SRT" \
                 --transcript "$file" \
@@ -125,7 +111,7 @@ jobs:
       - name: Check results
         if: steps.detect.outputs.has_changes == 'true'
         run: |
-          if [ "${SYNC_FAILED:-}" = "1" ] || [ "${OPTIMIZE_FAILED:-}" = "1" ] || [ "${VALIDATE_FAILED:-}" = "1" ]; then
+          if [ "${SYNC_FAILED:-}" = "1" ] || [ "${VALIDATE_FAILED:-}" = "1" ]; then
             echo "::error::Some subtitles could not be synced automatically. Run the full subtitle pipeline to rebuild."
             exit 1
           fi
