@@ -542,6 +542,62 @@ class TestReviewEditing:
         assert "P1" in text
 
 
+class TestSearchFilter:
+    """Tests for search and filter on index page."""
+
+    def test_search_input_visible(self, server, page):
+        """Search input should be visible after talks load."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert page.locator("#search-input").is_visible()
+
+    def test_search_filters_talks(self, server, page):
+        """Typing in search should filter talks by title."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        all_count = page.locator(".talk-item").count()
+        assert all_count >= 2
+        page.fill("#search-input", "No-Uk")
+        page.wait_for_timeout(300)
+        filtered = page.locator(".talk-item").count()
+        assert filtered == 1
+
+    def test_search_no_results(self, server, page):
+        """Search with no match should show zero talks."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        page.fill("#search-input", "xyznonexistent")
+        page.wait_for_timeout(300)
+        assert page.locator(".talk-item").count() == 0
+
+    def test_filter_buttons_exist(self, server, page):
+        """Filter buttons should be visible."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert page.locator(".filter-btn").count() == 4
+
+    def test_filter_needs_review(self, server, page):
+        """Filtering by 'needs review' should show only pending talks."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        page.click(".filter-btn[data-filter='needs-review']")
+        page.wait_for_timeout(200)
+        badges = page.locator(".review-badge").all()
+        for badge in badges:
+            assert "needs-review" in (badge.get_attribute("class") or "")
+
+    def test_filter_all_resets(self, server, page):
+        """Clicking 'All' should reset filter."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        all_count = page.locator(".talk-item").count()
+        page.click(".filter-btn[data-filter='needs-review']")
+        page.wait_for_timeout(200)
+        page.click(".filter-btn[data-filter='all']")
+        page.wait_for_timeout(200)
+        assert page.locator(".talk-item").count() == all_count
+
+
 class TestHashNavigation:
     """Tests for SPA hash-based routing."""
 
