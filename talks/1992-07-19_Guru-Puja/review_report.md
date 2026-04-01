@@ -4,119 +4,71 @@
 
 Review `transcript_uk.txt` (full paragraphed Ukrainian text) using 2 parallel reviewers + 1 critic filter.
 
-### Input Format
+### Review Agents
 
-Full paragraphed text from `transcript_uk.txt` (61 lines, 60 paragraphs of Guru Puja talk).
+**Reviewer L** -- Language (Orthography + Grammar + Punctuation)
+**Reviewer S** -- SY Domain (Capitalization + Terminology + Consistency)
+**Critic** -- Filter + Validate
 
-## Results — Pass 1 (7 corrections, applied)
-
-### L. Language (Orthography + Grammar + Punctuation)
-| # | Paragraph | Error | Context | Fix |
-|---|-----------|-------|---------|-----|
-| L1 | 57 | Wrong case: accusative «яку» instead of dative with «кидати виклик» | «у вірі, яку нині кидають виклик» | «у вірі, якій нині кидають виклик» |
-| L2 | 10 | Missing commas around appositive «як сахаджа йоґ» | «і як сахаджа йоґ це стає вашим знанням» | «і, як сахаджа йоґ, це стає вашим знанням» |
-| L3 | 52 | Missing commas around comparative insertion «як Я» | «людина як Я обговорювала банківську справу» | «людина, як Я, обговорювала банківську справу» |
-| L4 | 16 | Missing comma after «Отже» (inconsistent with all other 10+ usages in text) | «Отже тепер, коли ви починаєте» | «Отже, тепер, коли ви починаєте» |
-
-### S. SY Domain (Capitalization + Terminology + Consistency)
-| # | Paragraph | Error | Context | Fix |
-|---|-----------|-------|---------|-----|
-| S1 | 28 | Shri Mataji's first-person pronoun lowercase | «ідеї аскетизму, я не знаю, звідки» | «ідеї аскетизму, Я не знаю, звідки» |
-| S2 | 29 | Shri Mataji's first-person pronoun lowercase | «слабких точок, я думаю» | «слабких точок, Я думаю» |
-| S3 | 25 | Divine Power pronoun lowercase (inconsistent with para 23-24 where «Вона» is uppercase) | «Ця Сила не лише сповнена співчуття, вона також гнівна, вона гнівна.» | «...Вона також гнівна, Вона гнівна.» |
-
-### Critic Filter — Pass 1
-| Source | # | Verdict | Reason |
-|--------|---|---------|--------|
-| L | L1 | Keep | Clear grammar error: «кидати виклик» governs dative (кому?/чому?), not accusative |
-| L | L2 | Keep | Appositive phrase «як сахаджа йоґ» requires comma separation per Ukrainian punctuation rules |
-| L | L3 | Keep | Comparative insertion «як Я» requires comma separation; same pattern as L2 |
-| L | L4 | Keep | All other 10+ instances of «Отже» in the text are followed by comma; this is the sole inconsistency |
-| S | S1 | Keep | SM is the speaker narrating; all other ~40 instances of Her first-person pronoun in the text are uppercase |
-| S | S2 | Keep | Same as S1; SM speaking about herself in first person |
-| S | S3 | Keep | EN source has uppercase "It" for the Divine Power; para 23 has «Вона настільки ефективна», para 24 has «Вона у вашому розпорядженні» — both uppercase. Para 25 should match |
-
-## Results — Pass 2 (2 additional corrections, applied)
+## Results
 
 ### L. Language (Orthography + Grammar + Punctuation)
 | # | Paragraph | Error | Context | Fix |
 |---|-----------|-------|---------|-----|
-| L5 | 31 | Incorrect ґ in non-Sanskrit word | «звичайну ґірлянду з тулсі» — "гірлянда" is a standard Ukrainian word (from French "guirlande"); the ґ convention applies only to Sanskrit/Hindi terms | «звичайну гірлянду з тулсі» |
+| L1 | 17 | Semicolon before relative clause `яка` -- should be comma per Ukrainian punctuation rules | `Божественна Сила; яка виглядає дуже легкою` | `Божественна Сила, яка виглядає дуже легкою` |
+| L2 | 23 | Missing comma before comparative `як` (comma required before comparative clause) | `не виросте як кокосова пальма` | `не виросте, як кокосова пальма` |
+| L3 | 10 | Missing commas around appositive `як сахаджа йоґ` (identity phrase requires comma separation) | `і як сахаджа йоґ це стає вашим знанням` | `і, як сахаджа йоґ, це стає вашим знанням` |
 
 ### S. SY Domain (Capitalization + Terminology + Consistency)
 | # | Paragraph | Error | Context | Fix |
 |---|-----------|-------|---------|-----|
-| S4 | 19 | Inconsistent capitalization of «реалізація» | «сили давати Реалізацію іншим» — all other 6 instances (paras 37, 41, 43, 56) use lowercase; glossary lists standalone form as lowercase | «сили давати реалізацію іншим» |
+| S1 | 37 | `реалізацію` lowercase -- should be capitalized (Self-realization, spiritual concept per glossary: `Realization` -> `Реалізація`). Already correct in para 19: `сили давати Реалізацію іншим` | `ви отримали реалізацію, абсолютно безкоштовно` | `ви отримали Реалізацію, абсолютно безкоштовно` |
+| S2 | 37 | `реалізацію` lowercase | `отримали свою реалізацію, і якщо` | `отримали свою Реалізацію, і якщо` |
+| S3 | 37 | `реалізацією` lowercase | `за реалізацією, ви повинні` | `за Реалізацією, ви повинні` |
+| S4 | 41 | `реалізацію` lowercase | `як давати реалізацію` | `як давати Реалізацію` |
+| S5 | 41 | `реалізацію` lowercase | `давали реалізацію – дотепер` | `давали Реалізацію – дотепер` |
+| S6 | 43 | `реалізації` lowercase | `метою нашої реалізації або` | `метою нашої Реалізації або` |
+| S7 | 43 | `реалізацію` lowercase | `давати реалізацію іншим` | `давати Реалізацію іншим` |
+| S8 | 56 | `реалізації` lowercase | `не матиме реалізації!` | `не матиме Реалізації!` |
+| S9 | 56 | `реалізацію` lowercase | `будь ласка, реалізацію?` | `будь ласка, Реалізацію?` |
 
-### Critic Filter — Pass 2
+### Critic Filter
 | Source | # | Verdict | Reason |
 |--------|---|---------|--------|
-| L | L5 | Keep | "Гірлянда" is a standard Ukrainian word borrowed from French centuries ago; the ґ transliteration convention in CLAUDE.md explicitly applies to "Sanskrit 'g'" only |
-| S | S4 | Keep | Standalone «реалізація» is listed lowercase in the glossary. 6 out of 7 instances use lowercase. One uppercase instance is an inconsistency that should be normalized |
+| L | L1 | **Keep** | Genuine punctuation error: Ukrainian grammar requires a comma (not semicolon) before relative pronoun `яка` |
+| L | L2 | **Keep** | Genuine punctuation error: comparative clause with `як` requires a preceding comma in Ukrainian |
+| L | L3 | **Keep** | Appositive phrase `як сахаджа йоґ` (in the capacity of) requires comma separation; EN source also has commas: `and, as a Sahaja Yogi, it becomes` |
+| S | S1 | **Keep** | Glossary maps `Realization` -> `Реалізація` (capitalized); all 9 instances refer to spiritual Self-realization; already correctly capitalized in para 19 -- inconsistency |
+| S | S2--S9 | **Keep** | Same root cause as S1: inconsistent capitalization of the spiritual term `Реалізація` |
 
-### All Approved Corrections (Pass 1 + Pass 2)
+### Approved Corrections
 | # | Paragraph | Error | Fix |
 |---|-----------|-------|-----|
-| L1 | 57 | Wrong case «яку» with «кидати виклик» | «якій нині кидають виклик» |
-| L2 | 10 | Missing commas around appositive | «і, як сахаджа йоґ, це стає» |
-| L3 | 52 | Missing commas around comparison | «людина, як Я, обговорювала» |
-| L4 | 16 | Missing comma after «Отже» | «Отже, тепер, коли» |
-| L5 | 31 | Incorrect ґ in non-Sanskrit word | «гірлянду з тулсі» |
-| S1 | 28 | SM pronoun lowercase | «Я не знаю» |
-| S2 | 29 | SM pronoun lowercase | «Я думаю» |
-| S3 | 25 | Divine Power pronoun lowercase | «Вона також гнівна, Вона гнівна» |
-| S4 | 19 | Inconsistent capitalization of «реалізація» | «реалізацію іншим» |
+| L1 | 17 | Semicolon before `яка` | `;` -> `,` before relative clause |
+| L2 | 23 | Missing comma before comparative `як` | Added comma: `виросте, як` |
+| L3 | 10 | Missing commas around appositive `як сахаджа йоґ` | Added commas: `і, як сахаджа йоґ, це` |
+| S1--S9 | 37, 41, 43, 56 | `реалізацію/реалізацією/реалізації` lowercase | Capitalized to `Реалізацію/Реалізацією/Реалізації` (9 instances) |
 
-## Results — Pass 3 (2 additional corrections, applied)
+### Items reviewed and found correct
 
-### L. Language (Orthography + Grammar + Punctuation)
-| # | Paragraph | Error | Context | Fix |
-|---|-----------|-------|---------|-----|
-| L6 | 29 | Wrong verb: «одягнути» = to dress a person; «надіти» = to put on a specific item | «ви одягнете йому на голову корону» | «ви надінете йому на голову корону» |
-| L7 | 54 | Non-standard dialectal form «стілько»; standard Ukrainian is «стільки» | «скинув стілько людей з пагорбів» | «скинув стільки людей з пагорбів» |
+The following areas were checked and confirmed correct (no corrections needed):
 
-### S. SY Domain (Capitalization + Terminology + Consistency)
-| # | Paragraph | Error | Context | Fix |
-|---|-----------|-------|---------|-----|
-| — | — | No additional issues found | — | — |
-
-### Critic Filter — Pass 3
-| Source | # | Verdict | Reason |
-|--------|---|---------|--------|
-| L | L6 | Keep | Genuine grammatical error. «Одягати/одягнути» = to dress someone (person as object). «Надівати/надіти» = to put on an item (item as object). A crown is an item, not clothing. Standard dictionaries confirm this distinction. |
-| L | L7 | Keep | Genuine spelling error. «Стілько» is a western Ukrainian dialectal variant. Standard form «стільки» is used elsewhere in the same text (para 15: «Ми стільки разів їздили тією дорогою»). |
-
-### All Approved Corrections (Pass 1 + Pass 2 + Pass 3)
-| # | Paragraph | Error | Fix |
-|---|-----------|-------|-----|
-| L1 | 57 | Wrong case «яку» with «кидати виклик» | «якій нині кидають виклик» |
-| L2 | 10 | Missing commas around appositive | «і, як сахаджа йоґ, це стає» |
-| L3 | 52 | Missing commas around comparison | «людина, як Я, обговорювала» |
-| L4 | 16 | Missing comma after «Отже» | «Отже, тепер, коли» |
-| L5 | 31 | Incorrect ґ in non-Sanskrit word | «гірлянду з тулсі» |
-| L6 | 29 | Wrong verb «одягнете» for putting on item | «надінете йому на голову корону» |
-| L7 | 54 | Dialectal form «стілько» | «стільки людей з пагорбів» |
-| S1 | 28 | SM pronoun lowercase | «Я не знаю» |
-| S2 | 29 | SM pronoun lowercase | «Я думаю» |
-| S3 | 25 | Divine Power pronoun lowercase | «Вона також гнівна, Вона гнівна» |
-| S4 | 19 | Inconsistent capitalization of «реалізація» | «реалізацію іншим» |
+- **Deity pronoun capitalization**: Shri Mataji pronouns (Я/Мене/Мій/Мною/Мені) consistently uppercase in 40+ instances throughout. God/Incarnation pronouns (Він/Його/Йому) uppercase when referring to God. Regular person pronouns lowercase. Pronouns at sentence start follow standard capitalization.
+- **Quotation marks**: All quotes use Ukrainian `«»` style at all nesting levels, including complex nested dialogue in paras 54--55.
+- **En-dash usage**: Consistently ` – ` with spaces throughout.
+- **Ellipsis**: Correctly formatted as `...` (three dots, no space before).
+- **Glossary terms**: `Сахаджа Йоґа`, `сахаджа йоґ/йоґи`, `Кундаліні`, `Рітамбхара Праг'я`, `Парамчайтанья`, `Брахмачайтанья`, `Сакші`, `Принцип Ґуру`, `Мати Земля`, `бхакті`, `бадхи`, `Нірвічар` -- all match glossary.
+- **Locative forms**: `в Сахаджа Йозі` (correct ґ->з alternation per `terms_context.yaml`), `в ґуру паді` (locative), `ґуру пади` (genitive) -- all correct.
+- **Spiritual term capitalization**: `Дух` (para 28), `Істина/Істини` (paras 18, 46, 52), `Пуджа` (title), `Царство Боже/Божому/Бога` -- all uppercase per rules.
+- **Language names**: `англійська` lowercase (para 4).
+- **Transliterations**: `Санґамнер`, `Пратіштхан`, `Вільям Блейк`, `бхакті ґам'я`, `суті кара` -- all correct per transliteration conventions.
+- **Spelling and word forms**: No mixed Latin/Cyrillic characters detected. Verb conjugations, gender agreement, and case forms correct throughout.
+- **Divine Power references**: `Божественна Сила`, `Всепроникна Сила`, `Космічна Сила` consistently capitalized.
+- **Sanskrit `g` convention**: `Ґуру`, `ґуру`, `Сахаджа Йоґа`, `Рітамбхара Праг'я` -- all use `ґ` for Sanskrit `g` per CLAUDE.md.
+- **Non-Sanskrit words**: `гірлянду` (para 31) -- correctly uses `г` (French loanword, not Sanskrit).
 
 ## Summary
 
-- Language (L): 7 issues found, 7 approved by Critic
-- SY Domain (S): 4 issues found, 4 approved by Critic
-- Total corrections applied: 11 (7 in pass 1, 2 in pass 2, 2 in pass 3)
-
-## Quality Notes
-
-The translation is of high quality overall:
-- Quotation marks consistently use «» at all levels, including nested quotes
-- Em-dash ` – ` used correctly with spaces throughout
-- Ellipsis `...` used correctly without preceding space
-- SY terminology matches glossary: Кундаліні, Нірвічара, Сакші, Рітамбхара Праг'я, Парамчайтанья, бхакті, бадхи, Принцип Ґуру
-- Declension of «Сахаджа Йоґа» correct: genitive «Йоґи», locative «Йозі» (ґ→з), accusative «Йоґу»
-- «сахаджа йоґ/йоґи» correctly lowercase as common noun
-- Deity pronoun capitalization correct in 40+ instances
-- Spiritual terms capitalized per rules: Дух, Істина, Пуджа
-- Correct handling of complex dialogue passages with multiple speakers (para 54-55)
-- Standard closing «Нехай Бог благословить вас.» matches EN
+- Language (L): 3 issues found, 3 approved by Critic
+- SY Domain (S): 9 issues found (1 root cause: inconsistent `Реалізація` capitalization), 9 approved by Critic
+- Total corrections applied: 12
