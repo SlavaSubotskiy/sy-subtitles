@@ -163,7 +163,7 @@ def page(server, mock_player_js, browser):
 
     # Mock review-status.json
     pg.route(
-        "**/review-status.json",
+        "**/raw.githubusercontent.com/**/review-status.json",
         lambda route: route.fulfill(
             status=200,
             content_type="application/json",
@@ -652,7 +652,7 @@ class TestReviewStatus:
             lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
         )
         pg.route(
-            "**/review-status.json",
+            "**/raw.githubusercontent.com/**/review-status.json",
             lambda route: route.fulfill(
                 status=200, content_type="application/json", body=json.dumps(in_progress_status)
             ),
@@ -700,7 +700,7 @@ class TestReviewStatus:
             lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
         )
         pg.route(
-            "**/review-status.json",
+            "**/raw.githubusercontent.com/**/review-status.json",
             lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps(approved_status)),
         )
         pg.route(
@@ -733,7 +733,10 @@ class TestReviewStatus:
             "**/raw.githubusercontent.com/**/meta.yaml",
             lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
         )
-        pg.route("**/review-status.json", lambda route: route.fulfill(status=404, body="Not found"))
+        pg.route(
+            "**/raw.githubusercontent.com/**/review-status.json",
+            lambda route: route.fulfill(status=404, body="Not found"),
+        )
         pg.route(
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),

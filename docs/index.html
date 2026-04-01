@@ -334,7 +334,7 @@ function buildManifest(tree) {
 // Review Status (static JSON, zero API cost)
 // ============================================================
 function loadReviewStatus() {
-  return fetch('review-status.json')
+  return fetch(RAW + '/review-status.json')
     .then(function(r) { return r.ok ? r.json() : { talks: {} }; })
     .then(function(data) { reviewStatus = data; return data; })
     .catch(function() { reviewStatus = { talks: {} }; return reviewStatus; });
