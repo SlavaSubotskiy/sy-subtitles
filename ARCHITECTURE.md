@@ -31,7 +31,7 @@
                             ▼
                      ┌─────────────┐
                      │ SPA (Pages) │  reads from raw.githubusercontent.com
-                     │ docs/       │  review-status.json for badges
+                     │ site/       │  review-status.json for badges
                      └─────────────┘
 ```
 
@@ -75,7 +75,7 @@ sy-subtitles/
 │   ├── config.py                   # Threshold constants
 │   ├── builder_data.py             # Whisper data query interface
 │   └── align_uk.py                 # Ukrainian text alignment
-├── docs/                           # GitHub Pages SPA
+├── site/                           # GitHub Pages SPA
 │   ├── index.html                  # Preview + Review app
 │   └── icon.png                    # Mahayantra favicon
 ├── review-status.json              # Review tracking (synced from Issues)
@@ -124,7 +124,7 @@ Key principle: **LLM determines timing, Python guarantees text integrity.**
 
 ## SPA (GitHub Pages)
 
-Single-file app at `docs/index.html`:
+Single-file app at `site/index.html`:
 - **Index** — talk list with search/filter, review status badges (from `review-status.json`)
 - **Preview** — Vimeo player + subtitle overlay + markers
 - **Review** — side-by-side EN/UK transcript editor

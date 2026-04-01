@@ -64,7 +64,7 @@ MOCK_TREE = {
 
 @pytest.fixture(scope="module")
 def spa_path():
-    return Path(__file__).parent.parent / "docs" / "index.html"
+    return Path(__file__).parent.parent / "site" / "index.html"
 
 
 @pytest.fixture(scope="module")
