@@ -27,14 +27,6 @@ Source language: English. Target language: Ukrainian.
    - **Validate**: structural checks (text, CPL, CPS, overlaps, gaps)
    - **Commit**: pushes all results back to repo
 
-### Legacy Workflow (SRT-based, still supported via `optimize.yml`)
-
-1. Open a talk directory under `talks/{date}_{slug}/`
-2. For each video subdirectory (`{video_slug}/`):
-   - Read `{video_slug}/source/en.srt` – the English original
-   - Reference `glossary/` for Sahaja Yoga terminology
-   - Edit `{video_slug}/work/uk_corrected.srt` – the Ukrainian translation
-3. Push `uk_corrected.srt` – triggers optimize + validate workflows automatically
 
 ## Language Rules
 
@@ -152,9 +144,6 @@ python -m tools.offset_srt apply --srt PATH --offset-ms N --output PATH
 
 # Optimize SRT timing
 python -m tools.optimize_srt --srt PATH [--json PATH] --output PATH
-
-# Generate preview site (GitHub Pages)
-python -m tools.generate_preview --output-dir PATH --talks-dir talks
 
 # Export SRT to plain text
 python -m tools.text_export --srt PATH --output PATH [--meta PATH] [--double-spacing]
