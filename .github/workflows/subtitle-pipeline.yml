@@ -81,8 +81,13 @@ jobs:
               talk_ids.add(talk_id)
               with open(meta_path) as f:
                   meta = yaml.safe_load(f)
+              slugs_seen = set()
               for v in meta.get("videos", []):
                   slug = v["slug"]
+                  if slug in slugs_seen:
+                      print(f"ERROR: duplicate slug '{slug}' in {meta_path}")
+                      raise SystemExit(1)
+                  slugs_seen.add(slug)
                   video_includes.append({"talk_id": talk_id, "video_slug": slug})
                   whisper_path = f"talks/{talk_id}/{slug}/source/whisper.json"
                   if not os.path.isfile(whisper_path):
@@ -370,17 +375,33 @@ jobs:
       - name: Place translation artifacts
         if: needs.translate-and-review.result == 'success'
         run: |
+          echo "=== Artifact directories ==="
+          ls -la translation__*/ 2>/dev/null || echo "No translation__* dirs found"
+          find . -maxdepth 3 -name "transcript_uk.txt" 2>/dev/null || true
+
           for dir in translation__*/; do
             [ -d "$dir" ] || continue
             name="${dir%/}"
             talk_id="${name#translation__}"
-            for f in transcript_uk.txt review_report.md; do
+            echo "Processing: $talk_id"
+            for f in transcript_uk.txt review_report.md glossary.json; do
               src=$(find "$dir" -name "$f" -type f | head -1)
               if [ -n "$src" ]; then
                 cp "$src" "talks/$talk_id/$f"
+                echo "  -> talks/$talk_id/$f"
               fi
             done
           done
+
+          # Fallback: check if files were extracted flat
+          if [ ! -f "talks/${{ inputs.talk_id }}/transcript_uk.txt" ]; then
+            echo "=== Fallback: searching workspace ==="
+            src=$(find . -name "transcript_uk.txt" -not -path "./talks/*" -type f | head -1)
+            if [ -n "$src" ]; then
+              cp "$src" "talks/${{ inputs.talk_id }}/transcript_uk.txt"
+              echo "  -> (fallback) talks/${{ inputs.talk_id }}/transcript_uk.txt"
+            fi
+          fi
 
       - uses: actions/setup-python@v6
         with:
@@ -501,8 +522,10 @@ jobs:
             VIDEO: ${{ needs.prepare-build.outputs.video_slug }}
 
             Step 1 — Read inputs:
-            - EN SRT: talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/source/en.srt
             - UK blocks: talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/uk_blocks.json
+            - EN SRT: talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/source/en.srt
+              NOTE: If the EN SRT file is too large to read at once, read it in portions
+              using offset/limit parameters (e.g., first 500 lines, then next 500, etc.).
 
             Step 2 — For each UK block, find the EN SRT block(s) with the same meaning:
             - If one UK block = one EN SRT block → copy start and end timecodes
