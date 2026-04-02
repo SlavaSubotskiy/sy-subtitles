@@ -366,24 +366,28 @@ function buildManifest(tree) {
 // ============================================================
 // Review Status (static JSON, zero API cost)
 // ============================================================
-var projectStats = null;
-function loadStats() {
-  return fetch(RAW + '/stats.json')
-    .then(function(r) { return r.ok ? r.json() : null; })
-    .then(function(d) { projectStats = d; return d; })
-    .catch(function() { return null; });
-}
-
 function renderStats() {
   var bar = document.getElementById('stats-bar');
-  if (!projectStats || !projectStats.totals) { bar.style.display = 'none'; return; }
-  var t = projectStats.totals;
+  if (!manifest) { bar.style.display = 'none'; return; }
+  var statuses = (reviewStatus && reviewStatus.talks) || {};
+  var t = { talks: 0, translated: 0, with_srt: 0, approved: 0, pending: 0, in_progress: 0 };
+  manifest.talks.forEach(function(talk) {
+    t.talks++;
+    if (talk.hasUk) t.translated++;
+    if ((talk.videos || []).some(function(v) { return v.hasSrt; })) t.with_srt++;
+    var st = statuses[talk.id];
+    if (st) {
+      if (st.status === 'approved') t.approved++;
+      else if (st.status === 'in-progress') t.in_progress++;
+      else t.pending++;
+    }
+  });
   var cards = [
     { num: t.talks, label: 'Talks', cls: 'info' },
-    { num: t.with_uk, label: 'Translated', cls: 'info' },
+    { num: t.translated, label: 'Translated', cls: 'info' },
     { num: t.with_srt, label: 'With SRT', cls: 'info' },
     { num: t.approved, label: 'Approved', cls: 'good' },
-    { num: t.pending, label: 'Pending', cls: 'warn' },
+    { num: t.pending + t.in_progress, label: 'Needs review', cls: 'warn' },
   ];
   bar.innerHTML = '';
   cards.forEach(function(c) {
@@ -415,8 +419,7 @@ function showIndex() {
 
   Promise.all([
     manifest ? Promise.resolve(manifest) : loadManifest().then(function(m) { manifest = m; return m; }),
-    reviewStatus ? Promise.resolve(reviewStatus) : loadReviewStatus(),
-    projectStats ? Promise.resolve(projectStats) : loadStats()
+    reviewStatus ? Promise.resolve(reviewStatus) : loadReviewStatus()
   ]).then(function() {
     renderStats();
     renderIndex(contentEl);

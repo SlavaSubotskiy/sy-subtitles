@@ -898,6 +898,34 @@ class TestReviewStatus:
                 assert item.locator(".review-badge").count() == 0
 
 
+class TestStatsBar:
+    """Tests for dynamic stats bar on index page."""
+
+    def test_stats_bar_visible(self, server, page):
+        """Stats bar should be visible after loading."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        bar = page.locator("#stats-bar")
+        assert bar.is_visible()
+
+    def test_stats_shows_talk_count(self, server, page):
+        """Stats should show correct total talks count."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        cards = page.locator(".stat-card").all()
+        texts = [c.text_content() for c in cards]
+        # First card is Talks count — we have 2 talks in mock data
+        assert any("2" in t and "Talks" in t for t in texts)
+
+    def test_stats_shows_needs_review(self, server, page):
+        """Stats should count pending reviews from review-status.json."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        cards = page.locator(".stat-card").all()
+        texts = [c.text_content() for c in cards]
+        assert any("Needs review" in t for t in texts)
+
+
 class TestCaching:
     def test_cache_written_to_localStorage(self, server, page):
         goto_spa(page, server)
