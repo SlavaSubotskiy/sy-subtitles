@@ -61,12 +61,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 .video-wrap { position: relative; padding-bottom: 56.25%; height: 0; }
 .video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
 #subtitle-overlay {
-  position: relative; width: 100%; min-height: 60px; padding: 12px 16px;
+  position: absolute; bottom: 0; left: 0; width: 100%; padding: 12px 16px;
   background: rgba(0,0,0,0.85); color: #fff; font-size: 40px;
-  line-height: 1.4; text-align: center; border-radius: 0 0 4px 4px;
+  line-height: 1.4; text-align: center; z-index: 2; pointer-events: none;
 }
-#subtitle-overlay:empty { min-height: 20px; }
-#subtitle-overlay:empty::after { content: '\200B'; }
+#subtitle-overlay:empty { display: none; }
 .controls { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px; }
 .controls button { background: #333; color: #fff; border: 1px solid #555; border-radius: 6px;
   padding: 8px 16px; font-size: 14px; cursor: pointer; touch-action: manipulation; }
@@ -136,8 +135,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
     <h1><a href="#/">&larr; Index</a> &middot; <span id="p-title"></span></h1>
   </div>
   <div class="player-container">
-    <div class="video-wrap"><iframe id="vimeo-player" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
-    <div id="subtitle-overlay"></div>
+    <div class="video-wrap">
+      <iframe id="vimeo-player" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      <div id="subtitle-overlay"></div>
+    </div>
     <div class="controls">
       <span id="time-display">00:00:00</span>
       <button id="btn-mark" onclick="SPA.addMarker()" title="Add marker at current time (keyboard: M)">&#x1F4CC; Mark</button>
@@ -591,6 +592,12 @@ SPA.addMarker = function() {
 SPA.removeMarker = function(i) { previewState.markers.splice(i, 1); saveMarkers(); renderMarkers(); };
 SPA.updateMarkerComment = function(i, val) { previewState.markers[i].comment = val; saveMarkers(); };
 SPA.seekTo = function(sec) { if (previewState.player) previewState.player.setCurrentTime(sec); };
+SPA.resumePlayer = function() {
+  if (previewState.player) previewState.player.play();
+  // Return focus to player container so arrow keys work for seek
+  var el = document.getElementById('mock-player') || document.getElementById('vimeo-player');
+  if (el) el.focus();
+};
 
 function saveMarkers() {
   var key = 'markers_preview_' + previewState.talkId + '_' + previewState.videoSlug;
@@ -612,7 +619,7 @@ function renderMarkers() {
       '<div style="display:flex;align-items:center;gap:4px">' +
       '<input class="comment" type="text" placeholder="comment..." value="' + c + '" ' +
       'onchange="SPA.updateMarkerComment(' + i + ', this.value)" ' +
-      'onkeydown="if(event.key==\'Enter\'){this.blur();if(window.previewState&&window.previewState.player)window.previewState.player.play();}">' +
+      'onkeydown="if(event.key==\'Enter\'){this.blur();SPA.resumePlayer();}">' +
       '<span class="del" onclick="SPA.removeMarker(' + i + ')">&#x2715;</span></div>';
     list.appendChild(li);
   });

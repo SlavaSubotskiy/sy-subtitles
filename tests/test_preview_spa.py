@@ -484,6 +484,57 @@ class TestMarkers:
         data = json.loads(page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')"))
         assert data[0]["text"] == "(no subtitle)"
 
+    def test_comment_enter_resumes_and_focuses_player(self, server, page):
+        """Pressing Enter in comment field should resume video and focus player."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        comment_input = page.locator(".marker-item .comment").first
+        comment_input.fill("test comment")
+        comment_input.press("Enter")
+        page.wait_for_timeout(200)
+        # Comment input should no longer be focused
+        focused_tag = page.evaluate("document.activeElement.tagName")
+        assert focused_tag != "INPUT"
+
+    def test_subtitle_overlay_inside_video_wrap(self, server, page):
+        """Subtitle overlay should be inside video-wrap (same width as video)."""
+        self._goto_preview(server, page)
+        # subtitle-overlay is a child of video-wrap
+        parent_class = page.evaluate("""
+            document.getElementById('subtitle-overlay').parentElement.className
+        """)
+        assert "video-wrap" in parent_class
+
+    def test_subtitle_overlay_positioned_absolute(self, server, page):
+        """Subtitle overlay should be absolutely positioned at bottom of video."""
+        self._goto_preview(server, page)
+        pos = page.evaluate("""
+            getComputedStyle(document.getElementById('subtitle-overlay')).position
+        """)
+        assert pos == "absolute"
+
+    def test_subtitle_overlay_hidden_when_empty(self, server, page):
+        """Empty subtitle overlay should be hidden (display:none)."""
+        self._goto_preview(server, page)
+        display = page.evaluate("""
+            getComputedStyle(document.getElementById('subtitle-overlay')).display
+        """)
+        assert display == "none"
+
+    def test_subtitle_overlay_visible_with_text(self, server, page):
+        """Subtitle overlay with text should be visible."""
+        self._goto_preview(server, page)
+        page.evaluate("""() => {
+            window._vimeoPlayer._setTime(2);
+            return new Promise(resolve => setTimeout(resolve, 200));
+        }""")
+        display = page.evaluate("""
+            getComputedStyle(document.getElementById('subtitle-overlay')).display
+        """)
+        assert display != "none"
+
 
 class TestReviewEditing:
     """Review page editing functionality tests."""
