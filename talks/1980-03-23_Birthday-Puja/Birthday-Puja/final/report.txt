@@ -1,0 +1,88 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1980-03-23_Birthday-Puja/Birthday-Puja/final/uk.srt
+  Transcript: talks/1980-03-23_Birthday-Puja/transcript_uk.txt
+  Whisper: talks/1980-03-23_Birthday-Puja/Birthday-Puja/source/whisper.json
+  SRT blocks: 658
+  Whisper segments: 76
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 32868
+  SRT chars: 32868
+  Exact normalized match: OK
+  Transcript words: 5442
+  SRT words: 5442
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs whisper)
+============================================================
+  Whisper range: 00:02:07,500 — 00:07:19,320
+  SRT range:     00:00:00,000 — 00:47:30,015
+  WARNING: SRT starts 127500ms before speech
+  WARNING: SRT ends 2410695ms after speech
+  Time range: WARNING
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 658
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 658
+  CPS: avg=16.2, median=12.8, max=999.0
+  CPS > target: 140 (21.3%)
+  CPS > hard max: 14 (2.1%)
+  CPL: avg=49.0, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 22
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #25: CPS=999.0 (45ch/-72.9s) "Сьогодні, зокрема, Я маю звернутися до людей,"
+    #416: CPS=273.5 (61ch/0.2s) "з одним – давайте вирішимо щодо цього, з'ясуймо це, і тоді в..."
+    #415: CPS=242.2 (54ch/0.2s) "Скільки ми їмо, скільки часу проводимо в розмовах одне"
+    #409: CPS=174.9 (64ch/0.4s) "ніж будь-хто з вас може написати, і попри те, що Я така зайн..."
+    #414: CPS=174.4 (60ch/0.3s) "Перш за все, ми маємо вирішити – «занадто» потрібно уникати."
+    #413: CPS=165.7 (57ch/0.3s) "Ніхто не може повірити, що у них немає часу писати листи."
+    #417: CPS=148.3 (51ch/0.3s) "будете вражені, що якщо ви справді розподілите час,"
+    #418: CPS=146.2 (62ch/0.4s) "ви побачите, що у вас є багато часу, який ви можете заощадит..."
+    #410: CPS=69.8 (24ch/0.3s) "Ви знаєте, як Я зайнята."
+    #411: CPS=66.9 (23ch/0.3s) "Попри це, Я пишу листи."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [FAIL] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [FAIL] CPS ≤ 20.0
+
+  Avg CPS: 16.2 (target ≤15.0)
+  CPS > 15.0: 140 blocks
+  CPS > 20.0: 14 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 22 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: FAILED
