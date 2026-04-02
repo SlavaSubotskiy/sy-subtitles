@@ -335,6 +335,8 @@ class AmrutaDownloader:
         for el in content.find_all(["p", *HEADINGS, "li", "blockquote"]):
             # get_text with separator destroys \n from <br>; collect manually
             raw = el.get_text()
+            # Strip WordPress Object Replacement Characters (U+FFFC)
+            raw = raw.replace("\ufffc", "")
             # Normalize: collapse spaces/tabs (but keep \n from <br>)
             raw = re.sub(r"[^\S\n]+", " ", raw)
             # Trim each line and drop empties
