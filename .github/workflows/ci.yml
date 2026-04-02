@@ -9,6 +9,7 @@ on:
       - 'site/**'
       - 'requirements*.txt'
       - 'ruff.toml'
+      - '.github/workflows/ci.yml'
   pull_request:
     paths:
       - 'tools/**'
@@ -16,6 +17,7 @@ on:
       - 'site/**'
       - 'requirements*.txt'
       - 'ruff.toml'
+      - '.github/workflows/ci.yml'
 
 jobs:
   lint:
