@@ -623,7 +623,7 @@ class TestReviewEditing:
 
 
 class TestSearchFilter:
-    """Tests for search and filter on index page."""
+    """Tests for search, filter, and stats on index page."""
 
     def test_search_input_visible(self, server, page):
         """Search input should be visible after talks load."""
@@ -632,15 +632,14 @@ class TestSearchFilter:
         assert page.locator("#search-input").is_visible()
 
     def test_search_filters_talks(self, server, page):
-        """Typing in search should filter talks by title."""
+        """Typing in search should filter talks."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
         all_count = page.locator(".talk-item").count()
         assert all_count >= 2
         page.fill("#search-input", "No-Uk")
         page.wait_for_timeout(300)
-        filtered = page.locator(".talk-item").count()
-        assert filtered == 1
+        assert page.locator(".talk-item").count() == 1
 
     def test_search_no_results(self, server, page):
         """Search with no match should show zero talks."""
@@ -650,32 +649,60 @@ class TestSearchFilter:
         page.wait_for_timeout(300)
         assert page.locator(".talk-item").count() == 0
 
-    def test_filter_buttons_exist(self, server, page):
-        """Filter buttons should be visible."""
+    def test_stat_cards_exist(self, server, page):
+        """Stat cards should be visible as filter buttons."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        assert page.locator(".filter-btn").count() == 4
+        assert page.locator(".stat-card").count() == 5
 
-    def test_filter_needs_review(self, server, page):
-        """Filtering by 'needs review' should show only pending talks."""
+    def test_stat_card_shows_all_count(self, server, page):
+        """'All' stat card should show total talk count."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        page.click(".filter-btn[data-filter='needs-review']")
+        card = page.locator(".stat-card[data-filter='all']")
+        assert "2" in card.text_content()
+
+    def test_stat_card_click_filters(self, server, page):
+        """Clicking a stat card should filter talks."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        page.click(".stat-card[data-filter='needs-review']")
         page.wait_for_timeout(200)
         badges = page.locator(".review-badge").all()
         for badge in badges:
             assert "needs-review" in (badge.get_attribute("class") or "")
 
-    def test_filter_all_resets(self, server, page):
-        """Clicking 'All' should reset filter."""
+    def test_stat_card_toggle_off(self, server, page):
+        """Clicking same stat card again should reset to 'all'."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
         all_count = page.locator(".talk-item").count()
-        page.click(".filter-btn[data-filter='needs-review']")
+        page.click(".stat-card[data-filter='needs-review']")
         page.wait_for_timeout(200)
-        page.click(".filter-btn[data-filter='all']")
+        page.click(".stat-card[data-filter='needs-review']")
         page.wait_for_timeout(200)
         assert page.locator(".talk-item").count() == all_count
+
+    def test_stat_card_active_class(self, server, page):
+        """Clicked stat card should get 'active' class."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        page.click(".stat-card[data-filter='approved']")
+        page.wait_for_timeout(200)
+        cls = page.locator(".stat-card[data-filter='approved']").get_attribute("class")
+        assert "active" in cls
+
+    def test_search_updates_stat_counts(self, server, page):
+        """Searching should update stat card numbers (filtered/total)."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        page.fill("#search-input", "No-Uk")
+        page.wait_for_timeout(300)
+        # All card should show "1/2" (1 filtered of 2 total)
+        all_card = page.locator(".stat-card[data-filter='all']")
+        text = all_card.text_content()
+        assert "/2" in text
+        assert text.startswith("1")
 
 
 class TestHashNavigation:
@@ -896,34 +923,6 @@ class TestReviewStatus:
             text = item.text_content()
             if "No-Uk" in text or "2002" in text:
                 assert item.locator(".review-badge").count() == 0
-
-
-class TestStatsBar:
-    """Tests for dynamic stats bar on index page."""
-
-    def test_stats_bar_visible(self, server, page):
-        """Stats bar should be visible after loading."""
-        goto_spa(page, server)
-        page.wait_for_selector(".talk-item", timeout=10000)
-        bar = page.locator("#stats-bar")
-        assert bar.is_visible()
-
-    def test_stats_shows_talk_count(self, server, page):
-        """Stats should show correct total talks count."""
-        goto_spa(page, server)
-        page.wait_for_selector(".talk-item", timeout=10000)
-        cards = page.locator(".stat-card").all()
-        texts = [c.text_content() for c in cards]
-        # First card is Talks count — we have 2 talks in mock data
-        assert any("2" in t and "Talks" in t for t in texts)
-
-    def test_stats_shows_needs_review(self, server, page):
-        """Stats should count pending reviews from review-status.json."""
-        goto_spa(page, server)
-        page.wait_for_selector(".talk-item", timeout=10000)
-        cards = page.locator(".stat-card").all()
-        texts = [c.text_content() for c in cards]
-        assert any("Needs review" in t for t in texts)
 
 
 class TestCaching:

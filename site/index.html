@@ -37,13 +37,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 .talk-links { margin: 4px 0 0 16px; }
 .talk-links a { margin-right: 12px; font-size: 14px; }
 .pending { color: #666; font-size: 13px; }
-.filter-btn { background: #222; color: #888; border: 1px solid #444; border-radius: 4px;
-  padding: 3px 10px; cursor: pointer; font-size: 12px; }
-.filter-btn.active { background: #333; color: #fff; border-color: #6af; }
-.filter-btn:hover { border-color: #888; }
 #search-input:focus { border-color: #6af; outline: none; }
 .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; max-width: 800px; margin: 12px auto; padding: 0 20px; }
-.stat-card { background: #222; border: 1px solid #333; border-radius: 8px; padding: 10px 14px; min-width: 100px; }
+.stat-card { background: #222; border: 1px solid #333; border-radius: 8px; padding: 10px 14px;
+  min-width: 80px; cursor: pointer; transition: border-color 0.15s; }
+.stat-card:hover { border-color: #666; }
+.stat-card.active { border-color: #6af; background: #1a2a3a; }
 .stat-card .num { font-size: 22px; font-weight: 600; color: #fff; }
 .stat-card .label { font-size: 11px; color: #888; margin-top: 2px; }
 .stat-card.good .num { color: #4ade80; }
@@ -118,14 +117,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
   <div class="header"><h1>SY Subtitles</h1></div>
   <div id="index-toolbar" style="max-width:800px;margin:8px auto;padding:0 20px;display:none">
     <input id="search-input" type="text" placeholder="Search talks..." style="width:100%;padding:8px 12px;background:#222;color:#eee;border:1px solid #444;border-radius:6px;font-size:14px;margin-bottom:6px;">
-    <div id="filter-buttons" style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px;">
-      <button class="filter-btn active" data-filter="all" onclick="SPA.filterTalks('all')">All</button>
-      <button class="filter-btn" data-filter="needs-review" onclick="SPA.filterTalks('needs-review')">Needs review</button>
-      <button class="filter-btn" data-filter="in-review" onclick="SPA.filterTalks('in-review')">In review</button>
-      <button class="filter-btn" data-filter="approved" onclick="SPA.filterTalks('approved')">Approved</button>
-    </div>
+    <div id="stats-bar" class="stats-bar"></div>
   </div>
-  <div id="stats-bar" class="stats-bar" style="display:none"></div>
   <div id="index-status" class="status">Loading...</div>
   <div id="index-content" style="padding: 0 20px;"></div>
 </div>
@@ -366,32 +359,53 @@ function buildManifest(tree) {
 // ============================================================
 // Review Status (static JSON, zero API cost)
 // ============================================================
+function computeStats(talks, statuses, query) {
+  var total = { talks: 0, translated: 0, with_srt: 0, approved: 0, pending: 0 };
+  var filtered = { talks: 0, translated: 0, with_srt: 0, approved: 0, pending: 0 };
+  talks.forEach(function(t) {
+    var matchesSearch = !query || ((t.title || '') + ' ' + (t.date || '') + ' ' + t.id).toLowerCase().indexOf(query) !== -1;
+    var hasSrt = (t.videos || []).some(function(v) { return v.hasSrt; });
+    var st = statuses[t.id];
+    var isApproved = st && st.status === 'approved';
+    var isPending = st && !isApproved;
+    // Total counts
+    total.talks++;
+    if (t.hasUk) total.translated++;
+    if (hasSrt) total.with_srt++;
+    if (isApproved) total.approved++;
+    if (isPending) total.pending++;
+    // Filtered counts (by search)
+    if (matchesSearch) {
+      filtered.talks++;
+      if (t.hasUk) filtered.translated++;
+      if (hasSrt) filtered.with_srt++;
+      if (isApproved) filtered.approved++;
+      if (isPending) filtered.pending++;
+    }
+  });
+  return { total: total, filtered: filtered };
+}
+
 function renderStats() {
   var bar = document.getElementById('stats-bar');
   if (!manifest) { bar.style.display = 'none'; return; }
   var statuses = (reviewStatus && reviewStatus.talks) || {};
-  var t = { talks: 0, translated: 0, with_srt: 0, approved: 0, pending: 0, in_progress: 0 };
-  manifest.talks.forEach(function(talk) {
-    t.talks++;
-    if (talk.hasUk) t.translated++;
-    if ((talk.videos || []).some(function(v) { return v.hasSrt; })) t.with_srt++;
-    var st = statuses[talk.id];
-    if (st) {
-      if (st.status === 'approved') t.approved++;
-      else if (st.status === 'in-progress') t.in_progress++;
-      else t.pending++;
-    }
-  });
+  var query = (document.getElementById('search-input').value || '').toLowerCase();
+  var s = computeStats(manifest.talks, statuses, query);
+  var hasSearch = query.length > 0;
   var cards = [
-    { num: t.talks, label: 'Talks', cls: 'info' },
-    { num: t.translated, label: 'Translated', cls: 'info' },
-    { num: t.with_srt, label: 'With SRT', cls: 'info' },
-    { num: t.approved, label: 'Approved', cls: 'good' },
-    { num: t.pending + t.in_progress, label: 'Needs review', cls: 'warn' },
+    { f: s.filtered.talks, t: s.total.talks, label: 'All', cls: 'info', filter: 'all' },
+    { f: s.filtered.translated, t: s.total.translated, label: 'Translated', cls: 'info', filter: 'translated' },
+    { f: s.filtered.with_srt, t: s.total.with_srt, label: 'With SRT', cls: 'info', filter: 'with-srt' },
+    { f: s.filtered.approved, t: s.total.approved, label: 'Approved', cls: 'good', filter: 'approved' },
+    { f: s.filtered.pending, t: s.total.pending, label: 'Needs review', cls: 'warn', filter: 'needs-review' },
   ];
   bar.innerHTML = '';
   cards.forEach(function(c) {
-    bar.innerHTML += '<div class="stat-card ' + c.cls + '"><div class="num">' + c.num + '</div><div class="label">' + c.label + '</div></div>';
+    var active = activeFilter === c.filter ? ' active' : '';
+    var num = hasSearch ? c.f + '<span style="font-size:12px;color:#666">/' + c.t + '</span>' : '' + c.t;
+    bar.innerHTML += '<div class="stat-card ' + c.cls + active + '" data-filter="' + c.filter + '" onclick="SPA.filterTalks(\'' + c.filter + '\')">' +
+      '<div class="num">' + num + '</div><div class="label">' + c.label + '</div></div>';
   });
   bar.style.display = 'flex';
 }
@@ -440,11 +454,13 @@ function renderIndex(el) {
 
   manifest.talks.forEach(function(t) {
     var st = statuses[t.id] || null;
-    var rstatus = st ? st.status.replace('-', '-') : '';
-    var filterClass = st ? (st.status === 'approved' ? 'approved' : st.status === 'in-progress' ? 'in-review' : 'needs-review') : '';
+    var hasSrt = (t.videos || []).some(function(v) { return v.hasSrt; });
 
     // Filter
-    if (activeFilter !== 'all' && filterClass !== activeFilter) return;
+    if (activeFilter === 'translated' && !t.hasUk) return;
+    if (activeFilter === 'with-srt' && !hasSrt) return;
+    if (activeFilter === 'approved' && (!st || st.status !== 'approved')) return;
+    if (activeFilter === 'needs-review' && (!st || st.status === 'approved')) return;
 
     // Search
     var searchText = ((t.title || '') + ' ' + (t.date || '') + ' ' + t.id).toLowerCase();
@@ -483,9 +499,9 @@ function renderIndex(el) {
 }
 
 SPA.filterTalks = function(filter) {
-  activeFilter = filter;
-  document.querySelectorAll('.filter-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.filter === filter);
+  activeFilter = (activeFilter === filter && filter !== 'all') ? 'all' : filter;
+  document.querySelectorAll('.stat-card').forEach(function(c) {
+    c.classList.toggle('active', c.dataset.filter === activeFilter);
   });
   renderIndex(document.getElementById('index-content'));
 };
@@ -496,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var debounce;
     searchEl.addEventListener('input', function() {
       clearTimeout(debounce);
-      debounce = setTimeout(function() { renderIndex(document.getElementById('index-content')); }, 200);
+      debounce = setTimeout(function() { renderStats(); renderIndex(document.getElementById('index-content')); }, 200);
     });
   }
 });
