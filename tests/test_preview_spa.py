@@ -484,8 +484,8 @@ class TestMarkers:
         data = json.loads(page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')"))
         assert data[0]["text"] == "(no subtitle)"
 
-    def test_comment_enter_resumes_and_focuses_player(self, server, page):
-        """Pressing Enter in comment field should resume video and focus player."""
+    def test_comment_enter_blurs_input(self, server, page):
+        """Pressing Enter in comment field should blur input so arrow keys work."""
         self._goto_preview(server, page)
         page.evaluate("window._vimeoPlayer._setTime(2)")
         page.wait_for_timeout(200)
@@ -494,9 +494,49 @@ class TestMarkers:
         comment_input.fill("test comment")
         comment_input.press("Enter")
         page.wait_for_timeout(200)
-        # Comment input should no longer be focused
         focused_tag = page.evaluate("document.activeElement.tagName")
         assert focused_tag != "INPUT"
+
+    def test_arrow_right_seeks_forward(self, server, page):
+        """Right arrow key should seek video forward 5 seconds."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(10)")
+        page.wait_for_timeout(200)
+        page.keyboard.press("ArrowRight")
+        page.wait_for_timeout(200)
+        time = page.evaluate("window._vimeoPlayer._currentTime")
+        assert time == 15
+
+    def test_arrow_left_seeks_backward(self, server, page):
+        """Left arrow key should seek video backward 5 seconds."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(10)")
+        page.wait_for_timeout(200)
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(200)
+        time = page.evaluate("window._vimeoPlayer._currentTime")
+        assert time == 5
+
+    def test_arrow_left_clamps_to_zero(self, server, page):
+        """Left arrow at start should not go below 0."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(200)
+        time = page.evaluate("window._vimeoPlayer._currentTime")
+        assert time == 0
+
+    def test_space_toggles_play(self, server, page):
+        """Space key should toggle play/pause."""
+        self._goto_preview(server, page)
+        page.wait_for_timeout(200)
+        paused = page.evaluate("window._vimeoPlayer._paused")
+        assert paused is not False
+        page.keyboard.press("Space")
+        page.wait_for_timeout(200)
+        paused = page.evaluate("window._vimeoPlayer._paused")
+        assert paused is False
 
     def test_subtitle_overlay_inside_video_wrap(self, server, page):
         """Subtitle overlay should be inside video-wrap (same width as video)."""

@@ -141,7 +141,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
     </div>
     <div class="controls">
       <span id="time-display">00:00:00</span>
-      <button id="btn-mark" onclick="SPA.addMarker()" title="Add marker at current time (keyboard: M)">&#x1F4CC; Mark</button>
+      <button id="btn-mark" onclick="SPA.addMarker()" title="M = mark, Space = play/pause, &#8592;&#8594; = seek 5s">&#x1F4CC; Mark</button>
     </div>
   </div>
   <div class="markers">
@@ -592,11 +592,21 @@ SPA.addMarker = function() {
 SPA.removeMarker = function(i) { previewState.markers.splice(i, 1); saveMarkers(); renderMarkers(); };
 SPA.updateMarkerComment = function(i, val) { previewState.markers[i].comment = val; saveMarkers(); };
 SPA.seekTo = function(sec) { if (previewState.player) previewState.player.setCurrentTime(sec); };
+SPA.seek = function(delta) {
+  if (!previewState.player) return;
+  var t = Math.max(0, previewState.currentTime + delta);
+  previewState.player.setCurrentTime(t);
+};
+SPA.togglePlay = function() {
+  if (!previewState.player) return;
+  previewState.player.getPaused().then(function(paused) {
+    if (paused) previewState.player.play(); else previewState.player.pause();
+  });
+};
 SPA.resumePlayer = function() {
   if (previewState.player) previewState.player.play();
-  // Return focus to player container so arrow keys work for seek
-  var el = document.getElementById('mock-player') || document.getElementById('vimeo-player');
-  if (el) el.focus();
+  // Blur input so document keydown handler catches arrow keys
+  if (document.activeElement) document.activeElement.blur();
 };
 
 function saveMarkers() {
@@ -652,9 +662,12 @@ SPA.createPreviewIssue = function() {
 };
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'm' || e.key === 'M') {
-    if (e.target.tagName !== 'INPUT' && document.getElementById('view-preview').classList.contains('active')) SPA.addMarker();
-  }
+  if (!document.getElementById('view-preview').classList.contains('active')) return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'm' || e.key === 'M') { SPA.addMarker(); return; }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); SPA.seek(-5); return; }
+  if (e.key === 'ArrowRight') { e.preventDefault(); SPA.seek(5); return; }
+  if (e.key === ' ') { e.preventDefault(); SPA.togglePlay(); return; }
 });
 
 // ============================================================

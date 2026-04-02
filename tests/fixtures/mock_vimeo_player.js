@@ -19,8 +19,9 @@ window.Vimeo = {
       window._vimeoPlayer = this;
     }
     ready() { return Promise.resolve(); }
-    pause() { return Promise.resolve(); }
-    play() { return Promise.resolve(); }
+    pause() { this._paused = true; return Promise.resolve(); }
+    play() { this._paused = false; return Promise.resolve(); }
+    getPaused() { return Promise.resolve(this._paused !== false); }
     setCurrentTime(sec) { this._currentTime = sec; return Promise.resolve(); }
     on(event, callback) {
       this._callbacks[event] = this._callbacks[event] || [];
