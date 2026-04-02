@@ -209,6 +209,38 @@ def _make_video_wrapper(vimeo_id, title):
     )
 
 
+def test_extract_videos_basic():
+    """Strategy 1: two different videos with meta-info labels."""
+    html = _make_video_wrapper(111, "Krishna Puja") + _make_video_wrapper(222, "Krishna Puja Talk")
+    videos = _find_videos(html)
+    assert len(videos) == 2
+    assert videos[0]["slug"] == "Krishna-Puja"
+    assert videos[0]["title"] == "Krishna Puja"
+    assert "111" in videos[0]["vimeo_url"]
+    assert videos[1]["slug"] == "Krishna-Puja-Talk"
+    assert videos[1]["title"] == "Krishna Puja Talk"
+
+
+def test_extract_videos_fallback_strategy():
+    """Strategy 2: plain iframes without wrappers, gets Video-N slugs."""
+    html = (
+        '<h3>First video</h3><iframe src="https://player.vimeo.com/video/111?h=abc"></iframe>'
+        '<h3>Second video</h3><iframe src="https://player.vimeo.com/video/222?h=def"></iframe>'
+    )
+    videos = _find_videos(html)
+    assert len(videos) == 2
+    # Strategy 2 uses preceding label or Video-N
+    assert all("vimeo_url" in v for v in videos)
+
+
+def test_extract_videos_single():
+    """Single video returns list of one."""
+    html = _make_video_wrapper(111, "Birthday Puja")
+    videos = _find_videos(html)
+    assert len(videos) == 1
+    assert videos[0]["slug"] == "Birthday-Puja"
+
+
 def test_unique_slugs_no_duplicates():
     """Different video names produce different slugs."""
     html = _make_video_wrapper(111, "Krishna Puja") + _make_video_wrapper(222, "Krishna Puja Talk")
