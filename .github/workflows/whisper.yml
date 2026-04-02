@@ -176,14 +176,19 @@ jobs:
         with:
           pattern: whisper__*
           merge-multiple: false
+          path: whisper-downloads
 
       - name: Place artifacts into talk directories
         run: |
-          for dir in whisper__*/; do
+          echo "=== Downloaded artifacts ==="
+          find whisper-downloads -type f 2>/dev/null || echo "No files found"
+          ls -d whisper-downloads/whisper__*/ 2>/dev/null || echo "No whisper__ subdirs"
+
+          placed=0
+          # Strategy 1: subdirectories (merge-multiple: false creates dirs)
+          for dir in whisper-downloads/whisper__*/; do
             [ -d "$dir" ] || continue
-            name="${dir%/}"
-            # Format: whisper__{talk_id}__{video_slug}
-            # talk_id = everything between first __ and last __
+            name="$(basename "$dir")"
             rest="${name#whisper__}"
             video_slug="${rest##*__}"
             talk_id="${rest%__*}"
@@ -192,8 +197,18 @@ jobs:
               mkdir -p "$dest"
               cp "$dir/whisper.json" "$dest/whisper.json"
               echo "Placed: $dest/whisper.json"
+              placed=$((placed + 1))
             fi
           done
+
+          # Strategy 2: flat extraction fallback
+          if [ "$placed" -eq 0 ] && [ -f "whisper-downloads/whisper.json" ]; then
+            echo "WARN: flat extraction detected, using matrix info"
+            # When only one artifact, use discover output
+            echo "Cannot place flat file without talk/video info — skipping"
+          fi
+
+          echo "Total placed: $placed"
 
       - name: Commit & push
         run: |
