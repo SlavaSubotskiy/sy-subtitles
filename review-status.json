@@ -2,7 +2,19 @@
   "version": 1,
   "updated_at": "2026-04-02T07:38:34.019073+00:00",
   "talks": {
+    "1979-02-25_Puja-In-Pune-Marathi": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": null,
+      "updated_at": null
+    },
     "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": null,
+      "updated_at": null
+    },
+    "1980-03-23_Birthday-Puja": {
       "status": "pending",
       "reviewer": null,
       "issue_number": null,
@@ -13,6 +25,18 @@
       "reviewer": "SlavaSubotskiy",
       "issue_number": null,
       "updated_at": "2026-04-01T20:00:00Z"
+    },
+    "1982-07-11_From-Heart-To-Sahastrar-Derby": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": null,
+      "updated_at": null
+    },
+    "1983-03-30_Celebration-Of-Birthday-In-Bombay": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": null,
+      "updated_at": null
     },
     "1983-07-24_Guru-Puja-Awakening-The-Principle-Of-Guru": {
       "status": "approved",
