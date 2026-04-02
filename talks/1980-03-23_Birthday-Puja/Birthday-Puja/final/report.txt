@@ -4,19 +4,23 @@
   SRT: talks/1980-03-23_Birthday-Puja/Birthday-Puja/final/uk.srt
   Transcript: talks/1980-03-23_Birthday-Puja/transcript_uk.txt
   Whisper: talks/1980-03-23_Birthday-Puja/Birthday-Puja/source/whisper.json
-  SRT blocks: 658
-  Whisper segments: 76
+  SRT blocks: 647
+  Whisper segments: 349
   (duration hard fail skipped — builder mode)
 
 ============================================================
   CHECK 1: Text preservation
 ============================================================
   Transcript chars: 32868
-  SRT chars: 32868
-  Exact normalized match: OK
+  SRT chars: 32215
+  Exact normalized match: MISMATCH
   Transcript words: 5442
-  SRT words: 5442
-  Word-level match: OK
+  SRT words: 5339
+  Word-level match: MISMATCH
+
+  First difference at word 4271:
+    Transcript: ...дивний досвід дотепер. Наступного разу Я прохаю...
+    SRT:        ...дивний досвід дотепер. Потім усілякі речі можна...
 
 ============================================================
   CHECK 2: Timing overlaps
@@ -26,62 +30,60 @@
 ============================================================
   CHECK 3: Time range (vs whisper)
 ============================================================
-  Whisper range: 00:02:07,500 — 00:07:19,320
-  SRT range:     00:00:00,000 — 00:47:30,015
-  WARNING: SRT starts 127500ms before speech
-  WARNING: SRT ends 2410695ms after speech
-  Time range: WARNING
+  Whisper range: 00:00:00,000 — 00:47:27,080
+  SRT range:     00:00:00,000 — 00:47:27,666
+  Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 658
+  Total blocks: 647
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 658
-  CPS: avg=16.2, median=12.8, max=999.0
-  CPS > target: 140 (21.3%)
-  CPS > hard max: 14 (2.1%)
-  CPL: avg=49.0, max=84
+  Total blocks: 647
+  CPS: avg=18.3, median=13.5, max=999.0
+  CPS > target: 96 (14.8%)
+  CPS > hard max: 47 (7.3%)
+  CPL: avg=48.8, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
-  Duration < min: 22
+  Duration < min: 10
   Duration > max: 0
   Overlaps: 0
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #25: CPS=999.0 (45ch/-72.9s) "Сьогодні, зокрема, Я маю звернутися до людей,"
-    #416: CPS=273.5 (61ch/0.2s) "з одним – давайте вирішимо щодо цього, з'ясуймо це, і тоді в..."
-    #415: CPS=242.2 (54ch/0.2s) "Скільки ми їмо, скільки часу проводимо в розмовах одне"
-    #409: CPS=174.9 (64ch/0.4s) "ніж будь-хто з вас може написати, і попри те, що Я така зайн..."
-    #414: CPS=174.4 (60ch/0.3s) "Перш за все, ми маємо вирішити – «занадто» потрібно уникати."
-    #413: CPS=165.7 (57ch/0.3s) "Ніхто не може повірити, що у них немає часу писати листи."
-    #417: CPS=148.3 (51ch/0.3s) "будете вражені, що якщо ви справді розподілите час,"
-    #418: CPS=146.2 (62ch/0.4s) "ви побачите, що у вас є багато часу, який ви можете заощадит..."
-    #410: CPS=69.8 (24ch/0.3s) "Ви знаєте, як Я зайнята."
-    #411: CPS=66.9 (23ch/0.3s) "Попри це, Я пишу листи."
+    #382: CPS=999.0 (40ch/-4.7s) "Розмовляючи одне з одним, ви не зможете."
+    #428: CPS=999.0 (42ch/-27.9s) "У цьому найкраще – звернутися до мудрості."
+    #611: CPS=999.0 (70ch/-54.6s) "Але довіряйте одне одному, любіть одне одного і давайте біль..."
+    #295: CPS=60.0 (72ch/1.2s) "Тепер ми маємо рухатися як одне тіло, з усіма нашими різними..."
+    #296: CPS=51.7 (62ch/1.2s) "ми маємо казати «ми», «ми, які є частиною однієї особистості..."
+    #293: CPS=50.0 (60ch/1.2s) "Ви Ісус Христос, що ваші вірування та ваша віра такі великі?"
+    #298: CPS=48.3 (58ch/1.2s) "що ці темпераменти є тим, що тримає нас осторонь від усіх."
+    #277: CPS=45.8 (55ch/1.2s) "Я не переймаюся вашим темпераментом, але настає момент,"
+    #289: CPS=44.2 (53ch/1.2s) "Тож четверта резолюція має бути – більше ніякого «я»."
+    #294: CPS=44.2 (53ch/1.2s) "Тож ми повинні казати «ми», «ми вважаємо», «ми такі»."
 
 ============================================================
   SUMMARY
 ============================================================
-  [PASS] Text preservation
+  [FAIL] Text preservation
   [PASS] No overlaps
-  [FAIL] Time range
+  [PASS] Time range
   [PASS] Sequential numbering
   [PASS] CPL ≤ 84
   [PASS] Gap ≥ 80ms
   [FAIL] CPS ≤ 20.0
 
-  Avg CPS: 16.2 (target ≤15.0)
-  CPS > 15.0: 140 blocks
-  CPS > 20.0: 14 blocks
+  Avg CPS: 18.3 (target ≤15.0)
+  CPS > 15.0: 96 blocks
+  CPS > 20.0: 47 blocks
   CPL > 84: 0 blocks
-  Duration < 1200ms: 22 blocks
+  Duration < 1200ms: 10 blocks
   Duration > 21000ms: 0 blocks
   Gaps < 80ms: 0 blocks
 
