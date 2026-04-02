@@ -538,38 +538,27 @@ class TestMarkers:
         paused = page.evaluate("window._vimeoPlayer._paused")
         assert paused is False
 
-    def test_subtitle_overlay_inside_video_wrap(self, server, page):
-        """Subtitle overlay should be inside video-wrap (same width as video)."""
+    def test_subtitle_overlay_below_video(self, server, page):
+        """Subtitle overlay should be a sibling of video-wrap (below video)."""
         self._goto_preview(server, page)
-        # subtitle-overlay is a child of video-wrap
         parent_class = page.evaluate("""
             document.getElementById('subtitle-overlay').parentElement.className
         """)
-        assert "video-wrap" in parent_class
+        assert "player-container" in parent_class
 
-    def test_subtitle_overlay_positioned_absolute(self, server, page):
-        """Subtitle overlay should be absolutely positioned at bottom of video."""
+    def test_subtitle_overlay_same_width_as_video(self, server, page):
+        """Subtitle overlay width should match video container width."""
         self._goto_preview(server, page)
-        pos = page.evaluate("""
-            getComputedStyle(document.getElementById('subtitle-overlay')).position
-        """)
-        assert pos == "absolute"
-
-    def test_subtitle_overlay_hidden_when_empty(self, server, page):
-        """Empty subtitle overlay should be hidden (display:none)."""
-        self._goto_preview(server, page)
-        display = page.evaluate("""
-            getComputedStyle(document.getElementById('subtitle-overlay')).display
-        """)
-        assert display == "none"
-
-    def test_subtitle_overlay_visible_with_text(self, server, page):
-        """Subtitle overlay with text should be visible."""
-        self._goto_preview(server, page)
-        page.evaluate("""() => {
-            window._vimeoPlayer._setTime(2);
-            return new Promise(resolve => setTimeout(resolve, 200));
+        widths = page.evaluate("""() => {
+            var container = document.querySelector('.player-container');
+            var overlay = document.getElementById('subtitle-overlay');
+            return { container: container.offsetWidth, overlay: overlay.offsetWidth };
         }""")
+        assert widths["overlay"] == widths["container"]
+
+    def test_subtitle_overlay_always_visible(self, server, page):
+        """Subtitle overlay should always be visible (even when empty)."""
+        self._goto_preview(server, page)
         display = page.evaluate("""
             getComputedStyle(document.getElementById('subtitle-overlay')).display
         """)

@@ -61,11 +61,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 .video-wrap { position: relative; padding-bottom: 56.25%; height: 0; }
 .video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
 #subtitle-overlay {
-  position: absolute; bottom: 0; left: 0; width: 100%; padding: 12px 16px;
+  position: relative; width: 100%; min-height: 60px; padding: 12px 16px;
   background: rgba(0,0,0,0.85); color: #fff; font-size: 40px;
-  line-height: 1.4; text-align: center; z-index: 2; pointer-events: none;
+  line-height: 1.4; text-align: center; border-radius: 0 0 4px 4px;
 }
-#subtitle-overlay:empty { display: none; }
+#subtitle-overlay:empty { min-height: 20px; }
+#subtitle-overlay:empty::after { content: '\200B'; }
 .controls { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px; }
 .controls button { background: #333; color: #fff; border: 1px solid #555; border-radius: 6px;
   padding: 8px 16px; font-size: 14px; cursor: pointer; touch-action: manipulation; }
@@ -135,10 +136,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
     <h1><a href="#/">&larr; Index</a> &middot; <span id="p-title"></span></h1>
   </div>
   <div class="player-container">
-    <div class="video-wrap">
-      <iframe id="vimeo-player" allow="autoplay; fullscreen" allowfullscreen></iframe>
-      <div id="subtitle-overlay"></div>
-    </div>
+    <div class="video-wrap"><iframe id="vimeo-player" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
+    <div id="subtitle-overlay"></div>
     <div class="controls">
       <span id="time-display">00:00:00</span>
       <button id="btn-mark" onclick="SPA.addMarker()" title="M = mark, Space = play/pause, &#8592;&#8594; = seek 5s">&#x1F4CC; Mark</button>
