@@ -188,3 +188,49 @@ def test_deduplicate_block_in_middle():
     lines = result.split("\n")
     # 5 + 4 + 3 = 12 unique, duplicate block of 4 removed
     assert len(lines) == 12
+
+
+# --- slug uniqueness ---
+
+
+def _find_videos(body_html):
+    dl = AmrutaDownloader.__new__(AmrutaDownloader)
+    soup = _make_soup(body_html)
+    return dl.extract_video_labels(soup)
+
+
+def _make_video_wrapper(vimeo_id, title):
+    """Create HTML for a video with video-meta-info label."""
+    return (
+        '<div class="embedded-video-wrapper">'
+        f'<iframe src="https://player.vimeo.com/video/{vimeo_id}?h=abc"></iframe>'
+        f'<div class="video-meta-info">2001-01-01 {title}, Location, Source, 60′</div>'
+        "</div>"
+    )
+
+
+def test_unique_slugs_no_duplicates():
+    """Different video names produce different slugs."""
+    html = _make_video_wrapper(111, "Krishna Puja") + _make_video_wrapper(222, "Krishna Puja Talk")
+    videos = _find_videos(html)
+    slugs = [v["slug"] for v in videos]
+    assert len(slugs) == len(set(slugs))
+
+
+def test_duplicate_slugs_get_suffix():
+    """Same video name twice should get unique slugs with suffix."""
+    html = _make_video_wrapper(111, "Birthday Puja") + _make_video_wrapper(222, "Birthday Puja")
+    videos = _find_videos(html)
+    slugs = [v["slug"] for v in videos]
+    assert len(slugs) == 2
+    assert len(set(slugs)) == 2
+    assert slugs[0] == "Birthday-Puja"
+    assert slugs[1] == "Birthday-Puja-2"
+
+
+def test_three_duplicate_slugs():
+    """Three same names should get -2 and -3 suffixes."""
+    html = "".join(_make_video_wrapper(i, "Talk") for i in range(3))
+    videos = _find_videos(html)
+    slugs = [v["slug"] for v in videos]
+    assert slugs == ["Talk", "Talk-2", "Talk-3"]

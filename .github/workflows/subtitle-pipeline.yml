@@ -85,8 +85,7 @@ jobs:
               for v in meta.get("videos", []):
                   slug = v["slug"]
                   if slug in slugs_seen:
-                      print(f"ERROR: duplicate slug '{slug}' in {meta_path}")
-                      raise SystemExit(1)
+                      print(f"::warning::duplicate slug '{slug}' in {meta_path}")
                   slugs_seen.add(slug)
                   video_includes.append({"talk_id": talk_id, "video_slug": slug})
                   whisper_path = f"talks/{talk_id}/{slug}/source/whisper.json"

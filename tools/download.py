@@ -166,27 +166,35 @@ class AmrutaDownloader:
                 }
             )
 
-        if videos:
-            return videos
+        if not videos:
+            # Strategy 2: fallback — find iframes directly
+            iframes = soup.find_all("iframe", src=re.compile(r"player\.vimeo\.com"))
+            for idx, iframe in enumerate(iframes):
+                vimeo_url = normalize_vimeo_url(iframe["src"])
+                label = self._find_preceding_label(iframe)
+                if label:
+                    title = label
+                    slug = slugify_video_name(label)
+                else:
+                    title = f"Video {idx + 1}"
+                    slug = f"Video-{idx + 1}"
+                videos.append(
+                    {
+                        "title": title,
+                        "slug": slug,
+                        "vimeo_url": vimeo_url,
+                    }
+                )
 
-        # Strategy 2: fallback — find iframes directly
-        iframes = soup.find_all("iframe", src=re.compile(r"player\.vimeo\.com"))
-        for idx, iframe in enumerate(iframes):
-            vimeo_url = normalize_vimeo_url(iframe["src"])
-            label = self._find_preceding_label(iframe)
-            if label:
-                title = label
-                slug = slugify_video_name(label)
+        # Ensure unique slugs within the talk
+        seen = {}
+        for v in videos:
+            s = v["slug"]
+            if s in seen:
+                seen[s] += 1
+                v["slug"] = f"{s}-{seen[s]}"
             else:
-                title = f"Video {idx + 1}"
-                slug = f"Video-{idx + 1}"
-            videos.append(
-                {
-                    "title": title,
-                    "slug": slug,
-                    "vimeo_url": vimeo_url,
-                }
-            )
+                seen[s] = 1
 
         return videos
 
