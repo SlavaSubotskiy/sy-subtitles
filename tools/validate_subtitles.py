@@ -172,8 +172,8 @@ def check_time_range(srt_blocks, whisper_segments, report):
     report.append(f"  Whisper range: {ms_to_time(whisper_start_ms)} — {ms_to_time(whisper_end_ms)}")
     report.append(f"  SRT range:     {ms_to_time(srt_start_ms)} — {ms_to_time(srt_end_ms)}")
 
-    # Allow 2s tolerance before first speech and after last speech
-    tolerance_ms = 2000
+    # Allow 5s tolerance (build_srt adds up to 2s padding on last block + optimizer shifts)
+    tolerance_ms = 5000
     before_speech = srt_start_ms < whisper_start_ms - tolerance_ms
     after_speech = srt_end_ms > whisper_end_ms + tolerance_ms
 
