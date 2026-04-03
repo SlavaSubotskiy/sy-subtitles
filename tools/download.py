@@ -484,6 +484,41 @@ class AmrutaDownloader:
         return result
 
 
+_LANG_MAP = {
+    "english": "en",
+    "hindi": "hi",
+    "marathi": "mr",
+    "french": "fr",
+    "italian": "it",
+    "german": "de",
+    "russian": "ru",
+    "spanish": "es",
+}
+
+
+def _detect_talk_language(talk_dir):
+    """Detect talk language from 'Talk Language:' header in transcript_en.txt.
+
+    Returns (primary_language_code, list_of_other_language_codes).
+    Defaults to ('en', []) if header not found.
+    """
+    transcript_path = os.path.join(talk_dir, "transcript_en.txt")
+    if not os.path.isfile(transcript_path):
+        return "en", []
+
+    with open(transcript_path, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("Talk Language:"):
+                # "Talk Language: English, Marathi | ..."
+                lang_part = line.split("|")[0].replace("Talk Language:", "").strip()
+                langs = [name.strip().lower() for name in lang_part.split(",")]
+                codes = [_LANG_MAP.get(name, name[:2]) for name in langs if name]
+                if codes:
+                    return codes[0], codes[1:]
+                break
+    return "en", []
+
+
 def setup_talk(talk_dir, url, date, slug, title, location, videos):
     """Create meta.yaml and video subdirs for a talk.
 
@@ -505,22 +540,27 @@ def setup_talk(talk_dir, url, date, slug, title, location, videos):
         os.makedirs(os.path.join(video_dir, "work"), exist_ok=True)
         os.makedirs(os.path.join(video_dir, "final"), exist_ok=True)
 
+    # Detect talk language from transcript header
+    talk_lang, other_langs = _detect_talk_language(talk_dir)
+
     # meta.yaml at talk root
     meta = {
         "title": title or slug,
         "date": date,
         "location": location,
         "amruta_url": url,
-        "language": "uk",
-        "videos": [
-            {
-                "slug": v["slug"],
-                "title": v["title"],
-                "vimeo_url": v["vimeo_url"],
-            }
-            for v in videos
-        ],
+        "language": talk_lang,
     }
+    if other_langs:
+        meta["other_languages"] = other_langs
+    meta["videos"] = [
+        {
+            "slug": v["slug"],
+            "title": v["title"],
+            "vimeo_url": v["vimeo_url"],
+        }
+        for v in videos
+    ]
     meta_path = os.path.join(talk_dir, "meta.yaml")
     with open(meta_path, "w", encoding="utf-8") as f:
         yaml.dump(meta, f, allow_unicode=True, default_flow_style=False, sort_keys=False)

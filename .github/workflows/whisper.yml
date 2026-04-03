@@ -148,11 +148,18 @@ jobs:
       - name: Run Whisper
         run: |
           mkdir -p "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source"
+          LANG=$(python3 -c "
+          import yaml
+          with open('talks/${{ matrix.talk_id }}/meta.yaml') as f:
+            meta = yaml.safe_load(f)
+          print(meta.get('language', 'en'))
+          ")
+          echo "Whisper language: $LANG"
           python -m tools.whisper_run \
             --video /tmp/whisper_work/video.mp4 \
             --output "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json" \
             --model medium \
-            --language en
+            --language "$LANG"
 
       - name: Cleanup video
         if: always()
