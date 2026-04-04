@@ -1,0 +1,92 @@
+============================================================
+  SUBTITLE OPTIMIZATION SCRIPT
+============================================================
+============================================================
+  ORIGINAL SRT STATISTICS
+============================================================
+  Total blocks: 561
+  CPS: avg=10.0, median=9.5, max=71.4
+  CPS > target: 37 (6.6%)
+  CPS > hard max: 10 (1.8%)
+  CPL: avg=54.6, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 2
+  Duration > max: 205
+  Overlaps: 0
+  Gaps < min: 0
+============================================================
+  STEP 2: Comparing SRT with Whisper speech timings
+============================================================
+  Whisper segments: 406
+  SRT blocks: 561
+  SRT blocks starting >500ms before speech: 77
+  SRT blocks ending >2s after speech: 39
+
+============================================================
+  STEP 3: Fixing structural issues
+============================================================
+  Fixed double spaces: 0
+  Fixed leading/trailing spaces: 0
+  Fixed overlaps/tiny gaps: 0
+
+============================================================
+  STEP 4: Optimizing readability
+============================================================
+  Phase 0 - Sparse block merge: 0 merged → 561 blocks
+  Phase 1 - Lines joined (single-line mode): 0
+  Phase 1b - Duration splits (>7000ms): 262
+  Phase 2 - Blocks split (> 84 chars): 0
+  Phase 3 - CPS extensions (pass 1): 37
+  Phase 4 - CPS splits (> 20.0): 9
+  Phase 5 - Merged short blocks: 64
+  Phase 6 - CPS extensions (pass 2): 30
+  Phase 6 - CPS extensions (pass 3): 30
+  Phase 6 - CPS extensions (pass 4): 30
+  Phase 7 - Cascade time redistribution: 31
+  Phase 7c - CPS extensions after redistribution: 3
+  Phase 8b - Trimmed oversized low-text blocks: 2
+  Phase 11 - Final CPS extensions: 3
+
+============================================================
+  STEP 5: Applying chaining
+============================================================
+  Gaps chained (3-11 frames -> 2 frames): 0
+
+============================================================
+  STEP 6: Final validation report
+============================================================
+
+  Text preservation: OK
+  Original chars: 31164, Optimized chars: 31164
+
+  PARAMETER                          BEFORE      AFTER     CHANGE
+  ------------------------------------------------------------
+  Total blocks                          561        768      +207v
+  Avg CPS                              10.0        8.1
+  Max CPS                              71.4       15.1
+  CPS > target                           37         21       -16v
+  CPS > hard max                         10          0       -10v
+  Max CPL                                84         84         --
+  CPL > max                               0          0         --
+  Chars > max block                       0          0         --
+  Lines > max                             0          0         --
+  Duration < min                          2          3        +1^
+  Overlaps                                0          0         --
+  Gaps < min                              0          0         --
+
+  Worst CPS blocks (top 10):
+    #398: CPS=15.1 (57ch/3.8s) "Але тепер світ змінився. Я кажу вам – почалася Сат"
+    #121: CPS=15.1 (41ch/2.7s) "Потім Його було розділено на дві частини."
+    #620: CPS=15.0 (67ch/4.5s) "Мона Ліза – здорова, і в ній надзвичайно чиста, св"
+    #242: CPS=15.0 (31ch/2.1s) "Через наш егоїзм ми вбили Його,"
+    #308: CPS=15.0 (34ch/2.3s) "з ким Йому доводилося мати справу."
+    #730: CPS=15.0 (40ch/2.7s) "Але зрозуміла – ці люди не шукають Бога."
+    #659: CPS=15.0 (40ch/2.7s) "Не знаю, скільки сторінок він надіслав –"
+    #249: CPS=15.0 (46ch/3.1s) "«Робіть погані речі – чим більше, тим краще» –"
+    #349: CPS=15.0 (49ch/3.3s) "Для цього – на цій чакрі, яка є найважчою чакрою,"
+    #352: CPS=15.0 (61ch/4.1s) "Зв'язок Кундаліні з Ним – як зв'язок місяця з міся"
+
+  Optimized SRT written to: /Users/viacheslav.subotskyi/Documents/Private/SY/sy-subtitles/talks/1979-09-27_Shri-Kundalini-Shakti-And-Shri-Jesus-Bombay/Kundalini-Aur-Yeshu-Krist-Mumbai-NITL-HD/final/uk.srt
+  Total blocks: 768
