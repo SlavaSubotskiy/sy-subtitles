@@ -555,6 +555,47 @@ jobs:
             --output "$TALK/$VIDEO/final/uk.srt" \
             --report "$TALK/$VIDEO/final/build_report.txt"
 
+      - name: Optimize SRT
+        run: |
+          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
+          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
+          python -m tools.optimize_srt \
+            --srt "$TALK/$VIDEO/final/uk.srt" \
+            --output "$TALK/$VIDEO/final/uk.srt" \
+            --skip-duration-split \
+            --skip-cps-split
+
+      - name: Handle offset videos
+        run: |
+          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
+          FIRST="${{ needs.prepare-build.outputs.video_slug }}"
+
+          python3 -c "
+          import yaml
+          with open('$TALK/meta.yaml') as f:
+            meta = yaml.safe_load(f)
+          for v in meta['videos']:
+            if v['slug'] != '$FIRST':
+              print(v['slug'])
+          " | while read slug; do
+            echo "=== Offset video: $slug ==="
+            python -m tools.offset_srt detect \
+              --srt1 "$TALK/$FIRST/source/en.srt" \
+              --srt2 "$TALK/$slug/source/en.srt" || true
+
+            OFFSET=$(python -m tools.offset_srt detect \
+              --srt1 "$TALK/$FIRST/source/en.srt" \
+              --srt2 "$TALK/$slug/source/en.srt" 2>/dev/null | grep -oP '[-\d]+' | head -1)
+
+            if [ -n "$OFFSET" ]; then
+              mkdir -p "$TALK/$slug/final"
+              python -m tools.offset_srt apply \
+                --srt "$TALK/$FIRST/final/uk.srt" \
+                --offset-ms "$OFFSET" \
+                --output "$TALK/$slug/final/uk.srt"
+            fi
+          done
+
       - name: Upload build artifacts
         if: "!cancelled()"
         uses: actions/upload-artifact@v6
@@ -684,6 +725,16 @@ jobs:
           TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
           VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
           python -m tools.build_map assemble --talk-dir "$TALK" --video-slug "$VIDEO"
+
+      - name: Optimize SRT
+        run: |
+          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
+          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
+          python -m tools.optimize_srt \
+            --srt "$TALK/$VIDEO/final/uk.srt" \
+            --output "$TALK/$VIDEO/final/uk.srt" \
+            --skip-duration-split \
+            --skip-cps-split
 
       - name: Handle offset videos
         run: |
