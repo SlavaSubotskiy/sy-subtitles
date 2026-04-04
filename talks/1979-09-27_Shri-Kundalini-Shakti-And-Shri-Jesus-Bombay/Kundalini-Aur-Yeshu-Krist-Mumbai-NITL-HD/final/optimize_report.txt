@@ -29,10 +29,10 @@
 ============================================================
   Phase 0 - Sparse block merge: 0 merged → 561 blocks
   Phase 1 - Lines joined (single-line mode): 0
-  Phase 1b - Duration splits (>7000ms): 0 (DISABLED)
+  Phase 1b - Duration splits (>7000ms): 0 (SKIPPED)
   Phase 2 - Blocks split (> 84 chars): 0
   Phase 3 - CPS extensions (pass 1): 37
-  Phase 4 - CPS splits (> 20.0): 0 (DISABLED)
+  Phase 4 - CPS splits (> 20.0): 0 (SKIPPED)
   Phase 5 - Merged short blocks: 3
   Phase 6 - CPS extensions (pass 2): 37
   Phase 6 - CPS extensions (pass 3): 37
