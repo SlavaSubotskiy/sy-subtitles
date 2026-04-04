@@ -16,3 +16,5 @@ class OptimizeConfig:
     fps: int = 24
     single_line: bool = True
     sparse_cps_threshold: float = 2.0
+    skip_duration_split: bool = False
+    skip_cps_split: bool = False

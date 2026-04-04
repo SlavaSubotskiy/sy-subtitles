@@ -864,15 +864,20 @@ def optimize_readability(blocks, whisper_segments, config, report):
     report.append(f"  Phase 1 - Lines joined (single-line mode): {lines_joined}")
 
     # Phase 1b: Split blocks exceeding max duration
-    # Segment-level intervals for time slots, word-level for fine split points
-    seg_intervals = [(seg["start"] * 1000, seg["end"] * 1000) for seg in whisper_segments] if whisper_segments else []
-    word_intervals = []
-    if whisper_segments and any("words" in seg for seg in whisper_segments):
-        for seg in whisper_segments:
-            for w in seg.get("words", []):
-                word_intervals.append((w["start"] * 1000, w["end"] * 1000))
-    blocks, dur_splits = split_blocks_by_duration(blocks, config, seg_intervals, word_intervals)
-    report.append(f"  Phase 1b - Duration splits (>{config.max_duration_ms}ms): {dur_splits}")
+    if config.skip_duration_split:
+        dur_splits = 0
+        report.append(f"  Phase 1b - Duration splits (>{config.max_duration_ms}ms): {dur_splits} (SKIPPED)")
+    else:
+        seg_intervals = (
+            [(seg["start"] * 1000, seg["end"] * 1000) for seg in whisper_segments] if whisper_segments else []
+        )
+        word_intervals = []
+        if whisper_segments and any("words" in seg for seg in whisper_segments):
+            for seg in whisper_segments:
+                for w in seg.get("words", []):
+                    word_intervals.append((w["start"] * 1000, w["end"] * 1000))
+        blocks, dur_splits = split_blocks_by_duration(blocks, config, seg_intervals, word_intervals)
+        report.append(f"  Phase 1b - Duration splits (>{config.max_duration_ms}ms): {dur_splits}")
 
     # Phase 2: Split blocks > max_chars_block
     blocks, size_splits = split_blocks_by_size(blocks, config)
@@ -884,8 +889,12 @@ def optimize_readability(blocks, whisper_segments, config, report):
     report.append(f"  Phase 3 - CPS extensions (pass 1): {ext1}")
 
     # Phase 4: Split remaining high-CPS blocks
-    blocks, cps_splits = split_blocks_by_cps(blocks, config)
-    report.append(f"  Phase 4 - CPS splits (> {config.hard_max_cps}): {cps_splits}")
+    if config.skip_cps_split:
+        cps_splits = 0
+        report.append(f"  Phase 4 - CPS splits (> {config.hard_max_cps}): {cps_splits} (SKIPPED)")
+    else:
+        blocks, cps_splits = split_blocks_by_cps(blocks, config)
+        report.append(f"  Phase 4 - CPS splits (> {config.hard_max_cps}): {cps_splits}")
 
     # Phase 5: Merge very short blocks
     blocks, merged = merge_short_blocks(blocks, config)
@@ -1186,6 +1195,8 @@ def main():
     parser.add_argument("--max-duration", type=int, default=7000, help="Max duration in ms")
     parser.add_argument("--min-gap", type=int, default=80, help="Min gap in ms")
     parser.add_argument("--fps", type=int, default=24)
+    parser.add_argument("--skip-duration-split", action="store_true", help="Skip Phase 1b (duration splits)")
+    parser.add_argument("--skip-cps-split", action="store_true", help="Skip Phase 4 (CPS splits)")
     args = parser.parse_args()
 
     if not args.srt and not args.uk_json:
@@ -1198,6 +1209,8 @@ def main():
         max_duration_ms=args.max_duration,
         min_gap_ms=args.min_gap,
         fps=args.fps,
+        skip_duration_split=args.skip_duration_split,
+        skip_cps_split=args.skip_cps_split,
     )
 
     report = optimize(args.srt, args.json, args.output, args.report, config, uk_json_path=args.uk_json)
