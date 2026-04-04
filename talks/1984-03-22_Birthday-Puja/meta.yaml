@@ -3,9 +3,12 @@ date: '1984-03-22'
 location: Juhu, Mumbai (India)
 amruta_url: https://www.amruta.org/1984/03/22/birthday-puja-1984/
 language: en
+other_languages:
+- mr
 videos:
+- slug: Birthday-Puja-Be-Sweet
+  title: 'Birthday Puja: Be Sweet'
+  vimeo_url: https://vimeo.com/393389929/516577d24e
 - slug: Birthday-Puja-Talk-Be-Sweet
   title: 'Birthday Puja Talk: Be Sweet'
   vimeo_url: https://vimeo.com/393388291/2a9b09d251
-other_languages:
-- mr
