@@ -32,12 +32,12 @@
   Phase 1b - Duration splits (>7000ms): 0 (DISABLED)
   Phase 2 - Blocks split (> 84 chars): 0
   Phase 3 - CPS extensions (pass 1): 37
-  Phase 4 - CPS splits (> 20.0): 9
-  Phase 5 - Merged short blocks: 13
-  Phase 6 - CPS extensions (pass 2): 36
-  Phase 6 - CPS extensions (pass 3): 36
-  Phase 6 - CPS extensions (pass 4): 36
-  Phase 7 - Cascade time redistribution: 37
+  Phase 4 - CPS splits (> 20.0): 0 (DISABLED)
+  Phase 5 - Merged short blocks: 3
+  Phase 6 - CPS extensions (pass 2): 37
+  Phase 6 - CPS extensions (pass 3): 37
+  Phase 6 - CPS extensions (pass 4): 37
+  Phase 7 - Cascade time redistribution: 39
   Phase 7c - CPS extensions after redistribution: 3
   Phase 11 - Final CPS extensions: 3
 
@@ -55,7 +55,7 @@
 
   PARAMETER                          BEFORE      AFTER     CHANGE
   ------------------------------------------------------------
-  Total blocks                          561        557        -4^
+  Total blocks                          561        558        -3^
   Avg CPS                              10.0        9.7
   Max CPS                              71.4       15.1
   CPS > target                           37         26       -11v
@@ -73,12 +73,12 @@
     #99: CPS=15.1 (41ch/2.7s) "Потім Його було розділено на дві частини."
     #461: CPS=15.0 (67ch/4.5s) "Мона Ліза – здорова, і в ній надзвичайно чиста, св"
     #195: CPS=15.0 (31ch/2.1s) "Через наш егоїзм ми вбили Його,"
-    #254: CPS=15.0 (34ch/2.3s) "з ким Йому доводилося мати справу."
-    #550: CPS=15.0 (37ch/2.5s) "Ми з Ісусом Христом вчинили так само."
+    #551: CPS=15.0 (37ch/2.5s) "Ми з Ісусом Христом вчинили так само."
     #531: CPS=15.0 (40ch/2.7s) "Але зрозуміла – ці люди не шукають Бога."
     #486: CPS=15.0 (40ch/2.7s) "Не знаю, скільки сторінок він надіслав –"
     #111: CPS=15.0 (40ch/2.7s) "дав Йому дозвіл втілитися в цьому світі."
     #201: CPS=15.0 (46ch/3.1s) "«Робіть погані речі – чим більше, тим краще» –"
+    #286: CPS=15.0 (49ch/3.3s) "Для цього – на цій чакрі, яка є найважчою чакрою,"
 
   Optimized SRT written to: /Users/viacheslav.subotskyi/Documents/Private/SY/sy-subtitles/talks/1979-09-27_Shri-Kundalini-Shakti-And-Shri-Jesus-Bombay/Kundalini-Aur-Yeshu-Krist-Mumbai-NITL-HD/final/uk.srt
-  Total blocks: 557
+  Total blocks: 558
