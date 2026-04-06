@@ -64,17 +64,34 @@ def sync_transcript(talk_dir: str, video_slug: str, old_transcript: str, new_tra
         old_blocks = prepare_blocks([old_paras[p_idx]])
         new_blocks = prepare_blocks([new_paras[p_idx]])
 
+        preview = old_paras[p_idx][:120].replace("\n", " ")
+
         if len(old_blocks) != len(new_blocks):
+            print(f"  P{p_idx + 1}: «{preview}…»", file=sys.stderr)
+            print(f"    old blocks ({len(old_blocks)}):", file=sys.stderr)
+            for b in old_blocks:
+                print(f"      [{len(b['text']):2d} CPL] {b['text']}", file=sys.stderr)
+            print(f"    new blocks ({len(new_blocks)}):", file=sys.stderr)
+            for b in new_blocks:
+                print(f"      [{len(b['text']):2d} CPL] {b['text']}", file=sys.stderr)
             return {
                 "error": f"P{p_idx + 1}: block count changed {len(old_blocks)} → {len(new_blocks)} (need full rebuild)"
             }
 
         srt_indices = find_paragraph_blocks(srt_blocks, old_blocks)
         if srt_indices is None:
+            print(f"  P{p_idx + 1}: «{preview}…»", file=sys.stderr)
+            print("    expected blocks:", file=sys.stderr)
+            for b in old_blocks:
+                print(f"      {b['text']}", file=sys.stderr)
             return {"error": f"P{p_idx + 1}: cannot find matching blocks in SRT"}
 
         for j, srt_idx in enumerate(srt_indices):
-            srt_blocks[srt_idx]["text"] = new_blocks[j]["text"]
+            old_text = srt_blocks[srt_idx]["text"]
+            new_text = new_blocks[j]["text"]
+            if old_text != new_text:
+                print(f"  P{p_idx + 1} block {srt_idx + 1}: «{old_text}» → «{new_text}»", file=sys.stderr)
+            srt_blocks[srt_idx]["text"] = new_text
         total_updated += len(old_blocks)
         print(f"  P{p_idx + 1}: swapped {len(old_blocks)} blocks", file=sys.stderr)
 
