@@ -172,7 +172,7 @@ def page(server, mock_player_js, browser):
     )
 
     # Clear cache before each page load
-    pg.add_init_script("localStorage.removeItem('sy_tree_cache'); localStorage.removeItem('sy_app_version');")
+    pg.add_init_script("localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_app_version');")
     yield pg
     pg.close()
     ctx.close()
@@ -304,7 +304,7 @@ class TestDirectNavigation:
         goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
         page.wait_for_selector("#mock-player", state="visible", timeout=10000)
         # Manifest should have been loaded
-        cache = page.evaluate("localStorage.getItem('sy_tree_cache')")
+        cache = page.evaluate("localStorage.getItem('sy_tree_cache__main')")
         assert cache is not None
 
     def test_direct_preview_shows_title(self, server, page):
@@ -331,7 +331,7 @@ class TestDirectNavigation:
         """Navigating directly to review URL should load manifest automatically."""
         goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
         page.wait_for_function("document.querySelectorAll('.cell.en').length > 0", timeout=10000)
-        cache = page.evaluate("localStorage.getItem('sy_tree_cache')")
+        cache = page.evaluate("localStorage.getItem('sy_tree_cache__main')")
         assert cache is not None
 
     def test_direct_review_shows_title(self, server, page):
@@ -824,7 +824,7 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache'); localStorage.removeItem('sy_app_version');")
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_app_version');")
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.in-review")
@@ -870,7 +870,7 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache'); localStorage.removeItem('sy_app_version');")
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_app_version');")
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.approved")
@@ -904,7 +904,7 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache'); localStorage.removeItem('sy_app_version');")
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_app_version');")
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         # Page loads fine, no badges shown
@@ -929,7 +929,7 @@ class TestCaching:
     def test_cache_written_to_localStorage(self, server, page):
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        cache = page.evaluate("localStorage.getItem('sy_tree_cache')")
+        cache = page.evaluate("localStorage.getItem('sy_tree_cache__main')")
         assert cache is not None
         data = json.loads(cache)
         assert "talks" in data
@@ -943,9 +943,422 @@ class TestCaching:
     def test_cached_manifest_has_hasSrt(self, server, page):
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        cache = json.loads(page.evaluate("localStorage.getItem('sy_tree_cache')"))
+        cache = json.loads(page.evaluate("localStorage.getItem('sy_tree_cache__main')"))
         talk = next(t for t in cache["talks"] if t["id"] == "2001-01-01_Test-Talk")
         video = next(v for v in talk["videos"] if v["slug"] == "Test-Video")
         assert video["hasSrt"] is True
         video2 = next(v for v in talk["videos"] if v["slug"] == "Test-Video-2")
         assert video2["hasSrt"] is False
+
+
+MOCK_BRANCHES = [
+    {"name": "main", "commit": {"sha": "abc123"}},
+    {"name": "fix/review-edits", "commit": {"sha": "def456"}},
+    {"name": "feature/new-talk", "commit": {"sha": "ghi789"}},
+]
+
+
+class TestBranchSelector:
+    def test_default_branch_is_main(self, server, page):
+        """Without ?branch= param, BRANCH should be 'main'."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        branch = page.evaluate("BRANCH")
+        assert branch == "main"
+
+    def test_branch_label_shows_current(self, server, page):
+        """Branch button displays current branch name."""
+        goto_spa(page, server)
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        text = page.locator(".view.active .branch-btn").text_content()
+        assert "main" in text
+
+    def test_no_branches_api_call_on_load(self, server, page):
+        """No /branches API call should be made on initial page load."""
+        api_calls = []
+        page.on("request", lambda req: api_calls.append(req.url) if "/branches" in req.url else None)
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert not any("/branches" in url for url in api_calls)
+
+    def test_click_fetches_branches(self, server, page):
+        """Clicking branch button fetches branches from API."""
+        page.route(
+            "**/api.github.com/repos/**/branches*",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(MOCK_BRANCHES),
+            ),
+        )
+        goto_spa(page, server)
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        page.locator(".view.active .branch-btn").click()
+        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
+        items = page.locator(".view.active .branch-dropdown div").count()
+        assert items == 3
+
+    def test_dropdown_shows_branch_names(self, server, page):
+        """Dropdown lists all branch names from API response."""
+        page.route(
+            "**/api.github.com/repos/**/branches*",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(MOCK_BRANCHES),
+            ),
+        )
+        goto_spa(page, server)
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        page.locator(".view.active .branch-btn").click()
+        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
+        texts = [el.text_content() for el in page.locator(".view.active .branch-dropdown div").all()]
+        assert "main" in texts
+        assert "fix/review-edits" in texts
+        assert "feature/new-talk" in texts
+
+    def test_current_branch_marked_active(self, server, page):
+        """Current branch has .active class in dropdown."""
+        page.route(
+            "**/api.github.com/repos/**/branches*",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(MOCK_BRANCHES),
+            ),
+        )
+        goto_spa(page, server)
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        page.locator(".view.active .branch-btn").click()
+        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
+        active = page.locator(".view.active .branch-dropdown div.active")
+        assert active.count() == 1
+        assert active.text_content() == "main"
+
+    def test_select_branch_changes_url(self, server, page):
+        """Selecting a branch navigates to URL with ?branch= param."""
+        page.route(
+            "**/api.github.com/repos/**/branches*",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(MOCK_BRANCHES),
+            ),
+        )
+        goto_spa(page, server)
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        page.locator(".view.active .branch-btn").click()
+        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
+        # Click the second branch
+        page.locator(".branch-dropdown div", has_text="fix/review-edits").click()
+        page.wait_for_load_state("load")
+        assert "branch=fix%2Freview-edits" in page.url or "branch=fix/review-edits" in page.url
+
+    def test_branch_from_url_param(self, server, page):
+        """?branch=dev sets BRANCH variable to 'dev'."""
+        goto_spa(page, server, hash="")
+        # Navigate with branch param
+        page.goto(f"{server}{SPA_URL}?branch=dev")
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        branch = page.evaluate("BRANCH")
+        assert branch == "dev"
+
+    def test_branch_param_used_in_api_calls(self, server, page):
+        """API calls use the branch from URL param."""
+        tree_urls = []
+        page.route(
+            "**/api.github.com/**",
+            lambda route: (
+                tree_urls.append(route.request.url),
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    headers={"ETag": '"test-etag-dev"'},
+                    body=json.dumps(MOCK_TREE),
+                ),
+            )[-1],
+        )
+        page.route(
+            "**/raw.githubusercontent.com/**/meta.yaml",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
+        )
+        page.route(
+            "**/raw.githubusercontent.com/**/review-status.json",
+            lambda route: route.fulfill(
+                status=200, content_type="application/json", body=json.dumps(MOCK_REVIEW_STATUS)
+            ),
+        )
+        page.route(
+            "**/player.vimeo.com/api/player.js",
+            lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
+        )
+        page.add_init_script(
+            "localStorage.removeItem('sy_tree_cache__dev'); localStorage.removeItem('sy_app_version');"
+        )
+        page.goto(f"{server}{SPA_URL}?branch=dev")
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert any("trees/dev" in url for url in tree_urls)
+
+    def test_cache_key_includes_branch(self, server, page):
+        """Cache uses branch-specific localStorage key."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        cache = page.evaluate("localStorage.getItem('sy_tree_cache__main')")
+        assert cache is not None
+        # Other branch key should be null
+        other = page.evaluate("localStorage.getItem('sy_tree_cache__dev')")
+        assert other is None
+
+    def test_non_main_visual_indicator(self, server, page):
+        """Branch button has .non-main class when not on main."""
+        page.goto(f"{server}{SPA_URL}?branch=dev")
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        cls = page.locator(".view.active .branch-btn").get_attribute("class")
+        assert "non-main" in cls
+
+    def test_main_no_non_main_class(self, server, page):
+        """Branch button does NOT have .non-main on main."""
+        goto_spa(page, server)
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        cls = page.locator(".view.active .branch-btn").get_attribute("class")
+        assert "non-main" not in cls
+
+    def test_close_dropdown_on_outside_click(self, server, page):
+        """Clicking outside the dropdown closes it."""
+        page.route(
+            "**/api.github.com/repos/**/branches*",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(MOCK_BRANCHES),
+            ),
+        )
+        goto_spa(page, server)
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        page.locator(".view.active .branch-btn").click()
+        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
+        # Click on the body
+        page.locator("body").click(position={"x": 10, "y": 10})
+        page.wait_for_timeout(300)
+        assert not page.locator(".view.active .branch-dropdown.open").is_visible()
+
+    def test_deep_link_with_branch(self, server, page):
+        """Direct URL with ?branch= and hash route works."""
+        page.route(
+            "**/raw.githubusercontent.com/**/uk.srt",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_SRT),
+        )
+        page.route(
+            "**/player.vimeo.com/api/player.js",
+            lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
+        )
+        page.goto(f"{server}{SPA_URL}?branch=dev#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        assert page.evaluate("BRANCH") == "dev"
+        # Preview view should be active
+        assert page.locator("#view-preview.active").count() == 1
+
+    def test_branch_preserved_in_preview_back_link(self, server, page):
+        """Back link from preview preserves ?branch= param."""
+        page.goto(f"{server}{SPA_URL}?branch=dev#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        btn_text = page.locator(".view.active .branch-btn").text_content()
+        assert "dev" in btn_text
+
+    def test_branch_cache_isolated_between_branches(self, server, page, browser):
+        """Different branches write to separate cache keys."""
+
+        def make_page(ctx):
+            pg = ctx.new_page()
+            pg.route(
+                "**/api.github.com/**",
+                lambda route: route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    headers={"ETag": '"etag-test"'},
+                    body=json.dumps(MOCK_TREE),
+                ),
+            )
+            pg.route(
+                "**/raw.githubusercontent.com/**/meta.yaml",
+                lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
+            )
+            pg.route(
+                "**/raw.githubusercontent.com/**/review-status.json",
+                lambda route: route.fulfill(
+                    status=200, content_type="application/json", body=json.dumps(MOCK_REVIEW_STATUS)
+                ),
+            )
+            pg.route(
+                "**/player.vimeo.com/api/player.js",
+                lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
+            )
+            return pg
+
+        ctx = browser.new_context()
+        # Clear all caches
+        pg = make_page(ctx)
+        pg.add_init_script(
+            "localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_tree_cache__dev'); localStorage.removeItem('sy_app_version');"
+        )
+        pg.goto(f"{server}{SPA_URL}")
+        pg.wait_for_selector(".talk-item", timeout=10000)
+        assert pg.evaluate("localStorage.getItem('sy_tree_cache__main')") is not None
+        assert pg.evaluate("localStorage.getItem('sy_tree_cache__dev')") is None
+        pg.close()
+
+        # Load dev branch in a fresh page (no init_script clearing main cache)
+        pg2 = make_page(ctx)
+        pg2.goto(f"{server}{SPA_URL}?branch=dev")
+        pg2.wait_for_selector(".talk-item", timeout=10000)
+        assert pg2.evaluate("localStorage.getItem('sy_tree_cache__dev')") is not None
+        assert pg2.evaluate("localStorage.getItem('sy_tree_cache__main')") is not None
+        pg2.close()
+        ctx.close()
+
+    def test_raw_urls_use_branch(self, server, page):
+        """Fetch calls for SRT/transcripts use the correct branch in URL."""
+        raw_urls = []
+        page.route(
+            "**/raw.githubusercontent.com/**",
+            lambda route: (
+                raw_urls.append(route.request.url),
+                route.fulfill(status=200, content_type="text/plain", body=SAMPLE_EN),
+            )[-1],
+        )
+        page.route(
+            "**/api.github.com/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                headers={"ETag": '"etag-feat"'},
+                body=json.dumps(MOCK_TREE),
+            ),
+        )
+        page.route(
+            "**/player.vimeo.com/api/player.js",
+            lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
+        )
+        page.add_init_script(
+            "localStorage.removeItem('sy_tree_cache__feature/test'); localStorage.removeItem('sy_app_version');"
+        )
+        page.goto(f"{server}{SPA_URL}?branch=feature/test")
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert any("feature/test" in url for url in raw_urls)
+
+    def test_markers_persist_across_branch_switch(self, server, page, browser):
+        """Preview markers survive branch switch (localStorage key is branch-independent)."""
+
+        def make_page(ctx):
+            pg = ctx.new_page()
+            pg.route(
+                "**/api.github.com/**",
+                lambda route: route.fulfill(
+                    status=200, content_type="application/json", headers={"ETag": '"etag"'}, body=json.dumps(MOCK_TREE)
+                ),
+            )
+            pg.route(
+                "**/raw.githubusercontent.com/**/meta.yaml",
+                lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
+            )
+            pg.route(
+                "**/raw.githubusercontent.com/**/uk.srt",
+                lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_SRT),
+            )
+            pg.route(
+                "**/raw.githubusercontent.com/**/review-status.json",
+                lambda route: route.fulfill(
+                    status=200, content_type="application/json", body=json.dumps(MOCK_REVIEW_STATUS)
+                ),
+            )
+            pg.route(
+                "**/player.vimeo.com/api/player.js",
+                lambda route: route.fulfill(
+                    status=200,
+                    content_type="application/javascript",
+                    body=(Path(__file__).parent / "fixtures" / "mock_vimeo_player.js").read_text(),
+                ),
+            )
+            return pg
+
+        ctx = browser.new_context()
+
+        # Add a marker on main
+        pg = make_page(ctx)
+        pg.add_init_script("localStorage.clear();")
+        pg.goto(f"{server}{SPA_URL}#/preview/2001-01-01_Test-Talk/Test-Video")
+        pg.wait_for_selector("#subtitle-overlay", timeout=10000)
+        pg.click("#btn-mark")
+        pg.wait_for_selector(".marker-item", timeout=5000)
+        assert pg.locator(".marker-item").count() == 1
+        pg.close()
+
+        # Switch to dev branch — marker should still be there
+        pg2 = make_page(ctx)
+        pg2.goto(f"{server}{SPA_URL}?branch=dev#/preview/2001-01-01_Test-Talk/Test-Video")
+        pg2.wait_for_selector("#subtitle-overlay", timeout=10000)
+        pg2.wait_for_timeout(500)
+        assert pg2.locator(".marker-item").count() == 1
+        pg2.close()
+        ctx.close()
+
+    def test_review_edits_persist_across_branch_switch(self, server, page, browser):
+        """Review edits survive branch switch (localStorage key is branch-independent)."""
+
+        def make_page(ctx):
+            pg = ctx.new_page()
+            pg.route(
+                "**/api.github.com/**",
+                lambda route: route.fulfill(
+                    status=200, content_type="application/json", headers={"ETag": '"etag"'}, body=json.dumps(MOCK_TREE)
+                ),
+            )
+            pg.route(
+                "**/raw.githubusercontent.com/**/meta.yaml",
+                lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
+            )
+            pg.route(
+                "**/raw.githubusercontent.com/**/transcript_en.txt",
+                lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_EN),
+            )
+            pg.route(
+                "**/raw.githubusercontent.com/**/transcript_uk.txt",
+                lambda route: route.fulfill(status=200, content_type="text/plain", body=SAMPLE_UK),
+            )
+            pg.route(
+                "**/raw.githubusercontent.com/**/review-status.json",
+                lambda route: route.fulfill(
+                    status=200, content_type="application/json", body=json.dumps(MOCK_REVIEW_STATUS)
+                ),
+            )
+            pg.route(
+                "**/player.vimeo.com/api/player.js",
+                lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
+            )
+            return pg
+
+        ctx = browser.new_context()
+
+        # Make an edit on main
+        pg = make_page(ctx)
+        pg.add_init_script("localStorage.clear();")
+        pg.goto(f"{server}{SPA_URL}#/review/2001-01-01_Test-Talk")
+        pg.wait_for_selector(".cell.uk", timeout=10000)
+        cell = pg.locator(".cell.uk").first
+        cell.click()
+        cell.press_sequentially(" edited", delay=20)
+        cell.press("Tab")
+        pg.wait_for_timeout(300)
+        edit_count = pg.locator("#edit-count").text_content()
+        assert edit_count == "1"
+        pg.close()
+
+        # Switch to dev — edit should persist
+        pg2 = make_page(ctx)
+        pg2.goto(f"{server}{SPA_URL}?branch=dev#/review/2001-01-01_Test-Talk")
+        pg2.wait_for_selector(".cell.uk", timeout=10000)
+        pg2.wait_for_timeout(500)
+        edit_count = pg2.locator("#edit-count").text_content()
+        assert edit_count == "1"
+        pg2.close()
+        ctx.close()

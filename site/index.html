@@ -102,6 +102,18 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 .counter { position: fixed; bottom: 16px; right: 16px; background: #222; border: 1px solid #444;
   border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #888; }
 .counter span { color: #fff; }
+/* --- Branch selector --- */
+.branch-selector { position: relative; display: inline-block; }
+.branch-btn { background: #222; color: #6af; border: 1px solid #444; border-radius: 4px;
+  padding: 4px 10px; font-size: 13px; cursor: pointer; font-family: monospace; }
+.branch-btn.non-main { border-color: #a80; color: #fa0; }
+.branch-dropdown { position: absolute; top: 100%; left: 0; background: #222; border: 1px solid #444;
+  border-radius: 4px; max-height: 300px; overflow-y: auto; z-index: 50; min-width: 200px; display: none; }
+.branch-dropdown.open { display: block; }
+.branch-dropdown div { padding: 6px 12px; cursor: pointer; font-size: 13px; font-family: monospace; }
+.branch-dropdown div:hover { background: #333; }
+.branch-dropdown div.active { color: #4ade80; }
+
 @media (max-width: 768px) {
   .grid { grid-template-columns: 1fr; }
   .col-header.en, .cell.en { display: none; }
@@ -114,7 +126,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 
 <!-- === INDEX VIEW === -->
 <div id="view-index" class="view">
-  <div class="header"><h1>SY Subtitles</h1></div>
+  <div class="header"><h1>SY Subtitles</h1>
+    <div class="branch-selector">
+      <button class="branch-btn" id="branch-btn" onclick="SPA.toggleBranches()">main &#x25BE;</button>
+      <div class="branch-dropdown" id="branch-dropdown"></div>
+    </div>
+  </div>
   <div id="index-toolbar" style="max-width:800px;margin:8px auto;padding:0 20px;display:none">
     <input id="search-input" type="text" placeholder="Search talks..." style="width:100%;padding:8px 12px;background:#222;color:#eee;border:1px solid #444;border-radius:6px;font-size:14px;margin-bottom:6px;">
     <div id="stats-bar" class="stats-bar"></div>
@@ -127,6 +144,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 <div id="view-preview" class="view">
   <div class="header">
     <h1><a href="#/">&larr; Index</a> &middot; <span id="p-title"></span></h1>
+    <div class="branch-selector">
+      <button class="branch-btn" id="branch-btn-preview" onclick="SPA.toggleBranches()">main &#x25BE;</button>
+      <div class="branch-dropdown" id="branch-dropdown-preview"></div>
+    </div>
   </div>
   <div class="player-container">
     <div class="video-wrap"><iframe id="vimeo-player" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
@@ -152,6 +173,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 <div id="view-review" class="view">
   <div class="header">
     <h1><a href="#/">&larr; Index</a> &middot; <span id="r-title"></span></h1>
+    <div class="branch-selector">
+      <button class="branch-btn" id="branch-btn-review" onclick="SPA.toggleBranches()">main &#x25BE;</button>
+      <div class="branch-dropdown" id="branch-dropdown-review"></div>
+    </div>
     <div class="header-actions">
       <button onclick="SPA.revertAllEdits()" id="btn-revert-all" style="display:none">Revert all</button>
       <button class="issue" onclick="SPA.createReviewIssue()">Create Issue</button>
@@ -205,7 +230,11 @@ function findActiveSubtitle(subs, ms) {
 // Config
 // ============================================================
 var REPO = 'SlavaSubotskiy/sy-subtitles';
-var BRANCH = 'main';
+function getBranchFromURL() {
+  var params = new URLSearchParams(location.search);
+  return params.get('branch') || 'main';
+}
+var BRANCH = getBranchFromURL();
 var RAW = 'https://raw.githubusercontent.com/' + REPO + '/' + BRANCH;
 var API = 'https://api.github.com/repos/' + REPO;
 var PAGES_BASE = location.pathname.replace(/\/[^/]*$/, '');
@@ -213,11 +242,13 @@ var PAGES_BASE = location.pathname.replace(/\/[^/]*$/, '');
 // ============================================================
 // App version — cache auto-invalidates on update
 // ============================================================
-var APP_VERSION = '7';
+var APP_VERSION = '8';
+var CACHE_KEY = 'sy_tree_cache__' + BRANCH;
 (function() {
   var cached = localStorage.getItem('sy_app_version');
   if (cached !== APP_VERSION) {
-    localStorage.removeItem('sy_tree_cache');
+    localStorage.removeItem('sy_tree_cache');  // clean old key
+    localStorage.removeItem(CACHE_KEY);
     localStorage.setItem('sy_app_version', APP_VERSION);
   }
 })();
@@ -266,7 +297,7 @@ function route() {
 // ============================================================
 function loadManifest() {
   var cache = null;
-  try { cache = JSON.parse(localStorage.getItem('sy_tree_cache')); } catch(e) {}
+  try { cache = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch(e) {}
 
   var headers = {};
   if (cache && cache.etag) headers['If-None-Match'] = cache.etag;
@@ -280,7 +311,7 @@ function loadManifest() {
         var m = buildManifest(data.tree);
         m.etag = etag;
         m.timestamp = Date.now();
-        localStorage.setItem('sy_tree_cache', JSON.stringify(m));
+        localStorage.setItem(CACHE_KEY, JSON.stringify(m));
         return m;
       });
     })
@@ -319,7 +350,7 @@ function loadManifest() {
             v.hasSrt = srtSet.indexOf(v.slug) !== -1;
           });
         });
-        localStorage.setItem('sy_tree_cache', JSON.stringify(m));
+        localStorage.setItem(CACHE_KEY, JSON.stringify(m));
         return m;
       });
     });
@@ -885,6 +916,57 @@ function showToast(msg) {
 function fmtTime(sec) {
   return String(Math.floor(sec/3600)).padStart(2,'0') + ':' + String(Math.floor((sec%3600)/60)).padStart(2,'0') + ':' + String(Math.floor(sec%60)).padStart(2,'0');
 }
+
+// ============================================================
+// Branch Selector
+// ============================================================
+(function() {
+  document.querySelectorAll('.branch-btn').forEach(function(btn) {
+    btn.textContent = BRANCH + ' \u25BE';
+    if (BRANCH !== 'main') btn.classList.add('non-main');
+  });
+})();
+
+SPA.toggleBranches = function() {
+  // Close all other dropdowns first
+  document.querySelectorAll('.branch-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+  // Find the dropdown sibling of the active view's button
+  var activeView = document.querySelector('.view.active') || document.getElementById('view-index');
+  var dd = activeView.querySelector('.branch-dropdown');
+  if (!dd) return;
+  dd.innerHTML = '<div style="color:#888;padding:8px 12px">Loading...</div>';
+  dd.classList.add('open');
+  fetch(API + '/branches?per_page=100')
+    .then(function(r) { return r.ok ? r.json() : Promise.reject('HTTP ' + r.status); })
+    .then(function(data) {
+      dd.innerHTML = '';
+      data.forEach(function(b) {
+        var d = document.createElement('div');
+        d.textContent = b.name;
+        if (b.name === BRANCH) d.classList.add('active');
+        d.onclick = function() { SPA.switchBranch(b.name); };
+        dd.appendChild(d);
+      });
+    })
+    .catch(function(err) {
+      dd.innerHTML = '<div style="color:#f66;padding:8px 12px">Error: ' + err + '</div>';
+    });
+};
+
+SPA.switchBranch = function(name) {
+  var url = new URL(location.href);
+  if (name === 'main') url.searchParams.delete('branch');
+  else url.searchParams.set('branch', name);
+  location.href = url.toString();
+};
+
+document.addEventListener('click', function(e) {
+  if (!e.target.classList.contains('branch-btn')) {
+    document.querySelectorAll('.branch-dropdown.open').forEach(function(dd) {
+      if (!dd.contains(e.target)) dd.classList.remove('open');
+    });
+  }
+});
 
 // Service Worker registration (skip on localhost for dev/test)
 if ('serviceWorker' in navigator && location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') {
