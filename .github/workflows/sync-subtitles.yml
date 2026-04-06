@@ -73,20 +73,34 @@ jobs:
 
               echo "  --- $slug ---"
 
-              # 1. Sync text (text-only swap, preserves timecodes and block structure)
-              echo "  [1/2] Sync text..."
-              if ! python -m tools.sync_transcript_to_srt \
+              # 1. Sync text
+              echo "  [1/3] Sync text..."
+              python -m tools.sync_transcript_to_srt \
                 --talk-dir "$TALK_DIR" \
                 --video-slug "$slug" \
                 --old-transcript /tmp/old_transcript.txt \
-                --new-transcript "$file"; then
+                --new-transcript "$file"
+              SYNC_RC=$?
+              if [ "$SYNC_RC" = "1" ]; then
                 echo "::error::$TALK_ID/$slug: sync failed — needs full subtitle rebuild via pipeline"
                 echo "SYNC_FAILED=1" >> "$GITHUB_ENV"
                 continue
               fi
 
-              # 2. Validate (text preservation + structural checks, report to stdout only)
-              echo "  [2/2] Validate..."
+              # 2. Optimize (if block count changed, sync returns exit code 2)
+              if [ "$SYNC_RC" = "2" ]; then
+                echo "  [2/3] Optimize (block count changed)..."
+                python -m tools.optimize_srt \
+                  --srt "$SRT" \
+                  --output "$SRT" \
+                  --skip-duration-split \
+                  --skip-cps-split
+              else
+                echo "  [2/3] Optimize — skipped (no block count change)"
+              fi
+
+              # 3. Validate
+              echo "  [3/3] Validate..."
               if ! python -m tools.validate_subtitles \
                 --srt "$SRT" \
                 --transcript "$file" \
