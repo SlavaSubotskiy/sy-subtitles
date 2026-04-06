@@ -77,6 +77,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 .marker-actions button { background: #2a4a2a; color: #8f8; border: 1px solid #4a4; border-radius: 6px;
   padding: 6px 14px; font-size: 13px; cursor: pointer; }
 .marker-actions button.issue { background: #3a2a4a; color: #c8f; border-color: #84c; }
+.marker-actions button.danger { background: #4a2a2a; color: #f88; border-color: #a44; }
 .marker-list { list-style: none; }
 .marker-item { padding: 6px 0; border-bottom: 1px solid #333; font-size: 14px; }
 .marker-item .tc { color: #6af; cursor: pointer; font-family: monospace; }
@@ -163,6 +164,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
       <div class="marker-actions">
         <button onclick="SPA.copyMarkers()">Copy all</button>
         <button class="issue" onclick="SPA.createPreviewIssue()">Create issue</button>
+        <button class="danger" onclick="SPA.clearMarkers()">Clear all</button>
       </div>
       <ul class="marker-list" id="marker-list"></ul>
     </details>
@@ -683,6 +685,15 @@ function renderMarkers() {
     list.appendChild(li);
   });
 }
+
+SPA.clearMarkers = function() {
+  if (!previewState.markers.length) return;
+  if (!confirm('Clear all ' + previewState.markers.length + ' markers?')) return;
+  previewState.markers = [];
+  saveMarkers();
+  renderMarkers();
+  showToast('Markers cleared');
+};
 
 SPA.copyMarkers = function() {
   var lines = ['# ' + document.title, ''];

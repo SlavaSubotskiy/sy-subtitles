@@ -466,6 +466,44 @@ class TestMarkers:
         page.click(".marker-item .del")
         assert page.locator("#marker-count").text_content() == "0"
 
+    def test_clear_markers_with_confirm(self, server, page):
+        """Clear all markers after confirmation."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.click("#btn-mark")
+        assert page.locator("#marker-count").text_content() == "2"
+        page.once("dialog", lambda dialog: dialog.accept())
+        page.click("button.danger")
+        assert page.locator("#marker-count").text_content() == "0"
+        assert page.locator(".marker-item").count() == 0
+
+    def test_clear_markers_cancel_keeps_markers(self, server, page):
+        """Cancelling clear confirmation keeps markers."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        assert page.locator("#marker-count").text_content() == "1"
+        page.once("dialog", lambda dialog: dialog.dismiss())
+        page.click("button.danger")
+        assert page.locator("#marker-count").text_content() == "1"
+        assert page.locator(".marker-item").count() == 1
+
+    def test_clear_markers_updates_localStorage(self, server, page):
+        """Clear all removes markers from localStorage."""
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        data = json.loads(page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')"))
+        assert len(data) == 1
+        page.once("dialog", lambda dialog: dialog.accept())
+        page.click("button.danger")
+        data = json.loads(page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')"))
+        assert len(data) == 0
+
     def test_marker_comment_input(self, server, page):
         """Marker should have a comment input field."""
         self._goto_preview(server, page)
