@@ -79,8 +79,8 @@ jobs:
                 --talk-dir "$TALK_DIR" \
                 --video-slug "$slug" \
                 --old-transcript /tmp/old_transcript.txt \
-                --new-transcript "$file"
-              SYNC_RC=$?
+                --new-transcript "$file" \
+                && SYNC_RC=0 || SYNC_RC=$?
               if [ "$SYNC_RC" = "1" ]; then
                 echo "::error::$TALK_ID/$slug: sync failed — needs full subtitle rebuild via pipeline"
                 echo "SYNC_FAILED=1" >> "$GITHUB_ENV"
