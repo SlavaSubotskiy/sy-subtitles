@@ -818,7 +818,7 @@ function parseTranscript(text) {
   var bodyStart = 0;
   var header = '';
   for (var i = 0; i < Math.min(lines.length, 10); i++) {
-    if (/^(Talk Language:|Language:|Мова промови:|Мова:)/i.test(lines[i].trim())) {
+    if (/^(Talk Language:|Language:|Мова промови:|Мова:|भाषण भाषा:)/i.test(lines[i].trim())) {
       bodyStart = i + 1; header = lines.slice(0, bodyStart).join('\n'); break;
     }
   }
