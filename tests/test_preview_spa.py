@@ -31,6 +31,7 @@ SAMPLE_SRT = """1
 
 SAMPLE_EN = "Talk Language: English\n\nFirst paragraph.\n\nSecond paragraph.\n"
 SAMPLE_UK = "Мова промови: англійська\n\nПерший абзац.\n\nДругий абзац.\n"
+SAMPLE_HI = "Talk Language: Hindi\n\nपहला पैराग्राफ।\n\nदूसरा पैराग्राफ।\n"
 
 MOCK_REVIEW_STATUS = {
     "version": 1,
@@ -55,6 +56,7 @@ MOCK_TREE = {
         {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/source/en.srt", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/meta.yaml", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/transcript_en.txt", "type": "blob"},
+        {"path": "talks/2001-01-01_Test-Talk/transcript_hi.txt", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/transcript_uk.txt", "type": "blob"},
         {"path": "talks/2002-01-01_No-Uk/meta.yaml", "type": "blob"},
         {"path": "talks/2002-01-01_No-Uk/transcript_en.txt", "type": "blob"},
@@ -148,6 +150,14 @@ def page(server, mock_player_js, browser):
             status=200,
             content_type="text/plain",
             body=SAMPLE_UK,
+        ),
+    )
+    pg.route(
+        "**/raw.githubusercontent.com/**/transcript_hi.txt",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="text/plain",
+            body=SAMPLE_HI,
         ),
     )
 
@@ -1400,3 +1410,199 @@ class TestBranchSelector:
         assert edit_count == "1"
         pg2.close()
         ctx.close()
+
+
+class TestTranscriptSelector:
+    def _goto_review(self, server, page):
+        goto_spa(page, server, hash="#/review/2001-01-01_Test-Talk")
+        page.wait_for_selector(".cell.uk", timeout=10000)
+
+    def test_default_languages_en_uk(self, server, page):
+        """Default review uses en (left) and uk (right)."""
+        self._goto_review(server, page)
+        left = page.evaluate("reviewState.leftLang")
+        right = page.evaluate("reviewState.rightLang")
+        assert left == "en"
+        assert right == "uk"
+
+    def test_column_headers_clickable(self, server, page):
+        """Column headers have click targets."""
+        self._goto_review(server, page)
+        assert page.locator("#col-header-left").count() == 1
+        assert page.locator("#col-header-right").count() == 1
+
+    def test_left_header_shows_language_name(self, server, page):
+        """Left header displays language name."""
+        self._goto_review(server, page)
+        text = page.locator("#col-header-left").text_content()
+        assert "English" in text
+
+    def test_right_header_shows_language_name(self, server, page):
+        """Right header displays language name."""
+        self._goto_review(server, page)
+        text = page.locator("#col-header-right").text_content()
+        assert "Ukrainian" in text
+
+    def test_click_header_shows_dropdown(self, server, page):
+        """Clicking column header shows transcript dropdown."""
+        self._goto_review(server, page)
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        assert page.locator("#transcript-dropdown-left.open").is_visible()
+
+    def test_dropdown_lists_available_transcripts(self, server, page):
+        """Dropdown lists all transcripts from manifest (en, hi, uk)."""
+        self._goto_review(server, page)
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        texts = [el.text_content() for el in page.locator("#transcript-dropdown-left div").all()]
+        assert "English" in texts
+        assert "Hindi" in texts
+        assert "Ukrainian" in texts
+
+    def test_current_language_marked_active(self, server, page):
+        """Current language has .active class in dropdown."""
+        self._goto_review(server, page)
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        active = page.locator("#transcript-dropdown-left div.active")
+        assert active.count() == 1
+        assert "English" in active.text_content()
+
+    def test_select_language_changes_column(self, server, page):
+        """Selecting a language reloads the transcript in that column."""
+        self._goto_review(server, page)
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
+        page.wait_for_function(
+            "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
+            timeout=10000,
+        )
+        left_text = page.locator(".cell.en").first.text_content()
+        assert "पहला" in left_text
+
+    def test_language_from_url_params(self, server, page):
+        """?left=hi&right=uk in hash sets correct languages."""
+        goto_spa(page, server, hash="#/review/2001-01-01_Test-Talk?left=hi&right=uk")
+        page.wait_for_function(
+            "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
+            timeout=10000,
+        )
+        assert page.evaluate("reviewState.leftLang") == "hi"
+        assert page.evaluate("reviewState.rightLang") == "uk"
+
+    def test_language_in_url_after_switch(self, server, page):
+        """After switching language, URL hash contains language params."""
+        self._goto_review(server, page)
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
+        page.wait_for_function(
+            "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
+            timeout=10000,
+        )
+        assert "left=hi" in page.url
+
+    def test_edit_warning_on_language_switch(self, server, page):
+        """Confirm dialog shown when switching language with unsaved edits."""
+        self._goto_review(server, page)
+        cell = page.locator(".cell.uk").first
+        cell.click()
+        cell.press_sequentially(" test", delay=20)
+        cell.press("Tab")
+        page.wait_for_timeout(300)
+        assert page.locator("#edit-count").text_content() == "1"
+        confirmed = []
+        page.once("dialog", lambda dialog: (confirmed.append(True), dialog.accept()))
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
+        page.wait_for_function(
+            "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
+            timeout=10000,
+        )
+        assert len(confirmed) == 1
+
+    def test_edit_warning_cancel_keeps_language(self, server, page):
+        """Cancelling confirm keeps current language."""
+        self._goto_review(server, page)
+        cell = page.locator(".cell.uk").first
+        cell.click()
+        cell.press_sequentially(" test", delay=20)
+        cell.press("Tab")
+        page.wait_for_timeout(300)
+        page.once("dialog", lambda dialog: dialog.dismiss())
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
+        page.wait_for_timeout(500)
+        assert page.evaluate("reviewState.leftLang") == "en"
+
+    def test_no_warning_without_edits(self, server, page):
+        """No confirm dialog when switching language without edits."""
+        self._goto_review(server, page)
+        dialogs = []
+        page.on("dialog", lambda dialog: (dialogs.append(True), dialog.accept()))
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
+        page.wait_for_function(
+            "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
+            timeout=10000,
+        )
+        assert len(dialogs) == 0
+
+    def test_edits_cleared_after_switch(self, server, page):
+        """Edits are cleared after confirmed language switch."""
+        self._goto_review(server, page)
+        cell = page.locator(".cell.uk").first
+        cell.click()
+        cell.press_sequentially(" test", delay=20)
+        cell.press("Tab")
+        page.wait_for_timeout(300)
+        assert page.locator("#edit-count").text_content() == "1"
+        page.once("dialog", lambda dialog: dialog.accept())
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
+        page.wait_for_function(
+            "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
+            timeout=10000,
+        )
+        assert page.locator("#edit-count").text_content() == "0"
+
+    def test_close_dropdown_on_outside_click(self, server, page):
+        """Clicking outside closes dropdown."""
+        self._goto_review(server, page)
+        page.locator("#col-header-left").click()
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        page.locator(".cell.en").first.click()
+        page.wait_for_timeout(300)
+        assert not page.locator("#transcript-dropdown-left.open").is_visible()
+
+    def test_deep_link_with_languages(self, server, page):
+        """Direct URL with language params works."""
+        goto_spa(page, server, hash="#/review/2001-01-01_Test-Talk?left=hi&right=en")
+        page.wait_for_selector(".cell.uk", timeout=10000)
+        assert page.evaluate("reviewState.leftLang") == "hi"
+        assert page.evaluate("reviewState.rightLang") == "en"
+        right_text = page.locator(".cell.uk").first.text_content()
+        assert "First paragraph" in right_text
+
+    def test_fallback_language_name(self, server, page):
+        """Unknown language code displays capitalized code."""
+        self._goto_review(server, page)
+        result = page.evaluate("langName('xyz')")
+        assert result == "Xyz"
+
+    def test_manifest_has_transcripts_array(self, server, page):
+        """Manifest talks contain transcripts array with all languages."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        transcripts = page.evaluate(
+            "manifest.talks.find(function(t) { return t.id === '2001-01-01_Test-Talk'; }).transcripts"
+        )
+        assert "en" in transcripts
+        assert "hi" in transcripts
+        assert "uk" in transcripts

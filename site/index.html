@@ -92,7 +92,14 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 /* --- Review --- */
 .grid { display: grid; grid-template-columns: 1fr 1fr; max-width: 1400px; margin: 0 auto; }
 .col-header { padding: 10px 16px; background: #222; font-size: 13px; color: #888; text-transform: uppercase;
-  position: sticky; top: 0; z-index: 1; }
+  position: sticky; top: 0; z-index: 1; cursor: pointer; position: relative; }
+.col-header:hover { color: #aaa; }
+.transcript-dropdown { position: absolute; top: 100%; left: 0; background: #222; border: 1px solid #444;
+  border-radius: 4px; max-height: 300px; overflow-y: auto; z-index: 50; min-width: 180px; display: none; text-transform: none; }
+.transcript-dropdown.open { display: block; }
+.transcript-dropdown div { padding: 6px 12px; cursor: pointer; font-size: 13px; color: #ccc; }
+.transcript-dropdown div:hover { background: #333; }
+.transcript-dropdown div.active { color: #4ade80; }
 .cell { padding: 10px 16px; border-bottom: 1px solid #2a2a2a; font-size: 15px; line-height: 1.5; min-height: 40px; }
 .cell.en { color: #bbb; }
 .cell.uk { color: #eee; cursor: text; }
@@ -187,8 +194,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
   </div>
   <div id="review-status" class="status">Loading transcripts...</div>
   <div class="grid" id="review-grid">
-    <div class="col-header en">English (original)</div>
-    <div class="col-header uk">Ukrainian (translation)</div>
+    <div class="col-header en" id="col-header-left" onclick="SPA.toggleTranscriptDropdown('left')">English &#x25BE;<div class="transcript-dropdown" id="transcript-dropdown-left"></div></div>
+    <div class="col-header uk" id="col-header-right" onclick="SPA.toggleTranscriptDropdown('right')">Ukrainian &#x25BE;<div class="transcript-dropdown" id="transcript-dropdown-right"></div></div>
   </div>
   <div class="counter" id="review-counter" style="display:none" aria-live="polite">
     <span id="mark-count">0</span> marks &middot; <span id="edit-count">0</span> edits
@@ -283,11 +290,12 @@ function route() {
       showPreview(parts[2], parts[3]); // Still try without manifest
     });
   } else if (hash.startsWith('/review/')) {
+    var reviewId = hash.split('/')[2].split('?')[0];
     document.getElementById('view-review').classList.add('active');
     ensureManifest().then(function() {
-      showReview(hash.split('/')[2]);
+      showReview(reviewId);
     }).catch(function() {
-      showReview(hash.split('/')[2]);
+      showReview(reviewId);
     });
   } else {
     showIndex();
@@ -365,7 +373,7 @@ function buildManifest(tree) {
     var m = entry.path.match(/^talks\/([^/]+)\/meta\.yaml$/);
     if (m) {
       var tid = m[1];
-      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [] };
+      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [], transcripts: [] };
     }
   });
   // Pass 2: fill in transcripts and SRT
@@ -375,6 +383,8 @@ function buildManifest(tree) {
     if (m && talks[m[1]]) talks[m[1]].hasEn = true;
     m = entry.path.match(/^talks\/([^/]+)\/transcript_uk\.txt$/);
     if (m && talks[m[1]]) talks[m[1]].hasUk = true;
+    m = entry.path.match(/^talks\/([^/]+)\/transcript_([a-z][a-z_]*)\.txt$/);
+    if (m && talks[m[1]] && talks[m[1]].transcripts.indexOf(m[2]) === -1) talks[m[1]].transcripts.push(m[2]);
     m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/final\/uk\.srt$/);
     if (m && talks[m[1]] && talks[m[1]]._srtSlugs.indexOf(m[2]) === -1) talks[m[1]]._srtSlugs.push(m[2]);
   });
@@ -733,13 +743,42 @@ document.addEventListener('keydown', function(e) {
 // ============================================================
 // REVIEW VIEW
 // ============================================================
-var reviewState = { talkId: '', enParas: [], ukParas: [], marks: {}, edits: {}, ukHeader: '', ukSep: '\n' };
+var LANG_NAMES = {
+  en: 'English', uk: 'Ukrainian', hi: 'Hindi',
+  hi_corrected: 'Hindi (corrected)', hi_corrected_whisperx: 'Hindi (WhisperX)'
+};
+function langName(code) { return LANG_NAMES[code] || code.charAt(0).toUpperCase() + code.slice(1); }
+
+var reviewState = { talkId: '', leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n' };
+
+function parseReviewLangs(hash) {
+  var left = 'en', right = 'uk';
+  var qm = hash.indexOf('?');
+  if (qm !== -1) {
+    var params = new URLSearchParams(hash.slice(qm));
+    if (params.get('left')) left = params.get('left');
+    if (params.get('right')) right = params.get('right');
+  }
+  return { left: left, right: right };
+}
+
+function updateColHeaders() {
+  var lh = document.getElementById('col-header-left');
+  var rh = document.getElementById('col-header-right');
+  if (lh) lh.firstChild.textContent = langName(reviewState.leftLang) + ' \u25BE';
+  if (rh) rh.firstChild.textContent = langName(reviewState.rightLang) + ' \u25BE';
+}
 
 function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
   reviewState.talkId = talkId;
 
+  var langs = parseReviewLangs(location.hash);
+  reviewState.leftLang = langs.left;
+  reviewState.rightLang = langs.right;
+
   var talk = manifest ? manifest.talks.find(function(t) { return t.id === talkId; }) : null;
+  reviewState.talk = talk;
   document.getElementById('r-title').textContent = talk ? talk.title : talkId;
   document.title = 'Review: ' + (talk ? talk.title : talkId);
 
@@ -747,20 +786,25 @@ function showReview(talkId) {
   var skey = 'review_' + talkId;
   try { var s = JSON.parse(localStorage.getItem(skey) || '{}'); reviewState.marks = s.marks || {}; reviewState.edits = s.edits || {}; } catch(e) {}
 
+  updateColHeaders();
+
   var statusEl = document.getElementById('review-status');
   statusEl.textContent = 'Loading transcripts...';
   statusEl.style.display = 'block';
 
+  var leftUrl = RAW + '/talks/' + talkId + '/transcript_' + reviewState.leftLang + '.txt';
+  var rightUrl = RAW + '/talks/' + talkId + '/transcript_' + reviewState.rightLang + '.txt';
+
   Promise.all([
-    fetch(RAW + '/talks/' + talkId + '/transcript_en.txt').then(function(r) { return r.ok ? r.text() : ''; }),
-    fetch(RAW + '/talks/' + talkId + '/transcript_uk.txt').then(function(r) { return r.ok ? r.text() : ''; })
+    fetch(leftUrl).then(function(r) { return r.ok ? r.text() : ''; }),
+    fetch(rightUrl).then(function(r) { return r.ok ? r.text() : ''; })
   ]).then(function(texts) {
-    var en = parseTranscript(texts[0]);
-    var uk = parseTranscript(texts[1]);
-    reviewState.enParas = en.paragraphs;
-    reviewState.ukParas = uk.paragraphs;
-    reviewState.ukHeader = uk.header;
-    reviewState.ukSep = uk.separator;
+    var left = parseTranscript(texts[0]);
+    var right = parseTranscript(texts[1]);
+    reviewState.leftParas = left.paragraphs;
+    reviewState.rightParas = right.paragraphs;
+    reviewState.rightHeader = right.header;
+    reviewState.rightSep = right.separator;
     renderReview();
     statusEl.style.display = 'none';
   }).catch(function(err) {
@@ -790,34 +834,34 @@ function renderReview() {
   // Clear old rows (keep headers)
   while (grid.children.length > 2) grid.removeChild(grid.lastChild);
 
-  var n = Math.max(reviewState.enParas.length, reviewState.ukParas.length);
+  var n = Math.max(reviewState.leftParas.length, reviewState.rightParas.length);
   for (var i = 0; i < n; i++) {
-    var en = reviewState.enParas[i] || '';
-    var uk = reviewState.ukParas[i] || '';
+    var left = reviewState.leftParas[i] || '';
+    var right = reviewState.rightParas[i] || '';
     var edited = reviewState.edits[i] !== undefined;
     var marked = reviewState.marks[i] !== undefined;
-    var displayUk = edited ? reviewState.edits[i] : uk;
+    var displayRight = edited ? reviewState.edits[i] : right;
 
-    var enDiv = document.createElement('div');
-    enDiv.className = 'cell en';
-    enDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (i+1) + '</div>' + esc(en);
+    var leftDiv = document.createElement('div');
+    leftDiv.className = 'cell en';
+    leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (i+1) + '</div>' + esc(left);
 
-    var ukDiv = document.createElement('div');
-    ukDiv.className = 'cell uk' + (edited ? ' edited' : '') + (marked ? ' marked' : '');
-    ukDiv.contentEditable = 'true';
-    ukDiv.dataset.idx = i;
-    ukDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (i+1) + '</div>' + esc(displayUk);
-    ukDiv.addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(i));
+    var rightDiv = document.createElement('div');
+    rightDiv.className = 'cell uk' + (edited ? ' edited' : '') + (marked ? ' marked' : '');
+    rightDiv.contentEditable = 'true';
+    rightDiv.dataset.idx = i;
+    rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (i+1) + '</div>' + esc(displayRight);
+    rightDiv.addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(i));
 
-    grid.appendChild(enDiv);
-    grid.appendChild(ukDiv);
+    grid.appendChild(leftDiv);
+    grid.appendChild(rightDiv);
   }
   updateReviewCounter();
 }
 
 function onReviewEdit(idx, el) {
   var text = el.innerText.replace(/^P\d+\n/, '').trim();
-  var orig = reviewState.ukParas[idx] || '';
+  var orig = reviewState.rightParas[idx] || '';
   if (text === orig) { delete reviewState.edits[idx]; el.classList.remove('edited'); }
   else { reviewState.edits[idx] = text; el.classList.add('edited'); }
   saveReview();
@@ -832,7 +876,7 @@ SPA.revertEdit = function(idx) {
   delete reviewState.edits[idx];
   var cell = document.querySelector('.cell.uk[data-idx="' + idx + '"]');
   if (cell) {
-    cell.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (idx+1) + '</div>' + esc(reviewState.ukParas[idx] || '');
+    cell.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (idx+1) + '</div>' + esc(reviewState.rightParas[idx] || '');
     cell.classList.remove('edited');
   }
   saveReview();
@@ -883,14 +927,14 @@ SPA.createReviewIssue = function() {
   if (markIdxs.length) {
     lines.push('### Marked paragraphs', '', '| P# | English | Ukrainian | Comment |', '|----|---------|-----------|---------|');
     markIdxs.forEach(function(idx) {
-      lines.push('| P' + (idx+1) + ' | ' + (reviewState.enParas[idx]||'') + ' | ' + (reviewState.edits[idx]||reviewState.ukParas[idx]||'') + ' | ' + (reviewState.marks[idx]||'') + ' |');
+      lines.push('| P' + (idx+1) + ' | ' + (reviewState.leftParas[idx]||'') + ' | ' + (reviewState.edits[idx]||reviewState.rightParas[idx]||'') + ' | ' + (reviewState.marks[idx]||'') + ' |');
     });
   }
   var editIdxs = Object.keys(reviewState.edits).map(Number).sort(function(a,b){return a-b;});
   if (editIdxs.length) {
     lines.push('', '### Suggested edits', '');
     editIdxs.forEach(function(idx) {
-      lines.push('<details><summary><b>P' + (idx+1) + '</b></summary>', '', '**Before:**', '> ' + (reviewState.ukParas[idx]||''), '', '**After:**', '> ' + reviewState.edits[idx], '', '</details>', '');
+      lines.push('<details><summary><b>P' + (idx+1) + '</b></summary>', '', '**Before:**', '> ' + (reviewState.rightParas[idx]||''), '', '**After:**', '> ' + reviewState.edits[idx], '', '</details>', '');
     });
   }
   var t = encodeURIComponent('Translation review: ' + title);
@@ -899,13 +943,13 @@ SPA.createReviewIssue = function() {
 };
 
 SPA.openEditor = function() {
-  var url = 'https://github.com/' + REPO + '/edit/main/talks/' + reviewState.talkId + '/transcript_uk.txt';
+  var url = 'https://github.com/' + REPO + '/edit/main/talks/' + reviewState.talkId + '/transcript_' + reviewState.rightLang + '.txt';
   if (Object.keys(reviewState.edits).length > 0) {
     var paras = [];
-    for (var i = 0; i < reviewState.ukParas.length; i++) {
-      paras.push(reviewState.edits[i] !== undefined ? reviewState.edits[i] : reviewState.ukParas[i]);
+    for (var i = 0; i < reviewState.rightParas.length; i++) {
+      paras.push(reviewState.edits[i] !== undefined ? reviewState.edits[i] : reviewState.rightParas[i]);
     }
-    var full = reviewState.ukHeader ? reviewState.ukHeader + reviewState.ukSep + paras.join(reviewState.ukSep) + '\n' : paras.join(reviewState.ukSep) + '\n';
+    var full = reviewState.rightHeader ? reviewState.rightHeader + reviewState.rightSep + paras.join(reviewState.rightSep) + '\n' : paras.join(reviewState.rightSep) + '\n';
     navigator.clipboard.writeText(full).then(function() {
       alert('Edited transcript copied to clipboard.\nGitHub editor will open — select all (Ctrl+A) and paste (Ctrl+V).');
       window.open(url);
@@ -927,6 +971,52 @@ function showToast(msg) {
 function fmtTime(sec) {
   return String(Math.floor(sec/3600)).padStart(2,'0') + ':' + String(Math.floor((sec%3600)/60)).padStart(2,'0') + ':' + String(Math.floor(sec%60)).padStart(2,'0');
 }
+
+// ============================================================
+// Transcript Language Selector
+// ============================================================
+SPA.toggleTranscriptDropdown = function(side) {
+  // Close all transcript dropdowns first
+  document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+  var dd = document.getElementById('transcript-dropdown-' + side);
+  if (!dd) return;
+  var talk = reviewState.talk;
+  var langs = (talk && talk.transcripts) || [];
+  if (!langs.length) { showToast('No transcripts available'); return; }
+  var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
+  dd.innerHTML = '';
+  langs.sort().forEach(function(lang) {
+    var d = document.createElement('div');
+    d.textContent = langName(lang);
+    if (lang === current) d.classList.add('active');
+    d.onclick = function(e) { e.stopPropagation(); SPA.switchTranscript(side, lang); };
+    dd.appendChild(d);
+  });
+  dd.classList.add('open');
+};
+
+SPA.switchTranscript = function(side, lang) {
+  var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
+  if (lang === current) { document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); }); return; }
+  if (Object.keys(reviewState.edits).length > 0) {
+    if (!confirm('Unsaved edits will be lost. Continue?')) return;
+    reviewState.edits = {};
+    reviewState.marks = {};
+    saveReview();
+  }
+  document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+  var left = side === 'left' ? lang : reviewState.leftLang;
+  var right = side === 'right' ? lang : reviewState.rightLang;
+  var base = '#/review/' + reviewState.talkId;
+  if (left !== 'en' || right !== 'uk') base += '?left=' + left + '&right=' + right;
+  location.hash = base;
+};
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.col-header')) {
+    document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+  }
+});
 
 // ============================================================
 // Branch Selector
