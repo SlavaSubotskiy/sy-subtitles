@@ -1,5 +1,5 @@
 // Service Worker for offline SPA caching
-var CACHE_NAME = 'sy-subtitles-v7';
+var CACHE_NAME = 'sy-subtitles-v10';
 var STATIC_ASSETS = [
   './',
   './index.html',
@@ -31,7 +31,7 @@ self.addEventListener('activate', function(e) {
 self.addEventListener('fetch', function(e) {
   // Network-first for API/raw (always fresh data), cache-first for static
   var url = e.request.url;
-  if (url.includes('api.github.com') || url.includes('raw.githubusercontent.com')) {
+  if (url.includes('api.github.com') || url.includes('raw.githubusercontent.com') || url.endsWith('/') || url.endsWith('/index.html')) {
     // Network first, fall back to cache
     e.respondWith(
       fetch(e.request).then(function(r) {
