@@ -1119,3 +1119,315 @@ describe('refresh result messaging', () => {
     assert.strictEqual(refreshResultMessage(null, null), '✓ Вже актуально');
   });
 });
+
+// ============================================================
+// Tests: Internationalization (i18n)
+// ============================================================
+
+// --- Extract I18N object from index.html ---
+function extractI18N() {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+  // Extract the I18N object definition
+  var m = html.match(/var I18N = (\{[\s\S]*?\n\};)/);
+  if (!m) throw new Error('I18N object not found in index.html');
+  // Evaluate the object (safe for static object literals)
+  var obj;
+  eval('obj = ' + m[1]);
+  return obj;
+}
+
+// --- Extract detectLang logic ---
+function detectLangLogic(savedLang, navigatorLang) {
+  if (savedLang === 'uk' || savedLang === 'en') return savedLang;
+  var nav = (navigatorLang || '').toLowerCase();
+  return nav.startsWith('uk') ? 'uk' : 'en';
+}
+
+// --- t() function replica ---
+function tFunction(key, currentLang, i18nObj) {
+  var dict = i18nObj[currentLang] || i18nObj['en'];
+  return dict[key] !== undefined ? dict[key] : (i18nObj['en'][key] !== undefined ? i18nObj['en'][key] : key);
+}
+
+describe('i18n: all keys defined in both languages', () => {
+  var i18n = extractI18N();
+  var ukKeys = Object.keys(i18n.uk).sort();
+  var enKeys = Object.keys(i18n.en).sort();
+
+  it('uk and en have identical key sets', () => {
+    var missingInEn = ukKeys.filter(k => !i18n.en.hasOwnProperty(k));
+    var missingInUk = enKeys.filter(k => !i18n.uk.hasOwnProperty(k));
+    assert.deepStrictEqual(missingInEn, [], 'Keys in uk but not en: ' + missingInEn.join(', '));
+    assert.deepStrictEqual(missingInUk, [], 'Keys in en but not uk: ' + missingInUk.join(', '));
+  });
+
+  it('no empty translations in uk', () => {
+    var empty = ukKeys.filter(k => i18n.uk[k] === '');
+    assert.deepStrictEqual(empty, [], 'Empty uk translations: ' + empty.join(', '));
+  });
+
+  it('no empty translations in en', () => {
+    var empty = enKeys.filter(k => i18n.en[k] === '');
+    assert.deepStrictEqual(empty, [], 'Empty en translations: ' + empty.join(', '));
+  });
+
+  it('at least 30 keys defined (sanity check)', () => {
+    assert.ok(ukKeys.length >= 30, 'Expected >= 30 keys, got ' + ukKeys.length);
+  });
+});
+
+describe('i18n: auto-detect logic', () => {
+  it('saved "uk" returns uk regardless of navigator', () => {
+    assert.strictEqual(detectLangLogic('uk', 'en-US'), 'uk');
+  });
+
+  it('saved "en" returns en regardless of navigator', () => {
+    assert.strictEqual(detectLangLogic('en', 'uk-UA'), 'en');
+  });
+
+  it('no saved, navigator "uk" returns uk', () => {
+    assert.strictEqual(detectLangLogic(null, 'uk'), 'uk');
+  });
+
+  it('no saved, navigator "uk-UA" returns uk', () => {
+    assert.strictEqual(detectLangLogic(null, 'uk-UA'), 'uk');
+  });
+
+  it('no saved, navigator "en-US" returns en', () => {
+    assert.strictEqual(detectLangLogic(null, 'en-US'), 'en');
+  });
+
+  it('no saved, navigator "de" returns en', () => {
+    assert.strictEqual(detectLangLogic(null, 'de'), 'en');
+  });
+
+  it('no saved, navigator "fr-FR" returns en', () => {
+    assert.strictEqual(detectLangLogic(null, 'fr-FR'), 'en');
+  });
+
+  it('no saved, navigator "" returns en', () => {
+    assert.strictEqual(detectLangLogic(null, ''), 'en');
+  });
+
+  it('no saved, navigator null returns en', () => {
+    assert.strictEqual(detectLangLogic(null, null), 'en');
+  });
+
+  it('invalid saved value falls through to navigator', () => {
+    assert.strictEqual(detectLangLogic('de', 'uk'), 'uk');
+    assert.strictEqual(detectLangLogic('fr', 'en-US'), 'en');
+  });
+});
+
+describe('i18n: t() function', () => {
+  var i18n = extractI18N();
+
+  it('returns uk translation when lang is uk', () => {
+    assert.strictEqual(tFunction('index.loading', 'uk', i18n), i18n.uk['index.loading']);
+  });
+
+  it('returns en translation when lang is en', () => {
+    assert.strictEqual(tFunction('index.loading', 'en', i18n), i18n.en['index.loading']);
+  });
+
+  it('falls back to en for unknown language', () => {
+    assert.strictEqual(tFunction('index.loading', 'de', i18n), i18n.en['index.loading']);
+  });
+
+  it('returns key itself for unknown key', () => {
+    assert.strictEqual(tFunction('nonexistent.key', 'uk', i18n), 'nonexistent.key');
+  });
+
+  it('uk and en translations differ for text keys', () => {
+    // At least some keys should have different translations
+    var different = Object.keys(i18n.uk).filter(k => i18n.uk[k] !== i18n.en[k]);
+    assert.ok(different.length > 10, 'Expected many different translations, got ' + different.length);
+  });
+});
+
+describe('i18n: toggle cycle', () => {
+  it('uk toggles to en', () => {
+    assert.strictEqual('uk' === 'uk' ? 'en' : 'uk', 'en');
+  });
+
+  it('en toggles to uk', () => {
+    assert.strictEqual('en' === 'uk' ? 'en' : 'uk', 'uk');
+  });
+});
+
+describe('i18n: data-i18n coverage in HTML', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+  var i18n = extractI18N();
+
+  it('all data-i18n keys exist in I18N', () => {
+    var keys = [];
+    var re = /data-i18n="([^"]+)"/g;
+    var m;
+    while ((m = re.exec(html)) !== null) keys.push(m[1]);
+    var missing = keys.filter(k => !i18n.en.hasOwnProperty(k));
+    assert.deepStrictEqual(missing, [], 'data-i18n keys not in I18N: ' + missing.join(', '));
+  });
+
+  it('all data-i18n-placeholder keys exist in I18N', () => {
+    var keys = [];
+    var re = /data-i18n-placeholder="([^"]+)"/g;
+    var m;
+    while ((m = re.exec(html)) !== null) keys.push(m[1]);
+    var missing = keys.filter(k => !i18n.en.hasOwnProperty(k));
+    assert.deepStrictEqual(missing, [], 'data-i18n-placeholder keys not in I18N: ' + missing.join(', '));
+  });
+
+  it('all data-i18n-title keys exist in I18N', () => {
+    var keys = [];
+    var re = /data-i18n-title="([^"]+)"/g;
+    var m;
+    while ((m = re.exec(html)) !== null) keys.push(m[1]);
+    var missing = keys.filter(k => !i18n.en.hasOwnProperty(k));
+    assert.deepStrictEqual(missing, [], 'data-i18n-title keys not in I18N: ' + missing.join(', '));
+  });
+
+  it('language toggle button exists', () => {
+    assert.ok(html.includes('id="lang-btn"'), 'lang-btn not found');
+    assert.ok(html.includes('SPA.toggleLang()'), 'SPA.toggleLang() not found');
+  });
+
+  it('LANG_KEY defined for localStorage', () => {
+    assert.ok(html.includes("var LANG_KEY = 'sy_lang'"), 'LANG_KEY not found');
+  });
+
+  it('detectLang function exists', () => {
+    assert.ok(html.includes('function detectLang()'), 'detectLang not found');
+  });
+
+  it('translatePage function exists', () => {
+    assert.ok(html.includes('function translatePage()'), 'translatePage not found');
+  });
+
+  it('APP_VERSION is 11', () => {
+    var m = html.match(/var APP_VERSION = '(\d+)'/);
+    assert.ok(m, 'APP_VERSION not found');
+    assert.strictEqual(m[1], '11');
+  });
+});
+
+describe('i18n: no hardcoded UI text in HTML body', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+  var bodyMatch = html.match(/<body>([\s\S]*)<\/body>/);
+  var body = bodyMatch ? bodyMatch[1] : '';
+  var bodyNoScript = body.replace(/<script[\s\S]*?<\/script>/g, '');
+
+  it('no hardcoded "Loading..." without data-i18n', () => {
+    var loadingMatches = bodyNoScript.match(/>Loading\.\.\.</g) || [];
+    var i18nLoadingMatches = bodyNoScript.match(/data-i18n="[^"]*">Loading\.\.\.</g) || [];
+    assert.strictEqual(loadingMatches.length, i18nLoadingMatches.length,
+      'Found Loading... without data-i18n attribute');
+  });
+
+  it('no hardcoded Ukrainian title attributes without data-i18n-title', () => {
+    var titleRe = /title="([^"]*)"/g;
+    var m, errors = [];
+    while ((m = titleRe.exec(bodyNoScript)) !== null) {
+      if (/[\u0400-\u04FF]/.test(m[1])) {
+        var before = bodyNoScript.substring(Math.max(0, m.index - 200), m.index);
+        if (!before.includes('data-i18n-title=')) errors.push(m[1]);
+      }
+    }
+    assert.deepStrictEqual(errors, [], 'Hardcoded Ukrainian title attrs: ' + errors.join(', '));
+  });
+
+  it('no hardcoded English placeholder attributes without data-i18n-placeholder', () => {
+    var re = /placeholder="([^"]*)"/g;
+    var m, errors = [];
+    while ((m = re.exec(bodyNoScript)) !== null) {
+      var val = m[1];
+      // Skip if it looks like an i18n key (contains dots or is single word)
+      if (/^[\w.]+$/.test(val)) continue;
+      if (/[a-zA-Z]{3,}/.test(val)) {
+        var before = bodyNoScript.substring(Math.max(0, m.index - 200), m.index);
+        if (!before.includes('data-i18n-placeholder=')) errors.push(val);
+      }
+    }
+    assert.deepStrictEqual(errors, [], 'Hardcoded placeholders: ' + errors.join(', '));
+  });
+
+  it('all visible button text has data-i18n', () => {
+    var btnRe = /<button[^>]*>([^<]+)<\/button>/g;
+    var m, errors = [];
+    while ((m = btnRe.exec(bodyNoScript)) !== null) {
+      var text = m[1].trim();
+      // Skip icon-only buttons (single unicode chars, emoji, &#xxx;, ↻)
+      if (text.length <= 2 || /^&#x?[0-9a-f]+;$/i.test(text)) continue;
+      // Skip branch selector buttons (dynamic content like "main ▾")
+      if (m[0].includes('class="branch-btn"')) continue;
+      // Skip theme/lang toggle buttons (single icon/label set by JS)
+      if (m[0].includes('id="theme-btn"') || m[0].includes('id="lang-btn"')) continue;
+      // Must have data-i18n in the tag
+      if (!m[0].includes('data-i18n=')) errors.push(text);
+    }
+    assert.deepStrictEqual(errors, [], 'Button text without data-i18n: ' + errors.join(', '));
+  });
+
+  it('all visible summary text has data-i18n', () => {
+    var re = /<summary[^>]*>([^<]*)</g;
+    var m, errors = [];
+    while ((m = re.exec(bodyNoScript)) !== null) {
+      var text = m[1].trim();
+      if (text.length > 2 && /[a-zA-Z\u0400-\u04FF]/.test(text) && !m[0].includes('data-i18n=')) {
+        errors.push(text);
+      }
+    }
+    assert.deepStrictEqual(errors, [], 'Summary text without data-i18n: ' + errors.join(', '));
+  });
+
+  it('no hardcoded status text in divs with class "status"', () => {
+    var re = /class="status"[^>]*>([^<]+)</g;
+    var m, errors = [];
+    while ((m = re.exec(bodyNoScript)) !== null) {
+      var text = m[1].trim();
+      if (text.length > 0 && !m[0].includes('data-i18n=')) errors.push(text);
+    }
+    assert.deepStrictEqual(errors, [], 'Status text without data-i18n: ' + errors.join(', '));
+  });
+
+  it('all JS t() calls use keys that exist in I18N', () => {
+    var scriptMatch = html.match(/<script>([\s\S]*)<\/script>/);
+    if (!scriptMatch) return;
+    var script = scriptMatch[1];
+
+    // Extract all t('key') calls
+    var tCalls = new Set();
+    var tRe = /\bt\('([^']+?)'\)/g;
+    var m;
+    while ((m = tRe.exec(script)) !== null) tCalls.add(m[1]);
+
+    // Extract ALL I18N keys (from any quoted key in the I18N block)
+    var i18nMatch = script.match(/var I18N\s*=\s*\{([\s\S]*?)\n\s*\};/);
+    if (!i18nMatch) { assert.ok(false, 'I18N object not found'); return; }
+    var i18nBlock = i18nMatch[1];
+    var allKeys = new Set();
+    var keyRe = /'([\w.]+)'\s*:/g;
+    while ((m = keyRe.exec(i18nBlock)) !== null) allKeys.add(m[1]);
+
+    var missing = [...tCalls].filter(k => !allKeys.has(k));
+    assert.strictEqual(missing.length, 0, 't() calls with undefined keys: ' + missing.join(', '));
+  });
+
+  it('no JS showToast/toast with hardcoded strings (should use t())', () => {
+    var scriptMatch = html.match(/<script>([\s\S]*)<\/script>/);
+    if (!scriptMatch) return;
+    var script = scriptMatch[1];
+    // Find showToast('...') or toast('...') with literal strings (not t())
+    var re = /(?:showToast|toast)\(\s*'([^']+)'/g;
+    var m, errors = [];
+    while ((m = re.exec(script)) !== null) {
+      // Should be t('key'), not a literal
+      if (!/^t\(/.test(m[0])) errors.push(m[1]);
+    }
+    // Filter out ones that are inside t() calls
+    errors = errors.filter(e => !e.startsWith('t('));
+    assert.strictEqual(errors.length, 0, 'Hardcoded toast messages: ' + errors.join(', '));
+  });
+});

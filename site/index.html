@@ -172,8 +172,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 <!-- === FRESHNESS BAR (global, all views) === -->
 <div id="freshness-bar" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 20px;display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:12px;color:var(--fg6);">
   <span id="last-updated"></span>
-  <button id="refresh-btn" onclick="SPA.refreshManifest()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;display:none;" title="Перевірити оновлення">&#x21bb;</button>
-  <button id="theme-btn" onclick="SPA.cycleTheme()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;" title="Тема: авто">&#x263C;</button>
+  <button id="refresh-btn" onclick="SPA.refreshManifest()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;display:none;" data-i18n-title="title.refresh">&#x21bb;</button>
+  <button id="lang-btn" onclick="SPA.toggleLang()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;" data-i18n-title="title.lang">UK</button>
+  <button id="theme-btn" onclick="SPA.cycleTheme()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;" data-i18n-title="title.theme.auto">&#x263C;</button>
 </div>
 
 <!-- === INDEX VIEW === -->
@@ -185,17 +186,17 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
     </div>
   </div>
   <div id="index-toolbar" style="max-width:800px;margin:8px auto;padding:0 20px;display:none">
-    <input id="search-input" type="text" placeholder="Search talks..." style="width:100%;padding:8px 12px;background:var(--bg3);color:var(--fg2);border:1px solid var(--border2);border-radius:6px;font-size:14px;margin-bottom:6px;">
+    <input id="search-input" type="text" data-i18n-placeholder="search.placeholder" style="width:100%;padding:8px 12px;background:var(--bg3);color:var(--fg2);border:1px solid var(--border2);border-radius:6px;font-size:14px;margin-bottom:6px;">
     <div id="stats-bar" class="stats-bar"></div>
   </div>
-  <div id="index-status" class="status">Loading...</div>
+  <div id="index-status" class="status" data-i18n="index.loading">Loading...</div>
   <div id="index-content" style="padding: 0 20px;"></div>
 </div>
 
 <!-- === PREVIEW VIEW === -->
 <div id="view-preview" class="view">
   <div class="header">
-    <h1><a href="#/">&larr; Index</a> &middot; <span id="p-title"></span></h1>
+    <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="p-title"></span></h1>
     <div class="branch-selector">
       <button class="branch-btn" id="branch-btn-preview" onclick="SPA.toggleBranches()">main &#x25BE;</button>
       <div class="branch-dropdown" id="branch-dropdown-preview"></div>
@@ -206,17 +207,17 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
     <div id="subtitle-overlay"></div>
     <div class="controls">
       <span id="time-display">00:00:00</span>
-      <select id="srt-lang-select" style="display:none;background:var(--bg4);color:var(--fg);border:1px solid var(--border3);border-radius:4px;padding:4px 8px;font-size:13px;cursor:pointer;" title="Мова субтитрів"></select>
-      <button id="btn-mark" onclick="SPA.addMarker()" title="M = mark, Space = play/pause, &#8592;&#8594; = seek 5s">&#x1F4CC; Mark</button>
+      <select id="srt-lang-select" style="display:none;background:var(--bg4);color:var(--fg);border:1px solid var(--border3);border-radius:4px;padding:4px 8px;font-size:13px;cursor:pointer;" data-i18n-title="title.srt_lang"></select>
+      <button id="btn-mark" onclick="SPA.addMarker()" data-i18n-title="btn.mark_title" data-i18n="btn.mark">&#x1F4CC; Mark</button>
     </div>
   </div>
   <div class="markers">
     <details open>
-      <summary>Markers (<span id="marker-count">0</span>)</summary>
+      <summary><span data-i18n="markers.summary">Markers</span> (<span id="marker-count">0</span>)</summary>
       <div class="marker-actions">
-        <button onclick="SPA.copyMarkers()">Copy all</button>
-        <button class="issue" onclick="SPA.createPreviewIssue()">Create issue</button>
-        <button class="danger" onclick="SPA.clearMarkers()">Clear all</button>
+        <button onclick="SPA.copyMarkers()" data-i18n="btn.copy_all">Copy all</button>
+        <button class="issue" onclick="SPA.createPreviewIssue()" data-i18n="btn.create_issue">Create issue</button>
+        <button class="danger" onclick="SPA.clearMarkers()" data-i18n="btn.clear_all">Clear all</button>
       </div>
       <ul class="marker-list" id="marker-list"></ul>
     </details>
@@ -226,25 +227,25 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 <!-- === REVIEW VIEW === -->
 <div id="view-review" class="view">
   <div class="header">
-    <h1><a href="#/">&larr; Index</a> &middot; <span id="r-title"></span></h1>
+    <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="r-title"></span></h1>
     <div class="branch-selector">
       <button class="branch-btn" id="branch-btn-review" onclick="SPA.toggleBranches()">main &#x25BE;</button>
       <div class="branch-dropdown" id="branch-dropdown-review"></div>
     </div>
     <div class="header-actions">
-      <button onclick="SPA.revertAllEdits()" id="btn-revert-all" style="display:none">Revert all</button>
-      <button class="issue" onclick="SPA.createReviewIssue()">Create Issue</button>
-      <button class="primary" onclick="SPA.openEditor()">Open in GitHub Editor</button>
+      <button onclick="SPA.revertAllEdits()" id="btn-revert-all" style="display:none" data-i18n="btn.revert_all">Revert all</button>
+      <button class="issue" onclick="SPA.createReviewIssue()" data-i18n="btn.create_review_issue">Create Issue</button>
+      <button class="primary" onclick="SPA.openEditor()" data-i18n="btn.open_editor">Open in GitHub Editor</button>
     </div>
   </div>
-  <div id="review-status" class="status">Loading transcripts...</div>
+  <div id="review-status" class="status" data-i18n="review.loading">Loading transcripts...</div>
   <div class="grid" id="review-grid">
     <div class="col-header en" id="col-header-left" onclick="SPA.toggleTranscriptDropdown('left')">English &#x25BE;<div class="transcript-dropdown" id="transcript-dropdown-left"></div></div>
     <div class="col-header uk" id="col-header-right" onclick="SPA.toggleTranscriptDropdown('right')">Ukrainian &#x25BE;<div class="transcript-dropdown" id="transcript-dropdown-right"></div></div>
   </div>
   <div class="counter" id="review-counter" style="display:none" aria-live="polite">
-    <span id="mark-count">0</span> marks &middot; <span id="edit-count">0</span> edits
-    <div style="font-size:11px;color:#666;margin-top:2px">Ctrl+M = toggle mark</div>
+    <span id="mark-count">0</span> <span data-i18n="review.marks">marks</span> &middot; <span id="edit-count">0</span> <span data-i18n="review.edits">edits</span>
+    <div style="font-size:11px;color:var(--fg6);margin-top:2px" data-i18n="review.hint">Ctrl+M = toggle mark</div>
   </div>
 </div>
 
@@ -296,7 +297,7 @@ var PAGES_BASE = location.pathname.replace(/\/[^/]*$/, '');
 // ============================================================
 // App version — cache auto-invalidates on update
 // ============================================================
-var APP_VERSION = '10';
+var APP_VERSION = '11';
 var CACHE_KEY = 'sy_tree_cache__' + BRANCH;
 (function() {
   var cached = localStorage.getItem('sy_app_version');
@@ -306,6 +307,145 @@ var CACHE_KEY = 'sy_tree_cache__' + BRANCH;
     localStorage.setItem('sy_app_version', APP_VERSION);
   }
 })();
+
+// ============================================================
+// Internationalization (i18n)
+// ============================================================
+var I18N = {
+  uk: {
+    'search.placeholder': '\u041F\u043E\u0448\u0443\u043A \u043F\u0440\u043E\u043C\u043E\u0432...',
+    'index.loading': '\u0417\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043D\u044F...',
+    'nav.back': '\u2190 \u0406\u043D\u0434\u0435\u043A\u0441',
+    'btn.mark': '\u{1F4CC} \u041C\u0430\u0440\u043A\u0435\u0440',
+    'markers.summary': '\u041C\u0430\u0440\u043A\u0435\u0440\u0438',
+    'btn.copy_all': '\u041A\u043E\u043F\u0456\u044E\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
+    'btn.create_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 issue',
+    'btn.clear_all': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0435',
+    'btn.revert_all': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
+    'btn.create_review_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 Issue',
+    'btn.open_editor': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u0432 GitHub Editor',
+    'review.loading': '\u0417\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043D\u044F \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442\u0456\u0432...',
+    'review.hint': 'Ctrl+M = \u043F\u0435\u0440\u0435\u043C\u043A\u043D\u0443\u0442\u0438 \u043C\u0430\u0440\u043A\u0435\u0440',
+    'title.refresh': '\u041F\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043E\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044F',
+    'title.srt_lang': '\u041C\u043E\u0432\u0430 \u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0456\u0432',
+    'title.theme.auto': '\u0422\u0435\u043C\u0430: \u0430\u0432\u0442\u043E',
+    'title.theme.dark': '\u0422\u0435\u043C\u0430: \u0442\u0435\u043C\u043D\u0430',
+    'title.theme.light': '\u0422\u0435\u043C\u0430: \u0441\u0432\u0456\u0442\u043B\u0430',
+    'freshness.updated': '\u041E\u043D\u043E\u0432\u043B\u0435\u043D\u043E',
+    'freshness.just_now': '\u0449\u043E\u0439\u043D\u043E',
+    'freshness.min_ago': '\u0445\u0432 \u0442\u043E\u043C\u0443',
+    'freshness.hour_ago': '\u0433\u043E\u0434 \u0442\u043E\u043C\u0443',
+    'freshness.refreshing': '\u041E\u043D\u043E\u0432\u043B\u044E\u044E...',
+    'freshness.refreshed': '\u2713 \u041E\u043D\u043E\u0432\u043B\u0435\u043D\u043E!',
+    'freshness.up_to_date': '\u2713 \u0412\u0436\u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u044C\u043D\u043E',
+    'freshness.error': '\u2717 \u041F\u043E\u043C\u0438\u043B\u043A\u0430:',
+    'link.review': '\u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043F\u0435\u0440\u0435\u043A\u043B\u0430\u0434',
+    'error.srt': '\u041F\u043E\u043C\u0438\u043B\u043A\u0430 \u0437\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043D\u044F \u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0456\u0432',
+    'badge.needs_review': '\u043F\u043E\u0442\u0440\u0435\u0431\u0443\u0454 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u043A\u0438',
+    'badge.in_review': '\u043D\u0430 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0446\u0456',
+    'badge.approved': '\u0437\u0430\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043E',
+    'badge.pending': '\u043E\u0447\u0456\u043A\u0443\u0454',
+    'stat.all': '\u0412\u0441\u0456',
+    'stat.translated': '\u041F\u0435\u0440\u0435\u043A\u043B\u0430\u0434\u0435\u043D\u043E',
+    'stat.with_srt': '\u0417 SRT',
+    'stat.approved': '\u0417\u0430\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043E',
+    'stat.needs_review': '\u041F\u043E\u0442\u0440\u0435\u0431\u0443\u0454 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u043A\u0438',
+    'review.marks': '\u043C\u0430\u0440\u043A\u0435\u0440\u0456\u0432',
+    'review.edits': '\u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u044C',
+    'btn.mark_title': 'M = \u043C\u0430\u0440\u043A\u0435\u0440, Space = \u043F\u043B\u0435\u0439/\u043F\u0430\u0443\u0437\u0430, \u2190\u2192 = 5\u0441',
+    'toast.markers_cleared': '\u041C\u0430\u0440\u043A\u0435\u0440\u0438 \u043E\u0447\u0438\u0449\u0435\u043D\u043E',
+    'toast.copied_markers': '\u0421\u043A\u043E\u043F\u0456\u0439\u043E\u0432\u0430\u043D\u043E {n} \u043C\u0430\u0440\u043A\u0435\u0440\u0456\u0432',
+    'toast.reverted': '\u0421\u043A\u0430\u0441\u043E\u0432\u0430\u043D\u043E P{n}',
+    'toast.all_reverted': '\u0412\u0441\u0456 \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F \u0441\u043A\u0430\u0441\u043E\u0432\u0430\u043D\u043E',
+    'confirm.clear_markers': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0456 {n} \u043C\u0430\u0440\u043A\u0435\u0440\u0456\u0432?',
+    'confirm.unsaved_edits': '\u041D\u0435\u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043D\u0456 \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F \u0431\u0443\u0434\u0443\u0442\u044C \u0432\u0442\u0440\u0430\u0447\u0435\u043D\u0456. \u041F\u0440\u043E\u0434\u043E\u0432\u0436\u0438\u0442\u0438?',
+    'editor.clipboard_alert': '\u0412\u0456\u0434\u0440\u0435\u0434\u0430\u0433\u043E\u0432\u0430\u043D\u0438\u0439 \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442 \u0441\u043A\u043E\u043F\u0456\u0439\u043E\u0432\u0430\u043D\u043E.\nGitHub \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440 \u0432\u0456\u0434\u043A\u0440\u0438\u0454\u0442\u044C\u0441\u044F \u2014 \u0432\u0438\u0434\u0456\u043B\u0456\u0442\u044C \u0432\u0441\u0435 (Ctrl+A) \u0456 \u0432\u0441\u0442\u0430\u0432\u0442\u0435 (Ctrl+V).',
+    'no_transcripts': '\u041D\u0435\u043C\u0430\u0454 \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442\u0456\u0432',
+    'title.lang': '\u041C\u043E\u0432\u0430 \u0456\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0443'
+  },
+  en: {
+    'search.placeholder': 'Search talks...',
+    'index.loading': 'Loading...',
+    'nav.back': '\u2190 Index',
+    'btn.mark': '\u{1F4CC} Mark',
+    'markers.summary': 'Markers',
+    'btn.copy_all': 'Copy all',
+    'btn.create_issue': 'Create issue',
+    'btn.clear_all': 'Clear all',
+    'btn.revert_all': 'Revert all',
+    'btn.create_review_issue': 'Create Issue',
+    'btn.open_editor': 'Open in GitHub Editor',
+    'review.loading': 'Loading transcripts...',
+    'review.hint': 'Ctrl+M = toggle mark',
+    'title.refresh': 'Check for updates',
+    'title.srt_lang': 'Subtitle language',
+    'title.theme.auto': 'Theme: auto',
+    'title.theme.dark': 'Theme: dark',
+    'title.theme.light': 'Theme: light',
+    'freshness.updated': 'Updated',
+    'freshness.just_now': 'just now',
+    'freshness.min_ago': 'min ago',
+    'freshness.hour_ago': 'hr ago',
+    'freshness.refreshing': 'Refreshing...',
+    'freshness.refreshed': '\u2713 Refreshed!',
+    'freshness.up_to_date': '\u2713 Up to date',
+    'freshness.error': '\u2717 Error:',
+    'link.review': 'review translation',
+    'error.srt': 'Error loading subtitles',
+    'badge.needs_review': 'needs review',
+    'badge.in_review': 'in review',
+    'badge.approved': 'approved',
+    'badge.pending': 'pending',
+    'stat.all': 'All',
+    'stat.translated': 'Translated',
+    'stat.with_srt': 'With SRT',
+    'stat.approved': 'Approved',
+    'stat.needs_review': 'Needs review',
+    'review.marks': 'marks',
+    'review.edits': 'edits',
+    'btn.mark_title': 'M = mark, Space = play/pause, \u2190\u2192 = seek 5s',
+    'toast.markers_cleared': 'Markers cleared',
+    'toast.copied_markers': 'Copied {n} markers',
+    'toast.reverted': 'Reverted P{n}',
+    'toast.all_reverted': 'All edits reverted',
+    'confirm.clear_markers': 'Clear all {n} markers?',
+    'confirm.unsaved_edits': 'Unsaved edits will be lost. Continue?',
+    'editor.clipboard_alert': 'Edited transcript copied to clipboard.\nGitHub editor will open \u2014 select all (Ctrl+A) and paste (Ctrl+V).',
+    'no_transcripts': 'No transcripts available',
+    'title.lang': 'Interface language'
+  }
+};
+
+var LANG_KEY = 'sy_lang';
+
+function detectLang() {
+  var saved = localStorage.getItem(LANG_KEY);
+  if (saved === 'uk' || saved === 'en') return saved;
+  var nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  return nav.startsWith('uk') ? 'uk' : 'en';
+}
+
+var currentLang = detectLang();
+
+function t(key) {
+  var dict = I18N[currentLang] || I18N['en'];
+  return dict[key] !== undefined ? dict[key] : (I18N['en'][key] !== undefined ? I18N['en'][key] : key);
+}
+
+function translatePage() {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+    el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+    el.title = t(el.getAttribute('data-i18n-title'));
+  });
+  // Update html lang attribute
+  document.documentElement.lang = currentLang;
+}
 
 // ============================================================
 // SPA Router
@@ -333,7 +473,7 @@ function loadSubtitleLang(lang) {
     })
     .catch(function(err) {
       console.warn('[SPA] SRT error:', err);
-      document.getElementById('subtitle-overlay').textContent = 'Error loading subtitles';
+      document.getElementById('subtitle-overlay').textContent = t('error.srt');
     });
 }
 
@@ -534,11 +674,11 @@ function renderStats() {
   var s = computeStats(manifest.talks, statuses, query);
   var hasSearch = query.length > 0;
   var cards = [
-    { f: s.filtered.talks, t: s.total.talks, label: 'All', cls: 'info', filter: 'all' },
-    { f: s.filtered.translated, t: s.total.translated, label: 'Translated', cls: 'info', filter: 'translated' },
-    { f: s.filtered.with_srt, t: s.total.with_srt, label: 'With SRT', cls: 'info', filter: 'with-srt' },
-    { f: s.filtered.approved, t: s.total.approved, label: 'Approved', cls: 'good', filter: 'approved' },
-    { f: s.filtered.pending, t: s.total.pending, label: 'Needs review', cls: 'warn', filter: 'needs-review' },
+    { f: s.filtered.talks, t: s.total.talks, label: t('stat.all'), cls: 'info', filter: 'all' },
+    { f: s.filtered.translated, t: s.total.translated, label: t('stat.translated'), cls: 'info', filter: 'translated' },
+    { f: s.filtered.with_srt, t: s.total.with_srt, label: t('stat.with_srt'), cls: 'info', filter: 'with-srt' },
+    { f: s.filtered.approved, t: s.total.approved, label: t('stat.approved'), cls: 'good', filter: 'approved' },
+    { f: s.filtered.pending, t: s.total.pending, label: t('stat.needs_review'), cls: 'warn', filter: 'needs-review' },
   ];
   bar.innerHTML = '';
   cards.forEach(function(c) {
@@ -570,7 +710,7 @@ function showIndex() {
 
   if (manifest && reviewStatus) { updateLastModifiedUI(); renderStats(); renderIndex(contentEl); statusEl.style.display = 'none'; return; }
 
-  statusEl.textContent = 'Loading...';
+  statusEl.textContent = t('index.loading');
   statusEl.style.display = 'block';
 
   Promise.all([
@@ -594,45 +734,45 @@ function renderIndex(el) {
   var statuses = (reviewStatus && reviewStatus.talks) || {};
   var query = (document.getElementById('search-input').value || '').toLowerCase();
 
-  manifest.talks.forEach(function(t) {
-    var st = statuses[t.id] || null;
-    var hasSrt = (t.videos || []).some(function(v) { return v.hasSrt; });
+  manifest.talks.forEach(function(tk) {
+    var st = statuses[tk.id] || null;
+    var hasSrt = (tk.videos || []).some(function(v) { return v.hasSrt; });
 
     // Filter
-    if (activeFilter === 'translated' && !t.hasUk) return;
+    if (activeFilter === 'translated' && !tk.hasUk) return;
     if (activeFilter === 'with-srt' && !hasSrt) return;
     if (activeFilter === 'approved' && (!st || st.status !== 'approved')) return;
     if (activeFilter === 'needs-review' && (!st || st.status === 'approved')) return;
 
     // Search
-    var searchText = ((t.title || '') + ' ' + (t.date || '') + ' ' + t.id).toLowerCase();
+    var searchText = ((tk.title || '') + ' ' + (tk.date || '') + ' ' + tk.id).toLowerCase();
     if (query && searchText.indexOf(query) === -1) return;
 
     var div = document.createElement('div');
     div.className = 'talk-item';
 
-    var header = (t.date || t.id.substring(0, 10)) + ' — <strong>' + esc(t.title || t.id) + '</strong>';
+    var header = (tk.date || tk.id.substring(0, 10)) + ' — <strong>' + esc(tk.title || tk.id) + '</strong>';
 
     // Review status badge
     if (st) {
       var bc = st.status === 'approved' ? 'approved' : st.status === 'in-progress' ? 'in-review' : 'needs-review';
-      var bt = st.status === 'approved' ? 'approved' : st.status === 'in-progress' ? 'in review' + (st.reviewer ? ' (' + esc(st.reviewer) + ')' : '') : 'needs review';
+      var bt = st.status === 'approved' ? t('badge.approved') : st.status === 'in-progress' ? t('badge.in_review') + (st.reviewer ? ' (' + esc(st.reviewer) + ')' : '') : t('badge.needs_review');
       var href = st.issue_number ? 'https://github.com/' + REPO + '/issues/' + st.issue_number : '#';
       header += ' <a href="' + href + '" target="_blank" class="review-badge ' + bc + '">' + bt + '</a>';
     }
 
-    if (t.hasEn && t.hasUk) {
-      header += ' &middot; <a href="#/review/' + t.id + '" style="color:#c8f">review translation</a>';
+    if (tk.hasEn && tk.hasUk) {
+      header += ' &middot; <a href="#/review/' + tk.id + '" style="color:var(--issue-fg)">' + t('link.review') + '</a>';
     }
 
     var links = '';
-    (t.videos || []).forEach(function(v) {
+    (tk.videos || []).forEach(function(v) {
       if (v.hasSrt && v.vimeo_url) {
-        links += '<div class="talk-links"><a href="#/preview/' + t.id + '/' + v.slug + '">' + esc(v.title) + '</a></div>';
+        links += '<div class="talk-links"><a href="#/preview/' + tk.id + '/' + v.slug + '">' + esc(v.title) + '</a></div>';
       }
     });
-    if (!links && !t.hasUk) {
-      links = '<div class="pending">pending</div>';
+    if (!links && !tk.hasUk) {
+      links = '<div class="pending">' + t('badge.pending') + '</div>';
     }
 
     div.innerHTML = '<div class="talk-header">' + header + '</div>' + links;
@@ -805,11 +945,11 @@ function renderMarkers() {
 
 SPA.clearMarkers = function() {
   if (!previewState.markers.length) return;
-  if (!confirm('Clear all ' + previewState.markers.length + ' markers?')) return;
+  if (!confirm(t('confirm.clear_markers').replace('{n}', previewState.markers.length))) return;
   previewState.markers = [];
   saveMarkers();
   renderMarkers();
-  showToast('Markers cleared');
+  showToast(t('toast.markers_cleared'));
 };
 
 SPA.copyMarkers = function() {
@@ -819,7 +959,7 @@ SPA.copyMarkers = function() {
     if (m.comment) line += ' — _' + m.comment + '_';
     lines.push(line);
   });
-  navigator.clipboard.writeText(lines.join('\n')).then(function() { showToast('Copied ' + previewState.markers.length + ' markers'); });
+  navigator.clipboard.writeText(lines.join('\n')).then(function() { showToast(t('toast.copied_markers').replace('{n}', previewState.markers.length)); });
 };
 
 SPA.createPreviewIssue = function() {
@@ -896,7 +1036,7 @@ function showReview(talkId) {
   updateColHeaders();
 
   var statusEl = document.getElementById('review-status');
-  statusEl.textContent = 'Loading transcripts...';
+  statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
 
   var leftSha = (talk && talk._transcriptSha && talk._transcriptSha[reviewState.leftLang]) || '';
@@ -989,7 +1129,7 @@ SPA.revertEdit = function(idx) {
     cell.classList.remove('edited');
   }
   saveReview();
-  showToast('Reverted P' + (idx+1));
+  showToast(t('toast.reverted').replace('{n}', idx+1));
 };
 
 SPA.revertAllEdits = function() {
@@ -997,7 +1137,7 @@ SPA.revertAllEdits = function() {
   reviewState.edits = {};
   saveReview();
   renderReview();
-  showToast('All edits reverted');
+  showToast(t('toast.all_reverted'));
 };
 
 function updateReviewCounter() {
@@ -1060,7 +1200,7 @@ SPA.openEditor = function() {
     }
     var full = reviewState.rightHeader ? reviewState.rightHeader + reviewState.rightSep + paras.join(reviewState.rightSep) + '\n' : paras.join(reviewState.rightSep) + '\n';
     navigator.clipboard.writeText(full).then(function() {
-      alert('Edited transcript copied to clipboard.\nGitHub editor will open — select all (Ctrl+A) and paste (Ctrl+V).');
+      alert(t('editor.clipboard_alert'));
       window.open(url);
     });
   } else {
@@ -1091,7 +1231,7 @@ SPA.toggleTranscriptDropdown = function(side) {
   if (!dd) return;
   var talk = reviewState.talk;
   var langs = (talk && talk.transcripts) || [];
-  if (!langs.length) { showToast('No transcripts available'); return; }
+  if (!langs.length) { showToast(t('no_transcripts')); return; }
   var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
   dd.innerHTML = '';
   langs.sort().forEach(function(lang) {
@@ -1108,7 +1248,7 @@ SPA.switchTranscript = function(side, lang) {
   var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
   if (lang === current) { document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); }); return; }
   if (Object.keys(reviewState.edits).length > 0) {
-    if (!confirm('Unsaved edits will be lost. Continue?')) return;
+    if (!confirm(t('confirm.unsaved_edits'))) return;
     reviewState.edits = {};
     reviewState.marks = {};
     saveReview();
@@ -1145,19 +1285,19 @@ function updateLastModifiedUI() {
   var btn = document.getElementById('refresh-btn');
   if (!el || !manifest) return;
   btn.style.display = 'inline-block';
-  el.style.color = '#666';
+  el.style.color = 'var(--fg6)';
   if (manifest.lastModified) {
     var d = new Date(manifest.lastModified);
     var now = new Date();
     var diffMs = now - d;
     var diffMin = Math.floor(diffMs / 60000);
     var label;
-    if (diffMin < 1) label = 'щойно';
-    else if (diffMin < 60) label = diffMin + ' хв тому';
-    else if (diffMin < 1440) label = Math.floor(diffMin / 60) + ' год тому';
-    else label = d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
-    el.textContent = 'Оновлено: ' + label;
-    el.title = d.toLocaleString('uk-UA');
+    if (diffMin < 1) label = t('freshness.just_now');
+    else if (diffMin < 60) label = diffMin + ' ' + t('freshness.min_ago');
+    else if (diffMin < 1440) label = Math.floor(diffMin / 60) + ' ' + t('freshness.hour_ago');
+    else label = d.toLocaleDateString(currentLang === 'uk' ? 'uk-UA' : 'en-US', { day: 'numeric', month: 'short' });
+    el.textContent = t('freshness.updated') + ': ' + label;
+    el.title = d.toLocaleString(currentLang === 'uk' ? 'uk-UA' : 'en-US');
   } else {
     el.textContent = '';
   }
@@ -1166,7 +1306,7 @@ function updateLastModifiedUI() {
 SPA.refreshManifest = function() {
   var el = document.getElementById('last-updated');
   var oldEtag = manifest ? manifest.etag : null;
-  if (el) { el.textContent = 'Оновлюю...'; el.style.color = 'var(--link)'; }
+  if (el) { el.textContent = t('freshness.refreshing'); el.style.color = 'var(--link)'; }
   // Clear ETag to force fresh manifest fetch
   var cache = null;
   try { cache = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch(e) {}
@@ -1180,12 +1320,12 @@ SPA.refreshManifest = function() {
     route();
     var changed = m.etag !== oldEtag;
     if (el) {
-      el.textContent = changed ? '✓ Оновлено!' : '✓ Вже актуально';
+      el.textContent = changed ? t('freshness.refreshed') : t('freshness.up_to_date');
       el.style.color = 'var(--accent-green)';
     }
     setTimeout(function() { updateLastModifiedUI(); }, 3000);
   }).catch(function(err) {
-    if (el) { el.textContent = '✗ Помилка: ' + err; el.style.color = 'var(--accent-red)'; }
+    if (el) { el.textContent = t('freshness.error') + ' ' + err; el.style.color = 'var(--accent-red)'; }
     setTimeout(function() { updateLastModifiedUI(); }, 5000);
     console.warn('Refresh failed:', err);
   });
@@ -1241,7 +1381,6 @@ document.addEventListener('click', function(e) {
   if (saved) document.documentElement.setAttribute('data-theme', saved);
 
   var icons = { auto: '\u263C', dark: '\u263E', light: '\u2600' };
-  var labels = { auto: 'Тема: авто', dark: 'Тема: темна', light: 'Тема: світла' };
   var cycle = ['auto', 'dark', 'light'];
 
   function getCurrent() { return localStorage.getItem(THEME_KEY) || 'auto'; }
@@ -1255,7 +1394,7 @@ document.addEventListener('click', function(e) {
       localStorage.setItem(THEME_KEY, mode);
     }
     var btn = document.getElementById('theme-btn');
-    if (btn) { btn.textContent = icons[mode]; btn.title = labels[mode]; }
+    if (btn) { btn.textContent = icons[mode]; btn.title = t('title.theme.' + mode); }
   }
 
   SPA.cycleTheme = function() {
@@ -1267,7 +1406,35 @@ document.addEventListener('click', function(e) {
   // Init button label
   var initMode = getCurrent();
   var btn = document.getElementById('theme-btn');
-  if (btn) { btn.textContent = icons[initMode]; btn.title = labels[initMode]; }
+  if (btn) { btn.textContent = icons[initMode]; btn.title = t('title.theme.' + initMode); }
+})();
+
+// ============================================================
+// Language toggle: uk ↔ en
+// ============================================================
+SPA.toggleLang = function() {
+  currentLang = currentLang === 'uk' ? 'en' : 'uk';
+  localStorage.setItem(LANG_KEY, currentLang);
+  var btn = document.getElementById('lang-btn');
+  if (btn) btn.textContent = currentLang.toUpperCase();
+  translatePage();
+  // Re-render dynamic content
+  if (manifest) {
+    updateLastModifiedUI();
+    renderStats();
+    renderIndex(document.getElementById('index-content'));
+  }
+  // Update theme button title
+  var themeMode = localStorage.getItem('sy_theme') || 'auto';
+  var themeBtn = document.getElementById('theme-btn');
+  if (themeBtn) themeBtn.title = t('title.theme.' + themeMode);
+};
+
+// Initial i18n setup
+(function() {
+  var btn = document.getElementById('lang-btn');
+  if (btn) btn.textContent = currentLang.toUpperCase();
+  translatePage();
 })();
 
 // Service Worker registration (skip on localhost for dev/test)
