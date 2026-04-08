@@ -575,3 +575,33 @@ describe('full cache flow scenarios', () => {
     assert.strictEqual(formatLastModified(oldCache.lastModified, now), '10 хв тому');
   });
 });
+
+// ============================================================
+// Tests: refresh result messaging
+// ============================================================
+function refreshResultMessage(oldEtag, newEtag) {
+  var changed = newEtag !== oldEtag;
+  return changed ? '✓ Оновлено!' : '✓ Вже актуально';
+}
+
+describe('refresh result messaging', () => {
+  it('shows "Оновлено!" when etag changed', () => {
+    assert.strictEqual(refreshResultMessage('"old-etag"', '"new-etag"'), '✓ Оновлено!');
+  });
+
+  it('shows "Вже актуально" when etag same', () => {
+    assert.strictEqual(refreshResultMessage('"same"', '"same"'), '✓ Вже актуально');
+  });
+
+  it('shows "Оновлено!" when old etag was null (first load)', () => {
+    assert.strictEqual(refreshResultMessage(null, '"new"'), '✓ Оновлено!');
+  });
+
+  it('shows "Оновлено!" when old etag was undefined', () => {
+    assert.strictEqual(refreshResultMessage(undefined, '"new"'), '✓ Оновлено!');
+  });
+
+  it('shows "Вже актуально" when both null (edge case)', () => {
+    assert.strictEqual(refreshResultMessage(null, null), '✓ Вже актуально');
+  });
+});

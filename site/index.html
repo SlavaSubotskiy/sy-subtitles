@@ -1058,6 +1058,7 @@ function updateLastModifiedUI() {
   var btn = document.getElementById('refresh-btn');
   if (!el || !manifest) return;
   btn.style.display = 'inline-block';
+  el.style.color = '#666';
   if (manifest.lastModified) {
     var d = new Date(manifest.lastModified);
     var now = new Date();
@@ -1077,19 +1078,24 @@ function updateLastModifiedUI() {
 
 SPA.refreshManifest = function() {
   var el = document.getElementById('last-updated');
-  if (el) el.textContent = 'Оновлюю...';
+  var oldEtag = manifest ? manifest.etag : null;
+  if (el) { el.textContent = 'Оновлюю...'; el.style.color = '#6af'; }
   // Clear ETag to force fresh fetch
   var cache = null;
   try { cache = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch(e) {}
   if (cache) { delete cache.etag; localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); }
   loadManifest().then(function(m) {
     manifest = m;
-    updateLastModifiedUI();
     route();
-    toast('Дані оновлено');
+    var changed = m.etag !== oldEtag;
+    if (el) {
+      el.textContent = changed ? '✓ Оновлено!' : '✓ Вже актуально';
+      el.style.color = changed ? '#4ade80' : '#4ade80';
+    }
+    setTimeout(function() { updateLastModifiedUI(); }, 3000);
   }).catch(function(err) {
-    updateLastModifiedUI(); // restore previous state
-    toast('Помилка оновлення: ' + err);
+    if (el) { el.textContent = '✗ Помилка: ' + err; el.style.color = '#f87171'; }
+    setTimeout(function() { updateLastModifiedUI(); }, 5000);
     console.warn('Refresh failed:', err);
   });
 };
