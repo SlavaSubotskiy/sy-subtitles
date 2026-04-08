@@ -674,6 +674,84 @@ describe('Theme: CSS variable completeness', () => {
 });
 
 // ============================================================
+// Tests: refresh covers all data sources
+// ============================================================
+describe('refresh: covers all data sources', () => {
+  it('refreshManifest calls loadReviewStatus (not just manifest)', () => {
+    var fs = require('fs');
+    var html = fs.readFileSync('site/index.html', 'utf8');
+    var fnBody = html.match(/SPA\.refreshManifest\s*=\s*function[\s\S]*?^};/m);
+    assert.ok(fnBody, 'refreshManifest not found');
+    assert.ok(fnBody[0].includes('loadReviewStatus'), 'refreshManifest should call loadReviewStatus()');
+    assert.ok(fnBody[0].includes('loadManifest'), 'refreshManifest should call loadManifest()');
+    assert.ok(fnBody[0].includes('Promise.all'), 'refreshManifest should use Promise.all for parallel fetch');
+  });
+
+  it('loadReviewStatus uses SHA cache-buster', () => {
+    var fs = require('fs');
+    var html = fs.readFileSync('site/index.html', 'utf8');
+    var fnBody = html.match(/function loadReviewStatus[\s\S]*?^}/m);
+    assert.ok(fnBody, 'loadReviewStatus not found');
+    assert.ok(fnBody[0].includes('_reviewSha'), 'loadReviewStatus should use _reviewSha');
+    assert.ok(fnBody[0].includes('?v='), 'loadReviewStatus should append ?v= cache-buster');
+  });
+
+  it('review-status.json sha extracted in buildManifest', () => {
+    var fs = require('fs');
+    var html = fs.readFileSync('site/index.html', 'utf8');
+    assert.ok(html.includes('_reviewSha'), 'manifest should have _reviewSha field');
+    assert.ok(html.includes("entry.path === 'review-status.json'"), 'should extract review-status.json sha');
+  });
+});
+
+// --- extractReviewSha (extracted logic) ---
+function extractReviewSha(treeEntries) {
+  var sha = '';
+  treeEntries.forEach(function(entry) {
+    if (entry.path === 'review-status.json') sha = entry.sha || '';
+  });
+  return sha;
+}
+
+describe('extractReviewSha', () => {
+  it('returns sha when review-status.json present', () => {
+    assert.strictEqual(extractReviewSha([
+      { path: 'review-status.json', sha: 'abc123' },
+      { path: 'talks/foo/meta.yaml', sha: 'xxx' },
+    ]), 'abc123');
+  });
+
+  it('returns empty when not present', () => {
+    assert.strictEqual(extractReviewSha([
+      { path: 'talks/foo/meta.yaml', sha: 'xxx' },
+    ]), '');
+  });
+
+  it('returns empty when sha missing', () => {
+    assert.strictEqual(extractReviewSha([
+      { path: 'review-status.json' },
+    ]), '');
+  });
+});
+
+describe('refresh: no hardcoded colors in status messages', () => {
+  it('refreshManifest uses CSS variables for colors', () => {
+    var fs = require('fs');
+    var html = fs.readFileSync('site/index.html', 'utf8');
+    var fnBody = html.match(/SPA\.refreshManifest\s*=\s*function[\s\S]*?^};/m);
+    assert.ok(fnBody, 'refreshManifest not found');
+    var fn = fnBody[0];
+    // Should not have hardcoded hex colors
+    var hexColors = fn.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+    assert.strictEqual(hexColors.length, 0, 'Hardcoded colors in refreshManifest: ' + hexColors.join(', '));
+    // Should use var(--xxx) for colors
+    assert.ok(fn.includes('var(--link)'), 'should use var(--link) for loading color');
+    assert.ok(fn.includes('var(--accent-green)'), 'should use var(--accent-green) for success');
+    assert.ok(fn.includes('var(--accent-red)'), 'should use var(--accent-red) for error');
+  });
+});
+
+// ============================================================
 // Tests: Service Worker caching strategy
 // ============================================================
 

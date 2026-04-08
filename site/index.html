@@ -486,7 +486,14 @@ function buildManifest(tree) {
     result.push(t);
   }
   result.sort(function(a, b) { return a.id < b.id ? -1 : 1; });
-  return { talks: result };
+
+  // Extract review-status.json sha for cache-busting
+  var reviewSha = '';
+  tree.forEach(function(entry) {
+    if (entry.path === 'review-status.json') reviewSha = entry.sha || '';
+  });
+
+  return { talks: result, _reviewSha: reviewSha };
 }
 
 // ============================================================
@@ -544,7 +551,9 @@ function renderStats() {
 }
 
 function loadReviewStatus() {
-  return fetch(RAW + '/review-status.json')
+  var sha = (manifest && manifest._reviewSha) || '';
+  var url = RAW + '/review-status.json' + (sha ? '?v=' + sha.substring(0, 8) : '');
+  return fetch(url)
     .then(function(r) { return r.ok ? r.json() : { talks: {} }; })
     .then(function(data) { reviewStatus = data; return data; })
     .catch(function() { reviewStatus = { talks: {} }; return reviewStatus; });
@@ -1157,22 +1166,26 @@ function updateLastModifiedUI() {
 SPA.refreshManifest = function() {
   var el = document.getElementById('last-updated');
   var oldEtag = manifest ? manifest.etag : null;
-  if (el) { el.textContent = 'Оновлюю...'; el.style.color = '#6af'; }
-  // Clear ETag to force fresh fetch
+  if (el) { el.textContent = 'Оновлюю...'; el.style.color = 'var(--link)'; }
+  // Clear ETag to force fresh manifest fetch
   var cache = null;
   try { cache = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch(e) {}
   if (cache) { delete cache.etag; localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); }
-  loadManifest().then(function(m) {
-    manifest = m;
+  // Refresh manifest + review status + re-render
+  Promise.all([
+    loadManifest().then(function(m) { manifest = m; return m; }),
+    loadReviewStatus()
+  ]).then(function(results) {
+    var m = results[0];
     route();
     var changed = m.etag !== oldEtag;
     if (el) {
       el.textContent = changed ? '✓ Оновлено!' : '✓ Вже актуально';
-      el.style.color = changed ? '#4ade80' : '#4ade80';
+      el.style.color = 'var(--accent-green)';
     }
     setTimeout(function() { updateLastModifiedUI(); }, 3000);
   }).catch(function(err) {
-    if (el) { el.textContent = '✗ Помилка: ' + err; el.style.color = '#f87171'; }
+    if (el) { el.textContent = '✗ Помилка: ' + err; el.style.color = 'var(--accent-red)'; }
     setTimeout(function() { updateLastModifiedUI(); }, 5000);
     console.warn('Refresh failed:', err);
   });
