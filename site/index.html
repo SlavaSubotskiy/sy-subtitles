@@ -135,9 +135,13 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 <!-- === INDEX VIEW === -->
 <div id="view-index" class="view">
   <div class="header"><h1>SY Subtitles</h1>
-    <div class="branch-selector">
-      <button class="branch-btn" id="branch-btn" onclick="SPA.toggleBranches()">main &#x25BE;</button>
-      <div class="branch-dropdown" id="branch-dropdown"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="last-updated" style="font-size:12px;color:#666;"></span>
+      <button id="refresh-btn" onclick="SPA.refreshManifest()" style="background:#222;color:#888;border:1px solid #444;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;display:none;" title="Перевірити оновлення">&#x21bb;</button>
+      <div class="branch-selector">
+        <button class="branch-btn" id="branch-btn" onclick="SPA.toggleBranches()">main &#x25BE;</button>
+        <div class="branch-dropdown" id="branch-dropdown"></div>
+      </div>
     </div>
   </div>
   <div id="index-toolbar" style="max-width:800px;margin:8px auto;padding:0 20px;display:none">
@@ -251,7 +255,7 @@ var PAGES_BASE = location.pathname.replace(/\/[^/]*$/, '');
 // ============================================================
 // App version — cache auto-invalidates on update
 // ============================================================
-var APP_VERSION = '8';
+var APP_VERSION = '9';
 var CACHE_KEY = 'sy_tree_cache__' + BRANCH;
 (function() {
   var cached = localStorage.getItem('sy_app_version');
@@ -274,7 +278,7 @@ window.addEventListener('load', route);
 
 function ensureManifest() {
   if (manifest) return Promise.resolve(manifest);
-  return loadManifest().then(function(m) { manifest = m; return m; });
+  return loadManifest().then(function(m) { manifest = m; updateLastModifiedUI(); return m; });
 }
 
 function route() {
@@ -317,9 +321,11 @@ function loadManifest() {
       if (r.status === 304 && cache) return cache;
       if (!r.ok) throw 'API ' + r.status;
       var etag = r.headers.get('ETag');
+      var lastMod = r.headers.get('Last-Modified');
       return r.json().then(function(data) {
         var m = buildManifest(data.tree);
         m.etag = etag;
+        m.lastModified = lastMod || '';
         m.timestamp = Date.now();
         localStorage.setItem(CACHE_KEY, JSON.stringify(m));
         return m;
@@ -373,7 +379,7 @@ function buildManifest(tree) {
     var m = entry.path.match(/^talks\/([^/]+)\/meta\.yaml$/);
     if (m) {
       var tid = m[1];
-      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [], transcripts: [] };
+      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [], _srtSha: {}, transcripts: [] };
     }
   });
   // Pass 2: fill in transcripts and SRT
@@ -386,7 +392,10 @@ function buildManifest(tree) {
     m = entry.path.match(/^talks\/([^/]+)\/transcript_([a-z][a-z_]*)\.txt$/);
     if (m && talks[m[1]] && talks[m[1]].transcripts.indexOf(m[2]) === -1) talks[m[1]].transcripts.push(m[2]);
     m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/final\/uk\.srt$/);
-    if (m && talks[m[1]] && talks[m[1]]._srtSlugs.indexOf(m[2]) === -1) talks[m[1]]._srtSlugs.push(m[2]);
+    if (m && talks[m[1]] && talks[m[1]]._srtSlugs.indexOf(m[2]) === -1) {
+      talks[m[1]]._srtSlugs.push(m[2]);
+      talks[m[1]]._srtSha[m[2]] = entry.sha || '';
+    }
   });
 
   var result = [];
@@ -582,8 +591,9 @@ function showPreview(talkId, videoSlug) {
     iframe.src = embedUrl + '&texttrack=false';
   }
 
-  // Load SRT
-  var srtUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/final/uk.srt';
+  // Load SRT (sha cache-buster from Trees API)
+  var srtSha = (talk && talk._srtSha && talk._srtSha[videoSlug]) || '';
+  var srtUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/final/uk.srt' + (srtSha ? '?v=' + srtSha.substring(0, 8) : '');
   previewState = { talkId: talkId, videoSlug: videoSlug, talk: talk, video: video, subtitles: [], markers: [], currentTime: 0, lastText: '' };
 
   // Load markers from localStorage
@@ -1027,6 +1037,49 @@ document.addEventListener('click', function(e) {
     if (BRANCH !== 'main') btn.classList.add('non-main');
   });
 })();
+
+// ============================================================
+// Last-updated indicator + refresh
+// ============================================================
+function updateLastModifiedUI() {
+  var el = document.getElementById('last-updated');
+  var btn = document.getElementById('refresh-btn');
+  if (!el || !manifest) return;
+  btn.style.display = 'inline-block';
+  if (manifest.lastModified) {
+    var d = new Date(manifest.lastModified);
+    var now = new Date();
+    var diffMs = now - d;
+    var diffMin = Math.floor(diffMs / 60000);
+    var label;
+    if (diffMin < 1) label = 'щойно';
+    else if (diffMin < 60) label = diffMin + ' хв тому';
+    else if (diffMin < 1440) label = Math.floor(diffMin / 60) + ' год тому';
+    else label = d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+    el.textContent = 'Оновлено: ' + label;
+    el.title = d.toLocaleString('uk-UA');
+  } else {
+    el.textContent = '';
+  }
+}
+
+SPA.refreshManifest = function() {
+  var el = document.getElementById('last-updated');
+  if (el) el.textContent = 'Оновлюю...';
+  // Clear ETag to force fresh fetch
+  var cache = null;
+  try { cache = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch(e) {}
+  if (cache) { delete cache.etag; localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); }
+  loadManifest().then(function(m) {
+    manifest = m;
+    updateLastModifiedUI();
+    route();
+    toast('Дані оновлено');
+  }).catch(function(err) {
+    if (el) el.textContent = 'Помилка оновлення';
+    console.warn('Refresh failed:', err);
+  });
+};
 
 SPA.toggleBranches = function() {
   // Close all other dropdowns first
