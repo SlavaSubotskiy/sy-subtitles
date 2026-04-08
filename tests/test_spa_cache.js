@@ -478,6 +478,79 @@ describe('subtitle language selector logic', () => {
 });
 
 // ============================================================
+// Tests: SPA code integrity (no use-before-declare)
+// ============================================================
+describe('SPA code integrity', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+  var lines = html.split('\n');
+
+  it('var SPA = {} exists', () => {
+    assert.ok(lines.some(l => l.includes('var SPA = {}')), 'var SPA = {} not found');
+  });
+
+  it('no SPA.xxx assignment in JS before var SPA = {}', () => {
+    var inScript = false;
+    var spaDeclared = false;
+    var errors = [];
+    lines.forEach((line, i) => {
+      var s = line.trim();
+      if (s.includes('<script>') || s.startsWith('<script ')) inScript = true;
+      if (s.includes('</script>')) inScript = false;
+      if (s.includes('var SPA = {}')) spaDeclared = true;
+      if (inScript && !spaDeclared && s.startsWith('SPA.')) {
+        errors.push('line ' + (i+1) + ': ' + s.substring(0, 60));
+      }
+    });
+    assert.strictEqual(errors.length, 0, 'SPA used before declaration: ' + errors.join('; '));
+  });
+
+  it('APP_VERSION is a string number', () => {
+    var m = html.match(/var APP_VERSION = '(\d+)'/);
+    assert.ok(m, 'APP_VERSION not found');
+    assert.ok(parseInt(m[1]) >= 1, 'APP_VERSION should be >= 1');
+  });
+
+  it('SW registration includes APP_VERSION', () => {
+    assert.ok(html.includes("register('sw.js?v=' + APP_VERSION)"), 'SW registration should pass APP_VERSION');
+  });
+
+  it('all SPA.xxx in onclick handlers have matching definitions', () => {
+    // Extract onclick SPA.xxx calls
+    var onclickCalls = new Set();
+    lines.forEach(line => {
+      var ms = line.match(/onclick="SPA\.(\w+)\(/g);
+      if (ms) ms.forEach(m => {
+        var name = m.match(/SPA\.(\w+)/)[1];
+        onclickCalls.add(name);
+      });
+    });
+    // Extract SPA.xxx = function definitions
+    var definitions = new Set();
+    lines.forEach(line => {
+      var m = line.match(/^SPA\.(\w+)\s*=/);
+      if (m) definitions.add(m[1]);
+    });
+    var missing = [...onclickCalls].filter(c => !definitions.has(c));
+    assert.strictEqual(missing.length, 0, 'onclick references undefined SPA methods: ' + missing.join(', '));
+  });
+
+  it('no duplicate SPA.xxx definitions', () => {
+    var defs = {};
+    lines.forEach((line, i) => {
+      var m = line.match(/^SPA\.(\w+)\s*=\s*function/);
+      if (m) {
+        var name = m[1];
+        if (defs[name]) {
+          assert.fail('Duplicate SPA.' + name + ' at lines ' + defs[name] + ' and ' + (i+1));
+        }
+        defs[name] = i + 1;
+      }
+    });
+  });
+});
+
+// ============================================================
 // Tests: Service Worker caching strategy
 // ============================================================
 

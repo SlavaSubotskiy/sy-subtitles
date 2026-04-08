@@ -222,32 +222,6 @@ function timeToMs(t) {
   return parseInt(parts[0], 10) * 3600000 + parseInt(parts[1], 10) * 60000 +
     parseInt(secMs[0], 10) * 1000 + parseInt(secMs[1], 10);
 }
-function loadSubtitleLang(lang) {
-  var s = previewState;
-  if (!s) return Promise.resolve();
-  var shaKey = s.videoSlug + '/' + lang;
-  var sha = (s.talk && s.talk._srtSha && s.talk._srtSha[shaKey]) || '';
-  var url = RAW + '/talks/' + s.talkId + '/' + s.videoSlug + '/final/' + lang + '.srt' + (sha ? '?v=' + sha.substring(0, 8) : '');
-  s.srtLang = lang;
-  return fetch(url)
-    .then(function(r) { return r.ok ? r.text() : Promise.reject('SRT fetch failed: HTTP ' + r.status); })
-    .then(function(text) {
-      s.subtitles = parseSRT(text);
-      console.log('[SPA] SRT loaded (' + lang + '):', s.subtitles.length, 'blocks');
-    })
-    .catch(function(err) {
-      console.warn('[SPA] SRT error:', err);
-      document.getElementById('subtitle-overlay').textContent = 'Error loading subtitles';
-    });
-}
-
-SPA.switchSubLang = function(lang) {
-  loadSubtitleLang(lang).then(function() {
-    // Reset current display
-    document.getElementById('subtitle-overlay').textContent = '';
-  });
-};
-
 function parseSRT(text) {
   text = text.replace(/^\uFEFF/, '');
   var blocks = text.trim().split(/\n\s*\n/);
@@ -304,6 +278,32 @@ var reviewStatus = null;
 
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
+
+// --- Subtitle language switching ---
+function loadSubtitleLang(lang) {
+  var s = previewState;
+  if (!s) return Promise.resolve();
+  var shaKey = s.videoSlug + '/' + lang;
+  var sha = (s.talk && s.talk._srtSha && s.talk._srtSha[shaKey]) || '';
+  var url = RAW + '/talks/' + s.talkId + '/' + s.videoSlug + '/final/' + lang + '.srt' + (sha ? '?v=' + sha.substring(0, 8) : '');
+  s.srtLang = lang;
+  return fetch(url)
+    .then(function(r) { return r.ok ? r.text() : Promise.reject('SRT fetch failed: HTTP ' + r.status); })
+    .then(function(text) {
+      s.subtitles = parseSRT(text);
+      console.log('[SPA] SRT loaded (' + lang + '):', s.subtitles.length, 'blocks');
+    })
+    .catch(function(err) {
+      console.warn('[SPA] SRT error:', err);
+      document.getElementById('subtitle-overlay').textContent = 'Error loading subtitles';
+    });
+}
+
+SPA.switchSubLang = function(lang) {
+  loadSubtitleLang(lang).then(function() {
+    document.getElementById('subtitle-overlay').textContent = '';
+  });
+};
 
 function ensureManifest() {
   if (manifest) return Promise.resolve(manifest);
