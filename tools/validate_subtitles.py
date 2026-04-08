@@ -36,7 +36,7 @@ def strip_header(text):
     """
     lines = text.split("\n")
     for i, line in enumerate(lines):
-        if re.match(r"^(Talk Language:|Language:|Мова промови:|Мова:)", line.strip()):
+        if re.match(r"^(Talk Language:|Language:|Мова промови:|Мова:|भाषण भाषा:)", line.strip()):
             return "\n".join(lines[i + 1 :])
         if i >= 10:
             break
