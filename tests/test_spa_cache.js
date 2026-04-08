@@ -478,6 +478,95 @@ describe('subtitle language selector logic', () => {
 });
 
 // ============================================================
+// Tests: Service Worker caching strategy
+// ============================================================
+
+function swIsImmutable(url) {
+  var patterns = ['cdn.jsdelivr.net', 'player.vimeo.com/api', '/icon.png'];
+  return patterns.some(function(p) { return url.includes(p); });
+}
+function swIsApiOrRaw(url) {
+  return url.includes('api.github.com') || url.includes('raw.githubusercontent.com');
+}
+function swIsNavigation(url) {
+  return url.endsWith('/') || url.endsWith('/index.html') || url.includes('sy-subtitles/#');
+}
+function swGetStrategy(url) {
+  if (swIsNavigation(url) || swIsApiOrRaw(url)) return 'network-first';
+  if (swIsImmutable(url)) return 'cache-first';
+  return 'network-first';
+}
+function swCacheName(version) {
+  return 'sy-subtitles-v' + (version || '0');
+}
+
+describe('SW: isImmutable', () => {
+  it('CDN js-yaml is immutable', () => assert.strictEqual(swIsImmutable('https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js'), true));
+  it('Vimeo player API is immutable', () => assert.strictEqual(swIsImmutable('https://player.vimeo.com/api/player.js'), true));
+  it('icon.png is immutable', () => assert.strictEqual(swIsImmutable('https://site.github.io/sy-subtitles/icon.png'), true));
+  it('index.html is NOT immutable', () => assert.strictEqual(swIsImmutable('https://site.github.io/sy-subtitles/index.html'), false));
+  it('API is NOT immutable', () => assert.strictEqual(swIsImmutable('https://api.github.com/repos/foo'), false));
+  it('raw content is NOT immutable', () => assert.strictEqual(swIsImmutable('https://raw.githubusercontent.com/foo/uk.srt'), false));
+});
+
+describe('SW: isApiOrRaw', () => {
+  it('GitHub API', () => assert.strictEqual(swIsApiOrRaw('https://api.github.com/repos/foo'), true));
+  it('raw.githubusercontent', () => assert.strictEqual(swIsApiOrRaw('https://raw.githubusercontent.com/foo/file.srt'), true));
+  it('index.html is not API', () => assert.strictEqual(swIsApiOrRaw('https://site.github.io/sy-subtitles/'), false));
+});
+
+describe('SW: isNavigation', () => {
+  it('root path', () => assert.strictEqual(swIsNavigation('https://site.github.io/sy-subtitles/'), true));
+  it('index.html', () => assert.strictEqual(swIsNavigation('https://site.github.io/sy-subtitles/index.html'), true));
+  it('hash route', () => assert.strictEqual(swIsNavigation('https://site.github.io/sy-subtitles/#/preview/talk/vid'), true));
+  it('icon is NOT navigation', () => assert.strictEqual(swIsNavigation('https://site.github.io/sy-subtitles/icon.png'), false));
+  it('CDN is NOT navigation', () => assert.strictEqual(swIsNavigation('https://cdn.jsdelivr.net/npm/js-yaml@4'), false));
+});
+
+describe('SW: caching strategy per URL', () => {
+  it('index.html → network-first', () => assert.strictEqual(swGetStrategy('https://site.github.io/sy-subtitles/index.html'), 'network-first'));
+  it('root → network-first', () => assert.strictEqual(swGetStrategy('https://site.github.io/sy-subtitles/'), 'network-first'));
+  it('API → network-first', () => assert.strictEqual(swGetStrategy('https://api.github.com/repos/foo/git/trees/main'), 'network-first'));
+  it('raw SRT → network-first', () => assert.strictEqual(swGetStrategy('https://raw.githubusercontent.com/foo/uk.srt'), 'network-first'));
+  it('CDN lib → cache-first', () => assert.strictEqual(swGetStrategy('https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js'), 'cache-first'));
+  it('icon → cache-first', () => assert.strictEqual(swGetStrategy('https://site.github.io/sy-subtitles/icon.png'), 'cache-first'));
+  it('Vimeo embed → network-first', () => assert.strictEqual(swGetStrategy('https://player.vimeo.com/video/12345'), 'network-first'));
+  it('Vimeo player API → cache-first', () => assert.strictEqual(swGetStrategy('https://player.vimeo.com/api/player.js'), 'cache-first'));
+});
+
+describe('SW: cache name versioning', () => {
+  it('derives from version param', () => assert.strictEqual(swCacheName('10'), 'sy-subtitles-v10'));
+  it('defaults to v0 for null', () => assert.strictEqual(swCacheName(null), 'sy-subtitles-v0'));
+  it('defaults to v0 for undefined', () => assert.strictEqual(swCacheName(undefined), 'sy-subtitles-v0'));
+  it('different versions → different names', () => assert.notStrictEqual(swCacheName('9'), swCacheName('10')));
+  it('same version → same name', () => assert.strictEqual(swCacheName('10'), swCacheName('10')));
+});
+
+describe('SW: version sync with APP_VERSION', () => {
+  it('registration URL contains version', () => {
+    var APP_VERSION = '10';
+    var url = new URL('sw.js?v=' + APP_VERSION, 'https://example.com');
+    assert.strictEqual(url.searchParams.get('v'), APP_VERSION);
+  });
+  it('SW extracts version from self.location', () => {
+    var url = new URL('https://example.com/sw.js?v=10');
+    assert.strictEqual(url.searchParams.get('v'), '10');
+  });
+  it('version bump triggers old cache deletion', () => {
+    var oldName = swCacheName('9');
+    var newName = swCacheName('10');
+    var keys = [oldName, newName, 'unrelated-cache'];
+    var toDelete = keys.filter(function(k) { return k !== newName; });
+    assert.deepStrictEqual(toDelete, [oldName, 'unrelated-cache']);
+  });
+  it('no version in URL defaults safely', () => {
+    var url = new URL('https://example.com/sw.js');
+    var v = url.searchParams.get('v');
+    assert.strictEqual(swCacheName(v), 'sy-subtitles-v0');
+  });
+});
+
+// ============================================================
 // Tests: 304 cache scenario (lastModified preserved)
 // ============================================================
 describe('304 cache scenario', () => {

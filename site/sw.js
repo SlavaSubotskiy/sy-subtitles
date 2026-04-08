@@ -1,22 +1,23 @@
-// Service Worker for offline SPA caching
-var CACHE_NAME = 'sy-subtitles-v10';
-var STATIC_ASSETS = [
-  './',
-  './index.html',
-  './icon.png',
-  'https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js'
+// Service Worker for SPA caching
+// Version is passed via registration URL query: sw.js?v=10
+// This ensures SW and index.html share the same version.
+var VERSION = new URL(self.location).searchParams.get('v') || '0';
+var CACHE_NAME = 'sy-subtitles-v' + VERSION;
+
+// Assets that are truly immutable (versioned CDN URLs, static images)
+var IMMUTABLE_PATTERNS = [
+  'cdn.jsdelivr.net',
+  'player.vimeo.com/api',
+  '/icon.png'
 ];
 
 self.addEventListener('install', function(e) {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(STATIC_ASSETS);
-    })
-  );
+  // Skip waiting — activate immediately so new version takes effect
   self.skipWaiting();
 });
 
 self.addEventListener('activate', function(e) {
+  // Delete all caches except current version
   e.waitUntil(
     caches.keys().then(function(keys) {
       return Promise.all(
@@ -25,37 +26,61 @@ self.addEventListener('activate', function(e) {
       );
     })
   );
+  // Take control of all clients immediately
   self.clients.claim();
 });
 
+function isImmutable(url) {
+  return IMMUTABLE_PATTERNS.some(function(p) { return url.includes(p); });
+}
+
+function isApiOrRaw(url) {
+  return url.includes('api.github.com') || url.includes('raw.githubusercontent.com');
+}
+
+function isNavigation(url) {
+  // index.html or root path — always network-first
+  return url.endsWith('/') || url.endsWith('/index.html') || url.includes('sy-subtitles/#');
+}
+
+// Strategy: network-first with cache fallback
+function networkFirst(request) {
+  return fetch(request).then(function(response) {
+    if (response.ok) {
+      var clone = response.clone();
+      caches.open(CACHE_NAME).then(function(c) { c.put(request, clone); });
+    }
+    return response;
+  }).catch(function() {
+    return caches.match(request);
+  });
+}
+
+// Strategy: cache-first with network fallback
+function cacheFirst(request) {
+  return caches.match(request).then(function(cached) {
+    if (cached) return cached;
+    return fetch(request).then(function(response) {
+      if (response.ok) {
+        var clone = response.clone();
+        caches.open(CACHE_NAME).then(function(c) { c.put(request, clone); });
+      }
+      return response;
+    });
+  });
+}
+
 self.addEventListener('fetch', function(e) {
-  // Network-first for API/raw (always fresh data), cache-first for static
   var url = e.request.url;
-  if (url.includes('api.github.com') || url.includes('raw.githubusercontent.com') || url.endsWith('/') || url.endsWith('/index.html')) {
-    // Network first, fall back to cache
-    e.respondWith(
-      fetch(e.request).then(function(r) {
-        if (r.ok) {
-          var clone = r.clone();
-          caches.open(CACHE_NAME).then(function(c) { c.put(e.request, clone); });
-        }
-        return r;
-      }).catch(function() {
-        return caches.match(e.request);
-      })
-    );
+
+  if (isNavigation(url) || isApiOrRaw(url)) {
+    // HTML page + API + raw content: always try network first
+    e.respondWith(networkFirst(e.request));
+  } else if (isImmutable(url)) {
+    // CDN libs, icon: cache-first (immutable, versioned)
+    e.respondWith(cacheFirst(e.request));
   } else {
-    // Cache first for static assets
-    e.respondWith(
-      caches.match(e.request).then(function(cached) {
-        return cached || fetch(e.request).then(function(r) {
-          if (r.ok) {
-            var clone = r.clone();
-            caches.open(CACHE_NAME).then(function(c) { c.put(e.request, clone); });
-          }
-          return r;
-        });
-      })
-    );
+    // Everything else (Vimeo player, etc): network-first
+    e.respondWith(networkFirst(e.request));
   }
 });

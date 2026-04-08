@@ -1182,8 +1182,9 @@ document.addEventListener('click', function(e) {
 });
 
 // Service Worker registration (skip on localhost for dev/test)
+// Pass APP_VERSION so SW uses same version for CACHE_NAME
 if ('serviceWorker' in navigator && location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') {
-  navigator.serviceWorker.register('sw.js').catch(function() {});
+  navigator.serviceWorker.register('sw.js?v=' + APP_VERSION).catch(function() {});
 }
 </script>
 </body>
