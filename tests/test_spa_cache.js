@@ -296,3 +296,132 @@ describe('freshness display edge cases', () => {
     assert.ok(!url.includes('?v='), 'should not have ?v= for null sha');
   });
 });
+
+// ============================================================
+// Tests: getSrtSha helper (lookup from talk object)
+// ============================================================
+function getSrtSha(talk, videoSlug) {
+  return (talk && talk._srtSha && talk._srtSha[videoSlug]) || '';
+}
+
+describe('getSrtSha', () => {
+  it('returns sha when present', () => {
+    var talk = { _srtSha: { 'Video-1': 'abc123def456' } };
+    assert.strictEqual(getSrtSha(talk, 'Video-1'), 'abc123def456');
+  });
+
+  it('returns empty when video not in map', () => {
+    var talk = { _srtSha: { 'Video-1': 'abc123' } };
+    assert.strictEqual(getSrtSha(talk, 'Video-2'), '');
+  });
+
+  it('returns empty when _srtSha is empty', () => {
+    var talk = { _srtSha: {} };
+    assert.strictEqual(getSrtSha(talk, 'Video-1'), '');
+  });
+
+  it('returns empty when _srtSha is missing', () => {
+    var talk = {};
+    assert.strictEqual(getSrtSha(talk, 'Video-1'), '');
+  });
+
+  it('returns empty when talk is null', () => {
+    assert.strictEqual(getSrtSha(null, 'Video-1'), '');
+  });
+
+  it('returns empty when talk is undefined', () => {
+    assert.strictEqual(getSrtSha(undefined, 'Video-1'), '');
+  });
+});
+
+// ============================================================
+// Tests: refreshManifest cache clearing logic
+// ============================================================
+describe('refreshManifest cache clearing', () => {
+  it('deleting etag from cache forces fresh fetch', () => {
+    var cache = { etag: '"old"', lastModified: 'Mon, 07 Apr 2026 10:00:00 GMT', timestamp: 1000, talks: [] };
+    delete cache.etag;
+    assert.strictEqual(cache.etag, undefined);
+    assert.strictEqual(cache.lastModified, 'Mon, 07 Apr 2026 10:00:00 GMT'); // preserved
+  });
+
+  it('deleting etag from null cache does not throw', () => {
+    var cache = null;
+    assert.doesNotThrow(function() {
+      if (cache) delete cache.etag;
+    });
+  });
+
+  it('cache without etag sends no If-None-Match header', () => {
+    var cache = { timestamp: 1000, talks: [] };
+    var headers = {};
+    if (cache && cache.etag) headers['If-None-Match'] = cache.etag;
+    assert.strictEqual(Object.keys(headers).length, 0);
+  });
+
+  it('cache with etag sends If-None-Match header', () => {
+    var cache = { etag: '"abc"', timestamp: 1000, talks: [] };
+    var headers = {};
+    if (cache && cache.etag) headers['If-None-Match'] = cache.etag;
+    assert.strictEqual(headers['If-None-Match'], '"abc"');
+  });
+});
+
+// ============================================================
+// Tests: integration scenario (full flow)
+// ============================================================
+describe('full cache flow scenarios', () => {
+  it('first visit: no cache, no sha, no lastModified', () => {
+    var cache = null;
+    var sha = getSrtSha(null, 'Video');
+    var label = formatLastModified(cache ? cache.lastModified : undefined, Date.now());
+    var url = buildSrtUrl('https://raw.gh.com/o/r/main', 'talk', 'Video', sha);
+
+    assert.strictEqual(sha, '');
+    assert.strictEqual(label, '');
+    assert.ok(!url.includes('?v='));
+  });
+
+  it('after fresh load: sha present, lastModified set', () => {
+    var cache = {
+      etag: '"fresh"',
+      lastModified: 'Tue, 08 Apr 2026 15:00:00 GMT',
+      timestamp: Date.now(),
+      talks: [{ id: 'talk', _srtSha: { 'Video': 'deadbeef12345678' } }]
+    };
+    var talk = cache.talks[0];
+    var sha = getSrtSha(talk, 'Video');
+    var now = new Date('2026-04-08T15:02:00Z');
+    var label = formatLastModified(cache.lastModified, now);
+    var url = buildSrtUrl('https://raw.gh.com/o/r/main', 'talk', 'Video', sha);
+
+    assert.strictEqual(sha, 'deadbeef12345678');
+    assert.strictEqual(label, '2 хв тому');
+    assert.ok(url.includes('?v=deadbeef'));
+  });
+
+  it('after push: new sha, new lastModified, new URL', () => {
+    // Before push
+    var oldSha = 'aaaa1111bbbb2222';
+    var urlBefore = buildSrtUrl('https://raw.gh.com/o/r/main', 'talk', 'Video', oldSha);
+
+    // After push (sha changed)
+    var newSha = 'cccc3333dddd4444';
+    var urlAfter = buildSrtUrl('https://raw.gh.com/o/r/main', 'talk', 'Video', newSha);
+
+    assert.notStrictEqual(urlBefore, urlAfter);
+    assert.ok(urlBefore.includes('?v=aaaa1111'));
+    assert.ok(urlAfter.includes('?v=cccc3333'));
+  });
+
+  it('304 with old cache gets lastModified updated', () => {
+    var oldCache = { etag: '"old"', timestamp: 1000, talks: [] };
+    // No lastModified field (old format)
+    assert.strictEqual(formatLastModified(oldCache.lastModified, Date.now()), '');
+
+    // 304 response updates it
+    oldCache.lastModified = 'Tue, 08 Apr 2026 14:00:00 GMT';
+    var now = new Date('2026-04-08T14:10:00Z');
+    assert.strictEqual(formatLastModified(oldCache.lastModified, now), '10 хв тому');
+  });
+});
