@@ -192,6 +192,140 @@ describe('extractSrtSha', () => {
   });
 });
 
+// --- extractTranscriptSha logic (extracted from buildManifest) ---
+function extractTranscriptSha(treeEntries) {
+  var result = {};
+  treeEntries.forEach(function(entry) {
+    var m = entry.path.match(/^talks\/([^/]+)\/transcript_([a-z][a-z_]*)\.txt$/);
+    if (m) {
+      if (!result[m[1]]) result[m[1]] = {};
+      result[m[1]][m[2]] = entry.sha || '';
+    }
+  });
+  return result;
+}
+
+// --- getTranscriptSha helper ---
+function getTranscriptSha(talk, lang) {
+  return (talk && talk._transcriptSha && talk._transcriptSha[lang]) || '';
+}
+
+// --- buildTranscriptUrl (mirrors buildSrtUrl pattern) ---
+function buildTranscriptUrl(rawBase, talkId, lang, sha) {
+  var url = rawBase + '/talks/' + talkId + '/transcript_' + lang + '.txt';
+  if (sha) url += '?v=' + sha.substring(0, 8);
+  return url;
+}
+
+// ============================================================
+// Tests: extractTranscriptSha
+// ============================================================
+describe('extractTranscriptSha', () => {
+  it('returns empty for no transcript entries', () => {
+    var result = extractTranscriptSha([
+      { path: 'talks/Talk/meta.yaml', sha: 'aaa' },
+      { path: 'talks/Talk/Video/final/uk.srt', sha: 'bbb' },
+    ]);
+    assert.deepStrictEqual(result, {});
+  });
+
+  it('extracts sha for single transcript', () => {
+    var result = extractTranscriptSha([
+      { path: 'talks/Talk/transcript_en.txt', sha: 'en_sha' },
+    ]);
+    assert.deepStrictEqual(result, { 'Talk': { 'en': 'en_sha' } });
+  });
+
+  it('extracts sha for multiple languages', () => {
+    var result = extractTranscriptSha([
+      { path: 'talks/Talk/transcript_en.txt', sha: 'en_sha' },
+      { path: 'talks/Talk/transcript_uk.txt', sha: 'uk_sha' },
+      { path: 'talks/Talk/transcript_hi_corrected.txt', sha: 'hi_sha' },
+    ]);
+    assert.strictEqual(result['Talk']['en'], 'en_sha');
+    assert.strictEqual(result['Talk']['uk'], 'uk_sha');
+    assert.strictEqual(result['Talk']['hi_corrected'], 'hi_sha');
+  });
+
+  it('extracts sha for multiple talks', () => {
+    var result = extractTranscriptSha([
+      { path: 'talks/Talk-A/transcript_uk.txt', sha: 'sha_a' },
+      { path: 'talks/Talk-B/transcript_uk.txt', sha: 'sha_b' },
+    ]);
+    assert.strictEqual(result['Talk-A']['uk'], 'sha_a');
+    assert.strictEqual(result['Talk-B']['uk'], 'sha_b');
+  });
+
+  it('handles missing sha', () => {
+    var result = extractTranscriptSha([
+      { path: 'talks/Talk/transcript_en.txt' },
+    ]);
+    assert.strictEqual(result['Talk']['en'], '');
+  });
+
+  it('ignores non-transcript files', () => {
+    var result = extractTranscriptSha([
+      { path: 'talks/Talk/meta.yaml', sha: 'xxx' },
+      { path: 'talks/Talk/Video/final/uk.srt', sha: 'yyy' },
+      { path: 'talks/Talk/transcript_uk.txt', sha: 'zzz' },
+    ]);
+    assert.strictEqual(Object.keys(result['Talk']).length, 1);
+    assert.strictEqual(result['Talk']['uk'], 'zzz');
+  });
+});
+
+// ============================================================
+// Tests: getTranscriptSha
+// ============================================================
+describe('getTranscriptSha', () => {
+  it('returns sha when present', () => {
+    var talk = { _transcriptSha: { 'uk': 'abc123' } };
+    assert.strictEqual(getTranscriptSha(talk, 'uk'), 'abc123');
+  });
+
+  it('returns empty for missing language', () => {
+    var talk = { _transcriptSha: { 'en': 'abc123' } };
+    assert.strictEqual(getTranscriptSha(talk, 'uk'), '');
+  });
+
+  it('returns empty when _transcriptSha missing', () => {
+    assert.strictEqual(getTranscriptSha({}, 'uk'), '');
+  });
+
+  it('returns empty for null talk', () => {
+    assert.strictEqual(getTranscriptSha(null, 'uk'), '');
+  });
+});
+
+// ============================================================
+// Tests: buildTranscriptUrl
+// ============================================================
+describe('buildTranscriptUrl', () => {
+  var RAW = 'https://raw.githubusercontent.com/owner/repo/main';
+
+  it('builds URL without sha', () => {
+    var url = buildTranscriptUrl(RAW, 'talk', 'uk', '');
+    assert.strictEqual(url, RAW + '/talks/talk/transcript_uk.txt');
+    assert.ok(!url.includes('?v='));
+  });
+
+  it('appends sha cache-buster', () => {
+    var url = buildTranscriptUrl(RAW, 'talk', 'en', 'abcdef1234567890');
+    assert.strictEqual(url, RAW + '/talks/talk/transcript_en.txt?v=abcdef12');
+  });
+
+  it('different sha produces different URL', () => {
+    var url1 = buildTranscriptUrl(RAW, 'talk', 'uk', 'aaaa1111');
+    var url2 = buildTranscriptUrl(RAW, 'talk', 'uk', 'bbbb2222');
+    assert.notStrictEqual(url1, url2);
+  });
+
+  it('handles hi_corrected language code', () => {
+    var url = buildTranscriptUrl(RAW, 'talk', 'hi_corrected', 'abc');
+    assert.ok(url.includes('transcript_hi_corrected.txt'));
+  });
+});
+
 // ============================================================
 // Tests: 304 cache scenario (lastModified preserved)
 // ============================================================
@@ -412,6 +546,22 @@ describe('full cache flow scenarios', () => {
     assert.notStrictEqual(urlBefore, urlAfter);
     assert.ok(urlBefore.includes('?v=aaaa1111'));
     assert.ok(urlAfter.includes('?v=cccc3333'));
+  });
+
+  it('transcript URLs get cache-busted after push', () => {
+    var talk = { _transcriptSha: { 'uk': 'old_sha_1111', 'en': 'old_sha_2222' } };
+    var ukUrl1 = buildTranscriptUrl('https://raw.gh.com/o/r/main', 'talk', 'uk', getTranscriptSha(talk, 'uk'));
+    assert.ok(ukUrl1.includes('?v=old_sha_'));
+
+    // Simulate push: sha changes
+    talk._transcriptSha['uk'] = 'new_sha_3333';
+    var ukUrl2 = buildTranscriptUrl('https://raw.gh.com/o/r/main', 'talk', 'uk', getTranscriptSha(talk, 'uk'));
+    assert.ok(ukUrl2.includes('?v=new_sha_'));
+    assert.notStrictEqual(ukUrl1, ukUrl2);
+
+    // EN didn't change — same URL
+    var enUrl = buildTranscriptUrl('https://raw.gh.com/o/r/main', 'talk', 'en', getTranscriptSha(talk, 'en'));
+    assert.ok(enUrl.includes('?v=old_sha_'));
   });
 
   it('304 with old cache gets lastModified updated', () => {

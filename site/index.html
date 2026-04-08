@@ -386,7 +386,7 @@ function buildManifest(tree) {
     var m = entry.path.match(/^talks\/([^/]+)\/meta\.yaml$/);
     if (m) {
       var tid = m[1];
-      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [], _srtSha: {}, transcripts: [] };
+      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [], _srtSha: {}, _transcriptSha: {}, transcripts: [] };
     }
   });
   // Pass 2: fill in transcripts and SRT
@@ -397,7 +397,10 @@ function buildManifest(tree) {
     m = entry.path.match(/^talks\/([^/]+)\/transcript_uk\.txt$/);
     if (m && talks[m[1]]) talks[m[1]].hasUk = true;
     m = entry.path.match(/^talks\/([^/]+)\/transcript_([a-z][a-z_]*)\.txt$/);
-    if (m && talks[m[1]] && talks[m[1]].transcripts.indexOf(m[2]) === -1) talks[m[1]].transcripts.push(m[2]);
+    if (m && talks[m[1]]) {
+      if (talks[m[1]].transcripts.indexOf(m[2]) === -1) talks[m[1]].transcripts.push(m[2]);
+      talks[m[1]]._transcriptSha[m[2]] = entry.sha || '';
+    }
     m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/final\/uk\.srt$/);
     if (m && talks[m[1]] && talks[m[1]]._srtSlugs.indexOf(m[2]) === -1) {
       talks[m[1]]._srtSlugs.push(m[2]);
@@ -809,8 +812,10 @@ function showReview(talkId) {
   statusEl.textContent = 'Loading transcripts...';
   statusEl.style.display = 'block';
 
-  var leftUrl = RAW + '/talks/' + talkId + '/transcript_' + reviewState.leftLang + '.txt';
-  var rightUrl = RAW + '/talks/' + talkId + '/transcript_' + reviewState.rightLang + '.txt';
+  var leftSha = (talk && talk._transcriptSha && talk._transcriptSha[reviewState.leftLang]) || '';
+  var rightSha = (talk && talk._transcriptSha && talk._transcriptSha[reviewState.rightLang]) || '';
+  var leftUrl = RAW + '/talks/' + talkId + '/transcript_' + reviewState.leftLang + '.txt' + (leftSha ? '?v=' + leftSha.substring(0, 8) : '');
+  var rightUrl = RAW + '/talks/' + talkId + '/transcript_' + reviewState.rightLang + '.txt' + (rightSha ? '?v=' + rightSha.substring(0, 8) : '');
 
   Promise.all([
     fetch(leftUrl).then(function(r) { return r.ok ? r.text() : ''; }),
