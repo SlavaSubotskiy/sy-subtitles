@@ -191,3 +191,108 @@ describe('extractSrtSha', () => {
     assert.strictEqual(result['Talk']['Vid'], 'zzz');
   });
 });
+
+// ============================================================
+// Tests: 304 cache scenario (lastModified preserved)
+// ============================================================
+describe('304 cache scenario', () => {
+  // Simulate cache object from localStorage (old format, no lastModified)
+  function makeOldCache() {
+    return { etag: '"old-etag"', timestamp: Date.now() - 60000, talks: [] };
+  }
+
+  // Simulate cache with lastModified
+  function makeNewCache() {
+    return { etag: '"new-etag"', lastModified: 'Tue, 08 Apr 2026 10:00:00 GMT', timestamp: Date.now(), talks: [] };
+  }
+
+  it('old cache without lastModified returns empty label', () => {
+    var cache = makeOldCache();
+    // formatLastModified receives cache.lastModified which is undefined
+    assert.strictEqual(formatLastModified(cache.lastModified, Date.now()), '');
+  });
+
+  it('new cache with lastModified returns valid label', () => {
+    var cache = makeNewCache();
+    var now = new Date('2026-04-08T10:05:00Z');
+    assert.strictEqual(formatLastModified(cache.lastModified, now), '5 хв тому');
+  });
+
+  it('304 response should update lastModified on old cache', () => {
+    // Simulate what happens on 304: we update cache.lastModified from response header
+    var cache = makeOldCache();
+    assert.strictEqual(cache.lastModified, undefined);
+
+    // Simulate 304 handler
+    var lm304 = 'Tue, 08 Apr 2026 12:00:00 GMT';
+    if (lm304) cache.lastModified = lm304;
+
+    assert.strictEqual(cache.lastModified, lm304);
+    var now = new Date('2026-04-08T12:03:00Z');
+    assert.strictEqual(formatLastModified(cache.lastModified, now), '3 хв тому');
+  });
+
+  it('cache-buster changes when sha changes', () => {
+    var RAW = 'https://raw.githubusercontent.com/owner/repo/main';
+    var url1 = buildSrtUrl(RAW, 'talk', 'video', 'aaa11111');
+    var url2 = buildSrtUrl(RAW, 'talk', 'video', 'bbb22222');
+    assert.notStrictEqual(url1, url2);
+    // Both should have ?v= parameter
+    assert.ok(url1.includes('?v=aaa11111'), url1);
+    assert.ok(url2.includes('?v=bbb22222'), url2);
+  });
+
+  it('same sha produces same URL (cache hit)', () => {
+    var RAW = 'https://raw.githubusercontent.com/owner/repo/main';
+    var url1 = buildSrtUrl(RAW, 'talk', 'video', 'abc12345');
+    var url2 = buildSrtUrl(RAW, 'talk', 'video', 'abc12345');
+    assert.strictEqual(url1, url2);
+  });
+});
+
+// ============================================================
+// Tests: edge cases for freshness display
+// ============================================================
+describe('freshness display edge cases', () => {
+  it('manifest without lastModified shows empty (graceful)', () => {
+    assert.strictEqual(formatLastModified(undefined, Date.now()), '');
+  });
+
+  it('manifest with empty string lastModified shows empty', () => {
+    assert.strictEqual(formatLastModified('', Date.now()), '');
+  });
+
+  it('exactly 59 minutes shows minutes not hours', () => {
+    var now = new Date('2026-04-08T10:59:00Z');
+    var lastMod = 'Tue, 08 Apr 2026 10:00:00 GMT';
+    assert.strictEqual(formatLastModified(lastMod, now), '59 хв тому');
+  });
+
+  it('exactly 60 minutes shows 1 hour', () => {
+    var now = new Date('2026-04-08T11:00:00Z');
+    var lastMod = 'Tue, 08 Apr 2026 10:00:00 GMT';
+    assert.strictEqual(formatLastModified(lastMod, now), '1 год тому');
+  });
+
+  it('exactly 23 hours shows hours not date', () => {
+    var now = new Date('2026-04-09T09:00:00Z');
+    var lastMod = 'Tue, 08 Apr 2026 10:00:00 GMT';
+    assert.strictEqual(formatLastModified(lastMod, now), '23 год тому');
+  });
+
+  it('exactly 24 hours shows date', () => {
+    var now = new Date('2026-04-09T10:00:00Z');
+    var lastMod = 'Tue, 08 Apr 2026 10:00:00 GMT';
+    var result = formatLastModified(lastMod, now);
+    assert.ok(result.includes('8'), 'should show day 8, got: ' + result);
+    assert.ok(!result.includes('год'), 'should not show hours, got: ' + result);
+  });
+
+  it('no sha means no cache-buster (first load or missing)', () => {
+    var RAW = 'https://raw.githubusercontent.com/o/r/main';
+    var url = buildSrtUrl(RAW, 'talk', 'video', '');
+    assert.ok(!url.includes('?v='), 'should not have ?v= for empty sha');
+    url = buildSrtUrl(RAW, 'talk', 'video', null);
+    assert.ok(!url.includes('?v='), 'should not have ?v= for null sha');
+  });
+});

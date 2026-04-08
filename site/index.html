@@ -132,16 +132,18 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
 </head>
 <body>
 
+<!-- === FRESHNESS BAR (global, all views) === -->
+<div id="freshness-bar" style="background:#111;border-bottom:1px solid #333;padding:4px 20px;display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:12px;color:#666;">
+  <span id="last-updated"></span>
+  <button id="refresh-btn" onclick="SPA.refreshManifest()" style="background:none;color:#888;border:1px solid #444;border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;display:none;" title="Перевірити оновлення">&#x21bb;</button>
+</div>
+
 <!-- === INDEX VIEW === -->
 <div id="view-index" class="view">
   <div class="header"><h1>SY Subtitles</h1>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span id="last-updated" style="font-size:12px;color:#666;"></span>
-      <button id="refresh-btn" onclick="SPA.refreshManifest()" style="background:#222;color:#888;border:1px solid #444;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;display:none;" title="Перевірити оновлення">&#x21bb;</button>
-      <div class="branch-selector">
-        <button class="branch-btn" id="branch-btn" onclick="SPA.toggleBranches()">main &#x25BE;</button>
-        <div class="branch-dropdown" id="branch-dropdown"></div>
-      </div>
+    <div class="branch-selector">
+      <button class="branch-btn" id="branch-btn" onclick="SPA.toggleBranches()">main &#x25BE;</button>
+      <div class="branch-dropdown" id="branch-dropdown"></div>
     </div>
   </div>
   <div id="index-toolbar" style="max-width:800px;margin:8px auto;padding:0 20px;display:none">
@@ -318,7 +320,12 @@ function loadManifest() {
 
   return fetch(API + '/git/trees/' + BRANCH + '?recursive=1', { headers: headers })
     .then(function(r) {
-      if (r.status === 304 && cache) return cache;
+      if (r.status === 304 && cache) {
+        // On 304, Last-Modified header is still returned
+        var lm304 = r.headers.get('Last-Modified');
+        if (lm304) cache.lastModified = lm304;
+        return cache;
+      }
       if (!r.ok) throw 'API ' + r.status;
       var etag = r.headers.get('ETag');
       var lastMod = r.headers.get('Last-Modified');
@@ -478,13 +485,13 @@ function showIndex() {
   var statusEl = document.getElementById('index-status');
   var contentEl = document.getElementById('index-content');
 
-  if (manifest && reviewStatus) { renderStats(); renderIndex(contentEl); statusEl.style.display = 'none'; return; }
+  if (manifest && reviewStatus) { updateLastModifiedUI(); renderStats(); renderIndex(contentEl); statusEl.style.display = 'none'; return; }
 
   statusEl.textContent = 'Loading...';
   statusEl.style.display = 'block';
 
   Promise.all([
-    manifest ? Promise.resolve(manifest) : loadManifest().then(function(m) { manifest = m; return m; }),
+    manifest ? Promise.resolve(manifest) : loadManifest().then(function(m) { manifest = m; updateLastModifiedUI(); return m; }),
     reviewStatus ? Promise.resolve(reviewStatus) : loadReviewStatus()
   ]).then(function() {
     renderStats();
@@ -1076,7 +1083,8 @@ SPA.refreshManifest = function() {
     route();
     toast('Дані оновлено');
   }).catch(function(err) {
-    if (el) el.textContent = 'Помилка оновлення';
+    updateLastModifiedUI(); // restore previous state
+    toast('Помилка оновлення: ' + err);
     console.warn('Refresh failed:', err);
   });
 };
