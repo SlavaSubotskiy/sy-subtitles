@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updated_at": "2026-04-08T08:00:00Z",
+  "updated_at": "2026-04-08T08:30:59.546348+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "pending",
       "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
+      "issue_number": 5,
+      "updated_at": "2026-04-02T08:15:29Z"
     },
     "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2": {
       "status": "pending",
@@ -17,8 +17,8 @@
     "1980-03-23_Birthday-Puja": {
       "status": "pending",
       "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
+      "issue_number": 6,
+      "updated_at": "2026-04-03T08:11:15Z"
     },
     "1981-03-21_Birthday-Puja-1981-Sydney": {
       "status": "approved",
@@ -29,14 +29,14 @@
     "1982-07-11_From-Heart-To-Sahastrar-Derby": {
       "status": "pending",
       "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
+      "issue_number": 8,
+      "updated_at": "2026-04-03T18:12:51Z"
     },
     "1983-03-30_Celebration-Of-Birthday-In-Bombay": {
       "status": "pending",
       "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
+      "issue_number": 7,
+      "updated_at": "2026-04-02T18:17:21Z"
     },
     "1983-07-24_Guru-Puja-Awakening-The-Principle-Of-Guru": {
       "status": "approved",
@@ -47,8 +47,8 @@
     "1984-03-22_Birthday-Puja": {
       "status": "pending",
       "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
+      "issue_number": 9,
+      "updated_at": "2026-04-04T18:17:14Z"
     },
     "1992-07-19_Guru-Puja": {
       "status": "pending",
@@ -75,10 +75,10 @@
       "updated_at": null
     },
     "2001-07-29_Shri-Krishna-Puja-New-York": {
-      "status": "in-progress",
+      "status": "approved",
       "reviewer": "SlavaSubotskiy",
       "issue_number": 1,
-      "updated_at": "2026-04-01T20:17:55Z"
+      "updated_at": "2026-04-08T08:30:58Z"
     }
   }
 }
