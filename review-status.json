@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-02T07:38:34.019073+00:00",
+  "updated_at": "2026-04-08T08:00:00Z",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "pending",
@@ -61,6 +61,18 @@
       "reviewer": "SlavaSubotskiy",
       "issue_number": null,
       "updated_at": "2026-04-01T20:00:00Z"
+    },
+    "1979-09-27_Shri-Kundalini-Shakti-And-Shri-Jesus-Bombay": {
+      "status": "in-progress",
+      "reviewer": "SlavaSubotskiy",
+      "issue_number": 14,
+      "updated_at": "2026-04-08T06:07:14Z"
+    },
+    "1992-02-25_Talk-To-Yogis-In-Christchurch": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": null,
+      "updated_at": null
     },
     "2001-07-29_Shri-Krishna-Puja-New-York": {
       "status": "in-progress",
