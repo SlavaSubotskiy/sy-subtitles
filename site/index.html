@@ -168,6 +168,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6af; outline-offset:
     <div id="subtitle-overlay"></div>
     <div class="controls">
       <span id="time-display">00:00:00</span>
+      <select id="srt-lang-select" style="display:none;background:#333;color:#fff;border:1px solid #555;border-radius:4px;padding:4px 8px;font-size:13px;cursor:pointer;" title="Мова субтитрів"></select>
       <button id="btn-mark" onclick="SPA.addMarker()" title="M = mark, Space = play/pause, &#8592;&#8594; = seek 5s">&#x1F4CC; Mark</button>
     </div>
   </div>
@@ -221,6 +222,32 @@ function timeToMs(t) {
   return parseInt(parts[0], 10) * 3600000 + parseInt(parts[1], 10) * 60000 +
     parseInt(secMs[0], 10) * 1000 + parseInt(secMs[1], 10);
 }
+function loadSubtitleLang(lang) {
+  var s = previewState;
+  if (!s) return Promise.resolve();
+  var shaKey = s.videoSlug + '/' + lang;
+  var sha = (s.talk && s.talk._srtSha && s.talk._srtSha[shaKey]) || '';
+  var url = RAW + '/talks/' + s.talkId + '/' + s.videoSlug + '/final/' + lang + '.srt' + (sha ? '?v=' + sha.substring(0, 8) : '');
+  s.srtLang = lang;
+  return fetch(url)
+    .then(function(r) { return r.ok ? r.text() : Promise.reject('SRT fetch failed: HTTP ' + r.status); })
+    .then(function(text) {
+      s.subtitles = parseSRT(text);
+      console.log('[SPA] SRT loaded (' + lang + '):', s.subtitles.length, 'blocks');
+    })
+    .catch(function(err) {
+      console.warn('[SPA] SRT error:', err);
+      document.getElementById('subtitle-overlay').textContent = 'Error loading subtitles';
+    });
+}
+
+SPA.switchSubLang = function(lang) {
+  loadSubtitleLang(lang).then(function() {
+    // Reset current display
+    document.getElementById('subtitle-overlay').textContent = '';
+  });
+};
+
 function parseSRT(text) {
   text = text.replace(/^\uFEFF/, '');
   var blocks = text.trim().split(/\n\s*\n/);
@@ -257,7 +284,7 @@ var PAGES_BASE = location.pathname.replace(/\/[^/]*$/, '');
 // ============================================================
 // App version — cache auto-invalidates on update
 // ============================================================
-var APP_VERSION = '9';
+var APP_VERSION = '10';
 var CACHE_KEY = 'sy_tree_cache__' + BRANCH;
 (function() {
   var cached = localStorage.getItem('sy_app_version');
@@ -386,7 +413,7 @@ function buildManifest(tree) {
     var m = entry.path.match(/^talks\/([^/]+)\/meta\.yaml$/);
     if (m) {
       var tid = m[1];
-      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [], _srtSha: {}, _transcriptSha: {}, transcripts: [] };
+      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [], _srtSha: {}, _srtLangs: {}, _transcriptSha: {}, transcripts: [] };
     }
   });
   // Pass 2: fill in transcripts and SRT
@@ -401,10 +428,16 @@ function buildManifest(tree) {
       if (talks[m[1]].transcripts.indexOf(m[2]) === -1) talks[m[1]].transcripts.push(m[2]);
       talks[m[1]]._transcriptSha[m[2]] = entry.sha || '';
     }
-    m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/final\/uk\.srt$/);
-    if (m && talks[m[1]] && talks[m[1]]._srtSlugs.indexOf(m[2]) === -1) {
-      talks[m[1]]._srtSlugs.push(m[2]);
-      talks[m[1]]._srtSha[m[2]] = entry.sha || '';
+    m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/final\/([a-z]{2})\.srt$/);
+    if (m && talks[m[1]]) {
+      var srtSlug = m[2], srtLang = m[3];
+      if (talks[m[1]]._srtSlugs.indexOf(srtSlug) === -1) talks[m[1]]._srtSlugs.push(srtSlug);
+      // Store sha per slug+lang key
+      talks[m[1]]._srtSha[srtSlug + '/' + srtLang] = entry.sha || '';
+      // Store available subtitle languages per slug
+      if (!talks[m[1]]._srtLangs) talks[m[1]]._srtLangs = {};
+      if (!talks[m[1]]._srtLangs[srtSlug]) talks[m[1]]._srtLangs[srtSlug] = [];
+      if (talks[m[1]]._srtLangs[srtSlug].indexOf(srtLang) === -1) talks[m[1]]._srtLangs[srtSlug].push(srtLang);
     }
   });
 
@@ -601,26 +634,33 @@ function showPreview(talkId, videoSlug) {
     iframe.src = embedUrl + '&texttrack=false';
   }
 
-  // Load SRT (sha cache-buster from Trees API)
-  var srtSha = (talk && talk._srtSha && talk._srtSha[videoSlug]) || '';
-  var srtUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/final/uk.srt' + (srtSha ? '?v=' + srtSha.substring(0, 8) : '');
-  previewState = { talkId: talkId, videoSlug: videoSlug, talk: talk, video: video, subtitles: [], markers: [], currentTime: 0, lastText: '' };
+  // Determine available subtitle languages
+  var availLangs = (talk && talk._srtLangs && talk._srtLangs[videoSlug]) || ['uk'];
+  var defaultLang = availLangs.indexOf('uk') !== -1 ? 'uk' : availLangs[0];
+
+  previewState = { talkId: talkId, videoSlug: videoSlug, talk: talk, video: video, subtitles: [], markers: [], currentTime: 0, lastText: '', srtLang: defaultLang };
+
+  // Render subtitle language selector
+  var langSel = document.getElementById('srt-lang-select');
+  if (langSel) {
+    if (availLangs.length > 1) {
+      langSel.innerHTML = availLangs.map(function(l) {
+        return '<option value="' + l + '"' + (l === defaultLang ? ' selected' : '') + '>' + l.toUpperCase() + '</option>';
+      }).join('');
+      langSel.style.display = 'inline-block';
+      langSel.onchange = function() { SPA.switchSubLang(langSel.value); };
+    } else {
+      langSel.style.display = 'none';
+    }
+  }
 
   // Load markers from localStorage
   var mkey = 'markers_preview_' + talkId + '_' + videoSlug;
   try { previewState.markers = JSON.parse(localStorage.getItem(mkey) || '[]'); } catch(e) {}
   renderMarkers();
 
-  var srtLoaded = fetch(srtUrl)
-    .then(function(r) { return r.ok ? r.text() : Promise.reject('SRT fetch failed: HTTP ' + r.status); })
-    .then(function(text) {
-      previewState.subtitles = parseSRT(text);
-      console.log('[SPA] SRT loaded:', previewState.subtitles.length, 'blocks');
-    })
-    .catch(function(err) {
-      console.warn('[SPA] SRT error:', err);
-      document.getElementById('subtitle-overlay').textContent = 'Error loading subtitles';
-    });
+  // Load SRT
+  var srtLoaded = loadSubtitleLang(defaultLang);
 
   // Setup player events — wait for both player ready and SRT
   if (embedUrl) {

@@ -326,6 +326,157 @@ describe('buildTranscriptUrl', () => {
   });
 });
 
+// --- extractSrtLangs logic (extracted from buildManifest) ---
+function extractSrtLangs(treeEntries) {
+  var result = {};
+  treeEntries.forEach(function(entry) {
+    var m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/final\/([a-z]{2})\.srt$/);
+    if (m) {
+      var tid = m[1], slug = m[2], lang = m[3];
+      if (!result[tid]) result[tid] = {};
+      if (!result[tid][slug]) result[tid][slug] = [];
+      if (result[tid][slug].indexOf(lang) === -1) result[tid][slug].push(lang);
+    }
+  });
+  return result;
+}
+
+// --- buildSrtUrlWithLang (replaces old buildSrtUrl for multi-lang) ---
+function buildSrtUrlWithLang(rawBase, talkId, videoSlug, lang, srtSha) {
+  var shaKey = videoSlug + '/' + lang;
+  var sha = (srtSha && srtSha[shaKey]) || '';
+  var url = rawBase + '/talks/' + talkId + '/' + videoSlug + '/final/' + lang + '.srt';
+  if (sha) url += '?v=' + sha.substring(0, 8);
+  return url;
+}
+
+// ============================================================
+// Tests: extractSrtLangs
+// ============================================================
+describe('extractSrtLangs', () => {
+  it('returns empty for no SRT entries', () => {
+    var result = extractSrtLangs([
+      { path: 'talks/Talk/meta.yaml' },
+    ]);
+    assert.deepStrictEqual(result, {});
+  });
+
+  it('extracts single language', () => {
+    var result = extractSrtLangs([
+      { path: 'talks/Talk/Vid/final/uk.srt', sha: 'abc' },
+    ]);
+    assert.deepStrictEqual(result['Talk']['Vid'], ['uk']);
+  });
+
+  it('extracts multiple languages for same video', () => {
+    var result = extractSrtLangs([
+      { path: 'talks/Talk/Vid/final/uk.srt', sha: 'a' },
+      { path: 'talks/Talk/Vid/final/hi.srt', sha: 'b' },
+      { path: 'talks/Talk/Vid/final/en.srt', sha: 'c' },
+    ]);
+    var langs = result['Talk']['Vid'].sort();
+    assert.deepStrictEqual(langs, ['en', 'hi', 'uk']);
+  });
+
+  it('separate languages per video slug', () => {
+    var result = extractSrtLangs([
+      { path: 'talks/Talk/Vid1/final/uk.srt', sha: 'a' },
+      { path: 'talks/Talk/Vid2/final/hi.srt', sha: 'b' },
+    ]);
+    assert.deepStrictEqual(result['Talk']['Vid1'], ['uk']);
+    assert.deepStrictEqual(result['Talk']['Vid2'], ['hi']);
+  });
+
+  it('no duplicates', () => {
+    var result = extractSrtLangs([
+      { path: 'talks/Talk/Vid/final/uk.srt', sha: 'a' },
+      { path: 'talks/Talk/Vid/final/uk.srt', sha: 'b' },
+    ]);
+    assert.strictEqual(result['Talk']['Vid'].length, 1);
+  });
+
+  it('ignores non-srt files', () => {
+    var result = extractSrtLangs([
+      { path: 'talks/Talk/Vid/final/uk.srt', sha: 'a' },
+      { path: 'talks/Talk/Vid/work/uk.map', sha: 'b' },
+      { path: 'talks/Talk/Vid/final/report.txt', sha: 'c' },
+    ]);
+    assert.deepStrictEqual(result['Talk']['Vid'], ['uk']);
+  });
+});
+
+// ============================================================
+// Tests: buildSrtUrlWithLang
+// ============================================================
+describe('buildSrtUrlWithLang', () => {
+  var RAW = 'https://raw.githubusercontent.com/o/r/main';
+
+  it('builds uk URL', () => {
+    var url = buildSrtUrlWithLang(RAW, 'talk', 'vid', 'uk', {});
+    assert.ok(url.endsWith('/final/uk.srt'));
+  });
+
+  it('builds hi URL', () => {
+    var url = buildSrtUrlWithLang(RAW, 'talk', 'vid', 'hi', {});
+    assert.ok(url.endsWith('/final/hi.srt'));
+  });
+
+  it('appends sha for correct lang key', () => {
+    var sha = { 'vid/uk': 'aaa11111', 'vid/hi': 'bbb22222' };
+    var ukUrl = buildSrtUrlWithLang(RAW, 'talk', 'vid', 'uk', sha);
+    var hiUrl = buildSrtUrlWithLang(RAW, 'talk', 'vid', 'hi', sha);
+    assert.ok(ukUrl.includes('?v=aaa11111'));
+    assert.ok(hiUrl.includes('?v=bbb22222'));
+  });
+
+  it('no sha when key missing', () => {
+    var url = buildSrtUrlWithLang(RAW, 'talk', 'vid', 'en', { 'vid/uk': 'abc' });
+    assert.ok(!url.includes('?v='));
+  });
+
+  it('no sha when srtSha is null', () => {
+    var url = buildSrtUrlWithLang(RAW, 'talk', 'vid', 'uk', null);
+    assert.ok(!url.includes('?v='));
+  });
+});
+
+// ============================================================
+// Tests: subtitle language selector visibility
+// ============================================================
+describe('subtitle language selector logic', () => {
+  function shouldShowSelector(availLangs) {
+    return availLangs.length > 1;
+  }
+
+  function getDefaultLang(availLangs) {
+    return availLangs.indexOf('uk') !== -1 ? 'uk' : availLangs[0];
+  }
+
+  it('hides selector for single language', () => {
+    assert.strictEqual(shouldShowSelector(['uk']), false);
+  });
+
+  it('shows selector for multiple languages', () => {
+    assert.strictEqual(shouldShowSelector(['uk', 'hi']), true);
+  });
+
+  it('shows selector for three languages', () => {
+    assert.strictEqual(shouldShowSelector(['uk', 'hi', 'en']), true);
+  });
+
+  it('default is uk when available', () => {
+    assert.strictEqual(getDefaultLang(['hi', 'uk', 'en']), 'uk');
+  });
+
+  it('default is first when uk not available', () => {
+    assert.strictEqual(getDefaultLang(['hi', 'en']), 'hi');
+  });
+
+  it('default for single language', () => {
+    assert.strictEqual(getDefaultLang(['uk']), 'uk');
+  });
+});
+
 // ============================================================
 // Tests: 304 cache scenario (lastModified preserved)
 // ============================================================
