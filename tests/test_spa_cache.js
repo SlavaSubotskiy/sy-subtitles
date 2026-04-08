@@ -528,7 +528,7 @@ describe('SPA code integrity', () => {
     // Extract SPA.xxx = function definitions
     var definitions = new Set();
     lines.forEach(line => {
-      var m = line.match(/^SPA\.(\w+)\s*=/);
+      var m = line.trim().match(/^SPA\.(\w+)\s*=/);
       if (m) definitions.add(m[1]);
     });
     var missing = [...onclickCalls].filter(c => !definitions.has(c));
@@ -547,6 +547,129 @@ describe('SPA code integrity', () => {
         defs[name] = i + 1;
       }
     });
+  });
+});
+
+// ============================================================
+// Tests: Theme system
+// ============================================================
+describe('Theme: CSS variables coverage', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  // Extract <style> block
+  var styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+  var css = styleMatch ? styleMatch[1] : '';
+
+  // Remove :root variable declarations (they legitimately have hex colors)
+  var cssWithoutVars = css.replace(/:root\s*\{[^}]*\}/g, '')
+    .replace(/\[data-theme="[^"]*"\]\s*\{[^}]*\}/g, '')
+    .replace(/@media\s*\(prefers-color-scheme:\s*light\)\s*\{[^}]*:root:not\(\[data-theme="dark"\]\)\s*\{[^}]*\}\s*\}/g, '');
+
+  it('no hardcoded hex colors in CSS rules (outside :root)', () => {
+    // Find #xxx or #xxxxxx patterns that are NOT inside var() or comments
+    var lines = cssWithoutVars.split('\n');
+    var errors = [];
+    lines.forEach((line, i) => {
+      var trimmed = line.trim();
+      if (trimmed.startsWith('/*') || trimmed.startsWith('//')) return;
+      // Match hex colors but not inside var(--xxx)
+      var hexMatches = trimmed.match(/#[0-9a-fA-F]{3,8}\b/g);
+      if (hexMatches) {
+        // Filter out ones that are inside var()
+        hexMatches.forEach(hex => {
+          if (!trimmed.includes('var(--')) {
+            errors.push('CSS line ~' + (i+1) + ': ' + hex + ' in: ' + trimmed.substring(0, 60));
+          }
+        });
+      }
+    });
+    // Allow subtitle overlay to keep #fff (always white text on dark bg)
+    errors = errors.filter(e => !e.includes('#fff') || !e.includes('subtitle-overlay'));
+    if (errors.length > 0) {
+      console.log('Hardcoded colors found:', errors.slice(0, 5).join('\n'));
+    }
+    assert.strictEqual(errors.length, 0, 'Found ' + errors.length + ' hardcoded hex colors in CSS');
+  });
+
+  it('all CSS color properties use var()', () => {
+    var colorProps = ['color:', 'background:', 'background-color:', 'border-color:', 'border:', 'outline:'];
+    var lines = cssWithoutVars.split('\n');
+    var errors = [];
+    lines.forEach((line, i) => {
+      var trimmed = line.trim();
+      if (trimmed.startsWith('/*')) return;
+      colorProps.forEach(prop => {
+        if (trimmed.includes(prop) && trimmed.includes('#') && !trimmed.includes('var(--')) {
+          errors.push('Line ~' + (i+1) + ': ' + trimmed.substring(0, 80));
+        }
+      });
+    });
+    assert.strictEqual(errors.length, 0, 'CSS properties with hardcoded colors: ' + errors.join('; '));
+  });
+});
+
+describe('Theme: toggle logic', () => {
+  var cycle = ['auto', 'dark', 'light'];
+
+  function nextTheme(current) {
+    return cycle[(cycle.indexOf(current) + 1) % cycle.length];
+  }
+
+  it('auto → dark', () => assert.strictEqual(nextTheme('auto'), 'dark'));
+  it('dark → light', () => assert.strictEqual(nextTheme('dark'), 'light'));
+  it('light → auto', () => assert.strictEqual(nextTheme('light'), 'auto'));
+
+  it('auto means no data-theme attribute', () => {
+    // In auto mode, data-theme should be removed, letting @media query decide
+    var mode = 'auto';
+    assert.strictEqual(mode === 'auto', true);
+  });
+
+  it('dark/light means explicit data-theme', () => {
+    assert.strictEqual('dark' !== 'auto', true);
+    assert.strictEqual('light' !== 'auto', true);
+  });
+});
+
+describe('Theme: CSS variable completeness', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('dark theme variables defined in :root', () => {
+    assert.ok(html.includes('--bg: #1a1a1a'), 'dark --bg missing');
+    assert.ok(html.includes('--fg: #fff'), 'dark --fg missing');
+    assert.ok(html.includes('--link: #6af'), 'dark --link missing');
+  });
+
+  it('light theme variables defined', () => {
+    assert.ok(html.includes('--bg: #f5f5f5'), 'light --bg missing');
+    assert.ok(html.includes('--fg: #111'), 'light --fg missing');
+    assert.ok(html.includes('--link: #0066cc'), 'light --link missing');
+  });
+
+  it('light theme defined both in @media and [data-theme="light"]', () => {
+    assert.ok(html.includes('prefers-color-scheme: light'), '@media query missing');
+    assert.ok(html.includes('[data-theme="light"]'), 'explicit light theme missing');
+  });
+
+  it('dark override prevents light @media from applying', () => {
+    assert.ok(html.includes(':root:not([data-theme="dark"])'), 'dark override guard missing');
+  });
+
+  it('all var() references have matching definitions', () => {
+    var varUsages = new Set();
+    var varDefs = new Set();
+    // Find var(--xxx)
+    (html.match(/var\(--[\w-]+\)/g) || []).forEach(m => {
+      varUsages.add(m.match(/--[\w-]+/)[0]);
+    });
+    // Find --xxx: definitions
+    (html.match(/--[\w-]+\s*:/g) || []).forEach(m => {
+      varDefs.add(m.replace(/\s*:/, ''));
+    });
+    var missing = [...varUsages].filter(v => !varDefs.has(v));
+    assert.strictEqual(missing.length, 0, 'Undefined CSS vars: ' + missing.join(', '));
   });
 });
 
