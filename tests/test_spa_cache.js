@@ -1680,6 +1680,105 @@ describe('Add Talk: real amruta.org page parsing', () => {
 });
 
 // ============================================================
+// Tests: transcript normalization (simulates new-talk.yml logic)
+// ============================================================
+function normalizeTranscript(body) {
+  // Same logic as new-talk.yml: collapse 3+ newlines to single
+  return body.replace(/\n{3,}/g, '\n');
+}
+
+function buildTranscriptHeader(meta) {
+  // Same as new-talk.yml header generation
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var parts = (meta.date || '').split('-');
+  var dateStr = parseInt(parts[2], 10) + ' ' + months[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+  var langMap = { en: 'English', hi: 'Hindi', mr: 'Marathi', fr: 'French', it: 'Italian' };
+  var langName = langMap[meta.language] || meta.language;
+  var header = dateStr + '\n' + meta.title + '\n';
+  if (meta.location) header += meta.location + '\n';
+  header += 'Talk Language: ' + langName + ' | Transcript (' + langName + ')\n';
+  return header;
+}
+
+describe('Transcript normalization (new-talk.yml logic)', () => {
+  it('collapses triple newlines to single', () => {
+    assert.strictEqual(normalizeTranscript('a\n\n\nb'), 'a\nb');
+  });
+
+  it('collapses quadruple newlines to single', () => {
+    assert.strictEqual(normalizeTranscript('a\n\n\n\nb'), 'a\nb');
+  });
+
+  it('preserves double newlines', () => {
+    assert.strictEqual(normalizeTranscript('a\n\nb'), 'a\n\nb');
+  });
+
+  it('preserves single newlines', () => {
+    assert.strictEqual(normalizeTranscript('a\nb'), 'a\nb');
+  });
+
+  it('handles multiple triple runs', () => {
+    assert.strictEqual(normalizeTranscript('a\n\n\nb\n\n\nc'), 'a\nb\nc');
+  });
+
+  it('real transcript: no triple newlines after normalization', () => {
+    var parsed;
+    try { parsed = JSON.parse(fs.readFileSync('tests/fixtures/amruta_parsed.json', 'utf8')); } catch(e) { return; }
+    var idx = parsed.transcript.indexOf('Talk Language:');
+    var bodyStart = parsed.transcript.indexOf('\n\n', idx);
+    var body = parsed.transcript.substring(bodyStart).trim();
+    var normalized = normalizeTranscript(body);
+    assert.ok(!/\n{3,}/.test(normalized), 'should not contain triple newlines after normalization');
+  });
+
+  it('real transcript: paragraphs separated by single newline after normalization', () => {
+    var parsed;
+    try { parsed = JSON.parse(fs.readFileSync('tests/fixtures/amruta_parsed.json', 'utf8')); } catch(e) { return; }
+    var idx = parsed.transcript.indexOf('Talk Language:');
+    var bodyStart = parsed.transcript.indexOf('\n\n', idx);
+    var body = parsed.transcript.substring(bodyStart).trim();
+    var normalized = normalizeTranscript(body);
+    var lines = normalized.split('\n').filter(function(l) { return l.trim().length > 0; });
+    assert.ok(lines.length > 10, 'should have multiple paragraphs: got ' + lines.length);
+  });
+
+  it('header format matches download.py convention', () => {
+    var header = buildTranscriptHeader({
+      title: 'Sahasrara Puja: How it was decided',
+      date: '1988-05-08',
+      location: 'Fregene (Italy)',
+      language: 'en'
+    });
+    assert.ok(header.startsWith('8 May 1988\n'));
+    assert.ok(header.includes('Sahasrara Puja: How it was decided\n'));
+    assert.ok(header.includes('Fregene (Italy)\n'));
+    assert.ok(header.includes('Talk Language: English | Transcript (English)'));
+  });
+
+  it('header: date format matches existing transcripts', () => {
+    var header = buildTranscriptHeader({ title: 'T', date: '1993-09-19', location: 'L', language: 'en' });
+    assert.ok(header.startsWith('19 September 1993\n'));
+  });
+
+  it('full pipeline: header + normalized body has no triple newlines', () => {
+    var parsed;
+    try { parsed = JSON.parse(fs.readFileSync('tests/fixtures/amruta_parsed.json', 'utf8')); } catch(e) { return; }
+    var idx = parsed.transcript.indexOf('Talk Language:');
+    var bodyStart = parsed.transcript.indexOf('\n\n', idx);
+    var body = parsed.transcript.substring(bodyStart).trim();
+    var normalized = normalizeTranscript(body);
+    var header = buildTranscriptHeader({
+      title: parsed.title, date: parsed.date, location: parsed.location, language: 'en'
+    });
+    var full = header + '\n' + normalized;
+    assert.ok(!/\n{3,}/.test(full), 'full transcript should not contain triple newlines');
+    assert.ok(full.startsWith('8 May 1988\n'));
+    assert.ok(full.includes('Talk Language: English'));
+    assert.ok(full.includes('Sahasrara Puja'));
+  });
+});
+
+// ============================================================
 // Tests: per-video subtitle language persistence
 // ============================================================
 function getPreviewSrtLangKey(talkId, videoSlug) {
