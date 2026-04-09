@@ -1157,6 +1157,126 @@ describe('issue URL: i18n keys exist', () => {
 });
 
 // ============================================================
+// Tests: per-video subtitle language persistence
+// ============================================================
+function getPreviewSrtLangKey(talkId, videoSlug) {
+  return 'sy_srt_lang_' + talkId + '_' + videoSlug;
+}
+
+function resolvePreviewLang(availLangs, savedLang) {
+  if (savedLang && availLangs.indexOf(savedLang) !== -1) return savedLang;
+  return availLangs.indexOf('uk') !== -1 ? 'uk' : availLangs[0];
+}
+
+describe('preview: per-video subtitle language persistence', () => {
+  it('localStorage key is per-video', () => {
+    var k1 = getPreviewSrtLangKey('talk-A', 'vid-1');
+    var k2 = getPreviewSrtLangKey('talk-A', 'vid-2');
+    var k3 = getPreviewSrtLangKey('talk-B', 'vid-1');
+    assert.notStrictEqual(k1, k2);
+    assert.notStrictEqual(k1, k3);
+  });
+
+  it('restores saved language if available', () => {
+    assert.strictEqual(resolvePreviewLang(['uk', 'hi'], 'hi'), 'hi');
+  });
+
+  it('ignores saved language if not in available', () => {
+    assert.strictEqual(resolvePreviewLang(['uk', 'en'], 'hi'), 'uk');
+  });
+
+  it('defaults to uk when no saved and uk available', () => {
+    assert.strictEqual(resolvePreviewLang(['hi', 'uk'], null), 'uk');
+  });
+
+  it('defaults to first lang when no saved and no uk', () => {
+    assert.strictEqual(resolvePreviewLang(['hi', 'en'], null), 'hi');
+  });
+
+  it('saved empty string treated as no saved', () => {
+    assert.strictEqual(resolvePreviewLang(['uk', 'hi'], ''), 'uk');
+  });
+});
+
+// ============================================================
+// Tests: per-talk review language persistence
+// ============================================================
+function getReviewLangsKey(talkId) {
+  return 'sy_review_langs_' + talkId;
+}
+
+function resolveReviewLangs(hashParams, savedJson) {
+  var left = 'en', right = 'uk';
+  if (hashParams && (hashParams.left || hashParams.right)) {
+    if (hashParams.left) left = hashParams.left;
+    if (hashParams.right) right = hashParams.right;
+  } else if (savedJson) {
+    try {
+      var saved = JSON.parse(savedJson);
+      if (saved && saved.left) left = saved.left;
+      if (saved && saved.right) right = saved.right;
+    } catch(e) {}
+  }
+  return { left: left, right: right };
+}
+
+describe('review: per-talk language persistence', () => {
+  it('localStorage key is per-talk', () => {
+    var k1 = getReviewLangsKey('talk-A');
+    var k2 = getReviewLangsKey('talk-B');
+    assert.notStrictEqual(k1, k2);
+  });
+
+  it('URL params override saved', () => {
+    var result = resolveReviewLangs({ left: 'hi', right: 'mr' }, '{"left":"en","right":"uk"}');
+    assert.deepStrictEqual(result, { left: 'hi', right: 'mr' });
+  });
+
+  it('restores saved when no URL params', () => {
+    var result = resolveReviewLangs(null, '{"left":"hi","right":"mr"}');
+    assert.deepStrictEqual(result, { left: 'hi', right: 'mr' });
+  });
+
+  it('defaults to en/uk when no URL params and no saved', () => {
+    var result = resolveReviewLangs(null, null);
+    assert.deepStrictEqual(result, { left: 'en', right: 'uk' });
+  });
+
+  it('handles invalid JSON gracefully', () => {
+    var result = resolveReviewLangs(null, 'not json');
+    assert.deepStrictEqual(result, { left: 'en', right: 'uk' });
+  });
+
+  it('partial saved (only left)', () => {
+    var result = resolveReviewLangs(null, '{"left":"hi"}');
+    assert.deepStrictEqual(result, { left: 'hi', right: 'uk' });
+  });
+
+  it('partial saved (only right)', () => {
+    var result = resolveReviewLangs(null, '{"right":"mr"}');
+    assert.deepStrictEqual(result, { left: 'en', right: 'mr' });
+  });
+
+  it('save format is JSON with left/right', () => {
+    var toSave = JSON.stringify({ left: 'hi', right: 'mr' });
+    var parsed = JSON.parse(toSave);
+    assert.strictEqual(parsed.left, 'hi');
+    assert.strictEqual(parsed.right, 'mr');
+  });
+
+  it('different talks independent', () => {
+    var k1 = getReviewLangsKey('1979-bombay');
+    var k2 = getReviewLangsKey('2001-new-york');
+    assert.notStrictEqual(k1, k2);
+    // Simulating different saves
+    var saved1 = '{"left":"hi","right":"uk"}';
+    var saved2 = '{"left":"en","right":"uk"}';
+    assert.deepStrictEqual(resolveReviewLangs(null, saved1), { left: 'hi', right: 'uk' });
+    assert.deepStrictEqual(resolveReviewLangs(null, saved2), { left: 'en', right: 'uk' });
+  });
+});
+
+// ============================================================
 // Tests: refresh result messaging
 // ============================================================
 function refreshResultMessage(oldEtag, newEtag) {

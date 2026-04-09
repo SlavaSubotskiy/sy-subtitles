@@ -486,6 +486,8 @@ function loadSubtitleLang(lang) {
 SPA.switchSubLang = function(lang) {
   loadSubtitleLang(lang).then(function() {
     document.getElementById('subtitle-overlay').textContent = '';
+    // Save per-video language choice
+    if (previewState) localStorage.setItem('sy_srt_lang_' + previewState.talkId + '_' + previewState.videoSlug, lang);
   });
 };
 
@@ -830,9 +832,11 @@ function showPreview(talkId, videoSlug) {
     iframe.src = embedUrl + '&texttrack=false';
   }
 
-  // Determine available subtitle languages
+  // Determine available subtitle languages (restore saved per-video choice)
   var availLangs = (talk && talk._srtLangs && talk._srtLangs[videoSlug]) || ['uk'];
-  var defaultLang = availLangs.indexOf('uk') !== -1 ? 'uk' : availLangs[0];
+  var savedSrtLang = localStorage.getItem('sy_srt_lang_' + talkId + '_' + videoSlug);
+  var defaultLang = (savedSrtLang && availLangs.indexOf(savedSrtLang) !== -1) ? savedSrtLang
+    : availLangs.indexOf('uk') !== -1 ? 'uk' : availLangs[0];
 
   previewState = { talkId: talkId, videoSlug: videoSlug, talk: talk, video: video, subtitles: [], markers: [], currentTime: 0, lastText: '', srtLang: defaultLang };
 
@@ -1018,13 +1022,20 @@ function langName(code) { return LANG_NAMES[code] || code.charAt(0).toUpperCase(
 
 var reviewState = { talkId: '', leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n' };
 
-function parseReviewLangs(hash) {
+function parseReviewLangs(hash, talkId) {
   var left = 'en', right = 'uk';
   var qm = hash.indexOf('?');
   if (qm !== -1) {
     var params = new URLSearchParams(hash.slice(qm));
     if (params.get('left')) left = params.get('left');
     if (params.get('right')) right = params.get('right');
+  } else if (talkId) {
+    // Restore saved per-talk choice
+    try {
+      var saved = JSON.parse(localStorage.getItem('sy_review_langs_' + talkId));
+      if (saved && saved.left) left = saved.left;
+      if (saved && saved.right) right = saved.right;
+    } catch(e) {}
   }
   return { left: left, right: right };
 }
@@ -1040,7 +1051,7 @@ function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
   reviewState.talkId = talkId;
 
-  var langs = parseReviewLangs(location.hash);
+  var langs = parseReviewLangs(location.hash, talkId);
   reviewState.leftLang = langs.left;
   reviewState.rightLang = langs.right;
 
@@ -1288,6 +1299,8 @@ SPA.switchTranscript = function(side, lang) {
   document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
   var left = side === 'left' ? lang : reviewState.leftLang;
   var right = side === 'right' ? lang : reviewState.rightLang;
+  // Save per-talk language choice
+  localStorage.setItem('sy_review_langs_' + reviewState.talkId, JSON.stringify({ left: left, right: right }));
   var base = '#/review/' + reviewState.talkId;
   if (left !== 'en' || right !== 'uk') base += '?left=' + left + '&right=' + right;
   location.hash = base;
