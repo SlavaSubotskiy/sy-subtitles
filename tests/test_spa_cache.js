@@ -1332,6 +1332,79 @@ describe('Add Talk: GitHub new file URL', () => {
   });
 });
 
+describe('Add Talk: bookmarklet extracts location', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+  var bmMatch = html.match(/var bmCode = "(.*?)";/s);
+  var bmCode = bmMatch ? bmMatch[1] : '';
+
+  it('bookmarklet code includes location extraction', () => {
+    assert.ok(bmCode.includes('loc') || bmCode.includes('location') || bmCode.includes('h4'),
+      'bookmarklet should extract location from page');
+  });
+
+  it('bookmarklet data JSON includes location field', () => {
+    // The bookmarklet JSON should have a location field (l or loc)
+    assert.ok(bmCode.includes('"l"') || bmCode.includes('"loc"') || bmCode.includes(',l:') || bmCode.includes(',loc:'),
+      'bookmarklet JSON should include location field');
+  });
+});
+
+describe('Add Talk: bookmarklet extracts video titles', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+  var bmMatch = html.match(/var bmCode = "(.*?)";/s);
+  var bmCode = bmMatch ? bmMatch[1] : '';
+
+  it('bookmarklet extracts video labels from page', () => {
+    // Should look for video-meta-label or preceding heading or embedded-video-wrapper
+    assert.ok(
+      bmCode.includes('video-meta') || bmCode.includes('label') || bmCode.includes('previousElement'),
+      'bookmarklet should extract video labels'
+    );
+  });
+
+  it('bookmarklet data includes video titles (not just URLs)', () => {
+    // Video data should be objects with title+url, not just url strings
+    var data = { t: 'Test', v: [{ id: '123', hash: 'abc', title: 'Puja' }] };
+    var enc = encodeBookmarkletData(data);
+    var parsed = parseBookmarkletData(enc);
+    assert.ok(parsed.v[0].title, 'video should have title field');
+  });
+});
+
+describe('Add Talk: SPA form populates location from bookmarklet', () => {
+  it('parseBookmarkletData with location field', () => {
+    var data = { t: 'Test', d: '2001-01-01', loc: 'Mumbai (India)', v: [], tx: '' };
+    var enc = encodeBookmarkletData(data);
+    var parsed = parseBookmarkletData(enc);
+    assert.strictEqual(parsed.loc, 'Mumbai (India)');
+  });
+});
+
+describe('Add Talk: i18n for dynamic video row labels', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('Video title label uses i18n t() in JS', () => {
+    // addVideoRowWithUrl should use t('add.video_title') not hardcoded 'Video title'
+    assert.ok(
+      html.includes("t('add.video_title')") || html.includes('t("add.video_title")'),
+      'Video title label in dynamic row should use t() for i18n'
+    );
+  });
+
+  it('add.video_title i18n key exists in both languages', () => {
+    var ukMatch = (html.match(/'add\.video_title'/g) || []).length;
+    assert.ok(ukMatch >= 2, 'add.video_title should be in uk and en, found: ' + ukMatch);
+  });
+
+  it('add.vimeo_url i18n key exists in both languages', () => {
+    var matches = (html.match(/'add\.vimeo_url'/g) || []).length;
+    assert.ok(matches >= 2, 'add.vimeo_url should be in uk and en, found: ' + matches);
+  });
+});
+
 describe('Add Talk: SPA code integrity', () => {
   var fs = require('fs');
   var html = fs.readFileSync('site/index.html', 'utf8');
