@@ -176,6 +176,10 @@ jobs:
                           header += f"{location}\n"
                       header += f"Talk Language: {lang_name} | Transcript ({lang_name})\n"
 
+                      # Normalize: collapse 3+ newlines to single paragraph break
+                      import re as _re
+                      body = _re.sub(r'\n{3,}', '\n', body)
+
                       # Only prepend if header not already present
                       if "Talk Language:" not in body[:500]:
                           transcript = header + "\n" + body
