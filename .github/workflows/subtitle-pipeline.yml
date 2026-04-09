@@ -414,21 +414,22 @@ jobs:
           TALK_ID="${{ inputs.talk_id }}"
           TALK="talks/$TALK_ID"
 
-          # Find first (longest) video by whisper duration; fall back to first video
+          # Find video with most spoken words (not longest duration — puja videos are long but silent)
           FIRST_VIDEO=$(python3 -c "
           import json, yaml, sys
           with open('$TALK/meta.yaml') as f:
             meta = yaml.safe_load(f)
-          best_slug, best_dur = None, 0
+          best_slug, best_words = None, 0
           for v in meta['videos']:
             wpath = f'$TALK/{v[\"slug\"]}/source/whisper.json'
             try:
               with open(wpath) as wf:
                 segs = json.load(wf)['segments']
-              dur = segs[-1]['end'] if segs else 0
-            except: dur = 0
-            if dur > best_dur:
-              best_dur = dur
+              nwords = sum(len(s.get('words', [])) for s in segs)
+            except: nwords = 0
+            print(f'  {v[\"slug\"]}: {nwords} words', file=sys.stderr)
+            if nwords > best_words:
+              best_words = nwords
               best_slug = v['slug']
           if best_slug is None:
             best_slug = meta['videos'][0]['slug']
