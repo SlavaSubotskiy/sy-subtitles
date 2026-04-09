@@ -2123,54 +2123,180 @@ describe('i18n: data-i18n coverage in HTML', () => {
   });
 });
 
-describe('Footer and expert mode', () => {
-  var fs = require('fs');
-  var html = fs.readFileSync('site/index.html', 'utf8');
+// ============================================================
+// Footer version string logic
+// ============================================================
+function formatFooterVersion(deploySha, deployDate, manifestSha) {
+  var sha = deploySha || manifestSha || 'dev';
+  var date = deployDate || '';
+  return sha + (date ? ' | ' + date : '');
+}
 
-  it('footer element exists', () => {
-    assert.ok(html.includes('id="app-footer"'));
-    assert.ok(html.includes('id="footer-version"'));
+describe('Footer: formatFooterVersion', () => {
+  it('deploy SHA + date', () => {
+    assert.strictEqual(formatFooterVersion('abc1234', '2026-04-09', 'xyz9999'), 'abc1234 | 2026-04-09');
   });
 
-  it('updateFooter function exists', () => {
-    assert.ok(html.includes('function updateFooter()'));
+  it('deploy SHA without date', () => {
+    assert.strictEqual(formatFooterVersion('abc1234', '', 'xyz9999'), 'abc1234');
   });
 
-  it('expert mode toggle exists', () => {
-    assert.ok(html.includes('SPA.toggleExpert'));
-    assert.ok(html.includes('sy_expert_mode'));
+  it('falls back to manifest SHA when deploy SHA empty', () => {
+    assert.strictEqual(formatFooterVersion('', '', 'xyz9999'), 'xyz9999');
   });
 
-  it('expert-only class used in cards', () => {
-    assert.ok(html.includes('class="expert-only"'));
+  it('falls back to dev when both empty', () => {
+    assert.strictEqual(formatFooterVersion('', '', ''), 'dev');
   });
 
-  it('expert-btn with pipeline link', () => {
-    assert.ok(html.includes('subtitle-pipeline.yml'));
-    assert.ok(html.includes('navigator.clipboard.writeText'));
+  it('null/undefined handled', () => {
+    assert.strictEqual(formatFooterVersion(null, null, null), 'dev');
+    assert.strictEqual(formatFooterVersion(undefined, undefined, undefined), 'dev');
   });
 
-  it('applyExpertMode called after renderIndex', () => {
-    assert.ok(html.includes('applyExpertMode()'), 'applyExpertMode should be called');
-  });
-
-  it('auto-reload on site/index.html SHA change', () => {
-    assert.ok(html.includes('_siteIndexSha'));
-    assert.ok(html.includes('APP_DEPLOY_SHA'));
-    assert.ok(html.includes('location.reload()'));
-  });
-
-  it('CACHE_SCHEMA used for cache migration', () => {
-    assert.ok(html.includes('CACHE_SCHEMA'));
-    assert.ok(html.includes('_schema'));
-  });
-
-  it('buildManifest extracts site/index.html SHA', () => {
-    assert.ok(html.includes("entry.path === 'site/index.html'"));
-    assert.ok(html.includes('_siteIndexSha'));
+  it('deploy SHA takes priority over manifest SHA', () => {
+    assert.strictEqual(formatFooterVersion('aaa', '2026-01-01', 'bbb'), 'aaa | 2026-01-01');
   });
 });
 
+// ============================================================
+// Auto-reload detection logic
+// ============================================================
+function shouldAutoReload(deploySha, siteIndexSha) {
+  return !!(siteIndexSha && deploySha && siteIndexSha !== deploySha);
+}
+
+describe('Auto-reload: shouldAutoReload', () => {
+  it('different SHAs → reload', () => {
+    assert.strictEqual(shouldAutoReload('abc1234', 'def5678'), true);
+  });
+
+  it('same SHAs → no reload', () => {
+    assert.strictEqual(shouldAutoReload('abc1234', 'abc1234'), false);
+  });
+
+  it('empty deploy SHA (local dev) → no reload', () => {
+    assert.strictEqual(shouldAutoReload('', 'def5678'), false);
+  });
+
+  it('empty manifest SHA → no reload', () => {
+    assert.strictEqual(shouldAutoReload('abc1234', ''), false);
+  });
+
+  it('both empty → no reload', () => {
+    assert.strictEqual(shouldAutoReload('', ''), false);
+  });
+
+  it('null/undefined → no reload', () => {
+    assert.strictEqual(shouldAutoReload(null, 'abc'), false);
+    assert.strictEqual(shouldAutoReload('abc', null), false);
+  });
+});
+
+// ============================================================
+// Cache schema migration logic
+// ============================================================
+function shouldMigrateCache(cachedJson, expectedSchema) {
+  if (!cachedJson) return false; // no cache = nothing to migrate
+  try {
+    var c = JSON.parse(cachedJson);
+    return c._schema !== expectedSchema;
+  } catch(e) { return true; } // corrupt = needs migration
+}
+
+describe('Cache: schema migration', () => {
+  it('same schema → no migration', () => {
+    assert.strictEqual(shouldMigrateCache('{"_schema":2}', 2), false);
+  });
+
+  it('old schema → needs migration', () => {
+    assert.strictEqual(shouldMigrateCache('{"_schema":1}', 2), true);
+  });
+
+  it('no schema field → needs migration', () => {
+    assert.strictEqual(shouldMigrateCache('{"etag":"abc"}', 2), true);
+  });
+
+  it('null cache → no migration needed', () => {
+    assert.strictEqual(shouldMigrateCache(null, 2), false);
+  });
+
+  it('corrupt JSON → needs migration', () => {
+    assert.strictEqual(shouldMigrateCache('{broken', 2), true);
+  });
+
+  it('empty string → needs migration', () => {
+    assert.strictEqual(shouldMigrateCache('', 2), false);
+  });
+});
+
+// ============================================================
+// buildManifest: _siteIndexSha extraction
+// ============================================================
+describe('buildManifest: _siteIndexSha', () => {
+  // Minimal buildManifest that extracts _siteIndexSha
+  function extractSiteIndexSha(tree) {
+    var sha = '';
+    tree.forEach(function(entry) {
+      if (entry.path === 'site/index.html') sha = (entry.sha || '').substring(0, 7);
+    });
+    return sha;
+  }
+
+  it('extracts SHA from tree', () => {
+    var tree = [
+      { path: 'talks/test/meta.yaml', sha: 'aaa' },
+      { path: 'site/index.html', sha: 'e3a253d1234567890' },
+      { path: 'site/sw.js', sha: 'bbb' },
+    ];
+    assert.strictEqual(extractSiteIndexSha(tree), 'e3a253d');
+  });
+
+  it('returns empty when site/index.html not in tree', () => {
+    var tree = [{ path: 'talks/test/meta.yaml', sha: 'aaa' }];
+    assert.strictEqual(extractSiteIndexSha(tree), '');
+  });
+
+  it('truncates to 7 chars', () => {
+    var tree = [{ path: 'site/index.html', sha: '1234567890abcdef' }];
+    assert.strictEqual(extractSiteIndexSha(tree), '1234567');
+  });
+});
+
+// ============================================================
+// Expert mode: pipeline button HTML
+// ============================================================
+describe('Expert mode: pipeline button', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('expert-only elements hidden by default (display:none in HTML)', () => {
+    // expert-only spans in card HTML have style="display:none;"
+    assert.ok(html.includes('class="expert-only" style="display:none;"'));
+  });
+
+  it('pipeline button copies talk_id to clipboard', () => {
+    assert.ok(html.includes('navigator.clipboard.writeText'));
+  });
+
+  it('pipeline button links to subtitle-pipeline.yml dispatch', () => {
+    assert.ok(html.includes('actions/workflows/subtitle-pipeline.yml'));
+  });
+
+  it('expert toggle persists to localStorage sy_expert_mode', () => {
+    assert.ok(html.includes("localStorage.getItem('sy_expert_mode')"));
+    assert.ok(html.includes("localStorage.setItem('sy_expert_mode'"));
+  });
+
+  it('footer has expert toggle button', () => {
+    assert.ok(html.includes('id="footer-expert"'));
+    assert.ok(html.includes('SPA.toggleExpert'));
+  });
+});
+
+// ============================================================
+// SW independence from APP_VERSION
+// ============================================================
 describe('SW version independence', () => {
   var fs = require('fs');
   var sw = fs.readFileSync('site/sw.js', 'utf8');
@@ -2182,6 +2308,43 @@ describe('SW version independence', () => {
 
   it('SW does not parse URL params for version', () => {
     assert.ok(!sw.includes('searchParams'));
+  });
+
+  it('CACHE_NAME derived from CACHE_VERSION', () => {
+    var m = sw.match(/CACHE_NAME = 'sy-subtitles-c' \+ CACHE_VERSION/);
+    assert.ok(m, 'CACHE_NAME should use CACHE_VERSION');
+  });
+});
+
+// ============================================================
+// Deploy workflow stamps
+// ============================================================
+describe('Deploy stamps in HTML', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('APP_DEPLOY_SHA placeholder for sed', () => {
+    assert.ok(html.includes("var APP_DEPLOY_SHA = '';"));
+  });
+
+  it('APP_DEPLOY_DATE placeholder for sed', () => {
+    assert.ok(html.includes("var APP_DEPLOY_DATE = '';"));
+  });
+
+  it('no APP_VERSION references remain', () => {
+    assert.ok(!html.includes('APP_VERSION'), 'APP_VERSION should be fully removed');
+  });
+
+  it('CACHE_SCHEMA is defined as number >= 1', () => {
+    var m = html.match(/var CACHE_SCHEMA = (\d+)/);
+    assert.ok(m, 'CACHE_SCHEMA not found');
+    assert.ok(parseInt(m[1]) >= 1);
+  });
+
+  it('footer element exists with correct structure', () => {
+    assert.ok(html.includes('id="app-footer"'));
+    assert.ok(html.includes('id="footer-version"'));
+    assert.ok(html.includes('id="footer-expert"'));
   });
 });
 

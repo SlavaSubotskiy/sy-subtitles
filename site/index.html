@@ -1804,7 +1804,7 @@ function updateFooter() {
   if (!el) return;
   var sha = APP_DEPLOY_SHA || (manifest && manifest._siteIndexSha) || 'dev';
   var date = APP_DEPLOY_DATE || '';
-  el.textContent = 'v' + APP_VERSION + ' ' + sha + (date ? ' | ' + date : '');
+  el.textContent = sha + (date ? ' | ' + date : '');
 }
 updateFooter();
 
