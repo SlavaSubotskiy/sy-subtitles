@@ -1,0 +1,212 @@
+name: New Talk Setup
+run-name: "New talk: ${{ github.event.pull_request.title }}"
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'talks/*/meta.yaml'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    # Only run on new meta.yaml files (not edits to existing ones)
+    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    env:
+      PR_HEAD_REF: ${{ github.head_ref }}
+      PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Detect new talks
+        id: detect
+        run: |
+          python3 << 'PYEOF'
+          import json
+          import os
+          import subprocess
+
+          base = os.environ["PR_BASE_SHA"]
+          head = os.environ["PR_HEAD_SHA"]
+
+          result = subprocess.run(
+              ["git", "diff", "--name-only", "--diff-filter=A", base, head],
+              capture_output=True, text=True, check=True
+          )
+
+          new_metas = [
+              f for f in result.stdout.strip().split("\n")
+              if f.startswith("talks/") and f.endswith("/meta.yaml")
+          ]
+
+          if not new_metas:
+              print("No new meta.yaml files found")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+                  out.write("has_new=false\n")
+          else:
+              print(f"New talks: {new_metas}")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+                  out.write("has_new=true\n")
+                  out.write(f"metas={json.dumps(new_metas)}\n")
+          PYEOF
+
+      - name: Process new talks
+        if: steps.detect.outputs.has_new == 'true'
+        env:
+          NEW_METAS: ${{ steps.detect.outputs.metas }}
+        run: |
+          python3 << 'PYEOF'
+          import base64
+          import json
+          import os
+          import subprocess
+
+          import yaml
+
+          metas = json.loads(os.environ["NEW_METAS"])
+
+          for meta_path in metas:
+              talk_dir = os.path.dirname(meta_path)
+              talk_id = os.path.basename(talk_dir)
+              print(f"\n{'='*50}")
+              print(f"  {talk_id}")
+              print(f"{'='*50}")
+
+              with open(meta_path) as f:
+                  meta = yaml.safe_load(f)
+
+              # 1. Extract transcript from base64
+              b64 = meta.get("transcript_en_base64", "").strip()
+              if b64:
+                  try:
+                      transcript = base64.b64decode(b64).decode("utf-8")
+                      transcript_path = os.path.join(talk_dir, "transcript_en.txt")
+                      with open(transcript_path, "w") as f:
+                          f.write(transcript)
+                      print(f"  Extracted transcript: {len(transcript)} chars")
+
+                      # Remove base64 from meta.yaml (no longer needed)
+                      del meta["transcript_en_base64"]
+                      with open(meta_path, "w") as f:
+                          yaml.dump(meta, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+                      print("  Cleaned transcript_en_base64 from meta.yaml")
+                  except Exception as e:
+                      print(f"  WARN: Failed to decode transcript: {e}")
+
+              # 2. Create video directories
+              videos = meta.get("videos", [])
+              for video in videos:
+                  slug = video["slug"]
+                  for subdir in ["source", "work", "final"]:
+                      dirpath = os.path.join(talk_dir, slug, subdir)
+                      os.makedirs(dirpath, exist_ok=True)
+                  # Add .gitkeep to empty dirs so git tracks them
+                  for subdir in ["source", "work", "final"]:
+                      dirpath = os.path.join(talk_dir, slug, subdir)
+                      gitkeep = os.path.join(dirpath, ".gitkeep")
+                      if not os.listdir(dirpath):
+                          with open(gitkeep, "w") as f:
+                              pass
+                  print(f"  Created dirs for video: {slug}")
+          PYEOF
+
+      - name: Download EN subtitles from Vimeo
+        if: steps.detect.outputs.has_new == 'true'
+        continue-on-error: true
+        env:
+          NEW_METAS: ${{ steps.detect.outputs.metas }}
+        run: |
+          pip install yt-dlp
+
+          python3 << 'PYEOF'
+          import json
+          import os
+          import subprocess
+          import glob as globmod
+
+          import yaml
+
+          metas = json.loads(os.environ["NEW_METAS"])
+
+          for meta_path in metas:
+              talk_dir = os.path.dirname(meta_path)
+              talk_id = os.path.basename(talk_dir)
+
+              with open(meta_path) as f:
+                  meta = yaml.safe_load(f)
+
+              for video in meta.get("videos", []):
+                  slug = video["slug"]
+                  vimeo_url = video.get("vimeo_url", "")
+                  if not vimeo_url:
+                      print(f"  {slug}: no vimeo_url — skip SRT download")
+                      continue
+
+                  source_dir = os.path.join(talk_dir, slug, "source")
+                  en_srt = os.path.join(source_dir, "en.srt")
+                  if os.path.exists(en_srt):
+                      print(f"  {slug}: en.srt already exists — skip")
+                      continue
+
+                  print(f"  Downloading EN SRT for {slug} from {vimeo_url}")
+                  try:
+                      subprocess.run([
+                          "yt-dlp",
+                          "--referer", "https://www.amruta.org/",
+                          "--write-subs",
+                          "--sub-langs", "en",
+                          "--skip-download",
+                          "--sub-format", "srt/vtt/best",
+                          "--convert-subs", "srt",
+                          "-o", os.path.join(source_dir, "%(id)s.%(ext)s"),
+                          vimeo_url,
+                      ], check=True)
+
+                      # Rename {vimeo_id}.en.srt → en.srt
+                      for f in globmod.glob(os.path.join(source_dir, "*.srt")):
+                          basename = os.path.basename(f)
+                          parts = basename.rsplit(".", 2)
+                          if len(parts) == 3 and parts[1] == "en":
+                              os.rename(f, en_srt)
+                              print(f"  {slug}: saved en.srt")
+                              break
+                      else:
+                          print(f"  {slug}: no EN subtitles available on Vimeo")
+
+                  except subprocess.CalledProcessError as e:
+                      print(f"  {slug}: yt-dlp failed: {e}")
+          PYEOF
+
+      - name: Commit setup files
+        if: steps.detect.outputs.has_new == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add talks/
+          git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
+          git commit -m "Setup new talk: extract transcript, create dirs, download SRT"
+          git push
+
+      - name: Add new-talk label
+        if: steps.detect.outputs.has_new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create new-talk --description "PR adds a new talk" --color 0E8A16 2>/dev/null || true
+          gh pr edit "$PR_NUMBER" --add-label new-talk
