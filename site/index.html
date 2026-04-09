@@ -100,6 +100,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .review-badge.needs-review { background: var(--issue-bg); color: var(--accent-orange); border: 1px solid var(--border2); }
 .review-badge.in-review { background: var(--stat-active-bg); color: var(--link); border: 1px solid var(--border2); }
 .review-badge.approved { background: var(--primary-bg); color: var(--accent-green); border: 1px solid var(--primary-border); }
+.expert-btn { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; background: var(--bg3); color: var(--fg5); border: 1px solid var(--border2); text-decoration: none; margin-left: 6px; }
+.expert-btn:hover { background: var(--bg4); color: var(--link); }
 
 /* --- Preview --- */
 .player-container { position: relative; width: 100%; max-width: 960px; margin: 20px auto; }
@@ -314,6 +316,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 
 <div class="toast" id="toast"></div>
 
+<footer id="app-footer" style="position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:4px 20px;font-size:11px;color:var(--fg6);display:flex;align-items:center;justify-content:space-between;z-index:100;">
+  <span id="footer-version"></span>
+  <span id="footer-expert" style="display:none;"></span>
+</footer>
+
 <script>
 // ============================================================
 // SRT Parser (from preview_srt_parser.js)
@@ -358,17 +365,29 @@ var API = 'https://api.github.com/repos/' + REPO;
 var PAGES_BASE = location.pathname.replace(/\/[^/]*$/, '');
 
 // ============================================================
-// App version — cache auto-invalidates on update
+// Deploy info — stamped by deploy-pages.yml at build time
 // ============================================================
-var APP_VERSION = '11';
+var APP_DEPLOY_SHA = ''; // blob SHA of site/index.html at deploy
+var APP_DEPLOY_DATE = ''; // deploy date YYYY-MM-DD
+
+// ============================================================
+// Cache — schema versioned, auto-migrates on format change
+// ============================================================
+var CACHE_SCHEMA = 2; // bump when cache format changes
 var CACHE_KEY = 'sy_tree_cache__' + BRANCH;
 (function() {
-  var cached = localStorage.getItem('sy_app_version');
-  if (cached !== APP_VERSION) {
-    localStorage.removeItem('sy_tree_cache');  // clean old key
-    localStorage.removeItem(CACHE_KEY);
-    localStorage.setItem('sy_app_version', APP_VERSION);
-  }
+  try {
+    var raw = localStorage.getItem(CACHE_KEY);
+    if (raw) {
+      var c = JSON.parse(raw);
+      if (c._schema !== CACHE_SCHEMA) {
+        localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem('sy_tree_cache'); // legacy key
+      }
+    }
+  } catch(e) { localStorage.removeItem(CACHE_KEY); }
+  // Clean legacy keys
+  localStorage.removeItem('sy_app_version');
 })();
 
 // ============================================================
@@ -425,6 +444,7 @@ var I18N = {
     'badge.in_review': '\u043D\u0430 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0446\u0456',
     'badge.approved': '\u0437\u0430\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043E',
     'badge.pending': '\u043E\u0447\u0456\u043A\u0443\u0454',
+    'expert.copy_and_run': '\u041A\u043E\u043F\u0456\u044E\u0454 talk_id \u0456 \u0432\u0456\u0434\u043A\u0440\u0438\u0432\u0430\u0454 pipeline',
     'stat.all': '\u0412\u0441\u0456',
     'stat.translated': '\u041F\u0435\u0440\u0435\u043A\u043B\u0430\u0434\u0435\u043D\u043E',
     'stat.with_srt': '\u0417 SRT',
@@ -495,6 +515,7 @@ var I18N = {
     'badge.in_review': 'in review',
     'badge.approved': 'approved',
     'badge.pending': 'pending',
+    'expert.copy_and_run': 'Copies talk_id and opens pipeline',
     'stat.all': 'All',
     'stat.translated': 'Translated',
     'stat.with_srt': 'With SRT',
@@ -650,7 +671,9 @@ function loadManifest() {
         var m = buildManifest(data.tree);
         m.etag = etag;
         m.lastModified = lastMod || '';
+        m.treeSha = (data.sha || '').substring(0, 7);
         m.timestamp = Date.now();
+        m._schema = CACHE_SCHEMA;
         localStorage.setItem(CACHE_KEY, JSON.stringify(m));
         return m;
       });
@@ -740,13 +763,15 @@ function buildManifest(tree) {
   }
   result.sort(function(a, b) { return a.id < b.id ? -1 : 1; });
 
-  // Extract review-status.json sha for cache-busting
+  // Extract sha for cache-busting and auto-reload
   var reviewSha = '';
+  var siteIndexSha = '';
   tree.forEach(function(entry) {
     if (entry.path === 'review-status.json') reviewSha = entry.sha || '';
+    if (entry.path === 'site/index.html') siteIndexSha = (entry.sha || '').substring(0, 7);
   });
 
-  return { talks: result, _reviewSha: reviewSha };
+  return { talks: result, _reviewSha: reviewSha, _siteIndexSha: siteIndexSha };
 }
 
 // ============================================================
@@ -887,12 +912,15 @@ function renderIndex(el) {
     var dateHtml = tk.amrutaUrl
       ? '<a href="' + tk.amrutaUrl + '" target="_blank" title="' + t('link.amruta') + '" style="color:var(--fg5);text-decoration:none;">' + dateStr + ' &#x2197;</a>'
       : dateStr;
-    div.innerHTML = '<div class="talk-date"><span>' + dateHtml + '</span>' + badge + '</div>'
+    var expertHtml = '<span class="expert-only" style="display:none;"><a href="https://github.com/' + REPO + '/actions/workflows/subtitle-pipeline.yml" target="_blank" class="expert-btn" onclick="navigator.clipboard.writeText(\'' + tk.id + '\')" title="' + t('expert.copy_and_run') + '">&#x25B6; pipeline</a></span>';
+    div.innerHTML = '<div class="talk-date"><span>' + dateHtml + '</span>' + badge + expertHtml + '</div>'
       + '<div class="talk-title">' + esc(tk.title || tk.id) + '</div>'
       + (videoLinks || reviewLink ? '<div class="talk-actions">' + videoLinks + reviewLink + '</div>' : '')
       + pendingLabel;
     el.appendChild(div);
   });
+  // Show/hide expert-only elements based on current mode
+  if (typeof applyExpertMode === 'function') applyExpertMode();
 }
 
 SPA.filterTalks = function(filter) {
@@ -1473,7 +1501,14 @@ SPA.refreshManifest = function() {
     loadReviewStatus()
   ]).then(function(results) {
     var m = results[0];
+    // Auto-reload if site/index.html changed in repo
+    if (m._siteIndexSha && APP_DEPLOY_SHA && m._siteIndexSha !== APP_DEPLOY_SHA) {
+      console.log('SPA update detected: ' + APP_DEPLOY_SHA + ' → ' + m._siteIndexSha);
+      location.reload();
+      return;
+    }
     route();
+    updateFooter();
     var changed = m.etag !== oldEtag;
     if (el) {
       el.textContent = changed ? t('freshness.refreshed') : t('freshness.up_to_date');
@@ -1761,10 +1796,46 @@ SPA.toggleLang = function() {
   translatePage();
 })();
 
+// ============================================================
+// Footer
+// ============================================================
+function updateFooter() {
+  var el = document.getElementById('footer-version');
+  if (!el) return;
+  var sha = APP_DEPLOY_SHA || (manifest && manifest._siteIndexSha) || 'dev';
+  var date = APP_DEPLOY_DATE || '';
+  el.textContent = 'v' + APP_VERSION + ' ' + sha + (date ? ' | ' + date : '');
+}
+updateFooter();
+
+// ============================================================
+// Expert mode (persisted in localStorage)
+// ============================================================
+var expertMode = localStorage.getItem('sy_expert_mode') === '1';
+
+SPA.toggleExpert = function() {
+  expertMode = !expertMode;
+  localStorage.setItem('sy_expert_mode', expertMode ? '1' : '0');
+  applyExpertMode();
+};
+
+function applyExpertMode() {
+  document.querySelectorAll('.expert-only').forEach(function(el) {
+    el.style.display = expertMode ? '' : 'none';
+  });
+  var footerExpert = document.getElementById('footer-expert');
+  if (footerExpert) {
+    footerExpert.style.display = '';
+    footerExpert.innerHTML = '<button onclick="SPA.toggleExpert()" style="background:none;border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-size:10px;cursor:pointer;color:var(--fg6);">'
+      + (expertMode ? '&#x2699; expert' : '&#x2699;') + '</button>';
+  }
+}
+applyExpertMode();
+
 // Service Worker registration (skip on localhost for dev/test)
-// Pass APP_VERSION so SW uses same version for CACHE_NAME
+// Browser auto-detects sw.js changes by comparing byte-for-byte
 if ('serviceWorker' in navigator && location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') {
-  navigator.serviceWorker.register('sw.js?v=' + APP_VERSION).catch(function() {});
+  navigator.serviceWorker.register('sw.js').catch(function() {});
 }
 </script>
 </body>

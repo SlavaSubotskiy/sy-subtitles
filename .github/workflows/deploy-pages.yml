@@ -27,6 +27,16 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Stamp build info
+        run: |
+          DEPLOY_DATE=$(date -u +%Y-%m-%d)
+          # Blob SHA of site/index.html as it is in git (before sed)
+          # This matches what Trees API returns — used for auto-reload detection
+          BLOB_SHA=$(git hash-object site/index.html | head -c 7)
+          sed -i "s/var APP_DEPLOY_DATE = '';/var APP_DEPLOY_DATE = '${DEPLOY_DATE}';/" site/index.html
+          sed -i "s/var APP_DEPLOY_SHA = '';/var APP_DEPLOY_SHA = '${BLOB_SHA}';/" site/index.html
+          echo "Deploy: date=$DEPLOY_DATE sha=$BLOB_SHA"
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

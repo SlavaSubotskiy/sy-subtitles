@@ -1,8 +1,8 @@
 // Service Worker for SPA caching
-// Version is passed via registration URL query: sw.js?v=10
-// This ensures SW and index.html share the same version.
-var VERSION = new URL(self.location).searchParams.get('v') || '0';
-var CACHE_NAME = 'sy-subtitles-v' + VERSION;
+// Browser detects changes by comparing sw.js byte-for-byte.
+// CACHE_VERSION: bump when cache format changes or to force purge.
+var CACHE_VERSION = 1;
+var CACHE_NAME = 'sy-subtitles-c' + CACHE_VERSION;
 
 // Assets that are truly immutable (versioned CDN URLs, static images)
 var IMMUTABLE_PATTERNS = [

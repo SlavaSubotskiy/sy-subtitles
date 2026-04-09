@@ -505,14 +505,18 @@ describe('SPA code integrity', () => {
     assert.strictEqual(errors.length, 0, 'SPA used before declaration: ' + errors.join('; '));
   });
 
-  it('APP_VERSION is a string number', () => {
-    var m = html.match(/var APP_VERSION = '(\d+)'/);
-    assert.ok(m, 'APP_VERSION not found');
-    assert.ok(parseInt(m[1]) >= 1, 'APP_VERSION should be >= 1');
+  it('CACHE_SCHEMA is a number >= 1', () => {
+    var m = html.match(/var CACHE_SCHEMA = (\d+)/);
+    assert.ok(m, 'CACHE_SCHEMA not found');
+    assert.ok(parseInt(m[1]) >= 1, 'CACHE_SCHEMA should be >= 1');
   });
 
-  it('SW registration includes APP_VERSION', () => {
-    assert.ok(html.includes("register('sw.js?v=' + APP_VERSION)"), 'SW registration should pass APP_VERSION');
+  it('APP_DEPLOY_SHA placeholder exists', () => {
+    assert.ok(html.includes("var APP_DEPLOY_SHA = ''"), 'APP_DEPLOY_SHA placeholder not found');
+  });
+
+  it('SW registration without version query', () => {
+    assert.ok(html.includes("register('sw.js')"), 'SW should register without version query');
   });
 
   it('all SPA.xxx in onclick handlers have matching definitions', () => {
@@ -2113,10 +2117,71 @@ describe('i18n: data-i18n coverage in HTML', () => {
     assert.ok(html.includes('function translatePage()'), 'translatePage not found');
   });
 
-  it('APP_VERSION is 11', () => {
-    var m = html.match(/var APP_VERSION = '(\d+)'/);
-    assert.ok(m, 'APP_VERSION not found');
-    assert.strictEqual(m[1], '11');
+  it('APP_DEPLOY_SHA and APP_DEPLOY_DATE placeholders', () => {
+    assert.ok(html.includes("var APP_DEPLOY_SHA = ''"), 'APP_DEPLOY_SHA placeholder');
+    assert.ok(html.includes("var APP_DEPLOY_DATE = ''"), 'APP_DEPLOY_DATE placeholder');
+  });
+});
+
+describe('Footer and expert mode', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('footer element exists', () => {
+    assert.ok(html.includes('id="app-footer"'));
+    assert.ok(html.includes('id="footer-version"'));
+  });
+
+  it('updateFooter function exists', () => {
+    assert.ok(html.includes('function updateFooter()'));
+  });
+
+  it('expert mode toggle exists', () => {
+    assert.ok(html.includes('SPA.toggleExpert'));
+    assert.ok(html.includes('sy_expert_mode'));
+  });
+
+  it('expert-only class used in cards', () => {
+    assert.ok(html.includes('class="expert-only"'));
+  });
+
+  it('expert-btn with pipeline link', () => {
+    assert.ok(html.includes('subtitle-pipeline.yml'));
+    assert.ok(html.includes('navigator.clipboard.writeText'));
+  });
+
+  it('applyExpertMode called after renderIndex', () => {
+    assert.ok(html.includes('applyExpertMode()'), 'applyExpertMode should be called');
+  });
+
+  it('auto-reload on site/index.html SHA change', () => {
+    assert.ok(html.includes('_siteIndexSha'));
+    assert.ok(html.includes('APP_DEPLOY_SHA'));
+    assert.ok(html.includes('location.reload()'));
+  });
+
+  it('CACHE_SCHEMA used for cache migration', () => {
+    assert.ok(html.includes('CACHE_SCHEMA'));
+    assert.ok(html.includes('_schema'));
+  });
+
+  it('buildManifest extracts site/index.html SHA', () => {
+    assert.ok(html.includes("entry.path === 'site/index.html'"));
+    assert.ok(html.includes('_siteIndexSha'));
+  });
+});
+
+describe('SW version independence', () => {
+  var fs = require('fs');
+  var sw = fs.readFileSync('site/sw.js', 'utf8');
+
+  it('SW uses CACHE_VERSION not APP_VERSION', () => {
+    assert.ok(sw.includes('CACHE_VERSION'));
+    assert.ok(!sw.includes('APP_VERSION'));
+  });
+
+  it('SW does not parse URL params for version', () => {
+    assert.ok(!sw.includes('searchParams'));
   });
 });
 
