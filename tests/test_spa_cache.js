@@ -1529,8 +1529,9 @@ describe('i18n: no hardcoded UI text in HTML body', () => {
     var m, errors = [];
     while ((m = re.exec(bodyNoScript)) !== null) {
       var val = m[1];
-      // Skip if it looks like an i18n key (contains dots or is single word)
+      // Skip if it looks like an i18n key or URL pattern
       if (/^[\w.]+$/.test(val)) continue;
+      if (/^https?:\/\//.test(val)) continue;
       if (/[a-zA-Z]{3,}/.test(val)) {
         var before = bodyNoScript.substring(Math.max(0, m.index - 200), m.index);
         if (!before.includes('data-i18n-placeholder=')) errors.push(val);
