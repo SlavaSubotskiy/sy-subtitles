@@ -1349,6 +1349,141 @@ describe('Add Talk: SPA code integrity', () => {
 });
 
 // ============================================================
+// Tests: Add Talk with real amruta.org data
+// ============================================================
+describe('Add Talk: real amruta.org page parsing', () => {
+  var fs = require('fs');
+  var parsed;
+  try { parsed = JSON.parse(fs.readFileSync('tests/fixtures/amruta_parsed.json', 'utf8')); } catch(e) { parsed = null; }
+  var bmData;
+  try { bmData = JSON.parse(fs.readFileSync('tests/fixtures/amruta_bookmarklet_data.json', 'utf8')); } catch(e) { bmData = null; }
+
+  it('fixture files exist', () => {
+    assert.ok(parsed, 'amruta_parsed.json not found');
+    assert.ok(bmData, 'amruta_bookmarklet_data.json not found');
+    assert.ok(fs.existsSync('tests/fixtures/amruta_sahasrara.html'), 'HTML fixture not found');
+  });
+
+  // --- Title ---
+  it('title: extracted correctly', () => {
+    assert.strictEqual(parsed.title, 'Sahasrara Puja: How it was decided');
+  });
+  it('title: bookmarklet data matches', () => {
+    assert.strictEqual(bmData.t, 'Sahasrara Puja: How it was decided');
+  });
+  it('title: not empty', () => {
+    assert.ok(parsed.title.length > 5);
+  });
+
+  // --- Date ---
+  it('date: parsed from URL correctly', () => {
+    assert.strictEqual(parsed.date, '1988-05-08');
+  });
+  it('date: is valid ISO format', () => {
+    assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(parsed.date));
+  });
+
+  // --- URL ---
+  it('url: is full amruta.org URL', () => {
+    assert.ok(parsed.url.startsWith('https://www.amruta.org/'));
+    assert.ok(parsed.url.includes('sahasrara-puja'));
+  });
+
+  // --- Vimeo ---
+  it('vimeo: found exactly 2 videos', () => {
+    assert.strictEqual(parsed.vimeos.length, 2);
+  });
+  it('vimeo: first video ID is numeric', () => {
+    assert.ok(/^\d+$/.test(parsed.vimeos[0].id), 'ID: ' + parsed.vimeos[0].id);
+  });
+  it('vimeo: first video hash is hex', () => {
+    assert.ok(/^[a-f0-9]+$/.test(parsed.vimeos[0].hash), 'hash: ' + parsed.vimeos[0].hash);
+  });
+  it('vimeo: specific IDs match expected', () => {
+    assert.strictEqual(parsed.vimeos[0].id, '88490248');
+    assert.strictEqual(parsed.vimeos[1].id, '88509806');
+  });
+  it('vimeo: hashes match expected', () => {
+    assert.strictEqual(parsed.vimeos[0].hash, 'e956098e13');
+    assert.strictEqual(parsed.vimeos[1].hash, '2453ea7524');
+  });
+
+  // --- Transcript ---
+  it('transcript: extracted (length > 1000 chars)', () => {
+    assert.ok(parsed.transcript_length > 1000, 'too short: ' + parsed.transcript_length);
+  });
+  it('transcript: contains actual speech content', () => {
+    // Real talk content should contain "Sahasrara" somewhere
+    assert.ok(parsed.transcript.toLowerCase().includes('sahasrara'), 'should contain "sahasrara"');
+  });
+  it('transcript: contains UI noise (known issue)', () => {
+    // Current bookmarklet .entry-content includes page UI text
+    assert.ok(parsed.transcript.includes('Download subtitles') || parsed.transcript.includes('Show Video'),
+      'expected UI noise in raw extract — bookmarklet needs filtering');
+  });
+
+  // --- Slugify ---
+  it('slugify: produces correct talk slug', () => {
+    assert.strictEqual(slugifyTest(parsed.title), 'Sahasrara-Puja-How-it-was-decided');
+  });
+  it('slugify: talk ID is date_slug', () => {
+    var talkId = parsed.date + '_' + slugifyTest(parsed.title);
+    assert.strictEqual(talkId, '1988-05-08_Sahasrara-Puja-How-it-was-decided');
+  });
+
+  // --- Meta YAML ---
+  it('meta.yaml: builds correctly from real data', () => {
+    var yaml = buildMetaYaml({
+      title: parsed.title, date: parsed.date, url: parsed.url, language: 'en',
+      videos: parsed.vimeos.map(function(v, i) {
+        return { slug: 'Video-' + (i+1), title: 'Video ' + (i+1), url: 'https://vimeo.com/' + v.id + '/' + v.hash };
+      }),
+    });
+    assert.ok(yaml.includes("title: 'Sahasrara Puja: How it was decided'"));
+    assert.ok(yaml.includes("date: '1988-05-08'"));
+    assert.ok(yaml.includes('amruta_url: https://www.amruta.org/'));
+    assert.ok(yaml.includes('language: en'));
+    assert.ok(yaml.includes('videos:'));
+    assert.ok(yaml.includes('vimeo_url: https://vimeo.com/88490248/e956098e13'));
+    assert.ok(yaml.includes('vimeo_url: https://vimeo.com/88509806/2453ea7524'));
+  });
+
+  it('meta.yaml: with transcript base64 round-trips', () => {
+    var sample = parsed.transcript.substring(0, 500);
+    var yaml = buildMetaYaml({ title: 'T', date: '2001-01-01', transcript: sample });
+    var b64Lines = yaml.split('\n').filter(function(l) { return l.startsWith('  ') && !l.includes(':') && l.trim().length > 0; });
+    var b64 = b64Lines.map(function(l) { return l.trim(); }).join('');
+    var decoded = Buffer.from(b64, 'base64').toString('utf8');
+    assert.strictEqual(decoded, sample);
+  });
+
+  // --- Full bookmarklet flow ---
+  it('full flow: bookmarklet → SPA → meta.yaml', () => {
+    // 1. Simulate bookmarklet output
+    var b64 = Buffer.from(JSON.stringify(bmData), 'utf8').toString('base64');
+    // 2. SPA parses
+    var data = parseBookmarkletData(b64);
+    assert.ok(data);
+    assert.strictEqual(data.t, 'Sahasrara Puja: How it was decided');
+    assert.strictEqual(data.v.length, 2);
+    // 3. Build yaml
+    var yaml = buildMetaYaml({
+      title: data.t, date: data.d, url: data.u, language: 'en',
+      videos: data.v.map(function(v, i) {
+        return { slug: slugifyTest('Video ' + (i+1)), title: 'Video ' + (i+1), url: 'https://vimeo.com/' + v };
+      }),
+      transcript: (data.tx || '').substring(0, 200)
+    });
+    assert.ok(yaml.includes('Sahasrara Puja'));
+    assert.ok(yaml.includes('videos:'));
+    assert.ok(yaml.includes('transcript_en_base64'));
+    // 4. Verify filename
+    var filename = 'talks/' + data.d + '_' + slugifyTest(data.t) + '/meta.yaml';
+    assert.strictEqual(filename, 'talks/1988-05-08_Sahasrara-Puja-How-it-was-decided/meta.yaml');
+  });
+});
+
+// ============================================================
 // Tests: per-video subtitle language persistence
 // ============================================================
 function getPreviewSrtLangKey(talkId, videoSlug) {
