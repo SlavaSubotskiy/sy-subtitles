@@ -1,6 +1,8 @@
 name: New Talk Setup
 run-name: "New talk: ${{ github.event.pull_request.title }}"
 
+# Pushes via GITHUB_TOKEN do not trigger workflows — no recursion risk.
+
 on:
   pull_request:
     branches: [main]
@@ -12,27 +14,21 @@ permissions:
   pull-requests: write
 
 jobs:
-  setup:
+  # ── Detect new meta.yaml files ──────────────────────────────────
+  detect:
     runs-on: ubuntu-latest
-    # Only run on new meta.yaml files (not edits to existing ones)
     if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    outputs:
+      has_new: ${{ steps.detect.outputs.has_new }}
+      metas: ${{ steps.detect.outputs.metas }}
     env:
-      PR_HEAD_REF: ${{ github.head_ref }}
       PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: pip install pyyaml
 
       - name: Detect new talks
         id: detect
@@ -66,16 +62,33 @@ jobs:
                   out.write(f"metas={json.dumps(new_metas)}\n")
           PYEOF
 
-      - name: Process new talks
-        if: steps.detect.outputs.has_new == 'true'
-        env:
-          NEW_METAS: ${{ steps.detect.outputs.metas }}
+  # ── Setup: transcript, dirs, EN SRT, label ──────────────────────
+  setup:
+    needs: detect
+    if: needs.detect.outputs.has_new == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NEW_METAS: ${{ needs.detect.outputs.metas }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyyaml yt-dlp
+
+      - name: Extract transcript and create dirs
         run: |
           python3 << 'PYEOF'
           import base64
           import json
           import os
-          import subprocess
 
           import yaml
 
@@ -110,30 +123,20 @@ jobs:
                       print(f"  WARN: Failed to decode transcript: {e}")
 
               # 2. Create video directories
-              videos = meta.get("videos", [])
-              for video in videos:
+              for video in meta.get("videos", []):
                   slug = video["slug"]
                   for subdir in ["source", "work", "final"]:
                       dirpath = os.path.join(talk_dir, slug, subdir)
                       os.makedirs(dirpath, exist_ok=True)
-                  # Add .gitkeep to empty dirs so git tracks them
-                  for subdir in ["source", "work", "final"]:
-                      dirpath = os.path.join(talk_dir, slug, subdir)
-                      gitkeep = os.path.join(dirpath, ".gitkeep")
                       if not os.listdir(dirpath):
-                          with open(gitkeep, "w") as f:
+                          with open(os.path.join(dirpath, ".gitkeep"), "w") as f:
                               pass
                   print(f"  Created dirs for video: {slug}")
           PYEOF
 
       - name: Download EN subtitles from Vimeo
-        if: steps.detect.outputs.has_new == 'true'
         continue-on-error: true
-        env:
-          NEW_METAS: ${{ steps.detect.outputs.metas }}
         run: |
-          pip install yt-dlp
-
           python3 << 'PYEOF'
           import json
           import os
@@ -146,7 +149,6 @@ jobs:
 
           for meta_path in metas:
               talk_dir = os.path.dirname(meta_path)
-              talk_id = os.path.basename(talk_dir)
 
               with open(meta_path) as f:
                   meta = yaml.safe_load(f)
@@ -155,7 +157,7 @@ jobs:
                   slug = video["slug"]
                   vimeo_url = video.get("vimeo_url", "")
                   if not vimeo_url:
-                      print(f"  {slug}: no vimeo_url — skip SRT download")
+                      print(f"  {slug}: no vimeo_url — skip")
                       continue
 
                   source_dir = os.path.join(talk_dir, slug, "source")
@@ -164,13 +166,12 @@ jobs:
                       print(f"  {slug}: en.srt already exists — skip")
                       continue
 
-                  print(f"  Downloading EN SRT for {slug} from {vimeo_url}")
+                  print(f"  Downloading EN SRT for {slug}")
                   try:
                       subprocess.run([
                           "yt-dlp",
                           "--referer", "https://www.amruta.org/",
-                          "--write-subs",
-                          "--sub-langs", "en",
+                          "--write-subs", "--sub-langs", "en",
                           "--skip-download",
                           "--sub-format", "srt/vtt/best",
                           "--convert-subs", "srt",
@@ -178,39 +179,72 @@ jobs:
                           vimeo_url,
                       ], check=True)
 
-                      # Rename {vimeo_id}.en.srt → en.srt
                       for f in globmod.glob(os.path.join(source_dir, "*.srt")):
-                          basename = os.path.basename(f)
-                          parts = basename.rsplit(".", 2)
+                          parts = os.path.basename(f).rsplit(".", 2)
                           if len(parts) == 3 and parts[1] == "en":
                               os.rename(f, en_srt)
                               print(f"  {slug}: saved en.srt")
                               break
                       else:
-                          print(f"  {slug}: no EN subtitles available on Vimeo")
-
+                          print(f"  {slug}: no EN subtitles on Vimeo")
                   except subprocess.CalledProcessError as e:
                       print(f"  {slug}: yt-dlp failed: {e}")
           PYEOF
 
-      - name: Install Whisper dependencies
-        if: steps.detect.outputs.has_new == 'true'
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add talks/
+          git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
+          git commit -m "Setup new talk: extract transcript, create dirs, download SRT"
+          git pull --rebase
+          git push
+
+      - name: Add new-talk label
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create new-talk --description "PR adds a new talk" --color 0E8A16 2>/dev/null || true
+          gh pr edit "$PR_NUMBER" --add-label new-talk
+
+  # ── Whisper: download video, run speech detection ───────────────
+  whisper:
+    needs: detect
+    if: needs.detect.outputs.has_new == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NEW_METAS: ${{ needs.detect.outputs.metas }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: pip-whisper-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-whisper-
+
+      - name: Install dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install -r requirements.txt
-          pip install openai-whisper
+          pip install openai-whisper yt-dlp
 
       - name: Cache Whisper model
-        if: steps.detect.outputs.has_new == 'true'
         uses: actions/cache@v5
         with:
           path: ~/.cache/whisper
           key: whisper-medium
 
       - name: Run Whisper on each video
-        if: steps.detect.outputs.has_new == 'true'
-        env:
-          NEW_METAS: ${{ steps.detect.outputs.metas }}
         run: |
           python3 << 'PYEOF'
           import json
@@ -228,9 +262,8 @@ jobs:
               with open(meta_path) as f:
                   meta = yaml.safe_load(f)
 
-              # Determine language flag
               if meta.get("other_languages"):
-                  lang_flag = []  # auto-detect
+                  lang_flag = []
               else:
                   lang_flag = ["--language", meta.get("language", "en")]
 
@@ -238,7 +271,7 @@ jobs:
                   slug = video["slug"]
                   vimeo_url = video.get("vimeo_url", "")
                   if not vimeo_url:
-                      print(f"  {slug}: no vimeo_url — skip whisper")
+                      print(f"  {slug}: no vimeo_url — skip")
                       continue
 
                   whisper_out = os.path.join(talk_dir, slug, "source", "whisper.json")
@@ -277,25 +310,17 @@ jobs:
                   except subprocess.CalledProcessError as e:
                       print(f"  {slug}: whisper failed: {e}")
 
-                  # Cleanup video
+                  # Cleanup video between runs
                   if os.path.exists(video_path):
                       os.remove(video_path)
           PYEOF
 
-      - name: Commit setup files
-        if: steps.detect.outputs.has_new == 'true'
+      - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add talks/
-          git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
-          git commit -m "Setup new talk: extract transcript, create dirs, download SRT, run whisper"
+          git add talks/*/*/source/whisper.json
+          git diff --cached --quiet && { echo "No whisper changes to commit"; exit 0; }
+          git commit -m "Add Whisper speech detection data"
+          git pull --rebase
           git push
-
-      - name: Add new-talk label
-        if: steps.detect.outputs.has_new == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh label create new-talk --description "PR adds a new talk" --color 0E8A16 2>/dev/null || true
-          gh pr edit "$PR_NUMBER" --add-label new-talk
