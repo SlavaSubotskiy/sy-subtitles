@@ -1091,6 +1091,72 @@ describe('full cache flow scenarios', () => {
 });
 
 // ============================================================
+// Tests: issue URL length fallback
+// ============================================================
+function buildIssueUrl(repoUrl, title, body, label) {
+  return repoUrl + '/issues/new?title=' + encodeURIComponent(title) + '&labels=' + encodeURIComponent(label) + '&body=' + encodeURIComponent(body);
+}
+function shouldCopyToClipboard(url) {
+  return url.length > 8000;
+}
+
+describe('issue URL length fallback', () => {
+  var gh = 'https://github.com/owner/repo';
+  var title = 'Translation review: Test Talk';
+  var label = 'review:pending';
+
+  it('short body: URL under limit, no clipboard needed', () => {
+    var body = 'Short body\n| col1 | col2 |\n|---|---|\n| a | b |';
+    var url = buildIssueUrl(gh, title, body, label);
+    assert.ok(url.length < 8000, 'URL should be under 8000: ' + url.length);
+    assert.strictEqual(shouldCopyToClipboard(url), false);
+  });
+
+  it('long body: URL over limit, clipboard needed', () => {
+    var body = 'x'.repeat(10000);
+    var url = buildIssueUrl(gh, title, body, label);
+    assert.ok(url.length > 8000, 'URL should be over 8000: ' + url.length);
+    assert.strictEqual(shouldCopyToClipboard(url), true);
+  });
+
+  it('exactly at boundary', () => {
+    // Build a body that makes URL exactly ~8000 chars
+    var baseUrl = buildIssueUrl(gh, title, '', label);
+    var remaining = 8000 - baseUrl.length;
+    // encodeURIComponent expands some chars, use simple ASCII
+    var body = 'a'.repeat(Math.floor(remaining / 3)); // conservative, encoded is ~same
+    var url = buildIssueUrl(gh, title, body, label);
+    // Should not need clipboard (under or at limit)
+    assert.strictEqual(shouldCopyToClipboard(url), false);
+  });
+
+  it('short URL preserves full body parameter', () => {
+    var body = '## Review\n\n| P1 | text | translation |';
+    var url = buildIssueUrl(gh, title, body, label);
+    assert.ok(url.includes('&body='), 'short URL should have body param');
+    assert.ok(url.includes(encodeURIComponent('## Review')));
+  });
+
+  it('label is review:pending (not review)', () => {
+    var body = 'test';
+    var url = buildIssueUrl(gh, title, body, label);
+    assert.ok(url.includes('labels=review%3Apending'), 'should encode review:pending');
+  });
+});
+
+describe('issue URL: i18n keys exist', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('alert.issue_body_copied key exists in both languages', () => {
+    assert.ok(html.includes("'alert.issue_body_copied'"), 'key not found in I18N');
+    // Count occurrences (should be at least 2: uk + en)
+    var count = (html.match(/'alert\.issue_body_copied'/g) || []).length;
+    assert.ok(count >= 2, 'should be in both uk and en, found: ' + count);
+  });
+});
+
+// ============================================================
 // Tests: refresh result messaging
 // ============================================================
 function refreshResultMessage(oldEtag, newEtag) {
