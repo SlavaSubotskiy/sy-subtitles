@@ -2271,8 +2271,7 @@ describe('Expert mode: pipeline button', () => {
   var html = fs.readFileSync('site/index.html', 'utf8');
 
   it('expert-only elements hidden by default (display:none in HTML)', () => {
-    // expert-only spans in card HTML have style="display:none;"
-    assert.ok(html.includes('class="expert-only" style="display:none;"'));
+    assert.ok(html.includes('class="expert-only expert-btn" style="display:none;"'));
   });
 
   it('pipeline button copies talk_id to clipboard', () => {

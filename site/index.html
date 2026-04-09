@@ -912,8 +912,8 @@ function renderIndex(el) {
     var dateHtml = tk.amrutaUrl
       ? '<a href="' + tk.amrutaUrl + '" target="_blank" title="' + t('link.amruta') + '" style="color:var(--fg5);text-decoration:none;">' + dateStr + ' &#x2197;</a>'
       : dateStr;
-    var expertHtml = '<span class="expert-only" style="display:none;"><a href="https://github.com/' + REPO + '/actions/workflows/subtitle-pipeline.yml" target="_blank" class="expert-btn" onclick="navigator.clipboard.writeText(\'' + tk.id + '\')" title="' + t('expert.copy_and_run') + '">&#x25B6; pipeline</a></span>';
-    div.innerHTML = '<div class="talk-date"><span>' + dateHtml + '</span>' + expertHtml + badge + '</div>'
+    var expertHtml = ' <a href="https://github.com/' + REPO + '/actions/workflows/subtitle-pipeline.yml" target="_blank" class="expert-only expert-btn" style="display:none;" onclick="navigator.clipboard.writeText(\'' + tk.id + '\')" title="' + t('expert.copy_and_run') + '">&#x25B6; pipeline</a>';
+    div.innerHTML = '<div class="talk-date"><span>' + dateHtml + expertHtml + '</span>' + badge + '</div>'
       + '<div class="talk-title">' + esc(tk.title || tk.id) + '</div>'
       + (videoLinks || reviewLink ? '<div class="talk-actions">' + videoLinks + reviewLink + '</div>' : '')
       + pendingLabel;
