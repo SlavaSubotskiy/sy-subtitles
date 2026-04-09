@@ -1631,7 +1631,7 @@ function updateAddPreview() {
     if (vTitle || vUrl) videos.push({ title: vTitle, url: vUrl, slug: slugify(vTitle || 'Video-' + (videos.length + 1)) });
   });
 
-  var yaml = "title: " + title + "\n";
+  var yaml = "title: '" + title.replace(/'/g, "''") + "'\n";
   yaml += "date: '" + date + "'\n";
   if (location) yaml += "location: " + location + "\n";
   if (url) yaml += "amruta_url: " + url + "\n";

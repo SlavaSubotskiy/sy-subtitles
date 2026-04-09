@@ -1164,7 +1164,7 @@ function slugifyTest(text) {
 }
 
 function buildMetaYaml(opts) {
-  var yaml = "title: " + (opts.title || '') + "\n";
+  var yaml = "title: '" + (opts.title || '').replace(/'/g, "''") + "'\n";
   yaml += "date: '" + (opts.date || '') + "'\n";
   if (opts.location) yaml += "location: " + opts.location + "\n";
   if (opts.url) yaml += "amruta_url: " + opts.url + "\n";
@@ -1209,7 +1209,7 @@ describe('Add Talk: slugify', () => {
 describe('Add Talk: buildMetaYaml', () => {
   it('minimal yaml', () => {
     var yaml = buildMetaYaml({ title: 'Test', date: '2001-01-01', language: 'en' });
-    assert.ok(yaml.includes("title: Test"));
+    assert.ok(yaml.includes("title: 'Test'"));
     assert.ok(yaml.includes("date: '2001-01-01'"));
     assert.ok(yaml.includes('language: en'));
   });
@@ -1231,9 +1231,9 @@ describe('Add Talk: buildMetaYaml', () => {
     assert.ok(yaml.includes('vimeo_url: https://vimeo.com/123/abc'));
   });
 
-  it('title without quotes', () => {
+  it('escapes single quotes in title', () => {
     var yaml = buildMetaYaml({ title: "It's a test", date: '2001-01-01' });
-    assert.ok(yaml.includes("title: It's a test"));
+    assert.ok(yaml.includes("title: 'It''s a test'"));
   });
 
   it('includes transcript as base64', () => {
@@ -1631,7 +1631,7 @@ describe('Add Talk: real amruta.org page parsing', () => {
         return { slug: parsed.video_slugs[i], title: parsed.video_titles[i], url: 'https://vimeo.com/' + v.id + '/' + v.hash };
       }),
     });
-    assert.ok(yaml.includes("title: Sahasrara Puja: How it was decided"));
+    assert.ok(yaml.includes("title: 'Sahasrara Puja: How it was decided'"));
     assert.ok(yaml.includes("date: '1988-05-08'"));
     assert.ok(yaml.includes('location: Fregene (Italy)'));
     assert.ok(yaml.includes('amruta_url: https://www.amruta.org/'));
