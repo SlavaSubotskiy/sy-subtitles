@@ -1356,11 +1356,10 @@ describe('Add Talk: bookmarklet extracts video titles', () => {
   var bmMatch = html.match(/var bmCode = "(.*?)";/s);
   var bmCode = bmMatch ? bmMatch[1] : '';
 
-  it('bookmarklet extracts video labels from page', () => {
-    // Should look for video-meta-label or preceding heading or embedded-video-wrapper
+  it('bookmarklet extracts video labels from video-meta-info div', () => {
     assert.ok(
-      bmCode.includes('video-meta') || bmCode.includes('label') || bmCode.includes('previousElement'),
-      'bookmarklet should extract video labels'
+      bmCode.includes('video-meta-info'),
+      'bookmarklet should look for .video-meta-info inside wrapper'
     );
   });
 
