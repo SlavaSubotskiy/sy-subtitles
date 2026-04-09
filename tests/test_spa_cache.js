@@ -1389,6 +1389,14 @@ describe('Add Talk: real amruta.org page parsing', () => {
     assert.ok(parsed.url.includes('sahasrara-puja'));
   });
 
+  // --- Location ---
+  it('location: extracted correctly', () => {
+    assert.strictEqual(parsed.location, 'Fregene (Italy)');
+  });
+  it('location: not empty', () => {
+    assert.ok(parsed.location && parsed.location.length > 3);
+  });
+
   // --- Vimeo ---
   it('vimeo: found exactly 2 videos', () => {
     assert.strictEqual(parsed.vimeos.length, 2);
@@ -1406,6 +1414,23 @@ describe('Add Talk: real amruta.org page parsing', () => {
   it('vimeo: hashes match expected', () => {
     assert.strictEqual(parsed.vimeos[0].hash, 'e956098e13');
     assert.strictEqual(parsed.vimeos[1].hash, '2453ea7524');
+  });
+
+  // --- Video titles ---
+  it('video titles: extracted 2 titles', () => {
+    assert.ok(parsed.video_titles, 'video_titles missing from fixture');
+    assert.strictEqual(parsed.video_titles.length, 2);
+  });
+  it('video titles: first is "Sahasrara Puja"', () => {
+    assert.strictEqual(parsed.video_titles[0], 'Sahasrara Puja');
+  });
+  it('video titles: second is "Sahasrara Puja Talk"', () => {
+    assert.strictEqual(parsed.video_titles[1], 'Sahasrara Puja Talk');
+  });
+
+  // --- Video slugs ---
+  it('video slugs: match expected', () => {
+    assert.deepStrictEqual(parsed.video_slugs, ['Sahasrara-Puja', 'Sahasrara-Puja-Talk']);
   });
 
   // --- Transcript ---
@@ -1435,15 +1460,20 @@ describe('Add Talk: real amruta.org page parsing', () => {
   it('meta.yaml: builds correctly from real data', () => {
     var yaml = buildMetaYaml({
       title: parsed.title, date: parsed.date, url: parsed.url, language: 'en',
+      location: parsed.location,
       videos: parsed.vimeos.map(function(v, i) {
-        return { slug: 'Video-' + (i+1), title: 'Video ' + (i+1), url: 'https://vimeo.com/' + v.id + '/' + v.hash };
+        return { slug: parsed.video_slugs[i], title: parsed.video_titles[i], url: 'https://vimeo.com/' + v.id + '/' + v.hash };
       }),
     });
     assert.ok(yaml.includes("title: 'Sahasrara Puja: How it was decided'"));
     assert.ok(yaml.includes("date: '1988-05-08'"));
+    assert.ok(yaml.includes('location: Fregene (Italy)'));
     assert.ok(yaml.includes('amruta_url: https://www.amruta.org/'));
     assert.ok(yaml.includes('language: en'));
     assert.ok(yaml.includes('videos:'));
+    assert.ok(yaml.includes('- slug: Sahasrara-Puja'));
+    assert.ok(yaml.includes("title: 'Sahasrara Puja'"));
+    assert.ok(yaml.includes("title: 'Sahasrara Puja Talk'"));
     assert.ok(yaml.includes('vimeo_url: https://vimeo.com/88490248/e956098e13'));
     assert.ok(yaml.includes('vimeo_url: https://vimeo.com/88509806/2453ea7524'));
   });
