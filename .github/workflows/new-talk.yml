@@ -81,18 +81,23 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install pyyaml yt-dlp
+        run: pip install -r requirements.txt yt-dlp
 
-      - name: Extract transcript and create dirs
+      - name: Process new talks
         run: |
           python3 << 'PYEOF'
           import base64
           import json
           import os
+          import re
+          from urllib.parse import urlparse, urlunparse
 
           import yaml
 
+          from tools.download import AmrutaDownloader
+
           metas = json.loads(os.environ["NEW_METAS"])
+          downloader = AmrutaDownloader()
 
           for meta_path in metas:
               talk_dir = os.path.dirname(meta_path)
@@ -104,25 +109,59 @@ jobs:
               with open(meta_path) as f:
                   meta = yaml.safe_load(f)
 
-              # 1. Extract transcript from base64
+              dirty = False  # track if meta.yaml needs rewriting
+
+              # 1. Clean amruta_url: strip query params
+              url = meta.get("amruta_url", "")
+              if url:
+                  parsed = urlparse(url)
+                  clean_url = urlunparse(parsed._replace(query="", fragment=""))
+                  if clean_url != url:
+                      meta["amruta_url"] = clean_url
+                      dirty = True
+                      print(f"  Cleaned URL: {url} → {clean_url}")
+
+              # 2. Extract transcript from base64, prepend header
               b64 = meta.get("transcript_en_base64", "").strip()
               if b64:
                   try:
-                      transcript = base64.b64decode(b64).decode("utf-8")
+                      body = base64.b64decode(b64).decode("utf-8")
+
+                      # Build header matching download.py format:
+                      # "8 May 1988\nSahasrara Puja\nFregene (Italy)\nTalk Language: English | ..."
+                      from datetime import datetime
+                      date_str = datetime.strptime(meta["date"], "%Y-%m-%d").strftime("%-d %B %Y")
+                      location = meta.get("location", "")
+                      lang_code = meta.get("language", "en")
+                      lang_name = {"en": "English", "hi": "Hindi", "mr": "Marathi",
+                                   "fr": "French", "it": "Italian"}.get(lang_code, lang_code.title())
+                      header = f"{date_str}\n{meta['title']}\n"
+                      if location:
+                          header += f"{location}\n"
+                      header += f"Talk Language: {lang_name} | Transcript ({lang_name})\n"
+
+                      # Only prepend if header not already present
+                      if "Talk Language:" not in body[:500]:
+                          transcript = header + "\n" + body
+                      else:
+                          transcript = body
+
                       transcript_path = os.path.join(talk_dir, "transcript_en.txt")
                       with open(transcript_path, "w") as f:
                           f.write(transcript)
                       print(f"  Extracted transcript: {len(transcript)} chars")
-
-                      # Remove base64 from meta.yaml (no longer needed)
                       del meta["transcript_en_base64"]
-                      with open(meta_path, "w") as f:
-                          yaml.dump(meta, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
-                      print("  Cleaned transcript_en_base64 from meta.yaml")
+                      dirty = True
                   except Exception as e:
                       print(f"  WARN: Failed to decode transcript: {e}")
 
-              # 2. Create video directories
+              # 3. Rewrite meta.yaml if changed
+              if dirty:
+                  with open(meta_path, "w") as f:
+                      yaml.dump(meta, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+                  print("  Updated meta.yaml")
+
+              # 4. Create video directories
               for video in meta.get("videos", []):
                   slug = video["slug"]
                   for subdir in ["source", "work", "final"]:
@@ -131,64 +170,33 @@ jobs:
                       if not os.listdir(dirpath):
                           with open(os.path.join(dirpath, ".gitkeep"), "w") as f:
                               pass
-                  print(f"  Created dirs for video: {slug}")
-          PYEOF
+                  print(f"  Created dirs: {slug}")
 
-      - name: Download EN subtitles from Vimeo
-        continue-on-error: true
-        run: |
-          python3 << 'PYEOF'
-          import json
-          import os
-          import subprocess
-          import glob as globmod
-
-          import yaml
-
-          metas = json.loads(os.environ["NEW_METAS"])
-
-          for meta_path in metas:
-              talk_dir = os.path.dirname(meta_path)
-
-              with open(meta_path) as f:
-                  meta = yaml.safe_load(f)
-
+              # 5. Download EN subtitles (Vimeo first, then YouTube search)
               for video in meta.get("videos", []):
                   slug = video["slug"]
                   vimeo_url = video.get("vimeo_url", "")
-                  if not vimeo_url:
-                      print(f"  {slug}: no vimeo_url — skip")
-                      continue
-
                   source_dir = os.path.join(talk_dir, slug, "source")
                   en_srt = os.path.join(source_dir, "en.srt")
+
                   if os.path.exists(en_srt):
-                      print(f"  {slug}: en.srt already exists — skip")
+                      print(f"  {slug}: en.srt exists — skip")
                       continue
 
+                  if not vimeo_url:
+                      print(f"  {slug}: no vimeo_url — skip SRT")
+                      continue
+
+                  # Use download.py's proven download method
                   print(f"  Downloading EN SRT for {slug}")
                   try:
-                      subprocess.run([
-                          "yt-dlp",
-                          "--referer", "https://www.amruta.org/",
-                          "--write-subs", "--sub-langs", "en",
-                          "--skip-download",
-                          "--sub-format", "srt/vtt/best",
-                          "--convert-subs", "srt",
-                          "-o", os.path.join(source_dir, "%(id)s.%(ext)s"),
-                          vimeo_url,
-                      ], check=True)
-
-                      for f in globmod.glob(os.path.join(source_dir, "*.srt")):
-                          parts = os.path.basename(f).rsplit(".", 2)
-                          if len(parts) == 3 and parts[1] == "en":
-                              os.rename(f, en_srt)
-                              print(f"  {slug}: saved en.srt")
-                              break
+                      srt_files = downloader.download_vimeo_subs(vimeo_url, source_dir)
+                      if srt_files:
+                          print(f"  {slug}: saved {[os.path.basename(f) for f in srt_files]}")
                       else:
                           print(f"  {slug}: no EN subtitles on Vimeo")
-                  except subprocess.CalledProcessError as e:
-                      print(f"  {slug}: yt-dlp failed: {e}")
+                  except Exception as e:
+                      print(f"  {slug}: Vimeo SRT failed: {e}")
           PYEOF
 
       - name: Commit
