@@ -229,9 +229,9 @@ class TestIndexView:
         page.wait_for_selector(".talk-item", timeout=10000)
         # Test-Video should have link, Test-Video-2 should not
         links = page.locator("a[href*='preview']").all()
-        link_texts = [el.text_content() for el in links]
-        assert "Test Video" in link_texts
-        assert "Test Video 2" not in link_texts
+        link_texts = [el.text_content().strip() for el in links]
+        assert any("Test Video" in t for t in link_texts), f"'Test Video' not found in {link_texts}"
+        assert not any("Test Video 2" in t for t in link_texts), f"'Test Video 2' should not be in {link_texts}"
 
     def test_talk_without_uk_no_review(self, server, page):
         """Talk without UK transcript should NOT have review link."""
@@ -1017,8 +1017,8 @@ class TestBranchSelector:
     def test_branch_label_shows_current(self, server, page):
         """Branch button displays current branch name."""
         goto_spa(page, server)
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
-        text = page.locator(".view.active .branch-btn").text_content()
+        page.wait_for_selector("#branch-btn", timeout=10000)
+        text = page.locator("#branch-btn").text_content()
         assert "main" in text
 
     def test_no_branches_api_call_on_load(self, server, page):
@@ -1040,10 +1040,10 @@ class TestBranchSelector:
             ),
         )
         goto_spa(page, server)
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
-        page.locator(".view.active .branch-btn").click()
-        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
-        items = page.locator(".view.active .branch-dropdown div").count()
+        page.wait_for_selector("#branch-btn", timeout=10000)
+        page.locator("#branch-btn").click()
+        page.wait_for_selector("#branch-dropdown.open div.active", timeout=5000)
+        items = page.locator("#branch-dropdown div").count()
         assert items == 3
 
     def test_dropdown_shows_branch_names(self, server, page):
@@ -1057,10 +1057,10 @@ class TestBranchSelector:
             ),
         )
         goto_spa(page, server)
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
-        page.locator(".view.active .branch-btn").click()
-        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
-        texts = [el.text_content() for el in page.locator(".view.active .branch-dropdown div").all()]
+        page.wait_for_selector("#branch-btn", timeout=10000)
+        page.locator("#branch-btn").click()
+        page.wait_for_selector("#branch-dropdown.open div.active", timeout=5000)
+        texts = [el.text_content() for el in page.locator("#branch-dropdown div").all()]
         assert "main" in texts
         assert "fix/review-edits" in texts
         assert "feature/new-talk" in texts
@@ -1076,10 +1076,10 @@ class TestBranchSelector:
             ),
         )
         goto_spa(page, server)
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
-        page.locator(".view.active .branch-btn").click()
-        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
-        active = page.locator(".view.active .branch-dropdown div.active")
+        page.wait_for_selector("#branch-btn", timeout=10000)
+        page.locator("#branch-btn").click()
+        page.wait_for_selector("#branch-dropdown.open div.active", timeout=5000)
+        active = page.locator("#branch-dropdown div.active")
         assert active.count() == 1
         assert active.text_content() == "main"
 
@@ -1094,9 +1094,9 @@ class TestBranchSelector:
             ),
         )
         goto_spa(page, server)
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
-        page.locator(".view.active .branch-btn").click()
-        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
+        page.wait_for_selector("#branch-btn", timeout=10000)
+        page.locator("#branch-btn").click()
+        page.wait_for_selector("#branch-dropdown.open div.active", timeout=5000)
         # Click the second branch
         page.locator(".branch-dropdown div", has_text="fix/review-edits").click()
         page.wait_for_load_state("load")
@@ -1107,7 +1107,7 @@ class TestBranchSelector:
         goto_spa(page, server, hash="")
         # Navigate with branch param
         page.goto(f"{server}{SPA_URL}?branch=dev")
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        page.wait_for_selector("#branch-btn", timeout=10000)
         branch = page.evaluate("BRANCH")
         assert branch == "dev"
 
@@ -1160,15 +1160,15 @@ class TestBranchSelector:
     def test_non_main_visual_indicator(self, server, page):
         """Branch button has .non-main class when not on main."""
         page.goto(f"{server}{SPA_URL}?branch=dev")
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
-        cls = page.locator(".view.active .branch-btn").get_attribute("class")
+        page.wait_for_selector("#branch-btn", timeout=10000)
+        cls = page.locator("#branch-btn").get_attribute("class")
         assert "non-main" in cls
 
     def test_main_no_non_main_class(self, server, page):
         """Branch button does NOT have .non-main on main."""
         goto_spa(page, server)
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
-        cls = page.locator(".view.active .branch-btn").get_attribute("class")
+        page.wait_for_selector("#branch-btn", timeout=10000)
+        cls = page.locator("#branch-btn").get_attribute("class")
         assert "non-main" not in cls
 
     def test_close_dropdown_on_outside_click(self, server, page):
@@ -1182,13 +1182,13 @@ class TestBranchSelector:
             ),
         )
         goto_spa(page, server)
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
-        page.locator(".view.active .branch-btn").click()
-        page.wait_for_selector(".view.active .branch-dropdown.open div.active", timeout=5000)
+        page.wait_for_selector("#branch-btn", timeout=10000)
+        page.locator("#branch-btn").click()
+        page.wait_for_selector("#branch-dropdown.open div.active", timeout=5000)
         # Click on the body
         page.locator("body").click(position={"x": 10, "y": 10})
         page.wait_for_timeout(300)
-        assert not page.locator(".view.active .branch-dropdown.open").is_visible()
+        assert not page.locator("#branch-dropdown.open").is_visible()
 
     def test_deep_link_with_branch(self, server, page):
         """Direct URL with ?branch= and hash route works."""
@@ -1201,7 +1201,7 @@ class TestBranchSelector:
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
         page.goto(f"{server}{SPA_URL}?branch=dev#/preview/2001-01-01_Test-Talk/Test-Video")
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
+        page.wait_for_selector("#branch-btn", timeout=10000)
         assert page.evaluate("BRANCH") == "dev"
         # Preview view should be active
         assert page.locator("#view-preview.active").count() == 1
@@ -1209,8 +1209,8 @@ class TestBranchSelector:
     def test_branch_preserved_in_preview_back_link(self, server, page):
         """Back link from preview preserves ?branch= param."""
         page.goto(f"{server}{SPA_URL}?branch=dev#/preview/2001-01-01_Test-Talk/Test-Video")
-        page.wait_for_selector(".view.active .branch-btn", timeout=10000)
-        btn_text = page.locator(".view.active .branch-btn").text_content()
+        page.wait_for_selector("#branch-btn", timeout=10000)
+        btn_text = page.locator("#branch-btn").text_content()
         assert "dev" in btn_text
 
     def test_branch_cache_isolated_between_branches(self, server, page, browser):
