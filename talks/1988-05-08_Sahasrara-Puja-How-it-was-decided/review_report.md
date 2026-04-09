@@ -10,63 +10,73 @@ Review `transcript_uk.txt` (full paragraphed Ukrainian text) using 2 parallel re
 **Reviewer S** – SY Domain (Capitalization + Terminology + Consistency)
 **Critic** – Filter + Validate
 
-## Results
+## Round 1 (previously applied)
+
+3 corrections were applied in a prior review:
+- L1: P12 "відданні" → "вірні" (non-existent word)
+- L3: P46 "Сикхізмом" → "сикхізмом" (religion names lowercase)
+- S1: P25 "я не знаю" → "Я не знаю" (Shri Mataji pronoun)
+
+## Round 2 Results
 
 ### L. Language (Orthography + Grammar + Punctuation)
 | # | Paragraph | Error | Context | Fix |
 |---|-----------|-------|---------|-----|
-| L1 | 12 | Spelling: "відданні" is not a standard Ukrainian word; "відданий" has one н, plural "віддані" | «повністю віддані й відданні» (EN: "completely dedicated and devoted") | «повністю віддані й вірні» |
-| L2 | 24 | ~~Missing "?" after interrogative "Чому"~~ | «Чому ви співчуваєте людям, які є такими.» | FALSE POSITIVE — original already has "?" |
-| L3 | 46 | Capitalization: religion names are lowercase in Ukrainian | «згідно з Сикхізмом» | «згідно з сикхізмом» |
-
-Additional checks performed (no issues found):
-- Mixed Latin/Cyrillic characters: none detected (15,357 Cyrillic chars, 0 Latin)
-- Quotation marks: all use «» consistently, no „" or "" found
-- En-dash spacing: all ` – ` (U+2013) with spaces, correct throughout
-- Comma usage: no missing/extra commas detected
-- Double spaces: none found
-- Verb conjugations / gender agreement: correct throughout
-- Case forms: correct throughout
+| L1 | 8 | Inconsistent capitalization: "Боги" uppercase, but P7 uses "богів" lowercase. Standard Ukrainian does not capitalize plural "боги" for divine beings. | Тож усі **Боги** попросили | Тож усі **боги** попросили |
+| L2 | 16 | Non-standard construct "описав про": verb "описати" governs direct object (accusative), not "про + accusative." Calque from English "described about." | Аді Шанкарачар'я **описав про** себе | Аді Шанкарачар'я **сказав про** себе |
+| L3 | 24 | Non-standard adjective "стражденний": not attested in standard Ukrainian dictionaries. "Страждати" is intransitive and does not form passive participles. Standard adjective: "страждальний." | так званим **стражденним** людям | так званим **страждальним** людям |
+| L4 | 33 | Non-standard adjective "чудовиськовий" (from colloquial "чудовисько"). Standard form: "чудовищний" (from "чудовище"). | жахливу, **чудовиськову** гору | жахливу, **чудовищну** гору |
 
 ### S. SY Domain (Capitalization + Terminology + Consistency)
 | # | Paragraph | Error | Context | Fix |
 |---|-----------|-------|---------|-----|
-| S1 | 25 | Shri Mataji pronoun "я" must be uppercase "Я" | «Але ці ідеї – я не знаю, звідки вони приповзли» | «Але ці ідеї – Я не знаю, звідки вони приповзли» |
-
-Additional checks performed (no issues found):
-- Shri Mataji pronouns (Я/Мені/Мій/Моя/Мого/Мною/Моє/Моїми/Моєю): all correctly uppercase throughout, except S1
-- Deity pronouns for God (Він/Його): correct in para 30
-- Deity pronouns addressing Shri Mataji (Тебе/Ти): correct in para 49
-- Incarnations plural mid-sentence (вони/їм/їх): correctly lowercase in para 34
-- Spiritual term capitalization: Дух, Істина, Інкарнація, Пуджа, Стопи, Реалізація — all correct
-- Glossary terms: Кундаліні, Сахасрара, Аґія, Брахмарандхра, Вірата, Махамайя, Аді Шакті, Аді Шанкарачар'я — all match glossary
-- Locative form: "в Сахаджа Йозі" (correct, not "Йоґі") — consistent in paras 19, 32, 40
-- "сахаджа йоґ/йоґи/йоґів" — correctly lowercase as common noun, correct plural forms
-- "блокування" for "catching" — correct per glossary (para 17)
-- "пуньям" — correct dative plural of "пунья" (para 15)
-- Transliteration conventions (ґ for g, дх for dh, і for short i): followed correctly
+| S1 | 48 | Non-standard transliteration "сахадж": glossary maps both "Sahaj" and "Sahaja" to "сахаджа" consistently. | все має бути **сахадж** | все має бути **сахаджа** |
 
 ### Critic Filter
 | Source | # | Verdict | Reason |
 |--------|---|---------|--------|
-| L | L1 | **Keep** | "Відданний" does not exist in Ukrainian; "відданий" has one н. Genuine spelling error — the translator attempted to differentiate EN "dedicated" and "devoted" but produced a non-existent form. Fix to "вірні" (faithful) preserves the semantic distinction. |
-| L | L2 | **Remove** | False positive — the original text already has "?" after "такими". Reviewer misread the text. |
-| L | L3 | **Keep** | Standard Ukrainian orthography: religion names are common nouns written lowercase (буддизм, іслам, сикхізм). Clear rule violation. |
-| S | S1 | **Keep** | Shri Mataji is the speaker throughout this entire lecture. Her first-person pronoun is mandatorily uppercase. This is a clear, isolated omission — all other instances in the text are correctly capitalized. |
+| L | L1 | **Keep** | Genuine inconsistency within the same text (P7 "богів" lowercase vs P8 "Боги" uppercase). Ukrainian orthography rule: "боги" lowercase in plural. |
+| L | L2 | **Keep** | Well-documented non-standard construct. "Описати" requires direct object; "сказати/розповісти про" is the correct pattern for "tell about." |
+| L | L3 | **Keep** | "Стражденний" is not a valid Ukrainian adjective. "Страждати" is intransitive and cannot form passive participles. "Страждальний" is the standard form. |
+| L | L4 | **Keep** | "Чудовиськовий" is an ad-hoc formation not found in standard dictionaries. "Чудовищний" is the established adjective for "monstrous." |
+| S | S1 | **Keep** | Glossary explicitly and consistently maps "Sahaj / Sahaja" to "сахаджа." No basis for the shortened form "сахадж." |
 
 ### Approved Corrections
 | # | Paragraph | Error | Fix |
 |---|-----------|-------|-----|
-| L1 | 12 | "відданні" (non-existent word) | "вірні" |
-| L3 | 46 | "Сикхізмом" (uppercase religion name) | "сикхізмом" |
-| S1 | 25 | "я не знаю" (Shri Mataji pronoun) | "Я не знаю" |
+| L1 | 8 | "Боги" (inconsistent capitalization) | "боги" |
+| L2 | 16 | "описав про себе" (non-standard verb construct) | "сказав про себе" |
+| L3 | 24 | "стражденним" (non-standard adjective) | "страждальним" |
+| L4 | 33 | "чудовиськову" (non-standard adjective) | "чудовищну" |
+| S1 | 48 | "сахадж" (non-standard transliteration) | "сахаджа" |
+
+## Verified Correct (notable items checked, no issues found)
+
+- Deity pronoun capitalization: all Shri Mataji pronouns (Я/Мене/Мій/Моя/Мною/Мені/Моїми/Моєю/Мого) correctly uppercase throughout
+- Devas addressing Shri Mataji (P49): "Тебе" (x6), "Ти" correctly uppercase
+- God singular (P30): "Він скаже" correctly uppercase
+- Incarnations plural (P34): "вони" correctly lowercase mid-sentence
+- Spiritual term capitalization: Дух, Істина, Інкарнація, Пуджа, Стопи, Реалізація — all correct
+- Glossary terms: Кундаліні, Сахасрара, Аґія, Брахмарандхра, Вірата, Махамайя, Аді Шакті, Аді Шанкарачар'я — all match glossary
+- Locative form: "в Сахаджа Йозі" (correct, not "Йоґі") — consistent in P19, P32, P40
+- "сахаджа йоґ/йоґи/йоґів" — correctly lowercase as common noun, correct plural forms
+- "блокування" for "catching" — correct per glossary (P17)
+- "пуньям" — correct dative plural of "пунья" (P15)
+- Transliteration conventions (ґ for g, дх for dh, і for short i): followed correctly
+- Quotation marks: all use «» consistently, no German „" or English "" found
+- En-dash: ` – ` (U+2013) with spaces used consistently throughout
+- Language name (P4): "англійська" correctly lowercase
+- No mixed Latin/Cyrillic characters detected
+- No missing/extra spaces around punctuation
 
 ## Summary
 
-- Language (L): 2 real issues found + 1 false positive, **2 approved** by Critic
-- SY Domain (S): 1 issue found, **1 approved** by Critic
-- Total corrections applied: **3**
+- Round 1: 3 corrections (previously applied)
+- Round 2 Language (L): 4 issues found, 4 approved by Critic
+- Round 2 SY Domain (S): 1 issue found, 1 approved by Critic
+- **Total corrections applied in Round 2: 5**
+- **Cumulative total corrections: 8**
 
 ## Assessment
 
-The translation is of high quality. Terminology, glossary adherence, deity pronoun capitalization, and Ukrainian orthography are consistently correct throughout the 60-line transcript. The three errors found are minor and isolated — one spelling error, one capitalization rule violation for a religion name, and one missed uppercase on Shri Mataji's pronoun. No structural, meaning, or terminology issues were detected.
+The translation is of high quality. Terminology, glossary adherence, deity pronoun capitalization, and Ukrainian orthography are consistently correct across the 60-line transcript. Round 2 found four non-standard word forms (one inconsistent capitalization, two non-standard adjectives, one non-standard verb construct) and one glossary transliteration deviation. All corrections are minor and isolated. No structural, meaning, or terminology issues were detected.
