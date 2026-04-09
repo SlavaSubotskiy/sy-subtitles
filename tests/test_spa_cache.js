@@ -1187,10 +1187,13 @@ function buildMetaYaml(opts) {
   return yaml;
 }
 
-function parseBookmarkletData(base64str) {
+function parseBookmarkletData(encodedStr) {
   try {
-    return JSON.parse(Buffer.from(base64str, 'base64').toString('utf8'));
+    return JSON.parse(decodeURIComponent(encodedStr));
   } catch(e) { return null; }
+}
+function encodeBookmarkletData(obj) {
+  return encodeURIComponent(JSON.stringify(obj));
 }
 
 describe('Add Talk: slugify', () => {
@@ -1259,37 +1262,52 @@ describe('Add Talk: buildMetaYaml', () => {
 });
 
 describe('Add Talk: bookmarklet data parsing', () => {
-  it('parses valid base64 JSON', () => {
+  it('parses valid encoded JSON', () => {
     var data = { t: 'Test Talk', d: '2001-01-01', u: 'https://amruta.org/test', v: ['123/abc'], tx: 'Hello' };
-    var b64 = Buffer.from(JSON.stringify(data), 'utf8').toString('base64');
-    var parsed = parseBookmarkletData(b64);
+    var enc = encodeBookmarkletData(data);
+    var parsed = parseBookmarkletData(enc);
     assert.strictEqual(parsed.t, 'Test Talk');
     assert.strictEqual(parsed.d, '2001-01-01');
     assert.strictEqual(parsed.tx, 'Hello');
     assert.deepStrictEqual(parsed.v, ['123/abc']);
   });
 
-  it('returns null for invalid base64', () => {
-    assert.strictEqual(parseBookmarkletData('not-valid!!!'), null);
+  it('returns null for invalid encoding', () => {
+    assert.strictEqual(parseBookmarkletData('%ZZ%invalid'), null);
   });
 
-  it('returns null for valid base64 but invalid JSON', () => {
-    var b64 = Buffer.from('not json', 'utf8').toString('base64');
-    assert.strictEqual(parseBookmarkletData(b64), null);
+  it('returns null for valid encoding but invalid JSON', () => {
+    var enc = encodeURIComponent('not json');
+    assert.strictEqual(parseBookmarkletData(enc), null);
   });
 
   it('handles unicode in transcript', () => {
-    var data = { t: 'Test', tx: 'Привіт світ — тест' };
-    var b64 = Buffer.from(JSON.stringify(data), 'utf8').toString('base64');
-    var parsed = parseBookmarkletData(b64);
-    assert.strictEqual(parsed.tx, 'Привіт світ — тест');
+    var data = { t: 'Test', tx: 'Привіт світ — тест \u201cquotes\u201d' };
+    var enc = encodeBookmarkletData(data);
+    var parsed = parseBookmarkletData(enc);
+    assert.strictEqual(parsed.tx, 'Привіт світ — тест \u201cquotes\u201d');
   });
 
   it('handles empty vimeo array', () => {
     var data = { t: 'Test', v: [] };
-    var b64 = Buffer.from(JSON.stringify(data), 'utf8').toString('base64');
-    var parsed = parseBookmarkletData(b64);
+    var enc = encodeBookmarkletData(data);
+    var parsed = parseBookmarkletData(enc);
     assert.deepStrictEqual(parsed.v, []);
+  });
+
+  it('handles large transcript (20K chars)', () => {
+    var data = { t: 'Test', tx: 'x'.repeat(20000) };
+    var enc = encodeBookmarkletData(data);
+    var parsed = parseBookmarkletData(enc);
+    assert.strictEqual(parsed.tx.length, 20000);
+  });
+
+  it('round-trip preserves all special characters', () => {
+    var data = { t: "It's a \"test\" with <html> & symbols", tx: 'Line1\nLine2\tTab' };
+    var enc = encodeBookmarkletData(data);
+    var parsed = parseBookmarkletData(enc);
+    assert.strictEqual(parsed.t, data.t);
+    assert.strictEqual(parsed.tx, data.tx);
   });
 });
 
@@ -1496,10 +1514,10 @@ describe('Add Talk: real amruta.org page parsing', () => {
 
   // --- Full bookmarklet flow ---
   it('full flow: bookmarklet → SPA → meta.yaml', () => {
-    // 1. Simulate bookmarklet output
-    var b64 = Buffer.from(JSON.stringify(bmData), 'utf8').toString('base64');
+    // 1. Simulate bookmarklet output (encodeURIComponent, not base64)
+    var enc = encodeBookmarkletData(bmData);
     // 2. SPA parses
-    var data = parseBookmarkletData(b64);
+    var data = parseBookmarkletData(enc);
     assert.ok(data);
     assert.strictEqual(data.t, 'Sahasrara Puja: How it was decided');
     assert.strictEqual(data.v.length, 2);

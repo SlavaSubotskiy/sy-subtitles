@@ -1498,7 +1498,7 @@ document.addEventListener('click', function(e) {
 // ============================================================
 (function() {
   var spaBase = location.origin + location.pathname.replace(/\/[^/]*$/, '/');
-  var bmCode = "(function(){var t=document.querySelector('h1.entry-title,h1,.entry-title');t=t?t.textContent.trim():document.title;var u=location.href;var d=u.match(/(\\d{4})\\/(\\d{2})\\/(\\d{2})/);d=d?d[1]+'-'+d[2]+'-'+d[3]:'';var v=[];document.querySelectorAll('iframe[src*=\"vimeo\"]').forEach(function(f){var m=f.src.match(/player\\.vimeo\\.com\\/video\\/(\\d+)\\?h=(\\w+)/);if(m)v.push(m[1]+'/'+m[2]);});var c=document.querySelector('.entry-content,.post-content,article');var tx='';if(c){var pp=c.querySelectorAll('p');for(var i=0;i<pp.length;i++){var pt=pp[i].textContent.trim();if(pt.length>20)tx+=(tx?'\\n':'')+pt;}}var j=btoa(unescape(encodeURIComponent(JSON.stringify({t:t,d:d,u:u,v:v,tx:tx}))));window.open('" + spaBase + "#/add?data='+j);})();";
+  var bmCode = "(function(){var t=document.querySelector('h1.entry-title,h1,.entry-title');t=t?t.textContent.trim():document.title;var u=location.href;var d=u.match(/(\\d{4})\\/(\\d{2})\\/(\\d{2})/);d=d?d[1]+'-'+d[2]+'-'+d[3]:'';var v=[];document.querySelectorAll('iframe[src*=\"vimeo\"]').forEach(function(f){var m=f.src.match(/player\\.vimeo\\.com\\/video\\/(\\d+)\\?h=(\\w+)/);if(m)v.push(m[1]+'/'+m[2]);});var c=document.querySelector('.entry-content,.post-content,article');var tx='';if(c){var pp=c.querySelectorAll('p');for(var i=0;i<pp.length;i++){var pt=pp[i].textContent.trim();if(pt.length>20)tx+=(tx?'\\n':'')+pt;}}var j=encodeURIComponent(JSON.stringify({t:t,d:d,u:u,v:v,tx:tx}));window.open('" + spaBase + "#/add?data='+j);})();";
   var el = document.getElementById('bookmarklet-link');
   if (el) el.href = 'javascript:' + bmCode;
 })();
@@ -1513,7 +1513,7 @@ function showAddTalk(hash) {
     var dataStr = params.get('data');
     if (dataStr) {
       try {
-        var data = JSON.parse(decodeURIComponent(escape(atob(dataStr))));
+        var data = JSON.parse(decodeURIComponent(dataStr));
         if (data.t) document.getElementById('add-title').value = data.t;
         if (data.d) document.getElementById('add-date').value = data.d;
         if (data.u) document.getElementById('add-url').value = data.u;
