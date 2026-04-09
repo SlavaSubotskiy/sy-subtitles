@@ -592,6 +592,12 @@ function ensureManifest() {
 
 function route() {
   var hash = location.hash.slice(1) || '/';
+
+  // Pause video when leaving preview
+  if (previewState && previewState.player) {
+    try { previewState.player.pause(); } catch(e) {}
+  }
+
   document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
 
   if (hash.startsWith('/preview/')) {
@@ -914,6 +920,12 @@ var previewState = {};
 
 function showPreview(talkId, videoSlug) {
   document.getElementById('view-preview').classList.add('active');
+
+  // Clear previous state
+  document.getElementById('subtitle-overlay').textContent = '';
+  if (previewState && previewState.player) {
+    try { previewState.player.pause(); } catch(e) {}
+  }
 
   // Find talk info
   var talk = manifest ? manifest.talks.find(function(t) { return t.id === talkId; }) : null;

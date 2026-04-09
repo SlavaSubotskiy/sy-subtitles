@@ -1404,6 +1404,37 @@ describe('Add Talk: i18n for dynamic video row labels', () => {
   });
 });
 
+describe('Preview: cleanup on navigation', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('subtitle overlay cleared when entering showPreview', () => {
+    // showPreview should clear subtitle-overlay textContent before loading new SRT
+    var idx = html.indexOf('function showPreview');
+    assert.ok(idx > -1, 'showPreview not found');
+    var chunk = html.substring(idx, idx + 500);
+    assert.ok(chunk.includes("subtitle-overlay") && chunk.includes("textContent = ''"),
+      'showPreview should clear subtitle-overlay textContent at start');
+  });
+
+  it('player paused when entering showPreview (switching videos)', () => {
+    var idx = html.indexOf('function showPreview');
+    var chunk = html.substring(idx, idx + 500);
+    assert.ok(chunk.includes('.pause()'), 'showPreview should pause previous player');
+  });
+
+  it('player paused in route() when navigating away from preview', () => {
+    var idx = html.indexOf('function route()');
+    assert.ok(idx > -1, 'route function not found');
+    var chunk = html.substring(idx, idx + 500);
+    assert.ok(chunk.includes('.pause()'), 'route should pause player when leaving preview');
+  });
+
+  it('previewState stores player reference', () => {
+    assert.ok(html.includes('previewState.player = player'), 'player should be stored in previewState');
+  });
+});
+
 describe('Add Talk: three states logic', () => {
   function getAddState(hash) {
     if (!hash || !hash.includes('?data=')) return 'setup';
