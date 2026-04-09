@@ -1627,7 +1627,18 @@ SPA.submitAddTalk = function() {
     + '&message=' + encodeURIComponent('Add ' + title)
     + '&description=' + encodeURIComponent('Added via SY Subtitles SPA from: ' + url);
 
-  window.open(ghUrl);
+  var shortUrl = 'https://github.com/' + REPO + '/new/main?filename=' + encodeURIComponent(filename)
+    + '&message=' + encodeURIComponent('Add ' + title);
+  if (ghUrl.length > 8000) {
+    navigator.clipboard.writeText(yaml).then(function() {
+      alert(t('alert.issue_body_copied'));
+      window.open(shortUrl);
+    }).catch(function() {
+      window.open(shortUrl);
+    });
+  } else {
+    window.open(ghUrl);
+  }
   return false;
 };
 
