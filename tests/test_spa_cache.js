@@ -1157,6 +1157,198 @@ describe('issue URL: i18n keys exist', () => {
 });
 
 // ============================================================
+// Tests: Add Talk feature
+// ============================================================
+function slugifyTest(text) {
+  return text.replace(/[^a-zA-Z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+function buildMetaYaml(opts) {
+  var yaml = "title: '" + (opts.title || '').replace(/'/g, "''") + "'\n";
+  yaml += "date: '" + (opts.date || '') + "'\n";
+  if (opts.location) yaml += "location: " + opts.location + "\n";
+  if (opts.url) yaml += "amruta_url: " + opts.url + "\n";
+  yaml += "language: " + (opts.language || 'en') + "\n";
+  if (opts.videos && opts.videos.length) {
+    yaml += "videos:\n";
+    opts.videos.forEach(function(v) {
+      yaml += "- slug: " + v.slug + "\n";
+      yaml += "  title: '" + (v.title || '').replace(/'/g, "''") + "'\n";
+      yaml += "  vimeo_url: " + (v.url || '') + "\n";
+    });
+  }
+  if (opts.transcript) {
+    var b64 = Buffer.from(opts.transcript, 'utf8').toString('base64');
+    yaml += "transcript_en_base64: |\n";
+    for (var i = 0; i < b64.length; i += 76) {
+      yaml += "  " + b64.substring(i, i + 76) + "\n";
+    }
+  }
+  return yaml;
+}
+
+function parseBookmarkletData(base64str) {
+  try {
+    return JSON.parse(Buffer.from(base64str, 'base64').toString('utf8'));
+  } catch(e) { return null; }
+}
+
+describe('Add Talk: slugify', () => {
+  it('simple title', () => assert.strictEqual(slugifyTest('Birthday Puja'), 'Birthday-Puja'));
+  it('title with colon', () => assert.strictEqual(slugifyTest('Guru Puja: Gravity'), 'Guru-Puja-Gravity'));
+  it('title with quotes', () => assert.strictEqual(slugifyTest("It's a test"), 'Its-a-test'));
+  it('multiple spaces', () => assert.strictEqual(slugifyTest('A   B'), 'A-B'));
+  it('leading/trailing dashes', () => assert.strictEqual(slugifyTest('-Test-'), 'Test'));
+  it('empty string', () => assert.strictEqual(slugifyTest(''), ''));
+  it('unicode removed', () => assert.strictEqual(slugifyTest('Пуджа Test'), 'Test'));
+});
+
+describe('Add Talk: buildMetaYaml', () => {
+  it('minimal yaml', () => {
+    var yaml = buildMetaYaml({ title: 'Test', date: '2001-01-01', language: 'en' });
+    assert.ok(yaml.includes("title: 'Test'"));
+    assert.ok(yaml.includes("date: '2001-01-01'"));
+    assert.ok(yaml.includes('language: en'));
+  });
+
+  it('includes location and amruta_url', () => {
+    var yaml = buildMetaYaml({ title: 'T', date: '2001-01-01', location: 'Mumbai', url: 'https://amruta.org/test' });
+    assert.ok(yaml.includes('location: Mumbai'));
+    assert.ok(yaml.includes('amruta_url: https://amruta.org/test'));
+  });
+
+  it('includes videos', () => {
+    var yaml = buildMetaYaml({
+      title: 'T', date: '2001-01-01', language: 'en',
+      videos: [{ slug: 'Video-1', title: 'Video 1', url: 'https://vimeo.com/123/abc' }]
+    });
+    assert.ok(yaml.includes('videos:'));
+    assert.ok(yaml.includes('- slug: Video-1'));
+    assert.ok(yaml.includes("title: 'Video 1'"));
+    assert.ok(yaml.includes('vimeo_url: https://vimeo.com/123/abc'));
+  });
+
+  it('escapes single quotes in title', () => {
+    var yaml = buildMetaYaml({ title: "It's a test", date: '2001-01-01' });
+    assert.ok(yaml.includes("title: 'It''s a test'"));
+  });
+
+  it('includes transcript as base64', () => {
+    var yaml = buildMetaYaml({ title: 'T', date: '2001-01-01', transcript: 'Hello world' });
+    assert.ok(yaml.includes('transcript_en_base64: |'));
+    // Decode and verify
+    var b64Line = yaml.split('\n').find(l => l.trim().length > 10 && !l.includes(':'));
+    assert.ok(b64Line, 'base64 content line not found');
+    var decoded = Buffer.from(b64Line.trim(), 'base64').toString('utf8');
+    assert.strictEqual(decoded, 'Hello world');
+  });
+
+  it('no transcript field when empty', () => {
+    var yaml = buildMetaYaml({ title: 'T', date: '2001-01-01', transcript: '' });
+    assert.ok(!yaml.includes('transcript_en_base64'));
+  });
+
+  it('base64 wraps at 76 chars', () => {
+    var longText = 'x'.repeat(200);
+    var yaml = buildMetaYaml({ title: 'T', date: '2001-01-01', transcript: longText });
+    var b64Lines = yaml.split('\n').filter(l => l.startsWith('  ') && !l.includes(':') && l.trim().length > 0);
+    b64Lines.forEach(function(line) {
+      assert.ok(line.trim().length <= 76, 'base64 line too long: ' + line.trim().length);
+    });
+  });
+});
+
+describe('Add Talk: bookmarklet data parsing', () => {
+  it('parses valid base64 JSON', () => {
+    var data = { t: 'Test Talk', d: '2001-01-01', u: 'https://amruta.org/test', v: ['123/abc'], tx: 'Hello' };
+    var b64 = Buffer.from(JSON.stringify(data), 'utf8').toString('base64');
+    var parsed = parseBookmarkletData(b64);
+    assert.strictEqual(parsed.t, 'Test Talk');
+    assert.strictEqual(parsed.d, '2001-01-01');
+    assert.strictEqual(parsed.tx, 'Hello');
+    assert.deepStrictEqual(parsed.v, ['123/abc']);
+  });
+
+  it('returns null for invalid base64', () => {
+    assert.strictEqual(parseBookmarkletData('not-valid!!!'), null);
+  });
+
+  it('returns null for valid base64 but invalid JSON', () => {
+    var b64 = Buffer.from('not json', 'utf8').toString('base64');
+    assert.strictEqual(parseBookmarkletData(b64), null);
+  });
+
+  it('handles unicode in transcript', () => {
+    var data = { t: 'Test', tx: 'Привіт світ — тест' };
+    var b64 = Buffer.from(JSON.stringify(data), 'utf8').toString('base64');
+    var parsed = parseBookmarkletData(b64);
+    assert.strictEqual(parsed.tx, 'Привіт світ — тест');
+  });
+
+  it('handles empty vimeo array', () => {
+    var data = { t: 'Test', v: [] };
+    var b64 = Buffer.from(JSON.stringify(data), 'utf8').toString('base64');
+    var parsed = parseBookmarkletData(b64);
+    assert.deepStrictEqual(parsed.v, []);
+  });
+});
+
+describe('Add Talk: GitHub new file URL', () => {
+  it('builds correct filename path', () => {
+    var date = '2001-01-01';
+    var slug = slugifyTest('Test Talk');
+    var filename = 'talks/' + date + '_' + slug + '/meta.yaml';
+    assert.strictEqual(filename, 'talks/2001-01-01_Test-Talk/meta.yaml');
+  });
+
+  it('URL stays under GitHub limit for small yaml', () => {
+    var yaml = buildMetaYaml({ title: 'T', date: '2001-01-01', language: 'en' });
+    var url = 'https://github.com/owner/repo/new/main?filename=talks/test/meta.yaml&value=' + encodeURIComponent(yaml);
+    assert.ok(url.length < 8000, 'URL too long: ' + url.length);
+  });
+
+  it('URL may exceed limit with long transcript', () => {
+    var yaml = buildMetaYaml({ title: 'T', date: '2001-01-01', transcript: 'x'.repeat(10000) });
+    var url = 'https://github.com/owner/repo/new/main?filename=test&value=' + encodeURIComponent(yaml);
+    assert.ok(url.length > 8000, 'Expected URL to exceed limit: ' + url.length);
+  });
+});
+
+describe('Add Talk: SPA code integrity', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('view-add exists in HTML', () => {
+    assert.ok(html.includes('id="view-add"'));
+  });
+
+  it('route handles /add hash', () => {
+    assert.ok(html.includes("hash.startsWith('/add')"));
+  });
+
+  it('showAddTalk function exists', () => {
+    assert.ok(html.includes('function showAddTalk'));
+  });
+
+  it('submitAddTalk function exists', () => {
+    assert.ok(html.includes('SPA.submitAddTalk'));
+  });
+
+  it('bookmarklet link exists', () => {
+    assert.ok(html.includes('id="bookmarklet-link"'));
+  });
+
+  it('add.title i18n key in both languages', () => {
+    var matches = (html.match(/'add\.title'/g) || []).length;
+    assert.ok(matches >= 2, 'add.title should be in uk and en');
+  });
+
+  it('transcript_en_base64 field generated in yaml', () => {
+    assert.ok(html.includes('transcript_en_base64'));
+  });
+});
+
+// ============================================================
 // Tests: per-video subtitle language persistence
 // ============================================================
 function getPreviewSrtLangKey(talkId, videoSlug) {
