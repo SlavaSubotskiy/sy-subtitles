@@ -1164,7 +1164,7 @@ function slugifyTest(text) {
 }
 
 function buildMetaYaml(opts) {
-  var yaml = "title: '" + (opts.title || '').replace(/'/g, "''") + "'\n";
+  var yaml = "title: " + (opts.title || '') + "\n";
   yaml += "date: '" + (opts.date || '') + "'\n";
   if (opts.location) yaml += "location: " + opts.location + "\n";
   if (opts.url) yaml += "amruta_url: " + opts.url + "\n";
@@ -1173,7 +1173,7 @@ function buildMetaYaml(opts) {
     yaml += "videos:\n";
     opts.videos.forEach(function(v) {
       yaml += "- slug: " + v.slug + "\n";
-      yaml += "  title: '" + (v.title || '').replace(/'/g, "''") + "'\n";
+      yaml += "  title: " + (v.title || '') + "\n";
       yaml += "  vimeo_url: " + (v.url || '') + "\n";
     });
   }
@@ -1209,7 +1209,7 @@ describe('Add Talk: slugify', () => {
 describe('Add Talk: buildMetaYaml', () => {
   it('minimal yaml', () => {
     var yaml = buildMetaYaml({ title: 'Test', date: '2001-01-01', language: 'en' });
-    assert.ok(yaml.includes("title: 'Test'"));
+    assert.ok(yaml.includes("title: Test"));
     assert.ok(yaml.includes("date: '2001-01-01'"));
     assert.ok(yaml.includes('language: en'));
   });
@@ -1227,13 +1227,13 @@ describe('Add Talk: buildMetaYaml', () => {
     });
     assert.ok(yaml.includes('videos:'));
     assert.ok(yaml.includes('- slug: Video-1'));
-    assert.ok(yaml.includes("title: 'Video 1'"));
+    assert.ok(yaml.includes("title: Video 1"));
     assert.ok(yaml.includes('vimeo_url: https://vimeo.com/123/abc'));
   });
 
-  it('escapes single quotes in title', () => {
+  it('title without quotes', () => {
     var yaml = buildMetaYaml({ title: "It's a test", date: '2001-01-01' });
-    assert.ok(yaml.includes("title: 'It''s a test'"));
+    assert.ok(yaml.includes("title: It's a test"));
   });
 
   it('includes transcript as base64', () => {
@@ -1631,15 +1631,15 @@ describe('Add Talk: real amruta.org page parsing', () => {
         return { slug: parsed.video_slugs[i], title: parsed.video_titles[i], url: 'https://vimeo.com/' + v.id + '/' + v.hash };
       }),
     });
-    assert.ok(yaml.includes("title: 'Sahasrara Puja: How it was decided'"));
+    assert.ok(yaml.includes("title: Sahasrara Puja: How it was decided"));
     assert.ok(yaml.includes("date: '1988-05-08'"));
     assert.ok(yaml.includes('location: Fregene (Italy)'));
     assert.ok(yaml.includes('amruta_url: https://www.amruta.org/'));
     assert.ok(yaml.includes('language: en'));
     assert.ok(yaml.includes('videos:'));
     assert.ok(yaml.includes('- slug: Sahasrara-Puja'));
-    assert.ok(yaml.includes("title: 'Sahasrara Puja'"));
-    assert.ok(yaml.includes("title: 'Sahasrara Puja Talk'"));
+    assert.ok(yaml.includes("title: Sahasrara Puja\n"));
+    assert.ok(yaml.includes("title: Sahasrara Puja Talk"));
     assert.ok(yaml.includes('vimeo_url: https://vimeo.com/88490248/e956098e13'));
     assert.ok(yaml.includes('vimeo_url: https://vimeo.com/88509806/2453ea7524'));
   });
