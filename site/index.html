@@ -179,21 +179,22 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 <body>
 
 <!-- === FRESHNESS BAR (global, all views) === -->
-<div id="freshness-bar" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 20px;display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:12px;color:var(--fg6);">
-  <span id="last-updated"></span>
-  <button id="refresh-btn" onclick="SPA.refreshManifest()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;display:none;" data-i18n-title="title.refresh">&#x21bb;</button>
-  <button id="lang-btn" onclick="SPA.toggleLang()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;" data-i18n-title="title.lang">UK</button>
-  <button id="theme-btn" onclick="SPA.cycleTheme()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;" data-i18n-title="title.theme.auto">&#x263C;</button>
+<div id="freshness-bar" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 20px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--fg6);">
+  <div class="branch-selector">
+    <button class="branch-btn" id="branch-btn" onclick="SPA.toggleBranches()">main &#x25BE;</button>
+    <div class="branch-dropdown" id="branch-dropdown"></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span id="last-updated"></span>
+    <button id="refresh-btn" onclick="SPA.refreshManifest()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;display:none;" data-i18n-title="title.refresh">&#x21bb;</button>
+    <button id="lang-btn" onclick="SPA.toggleLang()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;" data-i18n-title="title.lang">UK</button>
+    <button id="theme-btn" onclick="SPA.cycleTheme()" style="background:none;color:var(--fg5);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;" data-i18n-title="title.theme.auto">&#x263C;</button>
+  </div>
 </div>
 
 <!-- === INDEX VIEW === -->
 <div id="view-index" class="view">
-  <div class="header"><h1>SY Subtitles</h1>
-    <div class="branch-selector">
-      <button class="branch-btn" id="branch-btn" onclick="SPA.toggleBranches()">main &#x25BE;</button>
-      <div class="branch-dropdown" id="branch-dropdown"></div>
-    </div>
-  </div>
+  <div class="header"><h1>SY Subtitles</h1></div>
   <div id="index-toolbar" style="max-width:800px;margin:8px auto;padding:0 20px;display:none">
     <input id="search-input" type="text" data-i18n-placeholder="search.placeholder" style="width:100%;padding:8px 12px;background:var(--bg3);color:var(--fg2);border:1px solid var(--border2);border-radius:6px;font-size:14px;margin-bottom:6px;">
     <div id="stats-bar" class="stats-bar"></div>
@@ -206,10 +207,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 <div id="view-preview" class="view">
   <div class="header">
     <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="p-title"></span></h1>
-    <div class="branch-selector">
-      <button class="branch-btn" id="branch-btn-preview" onclick="SPA.toggleBranches()">main &#x25BE;</button>
-      <div class="branch-dropdown" id="branch-dropdown-preview"></div>
-    </div>
   </div>
   <div class="player-container">
     <div class="video-wrap"><iframe id="vimeo-player" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
@@ -237,10 +234,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 <div id="view-review" class="view">
   <div class="header">
     <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="r-title"></span></h1>
-    <div class="branch-selector">
-      <button class="branch-btn" id="branch-btn-review" onclick="SPA.toggleBranches()">main &#x25BE;</button>
-      <div class="branch-dropdown" id="branch-dropdown-review"></div>
-    </div>
     <div class="header-actions">
       <button onclick="SPA.revertAllEdits()" id="btn-revert-all" style="display:none" data-i18n="btn.revert_all">Revert all</button>
       <button class="issue" onclick="SPA.createReviewIssue()" data-i18n="btn.create_review_issue">Create Issue</button>
@@ -1285,10 +1278,11 @@ document.addEventListener('click', function(e) {
 // Branch Selector
 // ============================================================
 (function() {
-  document.querySelectorAll('.branch-btn').forEach(function(btn) {
+  var btn = document.getElementById('branch-btn');
+  if (btn) {
     btn.textContent = BRANCH + ' \u25BE';
     if (BRANCH !== 'main') btn.classList.add('non-main');
-  });
+  }
 })();
 
 // ============================================================
@@ -1346,12 +1340,9 @@ SPA.refreshManifest = function() {
 };
 
 SPA.toggleBranches = function() {
-  // Close all other dropdowns first
-  document.querySelectorAll('.branch-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
-  // Find the dropdown sibling of the active view's button
-  var activeView = document.querySelector('.view.active') || document.getElementById('view-index');
-  var dd = activeView.querySelector('.branch-dropdown');
+  var dd = document.getElementById('branch-dropdown');
   if (!dd) return;
+  if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
   dd.innerHTML = '<div style="color:#888;padding:8px 12px">Loading...</div>';
   dd.classList.add('open');
   fetch(API + '/branches?per_page=100')
