@@ -22,5 +22,8 @@
   "video_slugs": [
     "Sahasrara-Puja",
     "Sahasrara-Puja-Talk"
-  ]
+  ],
+  "transcript_starts_with": "Sahasrara Puja, “How it was decided”",
+  "transcript_ends_with": "I hope I'll have some good news.",
+  "transcript_no_ui_noise": true
 }

@@ -1441,10 +1441,17 @@ describe('Add Talk: real amruta.org page parsing', () => {
     // Real talk content should contain "Sahasrara" somewhere
     assert.ok(parsed.transcript.toLowerCase().includes('sahasrara'), 'should contain "sahasrara"');
   });
-  it('transcript: contains UI noise (known issue)', () => {
-    // Current bookmarklet .entry-content includes page UI text
-    assert.ok(parsed.transcript.includes('Download subtitles') || parsed.transcript.includes('Show Video'),
-      'expected UI noise in raw extract — bookmarklet needs filtering');
+  it('transcript: no UI noise after p-tag filtering', () => {
+    assert.ok(parsed.transcript_no_ui_noise, 'fixture should confirm no UI noise');
+    // Bookmarklet now extracts only <p> tags with >20 chars — no buttons/nav
+  });
+  it('transcript: starts with talk content', () => {
+    assert.ok(parsed.transcript_starts_with, 'missing transcript_starts_with in fixture');
+    assert.ok(parsed.transcript_starts_with.includes('Sahasrara Puja'), 'should start with talk title');
+  });
+  it('transcript: ends with talk content', () => {
+    assert.ok(parsed.transcript_ends_with, 'missing transcript_ends_with in fixture');
+    assert.ok(parsed.transcript_ends_with.includes('good news'), 'should end with talk text');
   });
 
   // --- Slugify ---
