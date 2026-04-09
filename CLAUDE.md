@@ -27,6 +27,15 @@ Source language: English. Target language: Ukrainian.
    - **Validate**: structural checks (text, CPL, CPS, overlaps, gaps)
    - **Commit**: pushes all results back to repo
 
+### Other Workflows
+
+- **`sync-subtitles.yml`** — PR trigger on `transcript_uk.txt` changes: sync text into SRT → optimize → validate
+- **`whisper.yml`** — speech detection (`workflow_dispatch` + `workflow_call` reusable); supports `force` flag
+- **`ci.yml`** — lint + Python tests + JS tests + Playwright E2E
+- **`deploy-pages.yml`** — deploys `site/` to GitHub Pages
+- **`glossary-release.yml`** — glossary releases
+- **`sync-review-status.yml`** — syncs issue labels to `review-status.json`
+
 
 ## Language Rules
 
@@ -143,8 +152,50 @@ python -m tools.offset_srt detect --srt1 PATH --srt2 PATH
 python -m tools.offset_srt apply --srt PATH --offset-ms N --output PATH
 
 # Optimize SRT timing
-python -m tools.optimize_srt --srt PATH [--json PATH] --output PATH
+python -m tools.optimize_srt --srt PATH [--json PATH] --output PATH \
+  [--skip-duration-split] [--skip-cps-split]
 
 # Export SRT to plain text
 python -m tools.text_export --srt PATH --output PATH [--meta PATH] [--double-spacing]
+
+# Align Ukrainian transcript to English whisper timestamps
+python -m tools.align_uk --transcript PATH --whisper-json PATH --output PATH \
+  [--batch-size N] [--skip-word-align]
+
+# Extract SRT text for language review
+python -m tools.extract_review --srt PATH [--output PATH]
+
+# Fetch EN+UK transcripts for glossary corpus
+python -m tools.fetch_transcripts [--index PATH] [--slug SLUG] [--delay N] [--cookie COOKIE]
+
+# Generate initial uk.map from transcripts + EN SRT + whisper
+python -m tools.generate_map --transcript PATH --transcript-en PATH \
+  --en-srt PATH --whisper-json PATH --output PATH
+
+# Scan EN transcript for glossary term candidates
+python -m tools.glossary_check --transcript PATH --glossary PATH --report PATH
+
+# Scrape amruta.org UK talk listing into index.yaml
+python -m tools.scrape_listing [--output PATH] [--cookie COOKIE] [--url URL]
+
+# Run Whisper speech detection
+python -m tools.whisper_run --video PATH --output PATH [--model MODEL] [--language LANG]
 ```
+
+## Glossary
+
+Sahaja Yoga term dictionaries live in `glossary/`:
+- `terms_lookup.yaml` – EN → UK term dictionary
+- `terms_context.yaml` – disambiguation context for terms with variants
+- `chakra_map.yaml` – chakra/deity/channel mapping
+- `chakra_system.yaml` – full subtle system reference
+
+See `glossary/CLAUDE.md` for translator agent instructions (transliteration, capitalization rules).
+
+## Architecture
+
+See `ARCHITECTURE.md` at the project root for the full system architecture overview.
+
+## Review Tracking
+
+`review-status.json` tracks per-talk review state (synced from GitHub issue labels via `sync-review-status.yml`).
