@@ -21,6 +21,8 @@ jobs:
     outputs:
       has_new: ${{ steps.detect.outputs.has_new }}
       metas: ${{ steps.detect.outputs.metas }}
+      whisper_matrix: ${{ steps.detect.outputs.whisper_matrix }}
+      has_whisper: ${{ steps.detect.outputs.has_whisper }}
     env:
       PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -30,6 +32,9 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
+      - name: Install pyyaml
+        run: pip install pyyaml
+
       - name: Detect new talks
         id: detect
         run: |
@@ -37,6 +42,8 @@ jobs:
           import json
           import os
           import subprocess
+
+          import yaml
 
           base = os.environ["PR_BASE_SHA"]
           head = os.environ["PR_HEAD_SHA"]
@@ -55,11 +62,38 @@ jobs:
               print("No new meta.yaml files found")
               with open(os.environ["GITHUB_OUTPUT"], "a") as out:
                   out.write("has_new=false\n")
+                  out.write("has_whisper=false\n")
           else:
-              print(f"New talks: {new_metas}")
+              # Build whisper matrix: one entry per video
+              whisper_matrix = []
+              for meta_path in new_metas:
+                  talk_dir = os.path.dirname(meta_path)
+                  talk_id = os.path.basename(talk_dir)
+                  with open(meta_path) as f:
+                      meta = yaml.safe_load(f)
+                  for video in meta.get("videos", []):
+                      vimeo_url = video.get("vimeo_url", "")
+                      if not vimeo_url:
+                          continue
+                      whisper_path = f"{talk_dir}/{video['slug']}/source/whisper.json"
+                      if os.path.exists(whisper_path):
+                          print(f"SKIP whisper: {whisper_path} exists")
+                          continue
+                      whisper_matrix.append({
+                          "talk_id": talk_id,
+                          "video_slug": video["slug"],
+                          "vimeo_url": vimeo_url,
+                      })
+                      print(f"QUEUE whisper: {talk_id}/{video['slug']}")
+
+              print(f"\nNew talks: {new_metas}")
+              print(f"Whisper jobs: {len(whisper_matrix)}")
+
               with open(os.environ["GITHUB_OUTPUT"], "a") as out:
                   out.write("has_new=true\n")
                   out.write(f"metas={json.dumps(new_metas)}\n")
+                  out.write(f"has_whisper={'true' if whisper_matrix else 'false'}\n")
+                  out.write(f"whisper_matrix={json.dumps({'include': whisper_matrix})}\n")
           PYEOF
 
   # ── Setup: transcript, dirs, EN SRT, label ──────────────────────
@@ -218,18 +252,21 @@ jobs:
           gh label create new-talk --description "PR adds a new talk" --color 0E8A16 2>/dev/null || true
           gh pr edit "$PR_NUMBER" --add-label new-talk
 
-  # ── Whisper: download video, run speech detection ───────────────
+  # ── Whisper: download video, run speech detection (parallel) ─────
   whisper:
     needs: detect
-    if: needs.detect.outputs.has_new == 'true'
+    if: needs.detect.outputs.has_whisper == 'true'
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 3
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect.outputs.whisper_matrix) }}
     env:
-      NEW_METAS: ${{ needs.detect.outputs.metas }}
+      TALK_ID: ${{ matrix.talk_id }}
+      VIDEO_SLUG: ${{ matrix.video_slug }}
+      VIMEO_URL: ${{ matrix.vimeo_url }}
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
@@ -254,83 +291,79 @@ jobs:
           path: ~/.cache/whisper
           key: whisper-medium
 
-      - name: Run Whisper on each video
+      - name: Download video
         run: |
-          python3 << 'PYEOF'
-          import json
-          import os
-          import subprocess
+          mkdir -p /tmp/whisper_work
+          yt-dlp --referer "https://www.amruta.org/" -o "/tmp/whisper_work/video.mp4" "$VIMEO_URL"
 
+      - name: Run Whisper
+        run: |
+          LANG_FLAG=$(python3 -c "
           import yaml
+          with open('talks/${{ matrix.talk_id }}/meta.yaml') as f:
+            meta = yaml.safe_load(f)
+          if meta.get('other_languages'):
+            print('')
+          else:
+            print('--language ' + meta.get('language', 'en'))
+          ")
+          mkdir -p "talks/${TALK_ID}/${VIDEO_SLUG}/source"
+          python -m tools.whisper_run \
+            --video /tmp/whisper_work/video.mp4 \
+            --output "talks/${TALK_ID}/${VIDEO_SLUG}/source/whisper.json" \
+            --model medium \
+            $LANG_FLAG
 
-          metas = json.loads(os.environ["NEW_METAS"])
+      - name: Cleanup video
+        if: always()
+        run: rm -rf /tmp/whisper_work
 
-          for meta_path in metas:
-              talk_dir = os.path.dirname(meta_path)
-              talk_id = os.path.basename(talk_dir)
+      - name: Upload whisper artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: whisper__${{ matrix.talk_id }}__${{ matrix.video_slug }}
+          path: talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json
 
-              with open(meta_path) as f:
-                  meta = yaml.safe_load(f)
+  # ── Whisper commit: collect artifacts, push ─────────────────────
+  whisper-commit:
+    needs: [detect, whisper]
+    if: needs.detect.outputs.has_whisper == 'true' && !cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
 
-              if meta.get("other_languages"):
-                  lang_flag = []
-              else:
-                  lang_flag = ["--language", meta.get("language", "en")]
+      - name: Download whisper artifacts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: whisper__*
+          merge-multiple: false
+          path: whisper-downloads
 
-              for video in meta.get("videos", []):
-                  slug = video["slug"]
-                  vimeo_url = video.get("vimeo_url", "")
-                  if not vimeo_url:
-                      print(f"  {slug}: no vimeo_url — skip")
-                      continue
-
-                  whisper_out = os.path.join(talk_dir, slug, "source", "whisper.json")
-                  if os.path.exists(whisper_out):
-                      print(f"  {slug}: whisper.json already exists — skip")
-                      continue
-
-                  print(f"\n  Whisper: {talk_id}/{slug}")
-
-                  # Download video
-                  os.makedirs("/tmp/whisper_work", exist_ok=True)
-                  video_path = "/tmp/whisper_work/video.mp4"
-                  try:
-                      subprocess.run([
-                          "yt-dlp",
-                          "--referer", "https://www.amruta.org/",
-                          "-o", video_path,
-                          vimeo_url,
-                      ], check=True)
-                  except subprocess.CalledProcessError as e:
-                      print(f"  {slug}: video download failed: {e}")
-                      continue
-
-                  # Run whisper
-                  os.makedirs(os.path.dirname(whisper_out), exist_ok=True)
-                  try:
-                      cmd = [
-                          "python", "-m", "tools.whisper_run",
-                          "--video", video_path,
-                          "--output", whisper_out,
-                          "--model", "medium",
-                      ] + lang_flag
-                      print(f"  Running: {' '.join(cmd)}")
-                      subprocess.run(cmd, check=True)
-                      print(f"  {slug}: whisper.json created")
-                  except subprocess.CalledProcessError as e:
-                      print(f"  {slug}: whisper failed: {e}")
-
-                  # Cleanup video between runs
-                  if os.path.exists(video_path):
-                      os.remove(video_path)
-          PYEOF
+      - name: Place artifacts
+        run: |
+          for dir in whisper-downloads/whisper__*/; do
+            [ -d "$dir" ] || continue
+            name="$(basename "$dir")"
+            rest="${name#whisper__}"
+            video_slug="${rest##*__}"
+            talk_id="${rest%__*}"
+            if [ -f "$dir/whisper.json" ]; then
+              dest="talks/${talk_id}/${video_slug}/source"
+              mkdir -p "$dest"
+              cp "$dir/whisper.json" "$dest/whisper.json"
+              echo "Placed: $dest/whisper.json"
+            fi
+          done
 
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add talks/*/*/source/whisper.json
-          git diff --cached --quiet && { echo "No whisper changes to commit"; exit 0; }
+          git diff --cached --quiet && { echo "No whisper changes"; exit 0; }
           git commit -m "Add Whisper speech detection data"
           git pull --rebase
           git push
