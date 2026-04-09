@@ -782,7 +782,7 @@ class TestHashNavigation:
         """Clicking review link should navigate to review view."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        page.click("a[href*='review']")
+        page.click("a.review-link")
         page.wait_for_function("document.querySelectorAll('.cell.en').length > 0", timeout=10000)
         assert "active" in (page.locator("#view-review").get_attribute("class") or "")
 
