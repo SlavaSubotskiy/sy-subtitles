@@ -193,6 +193,95 @@ jobs:
                       print(f"  {slug}: yt-dlp failed: {e}")
           PYEOF
 
+      - name: Install Whisper dependencies
+        if: steps.detect.outputs.has_new == 'true'
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install -r requirements.txt
+          pip install openai-whisper
+
+      - name: Cache Whisper model
+        if: steps.detect.outputs.has_new == 'true'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/whisper
+          key: whisper-medium
+
+      - name: Run Whisper on each video
+        if: steps.detect.outputs.has_new == 'true'
+        env:
+          NEW_METAS: ${{ steps.detect.outputs.metas }}
+        run: |
+          python3 << 'PYEOF'
+          import json
+          import os
+          import subprocess
+
+          import yaml
+
+          metas = json.loads(os.environ["NEW_METAS"])
+
+          for meta_path in metas:
+              talk_dir = os.path.dirname(meta_path)
+              talk_id = os.path.basename(talk_dir)
+
+              with open(meta_path) as f:
+                  meta = yaml.safe_load(f)
+
+              # Determine language flag
+              if meta.get("other_languages"):
+                  lang_flag = []  # auto-detect
+              else:
+                  lang_flag = ["--language", meta.get("language", "en")]
+
+              for video in meta.get("videos", []):
+                  slug = video["slug"]
+                  vimeo_url = video.get("vimeo_url", "")
+                  if not vimeo_url:
+                      print(f"  {slug}: no vimeo_url — skip whisper")
+                      continue
+
+                  whisper_out = os.path.join(talk_dir, slug, "source", "whisper.json")
+                  if os.path.exists(whisper_out):
+                      print(f"  {slug}: whisper.json already exists — skip")
+                      continue
+
+                  print(f"\n  Whisper: {talk_id}/{slug}")
+
+                  # Download video
+                  os.makedirs("/tmp/whisper_work", exist_ok=True)
+                  video_path = "/tmp/whisper_work/video.mp4"
+                  try:
+                      subprocess.run([
+                          "yt-dlp",
+                          "--referer", "https://www.amruta.org/",
+                          "-o", video_path,
+                          vimeo_url,
+                      ], check=True)
+                  except subprocess.CalledProcessError as e:
+                      print(f"  {slug}: video download failed: {e}")
+                      continue
+
+                  # Run whisper
+                  os.makedirs(os.path.dirname(whisper_out), exist_ok=True)
+                  try:
+                      cmd = [
+                          "python", "-m", "tools.whisper_run",
+                          "--video", video_path,
+                          "--output", whisper_out,
+                          "--model", "medium",
+                      ] + lang_flag
+                      print(f"  Running: {' '.join(cmd)}")
+                      subprocess.run(cmd, check=True)
+                      print(f"  {slug}: whisper.json created")
+                  except subprocess.CalledProcessError as e:
+                      print(f"  {slug}: whisper failed: {e}")
+
+                  # Cleanup video
+                  if os.path.exists(video_path):
+                      os.remove(video_path)
+          PYEOF
+
       - name: Commit setup files
         if: steps.detect.outputs.has_new == 'true'
         run: |
@@ -200,7 +289,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add talks/
           git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
-          git commit -m "Setup new talk: extract transcript, create dirs, download SRT"
+          git commit -m "Setup new talk: extract transcript, create dirs, download SRT, run whisper"
           git push
 
       - name: Add new-talk label
