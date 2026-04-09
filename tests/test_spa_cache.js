@@ -1404,6 +1404,44 @@ describe('Add Talk: i18n for dynamic video row labels', () => {
   });
 });
 
+describe('Add Talk: three states logic', () => {
+  function getAddState(hash) {
+    if (!hash || !hash.includes('?data=')) return 'setup';
+    var qm = hash.indexOf('?');
+    var params = new URLSearchParams(hash.slice(qm));
+    var dataStr = params.get('data');
+    if (!dataStr) return 'setup';
+    try {
+      var data = JSON.parse(decodeURIComponent(dataStr));
+      if (!data.u) return 'error';
+      if (!data.u.includes('amruta.org')) return 'wrong-site';
+      return 'form';
+    } catch(e) { return 'error'; }
+  }
+
+  it('no data param → setup (bookmarklet instruction)', () => {
+    assert.strictEqual(getAddState('/add'), 'setup');
+  });
+  it('empty hash → setup', () => {
+    assert.strictEqual(getAddState(''), 'setup');
+  });
+  it('valid amruta data → form', () => {
+    var enc = encodeBookmarkletData({ t: 'Test', u: 'https://www.amruta.org/test', v: [] });
+    assert.strictEqual(getAddState('/add?data=' + enc), 'form');
+  });
+  it('non-amruta URL → wrong-site', () => {
+    var enc = encodeBookmarkletData({ t: 'Test', u: 'https://example.com/page', v: [] });
+    assert.strictEqual(getAddState('/add?data=' + enc), 'wrong-site');
+  });
+  it('invalid data → error', () => {
+    assert.strictEqual(getAddState('/add?data=%ZZinvalid'), 'error');
+  });
+  it('data without url field → error', () => {
+    var enc = encodeBookmarkletData({ t: 'Test' });
+    assert.strictEqual(getAddState('/add?data=' + enc), 'error');
+  });
+});
+
 describe('Add Talk: SPA code integrity', () => {
   var fs = require('fs');
   var html = fs.readFileSync('site/index.html', 'utf8');

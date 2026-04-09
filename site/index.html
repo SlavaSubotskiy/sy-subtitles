@@ -257,11 +257,21 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
     <h1><a href="#/" data-i18n="nav.back">&larr; Home</a> &middot; <span data-i18n="add.title">Add Talk</span></h1>
   </div>
   <div style="max-width:700px;margin:20px auto;padding:0 20px;">
-    <div id="add-setup" style="margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:8px;">
-      <p style="margin-bottom:8px;color:var(--fg3);" data-i18n="add.bookmarklet_hint">Drag this button to your bookmarks bar, then click it on any amruta.org talk page:</p>
-      <a id="bookmarklet-link" href="#" style="display:inline-block;padding:8px 16px;background:var(--primary-bg);color:var(--primary-fg);border:1px solid var(--primary-border);border-radius:6px;font-size:14px;cursor:grab;text-decoration:none;">&#x2795; SY Subtitles</a>
+    <!-- State 1: Setup (no data from bookmarklet) -->
+    <div id="add-state-setup" style="display:none;text-align:center;padding:40px 20px;">
+      <p style="font-size:18px;color:var(--fg2);margin-bottom:16px;" data-i18n="add.setup_title">How to add a talk</p>
+      <p style="color:var(--fg4);margin-bottom:24px;line-height:1.6;" data-i18n="add.bookmarklet_hint">Drag this button to your bookmarks bar, then click it on any amruta.org talk page:</p>
+      <a id="bookmarklet-link" href="#" style="display:inline-block;padding:12px 24px;background:var(--primary-bg);color:var(--primary-fg);border:1px solid var(--primary-border);border-radius:8px;font-size:16px;cursor:grab;text-decoration:none;">&#x2795; SY Subtitles</a>
     </div>
-    <form id="add-form" onsubmit="return SPA.submitAddTalk()">
+    <!-- State 3: Wrong site error -->
+    <div id="add-state-error" style="display:none;text-align:center;padding:40px 20px;">
+      <p style="font-size:40px;margin-bottom:12px;">&#x26A0;</p>
+      <p style="font-size:18px;color:var(--accent-red);margin-bottom:12px;" data-i18n="add.wrong_site_title">Wrong site</p>
+      <p style="color:var(--fg4);margin-bottom:24px;" data-i18n="add.wrong_site_hint">The bookmarklet should be used on amruta.org talk pages only.</p>
+      <a href="#/" style="color:var(--link);" data-i18n="nav.back">&larr; Home</a>
+    </div>
+    <!-- State 2: Form (data from bookmarklet) -->
+    <form id="add-form" style="display:none;" onsubmit="return SPA.submitAddTalk()">
       <label style="display:block;margin-bottom:12px;">
         <span style="color:var(--fg4);font-size:13px;">amruta.org URL</span>
         <input id="add-url" type="url" style="width:100%;padding:8px;background:var(--bg3);color:var(--fg);border:1px solid var(--border2);border-radius:4px;margin-top:4px;" placeholder="https://www.amruta.org/1979/09/27/...">
@@ -402,6 +412,9 @@ var I18N = {
     'add.field_location': '\u041C\u0456\u0441\u0446\u0435',
     'add.field_language': '\u041C\u043E\u0432\u0430',
     'add.preview_label': '\u041F\u043E\u043F\u0435\u0440\u0435\u0434\u043D\u0456\u0439 \u043F\u0435\u0440\u0435\u0433\u043B\u044F\u0434 meta.yaml:',
+    'add.setup_title': '\u042F\u043A \u0434\u043E\u0434\u0430\u0442\u0438 \u043F\u0440\u043E\u043C\u043E\u0432\u0443',
+    'add.wrong_site_title': '\u041D\u0435 \u0442\u043E\u0439 \u0441\u0430\u0439\u0442',
+    'add.wrong_site_hint': '\u0411\u0443\u043A\u043C\u0430\u0440\u043A\u043B\u0435\u0442 \u043F\u043E\u0442\u0440\u0456\u0431\u043D\u043E \u0432\u0438\u043A\u043E\u0440\u0438\u0441\u0442\u043E\u0432\u0443\u0432\u0430\u0442\u0438 \u0442\u0456\u043B\u044C\u043A\u0438 \u043D\u0430 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0430\u0445 \u043F\u0440\u043E\u043C\u043E\u0432 \u043D\u0430 amruta.org.',
     'add.submit': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 PR',
     'add.field_transcript': '\u0422\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442 (\u0437\u0456 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438)',
     'add.video_title': '\u041D\u0430\u0437\u0432\u0430 \u0432\u0456\u0434\u0435\u043E',
@@ -468,6 +481,9 @@ var I18N = {
     'add.field_location': 'Location',
     'add.field_language': 'Language',
     'add.preview_label': 'meta.yaml preview:',
+    'add.setup_title': 'How to add a talk',
+    'add.wrong_site_title': 'Wrong site',
+    'add.wrong_site_hint': 'The bookmarklet should be used on amruta.org talk pages only.',
     'add.submit': 'Create PR',
     'add.field_transcript': 'Transcript (from page)',
     'add.video_title': 'Video title',
@@ -1510,36 +1526,56 @@ document.addEventListener('click', function(e) {
 function showAddTalk(hash) {
   document.title = t('add.title') + ' — SY Subtitles';
   translatePage();
-  // Parse data from bookmarklet
+
+  // Hide all states
+  document.getElementById('add-state-setup').style.display = 'none';
+  document.getElementById('add-state-error').style.display = 'none';
+  document.getElementById('add-form').style.display = 'none';
+
+  // Determine state
   var qm = hash.indexOf('?');
-  if (qm !== -1) {
-    var params = new URLSearchParams(hash.slice(qm));
-    var dataStr = params.get('data');
-    if (dataStr) {
-      try {
-        var data = JSON.parse(decodeURIComponent(dataStr));
-        if (data.t) document.getElementById('add-title').value = data.t;
-        if (data.d) document.getElementById('add-date').value = data.d;
-        if (data.u) document.getElementById('add-url').value = data.u;
-        if (data.loc) document.getElementById('add-location').value = data.loc;
-        if (data.tx) document.getElementById('add-transcript').value = data.tx;
-        // Add video rows
-        var container = document.getElementById('add-videos');
-        container.innerHTML = '';
-        if (data.v && data.v.length) {
-          data.v.forEach(function(vid) {
-            var vUrl = typeof vid === 'string' ? 'https://vimeo.com/' + vid : 'https://vimeo.com/' + vid.id + '/' + vid.h;
-            var vTitle = typeof vid === 'object' ? (vid.l || '') : '';
-            addVideoRowWithUrl(vUrl, vTitle);
-          });
-        }
-      } catch(e) { console.warn('Failed to parse bookmarklet data:', e); }
-    }
+  if (qm === -1 || !hash.includes('data=')) {
+    // State 1: no data — show setup instructions
+    document.getElementById('add-state-setup').style.display = 'block';
+    return;
   }
-  // If no videos added yet, add empty row
-  if (!document.getElementById('add-videos').children.length) SPA.addVideoRow();
+
+  var params = new URLSearchParams(hash.slice(qm));
+  var dataStr = params.get('data');
+  var data;
+  try {
+    data = JSON.parse(decodeURIComponent(dataStr));
+  } catch(e) {
+    // State 3: parse error
+    document.getElementById('add-state-error').style.display = 'block';
+    return;
+  }
+
+  if (!data.u || !data.u.includes('amruta.org')) {
+    // State 3: wrong site
+    document.getElementById('add-state-error').style.display = 'block';
+    return;
+  }
+
+  // State 2: valid data — show form
+  document.getElementById('add-form').style.display = 'block';
+  if (data.t) document.getElementById('add-title').value = data.t;
+  if (data.d) document.getElementById('add-date').value = data.d;
+  if (data.u) document.getElementById('add-url').value = data.u;
+  if (data.loc) document.getElementById('add-location').value = data.loc;
+  if (data.tx) document.getElementById('add-transcript').value = data.tx;
+
+  var container = document.getElementById('add-videos');
+  container.innerHTML = '';
+  if (data.v && data.v.length) {
+    data.v.forEach(function(vid) {
+      var vUrl = typeof vid === 'string' ? 'https://vimeo.com/' + vid : 'https://vimeo.com/' + vid.id + '/' + vid.h;
+      var vTitle = typeof vid === 'object' ? (vid.l || '') : '';
+      addVideoRowWithUrl(vUrl, vTitle);
+    });
+  }
+  if (!container.children.length) SPA.addVideoRow();
   updateAddPreview();
-  // Live preview
   ['add-url','add-title','add-date','add-location','add-language','add-transcript'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.addEventListener('input', updateAddPreview);
