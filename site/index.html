@@ -112,11 +112,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .pipe-row { display: flex; align-items: center; }
 .pipe-node { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; font-size: 11px; border: 1.5px solid var(--border2); color: var(--fg5); background: var(--bg3); text-decoration: none; white-space: nowrap; }
 .pipe-node.done { border-color: var(--accent-green); color: var(--accent-green); background: var(--primary-bg); }
-.pipe-node.active { border-color: var(--link); color: var(--link); background: var(--stat-active-bg); }
+.pipe-node.in-review { border-color: var(--link); color: var(--link); background: var(--stat-active-bg); }
+.pipe-node.approved { border-color: var(--accent-green); color: var(--accent-green); background: var(--primary-bg); }
 .pipe-node a { color: inherit; text-decoration: none; }
 .pipe-arrow { color: var(--border2); font-size: 10px; margin: 0 4px; }
 .pipe-arrow.done { color: var(--accent-green); }
-.pipe-fork { display: flex; flex-direction: column; gap: 4px; margin: 0 4px; }
+.pipe-fork { display: flex; flex-direction: column; gap: 4px; margin: 0 4px; align-items: center; position: relative; padding: 4px 0; border-left: 2px solid var(--border2); border-right: 2px solid var(--border2); border-radius: 8px; }
 
 /* --- Preview --- */
 .player-container { position: relative; width: 100%; max-width: 960px; margin: 20px auto; }
@@ -1072,8 +1073,8 @@ function renderStatusBadge(status, reviewSt) {
 }
 
 function renderPipelineDAG(tk, stages, st) {
-  function node(label, done, href) {
-    var cls = done ? 'pipe-node done' : 'pipe-node';
+  function node(label, done, href, extraCls) {
+    var cls = 'pipe-node' + (done ? ' done' : '') + (extraCls ? ' ' + extraCls : '');
     if (href) return '<a href="' + href + '" class="' + cls + '">' + esc(label) + '</a>';
     return '<span class="' + cls + '">' + esc(label) + '</span>';
   }
@@ -1111,7 +1112,7 @@ function renderPipelineDAG(tk, stages, st) {
   return '<div class="pipe-dag">'
     + node(t('pipe.added'), true) + arrow(true)
     + joinForkHtml + arrow(stages.srt && stages.hasIssue)
-    + node(t('pipe.review'), stages.review || stages.approved)
+    + node(t('pipe.review'), stages.review || stages.approved, '', stages.approved ? 'approved' : (stages.review ? 'in-review' : ''))
     + arrow(stages.approved)
     + node(t('pipe.approved'), stages.approved)
     + '</div>';
