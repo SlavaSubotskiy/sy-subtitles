@@ -2318,6 +2318,23 @@ describe('SW version independence', () => {
 // ============================================================
 // Deploy workflow stamps
 // ============================================================
+describe('AI tags on cards', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('ai-translated tag rendered when hasUk', () => {
+    assert.ok(html.includes('ai-translated'));
+  });
+
+  it('ai-reviewed tag rendered when hasReviewReport', () => {
+    assert.ok(html.includes('ai-reviewed'));
+  });
+
+  it('ai-tag CSS class exists', () => {
+    assert.ok(html.includes('.ai-tag'));
+  });
+});
+
 describe('Deploy stamps in HTML', () => {
   var fs = require('fs');
   var html = fs.readFileSync('site/index.html', 'utf8');

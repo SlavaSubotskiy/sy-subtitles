@@ -103,6 +103,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .review-badge.approved { background: var(--primary-bg); color: var(--accent-green); border: 1px solid var(--primary-border); }
 .review-badge.ready-for-review { background: var(--issue-bg); color: var(--accent-orange); border: 1px solid var(--border2); }
 .review-badge.in-progress { background: var(--bg3); color: var(--fg5); border: 1px solid var(--border2); }
+.ai-tag { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 10px; background: var(--bg3); color: var(--fg6); border: 1px solid var(--border2); margin-left: 4px; }
 .expert-btn { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; background: var(--bg3); color: var(--fg5); border: 1px solid var(--border2); text-decoration: none; margin-left: 6px; }
 .expert-btn:hover { background: var(--bg4); color: var(--link); }
 
@@ -977,9 +978,12 @@ function renderIndex(el) {
       : dateStr;
     var expertHtml = ' <a href="https://github.com/' + REPO + '/actions/workflows/subtitle-pipeline.yml" target="_blank" class="expert-only expert-btn" style="display:none;" onclick="event.stopPropagation();navigator.clipboard.writeText(\'' + tk.id + '\')" title="' + t('expert.copy_and_run') + '">&#x25B6; pipeline</a>';
     var statusBadge = renderStatusBadge(status, st);
+    var aiTags = '';
+    if (tk.hasUk) aiTags += '<span class="ai-tag">ai-translated</span>';
+    if (tk.hasReviewReport) aiTags += '<span class="ai-tag">ai-reviewed</span>';
     div.innerHTML = '<div class="talk-date"><span>' + dateHtml + expertHtml + '</span>' + statusBadge + '</div>'
-      + '<div class="talk-title">' + esc(tk.title || tk.id) + '</div>'
-      + (videoLinks || reviewLink ? '<div class="talk-actions">' + videoLinks + reviewLink + '</div>' : '');
+      + '<div class="talk-title">' + esc(tk.title || tk.id) + aiTags + '</div>'
+      + (videoLinks ? '<div class="talk-actions">' + videoLinks + reviewLink + '</div>' : '');
 
     // Expert mode: click card to expand inline DAG detail (one at a time)
     if (expertMode) {
