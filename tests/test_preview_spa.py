@@ -182,7 +182,7 @@ def page(server, mock_player_js, browser):
     )
 
     # Clear cache before each page load
-    pg.add_init_script("localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_app_version');")
+    pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
     yield pg
     pg.close()
     ctx.close()
@@ -872,7 +872,7 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_app_version');")
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.in-review")
@@ -918,7 +918,7 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_app_version');")
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.approved")
@@ -952,7 +952,7 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_app_version');")
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         # Page loads fine, no badges shown
@@ -982,11 +982,15 @@ class TestCaching:
         data = json.loads(cache)
         assert "talks" in data
 
-    def test_app_version_stored(self, server, page):
+    def test_cache_schema_stored(self, server, page):
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        version = page.evaluate("localStorage.getItem('sy_app_version')")
-        assert version is not None
+        cache = page.evaluate("localStorage.getItem('sy_tree_cache__main')")
+        assert cache is not None
+        import json
+
+        data = json.loads(cache)
+        assert "_schema" in data
 
     def test_cached_manifest_has_hasSrt(self, server, page):
         goto_spa(page, server)
@@ -1140,9 +1144,7 @@ class TestBranchSelector:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        page.add_init_script(
-            "localStorage.removeItem('sy_tree_cache__dev'); localStorage.removeItem('sy_app_version');"
-        )
+        page.add_init_script("localStorage.removeItem('sy_tree_cache__dev');")
         page.goto(f"{server}{SPA_URL}?branch=dev")
         page.wait_for_selector(".talk-item", timeout=10000)
         assert any("trees/dev" in url for url in tree_urls)
@@ -1247,7 +1249,7 @@ class TestBranchSelector:
         # Clear all caches
         pg = make_page(ctx)
         pg.add_init_script(
-            "localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_tree_cache__dev'); localStorage.removeItem('sy_app_version');"
+            "localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_tree_cache__dev');"
         )
         pg.goto(f"{server}{SPA_URL}")
         pg.wait_for_selector(".talk-item", timeout=10000)
@@ -1287,9 +1289,7 @@ class TestBranchSelector:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        page.add_init_script(
-            "localStorage.removeItem('sy_tree_cache__feature/test'); localStorage.removeItem('sy_app_version');"
-        )
+        page.add_init_script("localStorage.removeItem('sy_tree_cache__feature/test');")
         page.goto(f"{server}{SPA_URL}?branch=feature/test")
         page.wait_for_selector(".talk-item", timeout=10000)
         assert any("feature/test" in url for url in raw_urls)
