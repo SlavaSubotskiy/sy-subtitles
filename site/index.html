@@ -117,7 +117,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .pipe-node a { color: inherit; text-decoration: none; }
 .pipe-arrow { color: var(--border2); font-size: 10px; margin: 0 4px; }
 .pipe-arrow.done { color: var(--accent-green); }
-.pipe-fork { display: inline-flex; flex-direction: column; gap: 4px; margin: 0 6px; align-items: center; border-left: 1px solid var(--border2); border-right: 1px solid var(--border2); padding: 4px 8px; border-radius: 6px; }
+.pipe-fork { display: inline-flex; flex-direction: column; gap: 4px; margin: 0 4px; align-items: center; padding: 6px 10px; border: 1px solid var(--border2); border-radius: 8px; }
 
 /* --- Preview --- */
 .player-container { position: relative; width: 100%; max-width: 960px; margin: 20px auto; }
@@ -1094,34 +1094,25 @@ function renderPipelineDAG(tk, stages, st) {
 
   var wLabel = t('pipe.ai_transcribed') + (stages.nVideos > 1 ? ' ' + stages.whisperProgress : '');
   var sLabel = t('pipe.srt') + (stages.nVideos > 1 ? ' ' + stages.srtProgress : '');
+  var reviewHref = st && st.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + st.issue_number : '';
 
-  // Group A: AI pipeline → srt
   var topBranch = node(wLabel, stages.whisper);
   var bottomBranch = node(t('pipe.ai_translated'), stages.translated)
-    + arrow(stages.translated)
-    + node(t('pipe.ai_reviewed'), stages.reviewed);
+    + arrow(stages.translated) + node(t('pipe.ai_reviewed'), stages.reviewed);
 
-  var aiForkHtml = '<div class="pipe-fork">'
+  var aiFork = '<div class="pipe-fork">'
     + '<div class="pipe-row">' + topBranch + '</div>'
     + '<div class="pipe-row">' + bottomBranch + '</div>'
     + '</div>';
 
-  var groupA = aiForkHtml + arrow(stages.whisper && stages.reviewed)
-    + node(sLabel, stages.srt);
-
-  // Group B: issue (parallel to group A)
-  var reviewHref = st && st.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + st.issue_number : '';
-  var groupB = node(t('pipe.issue'), stages.hasIssue, reviewHref);
-
-  // Join: both groups must complete for review
-  var joinForkHtml = '<div class="pipe-fork">'
-    + '<div class="pipe-row">' + groupA + '</div>'
-    + '<div class="pipe-row">' + groupB + '</div>'
+  var joinFork = '<div class="pipe-fork">'
+    + '<div class="pipe-row">' + aiFork + arrow(stages.whisper && stages.reviewed) + node(sLabel, stages.srt) + '</div>'
+    + '<div class="pipe-row">' + node(t('pipe.issue'), stages.hasIssue, reviewHref) + '</div>'
     + '</div>';
 
   return '<div class="pipe-dag">'
     + node(t('pipe.added'), true) + arrow(true)
-    + joinForkHtml + arrow(stages.srt && stages.hasIssue)
+    + joinFork + arrow(stages.srt && stages.hasIssue)
     + node(t('pipe.review'), stages.review || stages.approved, '', stages.approved ? 'approved' : (stages.review ? 'in-review' : ''))
     + arrow(stages.approved)
     + node(t('pipe.approved'), stages.approved)
