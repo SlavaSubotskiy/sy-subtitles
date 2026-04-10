@@ -2318,20 +2318,16 @@ describe('SW version independence', () => {
 // ============================================================
 // Deploy workflow stamps
 // ============================================================
-describe('AI tags on cards', () => {
+describe('AI labels in DAG', () => {
   var fs = require('fs');
   var html = fs.readFileSync('site/index.html', 'utf8');
 
-  it('ai-translated tag rendered when hasUk', () => {
+  it('ai-translated label in DAG', () => {
     assert.ok(html.includes('ai-translated'));
   });
 
-  it('ai-reviewed tag rendered when hasReviewReport', () => {
+  it('ai-reviewed label in DAG', () => {
     assert.ok(html.includes('ai-reviewed'));
-  });
-
-  it('ai-tag CSS class exists', () => {
-    assert.ok(html.includes('.ai-tag'));
   });
 });
 
@@ -2608,23 +2604,9 @@ describe('Pipeline: manifest tracking', () => {
     assert.ok(html.includes("review_report\\.md"));
   });
 
-  it('pipeline view exists', () => {
-    assert.ok(html.includes('id="view-pipeline"'));
-    assert.ok(html.includes('id="pipeline-list"'));
-    assert.ok(html.includes('id="pipeline-detail"'));
-  });
-
-  it('pipeline route registered', () => {
-    assert.ok(html.includes("/pipeline"));
-    assert.ok(html.includes('showPipeline'));
-  });
-
-  it('pipeline route loads reviewStatus', () => {
-    assert.ok(html.includes("loadReviewStatus"), 'pipeline route must load review status');
-  });
-
-  it('pipeline link in expert mode', () => {
-    assert.ok(html.includes('href="#/pipeline"'));
+  it('expert inline DAG detail', () => {
+    assert.ok(html.includes('pipe-detail'));
+    assert.ok(html.includes('renderPipelineDAG'));
   });
 
   it('status badge CSS for all states', () => {
@@ -2632,12 +2614,6 @@ describe('Pipeline: manifest tracking', () => {
     assert.ok(html.includes('.review-badge.in-progress'));
     assert.ok(html.includes('.review-badge.in-review'));
     assert.ok(html.includes('.review-badge.approved'));
-  });
-
-  it('master-detail layout', () => {
-    assert.ok(html.includes('pipe-compact'));
-    assert.ok(html.includes('showPipelineDetail'));
-    assert.ok(html.includes('.pipe-card.selected'));
   });
 
   it('getOverallStatus function exists', () => {

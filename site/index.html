@@ -108,9 +108,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .expert-btn:hover { background: var(--bg4); color: var(--link); }
 
 /* --- Pipeline --- */
-.pipe-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; }
-.pipe-card .pipe-title { font-weight: 600; margin-bottom: 8px; }
-.pipe-card .pipe-date { font-size: 12px; color: var(--fg5); }
 .pipe-dag { display: flex; align-items: center; gap: 0; margin-top: 10px; flex-wrap: wrap; }
 .pipe-row { display: flex; align-items: center; }
 .pipe-node { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; font-size: 11px; border: 1.5px solid var(--border2); color: var(--fg5); background: var(--bg3); text-decoration: none; white-space: nowrap; }
@@ -120,8 +117,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .pipe-arrow { color: var(--border2); font-size: 10px; margin: 0 4px; }
 .pipe-arrow.done { color: var(--accent-green); }
 .pipe-fork { display: flex; flex-direction: column; gap: 4px; margin: 0 4px; }
-.pipe-compact { display: flex; justify-content: space-between; align-items: center; }
-.pipe-card.selected { border-color: var(--link); background: var(--stat-active-bg); }
 
 /* --- Preview --- */
 .player-container { position: relative; width: 100%; max-width: 960px; margin: 20px auto; }
@@ -216,7 +211,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 
 <!-- === INDEX VIEW === -->
 <div id="view-index" class="view">
-  <div class="header"><h1>SY Subtitles</h1><span style="display:flex;gap:8px;align-items:center;"><a href="#/pipeline" class="expert-only" style="display:none;color:var(--fg5);font-size:13px;text-decoration:none;padding:4px 10px;border:1px solid var(--border2);border-radius:4px;" data-i18n="pipeline.title">Pipeline Status</a><a href="#/add" data-i18n="add.link" style="color:var(--accent-green);font-size:13px;text-decoration:none;padding:4px 10px;border:1px solid var(--primary-border);border-radius:4px;">+ Add Talk</a></span></div>
+  <div class="header"><h1>SY Subtitles</h1><a href="#/add" data-i18n="add.link" style="color:var(--accent-green);font-size:13px;text-decoration:none;padding:4px 10px;border:1px solid var(--primary-border);border-radius:4px;">+ Add Talk</a></div>
   <div id="index-toolbar" style="max-width:800px;margin:8px auto;padding:0 20px;display:none">
     <input id="search-input" type="text" data-i18n-placeholder="search.placeholder" style="width:100%;padding:8px 12px;background:var(--bg3);color:var(--fg2);border:1px solid var(--border2);border-radius:6px;font-size:14px;margin-bottom:6px;">
     <div id="stats-bar" class="stats-bar"></div>
@@ -273,16 +268,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
   </div>
 </div>
 
-<!-- === PIPELINE VIEW === -->
-<div id="view-pipeline" class="view">
-  <div class="header">
-    <h1><a href="#/" data-i18n="nav.back">&larr; Home</a> &middot; <span data-i18n="pipeline.title">Pipeline Status</span></h1>
-  </div>
-  <div style="max-width:1100px;margin:20px auto;padding:0 20px;display:flex;gap:20px;flex-wrap:wrap;">
-    <div id="pipeline-list" style="flex:1;min-width:280px;"></div>
-    <div id="pipeline-detail" style="flex:1;min-width:320px;"></div>
-  </div>
-</div>
 
 <!-- === ADD TALK VIEW === -->
 <div id="view-add" class="view">
@@ -454,8 +439,7 @@ var I18N = {
     'freshness.error': '\u2717 \u041F\u043E\u043C\u0438\u043B\u043A\u0430:',
     'link.review': '\u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043F\u0435\u0440\u0435\u043A\u043B\u0430\u0434',
     'link.amruta': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u043D\u0430 amruta.org',
-    'pipeline.title': '\u0421\u0442\u0430\u0442\u0443\u0441 \u043F\u0430\u0439\u043F\u043B\u0430\u0439\u043D\u0443',
-    'pipeline.select_talk': '\u041E\u0431\u0435\u0440\u0456\u0442\u044C \u043F\u0440\u043E\u043C\u043E\u0432\u0443',
+
     'add.title': '\u0414\u043E\u0434\u0430\u0442\u0438 \u043F\u0440\u043E\u043C\u043E\u0432\u0443',
     'add.bookmarklet_hint': '\u041f\u0435\u0440\u0435\u0442\u044f\u0433\u043d\u0456\u0442\u044c \u0446\u044e \u043a\u043d\u043e\u043f\u043a\u0443 \u043d\u0430 \u043f\u0430\u043d\u0435\u043b\u044c \u0437\u0430\u043a\u043b\u0430\u0434\u043e\u043a, \u043f\u043e\u0442\u0456\u043c \u043d\u0430\u0442\u0438\u0441\u043d\u0456\u0442\u044c \u043d\u0430 \u043d\u0435\u0457 \u043f\u0435\u0440\u0435\u0431\u0443\u0432\u0430\u044e\u0447\u0438 \u043d\u0430 \u0441\u0442\u043e\u0440\u0456\u043d\u0446\u0456 \u043f\u0440\u043e\u043c\u043e\u0432\u0438 \u043d\u0430 amruta.org:',
     'add.field_title': '\u041D\u0430\u0437\u0432\u0430',
@@ -527,8 +511,7 @@ var I18N = {
     'freshness.error': '\u2717 Error:',
     'link.review': 'review translation',
     'link.amruta': 'Open on amruta.org',
-    'pipeline.title': 'Pipeline Status',
-    'pipeline.select_talk': 'Select a talk',
+
     'add.title': 'Add Talk',
     'add.bookmarklet_hint': 'Drag this button to your bookmarks bar, then click it while on a talk page at amruta.org:',
     'add.field_title': 'Title',
@@ -676,12 +659,6 @@ function route() {
   } else if (hash.startsWith('/add')) {
     document.getElementById('view-add').classList.add('active');
     showAddTalk(hash);
-  } else if (hash === '/pipeline') {
-    document.getElementById('view-pipeline').classList.add('active');
-    Promise.all([
-      ensureManifest(),
-      reviewStatus ? Promise.resolve() : loadReviewStatus()
-    ]).then(function() { showPipeline(); });
   } else {
     showIndex();
   }
@@ -978,11 +955,8 @@ function renderIndex(el) {
       : dateStr;
     var expertHtml = ' <a href="https://github.com/' + REPO + '/actions/workflows/subtitle-pipeline.yml" target="_blank" class="expert-only expert-btn" style="display:none;" onclick="event.stopPropagation();navigator.clipboard.writeText(\'' + tk.id + '\')" title="' + t('expert.copy_and_run') + '">&#x25B6; pipeline</a>';
     var statusBadge = renderStatusBadge(status, st);
-    var aiTags = '';
-    if (tk.hasUk) aiTags += '<span class="ai-tag">ai-translated</span>';
-    if (tk.hasReviewReport) aiTags += '<span class="ai-tag">ai-reviewed</span>';
     div.innerHTML = '<div class="talk-date"><span>' + dateHtml + expertHtml + '</span>' + statusBadge + '</div>'
-      + '<div class="talk-title">' + esc(tk.title || tk.id) + aiTags + '</div>'
+      + '<div class="talk-title">' + esc(tk.title || tk.id) + '</div>'
       + (videoLinks ? '<div class="talk-actions">' + videoLinks + reviewLink + '</div>' : '');
 
     // Expert mode: click card to expand inline DAG detail (one at a time)
@@ -1094,9 +1068,9 @@ function renderPipelineDAG(tk, stages, st) {
   var sLabel = 'srt' + (stages.nVideos > 1 ? ' ' + stages.srtProgress : '');
 
   var topBranch = node(wLabel, stages.whisper);
-  var bottomBranch = node('translated', stages.translated)
+  var bottomBranch = node('ai-translated', stages.translated)
     + arrow(stages.translated)
-    + node('reviewed', stages.reviewed);
+    + node('ai-reviewed', stages.reviewed);
 
   var forkHtml = '<div class="pipe-fork">'
     + '<div class="pipe-row">' + topBranch + '</div>'
@@ -1104,81 +1078,19 @@ function renderPipelineDAG(tk, stages, st) {
     + '</div>';
 
   var reviewHref = st && st.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + st.issue_number : '';
-  var previewHref = stages.nSrt > 0 ? '#/preview/' + tk.id + '/' + (tk.videos[0] || {}).slug : '';
-  var reviewLinkHref = (tk.hasEn && tk.hasUk) ? '#/review/' + tk.id : '';
-
-  // Video links
-  var videoLinks = '';
-  (tk.videos || []).forEach(function(v) {
-    if (v.hasSrt && v.vimeo_url) {
-      videoLinks += '<a href="#/preview/' + tk.id + '/' + v.slug + '" class="pipe-node done" style="margin:2px;">&#x25B6; ' + esc(v.title) + '</a>';
-    }
-  });
 
   return '<div class="pipe-dag">'
     + node('added', true) + arrow(true)
     + forkHtml + arrow(stages.whisper && stages.reviewed)
-    + node(sLabel, stages.srt, previewHref)
+    + node(sLabel, stages.srt)
     + arrow(stages.srt)
     + node('review', stages.review || stages.approved, reviewHref)
     + arrow(stages.approved)
     + node('approved', stages.approved)
     + '</div>'
-    + (videoLinks || reviewLinkHref ? '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">'
-      + videoLinks
-      + (reviewLinkHref ? '<a href="' + reviewLinkHref + '" class="pipe-node' + (stages.translated ? ' done' : '') + '">&#x270E; ' + t('link.review') + '</a>' : '')
-      + '</div>' : '');
+;
 }
 
-function showPipeline() {
-  document.title = t('pipeline.title') + ' — SY Subtitles';
-  translatePage();
-  var listEl = document.getElementById('pipeline-list');
-  var detailEl = document.getElementById('pipeline-detail');
-  listEl.innerHTML = '';
-  detailEl.innerHTML = '<div style="color:var(--fg5);padding:20px;text-align:center;">' + t('pipeline.select_talk') + '</div>';
-  var statuses = (reviewStatus && reviewStatus.talks) || {};
-
-  manifest.talks.forEach(function(tk) {
-    var st = statuses[tk.id] || null;
-    var stages = getPipelineStages(tk, st);
-    var status = getOverallStatus(stages, st);
-    var dateStr = tk.date || tk.id.substring(0, 10);
-
-    var div = document.createElement('div');
-    div.className = 'pipe-card';
-    div.style.cursor = 'pointer';
-
-    div.innerHTML = '<div class="pipe-compact">'
-      + '<div><span class="pipe-date">' + dateStr + '</span> '
-      + '<span class="pipe-title">' + esc(tk.title || tk.id) + '</span></div>'
-      + renderStatusBadge(status, st)
-      + '</div>';
-
-    div.onclick = function() {
-      listEl.querySelectorAll('.pipe-card').forEach(function(c) { c.classList.remove('selected'); });
-      div.classList.add('selected');
-      showPipelineDetail(tk, stages, st, detailEl);
-    };
-
-    listEl.appendChild(div);
-  });
-}
-
-function showPipelineDetail(tk, stages, st, el) {
-  var dateStr = tk.date || tk.id.substring(0, 10);
-  var amrutaLink = tk.amrutaUrl
-    ? '<a href="' + tk.amrutaUrl + '" target="_blank" style="color:var(--link);">' + esc(tk.title) + ' &#x2197;</a>'
-    : esc(tk.title);
-
-  el.innerHTML = '<div class="pipe-card">'
-    + '<div style="margin-bottom:12px;">'
-    + '<div style="font-size:16px;font-weight:600;">' + amrutaLink + '</div>'
-    + '<div class="pipe-date">' + dateStr + '</div>'
-    + '</div>'
-    + renderPipelineDAG(tk, stages, st)
-    + '</div>';
-}
 
 // ============================================================
 // PREVIEW VIEW
