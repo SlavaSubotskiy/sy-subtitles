@@ -72,6 +72,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 /* --- Index --- */
 .talk-item { padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; max-width: 800px; margin: 8px auto; background: var(--bg2); transition: border-color 0.15s; }
 .talk-item:hover { border-color: var(--border2); }
+.talk-item.selected { border-color: var(--link); background: var(--stat-active-bg); }
 .talk-date { font-size: 12px; color: var(--fg5); font-family: monospace; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
 .talk-title { font-size: 15px; font-weight: 600; color: var(--fg2); margin-bottom: 6px; }
 .talk-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
@@ -477,10 +478,10 @@ var I18N = {
     'badge.pending': '\u043E\u0447\u0456\u043A\u0443\u0454',
     'expert.copy_and_run': '\u041A\u043E\u043F\u0456\u044E\u0454 talk_id \u0456 \u0432\u0456\u0434\u043A\u0440\u0438\u0432\u0430\u0454 pipeline',
     'stat.all': '\u0412\u0441\u0456',
-    'stat.translated': '\u041F\u0435\u0440\u0435\u043A\u043B\u0430\u0434\u0435\u043D\u043E',
-    'stat.with_srt': '\u0417 SRT',
-    'stat.approved': '\u0417\u0430\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043E',
     'stat.needs_review': '\u041F\u043E\u0442\u0440\u0435\u0431\u0443\u0454 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u043A\u0438',
+    'stat.in_review': '\u041D\u0430 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0446\u0456',
+    'stat.pending': '\u041E\u0447\u0456\u043A\u0443\u0454',
+    'stat.approved': '\u0417\u0430\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043E',
     'review.marks': '\u043C\u0430\u0440\u043A\u0435\u0440\u0456\u0432',
     'review.edits': '\u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u044C',
     'btn.mark_title': 'M = \u043C\u0430\u0440\u043A\u0435\u0440, Space = \u043F\u043B\u0435\u0439/\u043F\u0430\u0443\u0437\u0430, \u2190\u2192 = 5\u0441',
@@ -550,10 +551,10 @@ var I18N = {
     'badge.pending': 'pending',
     'expert.copy_and_run': 'Copies talk_id and opens pipeline',
     'stat.all': 'All',
-    'stat.translated': 'Translated',
-    'stat.with_srt': 'With SRT',
-    'stat.approved': 'Approved',
     'stat.needs_review': 'Needs review',
+    'stat.in_review': 'In review',
+    'stat.pending': 'Pending',
+    'stat.approved': 'Approved',
     'review.marks': 'marks',
     'review.edits': 'edits',
     'btn.mark_title': 'M = mark, Space = play/pause, \u2190\u2192 = seek 5s',
@@ -823,27 +824,26 @@ function buildManifest(tree) {
 // Review Status (static JSON, zero API cost)
 // ============================================================
 function computeStats(talks, statuses, query) {
-  var total = { talks: 0, translated: 0, with_srt: 0, approved: 0, pending: 0 };
-  var filtered = { talks: 0, translated: 0, with_srt: 0, approved: 0, pending: 0 };
+  var total = { talks: 0, needs_review: 0, in_review: 0, approved: 0, pending: 0 };
+  var filtered = { talks: 0, needs_review: 0, in_review: 0, approved: 0, pending: 0 };
   talks.forEach(function(t) {
     var matchesSearch = !query || ((t.title || '') + ' ' + (t.date || '') + ' ' + t.id).toLowerCase().indexOf(query) !== -1;
-    var hasSrt = (t.videos || []).some(function(v) { return v.hasSrt; });
-    var st = statuses[t.id];
-    var isApproved = st && st.status === 'approved';
-    var isPending = st && !isApproved;
+    var st = statuses[t.id] || null;
+    var stages = getPipelineStages(t, st);
+    var status = getOverallStatus(stages, st);
     // Total counts
     total.talks++;
-    if (t.hasUk) total.translated++;
-    if (hasSrt) total.with_srt++;
-    if (isApproved) total.approved++;
-    if (isPending) total.pending++;
+    if (status === 'ready-for-review') total.needs_review++;
+    if (status === 'in-review') total.in_review++;
+    if (status === 'approved') total.approved++;
+    if (status === 'in-progress') total.pending++;
     // Filtered counts (by search)
     if (matchesSearch) {
       filtered.talks++;
-      if (t.hasUk) filtered.translated++;
-      if (hasSrt) filtered.with_srt++;
-      if (isApproved) filtered.approved++;
-      if (isPending) filtered.pending++;
+      if (status === 'ready-for-review') filtered.needs_review++;
+      if (status === 'in-review') filtered.in_review++;
+      if (status === 'approved') filtered.approved++;
+      if (status === 'in-progress') filtered.pending++;
     }
   });
   return { total: total, filtered: filtered };
@@ -856,13 +856,25 @@ function renderStats() {
   var query = (document.getElementById('search-input').value || '').toLowerCase();
   var s = computeStats(manifest.talks, statuses, query);
   var hasSearch = query.length > 0;
-  var cards = [
-    { f: s.filtered.talks, t: s.total.talks, label: t('stat.all'), cls: 'info', filter: 'all' },
-    { f: s.filtered.translated, t: s.total.translated, label: t('stat.translated'), cls: 'info', filter: 'translated' },
-    { f: s.filtered.with_srt, t: s.total.with_srt, label: t('stat.with_srt'), cls: 'info', filter: 'with-srt' },
-    { f: s.filtered.approved, t: s.total.approved, label: t('stat.approved'), cls: 'good', filter: 'approved' },
-    { f: s.filtered.pending, t: s.total.pending, label: t('stat.needs_review'), cls: 'warn', filter: 'needs-review' },
-  ];
+  var cards;
+  if (expertMode) {
+    cards = [
+      { f: s.filtered.talks, t: s.total.talks, label: t('stat.all'), cls: 'info', filter: 'all' },
+      { f: s.filtered.pending, t: s.total.pending, label: t('stat.pending'), cls: 'info', filter: 'pending' },
+      { f: s.filtered.needs_review, t: s.total.needs_review, label: t('stat.needs_review'), cls: 'warn', filter: 'needs-review' },
+      { f: s.filtered.in_review, t: s.total.in_review, label: t('stat.in_review'), cls: 'info', filter: 'in-review' },
+      { f: s.filtered.approved, t: s.total.approved, label: t('stat.approved'), cls: 'good', filter: 'approved' },
+    ];
+  } else {
+    // Normal mode: "All" = only needs-review + in-review
+    var allF = s.filtered.needs_review + s.filtered.in_review;
+    var allT = s.total.needs_review + s.total.in_review;
+    cards = [
+      { f: allF, t: allT, label: t('stat.all'), cls: 'info', filter: 'all' },
+      { f: s.filtered.needs_review, t: s.total.needs_review, label: t('stat.needs_review'), cls: 'warn', filter: 'needs-review' },
+      { f: s.filtered.in_review, t: s.total.in_review, label: t('stat.in_review'), cls: 'info', filter: 'in-review' },
+    ];
+  }
   bar.innerHTML = '';
   cards.forEach(function(c) {
     var active = activeFilter === c.filter ? ' active' : '';
@@ -909,7 +921,8 @@ function showIndex() {
   });
 }
 
-var activeFilter = 'all';
+var expertMode = localStorage.getItem('sy_expert_mode') === '1';
+var activeFilter = expertMode ? 'pending' : 'needs-review';
 
 function renderIndex(el) {
   el.innerHTML = '';
@@ -919,13 +932,19 @@ function renderIndex(el) {
 
   manifest.talks.forEach(function(tk) {
     var st = statuses[tk.id] || null;
-    var hasSrt = (tk.videos || []).some(function(v) { return v.hasSrt; });
+    var stages = getPipelineStages(tk, st);
+    var status = getOverallStatus(stages, st);
 
-    // Filter
-    if (activeFilter === 'translated' && !tk.hasUk) return;
-    if (activeFilter === 'with-srt' && !hasSrt) return;
-    if (activeFilter === 'approved' && (!st || st.status !== 'approved')) return;
-    if (activeFilter === 'needs-review' && (!st || st.status === 'approved')) return;
+    // Filter by status
+    if (activeFilter === 'all' && !expertMode) {
+      // Normal "all" = only needs-review + in-review
+      if (status !== 'ready-for-review' && status !== 'in-review') return;
+    } else if (activeFilter !== 'all') {
+      if (activeFilter === 'needs-review' && status !== 'ready-for-review') return;
+      if (activeFilter === 'in-review' && status !== 'in-review') return;
+      if (activeFilter === 'pending' && status !== 'in-progress') return;
+      if (activeFilter === 'approved' && status !== 'approved') return;
+    }
 
     // Search
     var searchText = ((tk.title || '') + ' ' + (tk.date || '') + ' ' + tk.id).toLowerCase();
@@ -957,11 +976,40 @@ function renderIndex(el) {
     var dateHtml = tk.amrutaUrl
       ? '<a href="' + tk.amrutaUrl + '" target="_blank" title="' + t('link.amruta') + '" style="color:var(--fg5);text-decoration:none;">' + dateStr + ' &#x2197;</a>'
       : dateStr;
-    var expertHtml = ' <a href="https://github.com/' + REPO + '/actions/workflows/subtitle-pipeline.yml" target="_blank" class="expert-only expert-btn" style="display:none;" onclick="navigator.clipboard.writeText(\'' + tk.id + '\')" title="' + t('expert.copy_and_run') + '">&#x25B6; pipeline</a>';
-    div.innerHTML = '<div class="talk-date"><span>' + dateHtml + expertHtml + '</span>' + badge + '</div>'
+    var expertHtml = ' <a href="https://github.com/' + REPO + '/actions/workflows/subtitle-pipeline.yml" target="_blank" class="expert-only expert-btn" style="display:none;" onclick="event.stopPropagation();navigator.clipboard.writeText(\'' + tk.id + '\')" title="' + t('expert.copy_and_run') + '">&#x25B6; pipeline</a>';
+    var statusBadge = renderStatusBadge(status, st);
+    div.innerHTML = '<div class="talk-date"><span>' + dateHtml + expertHtml + '</span>' + statusBadge + '</div>'
       + '<div class="talk-title">' + esc(tk.title || tk.id) + '</div>'
       + (videoLinks || reviewLink ? '<div class="talk-actions">' + videoLinks + reviewLink + '</div>' : '')
       + pendingLabel;
+
+    // Expert mode: click card to expand inline DAG detail (one at a time)
+    if (expertMode) {
+      div.style.cursor = 'pointer';
+      var detailDiv = document.createElement('div');
+      detailDiv.className = 'pipe-detail';
+      detailDiv.style.display = 'none';
+      detailDiv.style.marginTop = '10px';
+      div.appendChild(detailDiv);
+      (function(tkRef, stagesRef, stRef, dd) {
+        div.addEventListener('click', function(e) {
+          if (e.target.tagName === 'A') return;
+          var wasOpen = dd.style.display !== 'none';
+          // Close all
+          el.querySelectorAll('.talk-item').forEach(function(c) {
+            c.classList.remove('selected');
+            var d = c.querySelector('.pipe-detail');
+            if (d) d.style.display = 'none';
+          });
+          if (!wasOpen) {
+            div.classList.add('selected');
+            dd.innerHTML = renderPipelineDAG(tkRef, stagesRef, stRef);
+            dd.style.display = 'block';
+          }
+        });
+      })(tk, stages, st, detailDiv);
+    }
+
     el.appendChild(div);
   });
   // Show/hide expert-only elements based on current mode
@@ -1016,14 +1064,18 @@ function getOverallStatus(stages, reviewSt) {
   return 'in-progress';
 }
 
-function renderStatusBadge(status) {
+function renderStatusBadge(status, reviewSt) {
   var labels = {
     'approved': t('badge.approved'),
     'in-review': t('badge.in_review'),
     'ready-for-review': t('badge.needs_review'),
     'in-progress': t('badge.pending')
   };
-  return '<span class="review-badge ' + status + '">' + (labels[status] || status) + '</span>';
+  var text = labels[status] || status;
+  if (status === 'in-review' && reviewSt && reviewSt.reviewer) text += ' (' + esc(reviewSt.reviewer) + ')';
+  var href = reviewSt && reviewSt.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + reviewSt.issue_number : '';
+  if (href) return '<a href="' + href + '" target="_blank" class="review-badge ' + status + '">' + text + '</a>';
+  return '<span class="review-badge ' + status + '">' + text + '</span>';
 }
 
 function renderPipelineDAG(tk, stages, st) {
@@ -1098,7 +1150,7 @@ function showPipeline() {
     div.innerHTML = '<div class="pipe-compact">'
       + '<div><span class="pipe-date">' + dateStr + '</span> '
       + '<span class="pipe-title">' + esc(tk.title || tk.id) + '</span></div>'
-      + renderStatusBadge(status)
+      + renderStatusBadge(status, st)
       + '</div>';
 
     div.onclick = function() {
@@ -1995,12 +2047,12 @@ updateFooter();
 // ============================================================
 // Expert mode (persisted in localStorage)
 // ============================================================
-var expertMode = localStorage.getItem('sy_expert_mode') === '1';
-
 SPA.toggleExpert = function() {
   expertMode = !expertMode;
   localStorage.setItem('sy_expert_mode', expertMode ? '1' : '0');
+  activeFilter = expertMode ? 'pending' : 'needs-review';
   applyExpertMode();
+  if (manifest) { renderStats(); renderIndex(document.getElementById('index-content')); }
 };
 
 function applyExpertMode() {

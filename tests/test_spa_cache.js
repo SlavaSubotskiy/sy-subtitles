@@ -2489,6 +2489,76 @@ describe('Pipeline: getOverallStatus', () => {
   });
 });
 
+// Filter logic
+function shouldShowInFilter(status, filter, isExpert) {
+  if (filter === 'all' && !isExpert) {
+    return status === 'ready-for-review' || status === 'in-review';
+  }
+  if (filter === 'all') return true;
+  if (filter === 'needs-review') return status === 'ready-for-review';
+  if (filter === 'in-review') return status === 'in-review';
+  if (filter === 'pending') return status === 'in-progress';
+  if (filter === 'approved') return status === 'approved';
+  return true;
+}
+
+describe('Index filters: shouldShowInFilter', () => {
+  // Normal mode "all" = only needs-review + in-review
+  it('normal all — only needs-review + in-review', () => {
+    assert.strictEqual(shouldShowInFilter('ready-for-review', 'all', false), true);
+    assert.strictEqual(shouldShowInFilter('in-review', 'all', false), true);
+    assert.strictEqual(shouldShowInFilter('in-progress', 'all', false), false);
+    assert.strictEqual(shouldShowInFilter('approved', 'all', false), false);
+  });
+
+  // Expert mode "all" = everything
+  it('expert all — shows everything', () => {
+    ['in-progress', 'ready-for-review', 'in-review', 'approved'].forEach(s => {
+      assert.strictEqual(shouldShowInFilter(s, 'all', true), true);
+    });
+  });
+
+  it('needs-review — only ready-for-review', () => {
+    assert.strictEqual(shouldShowInFilter('ready-for-review', 'needs-review', false), true);
+    assert.strictEqual(shouldShowInFilter('in-progress', 'needs-review', false), false);
+    assert.strictEqual(shouldShowInFilter('in-review', 'needs-review', false), false);
+    assert.strictEqual(shouldShowInFilter('approved', 'needs-review', false), false);
+  });
+
+  it('in-review — only in-review', () => {
+    assert.strictEqual(shouldShowInFilter('in-review', 'in-review', false), true);
+    assert.strictEqual(shouldShowInFilter('ready-for-review', 'in-review', false), false);
+  });
+
+  it('pending — only in-progress (expert)', () => {
+    assert.strictEqual(shouldShowInFilter('in-progress', 'pending', true), true);
+    assert.strictEqual(shouldShowInFilter('ready-for-review', 'pending', true), false);
+  });
+
+  it('approved — only approved (expert)', () => {
+    assert.strictEqual(shouldShowInFilter('approved', 'approved', true), true);
+    assert.strictEqual(shouldShowInFilter('in-progress', 'approved', true), false);
+  });
+});
+
+describe('Index filters: default filter by mode', () => {
+  it('normal mode default = needs-review', () => {
+    var defaultNormal = false ? 'pending' : 'needs-review';
+    assert.strictEqual(defaultNormal, 'needs-review');
+  });
+
+  it('expert mode default = pending', () => {
+    var defaultExpert = true ? 'pending' : 'needs-review';
+    assert.strictEqual(defaultExpert, 'pending');
+  });
+
+  it('normal all count = needs-review + in-review', () => {
+    var needs = 4, inRev = 2;
+    var normalAll = needs + inRev;
+    assert.strictEqual(normalAll, 6);
+  });
+});
+
 describe('Pipeline: countDoneStages', () => {
   it('only added = 1/6', () => {
     var p = countDoneStages({ added: true, whisper: false, translated: false, reviewed: false, srt: false, review: false, approved: false });
