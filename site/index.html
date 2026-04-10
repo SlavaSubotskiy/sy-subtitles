@@ -971,7 +971,6 @@ function renderIndex(el) {
     if (tk.hasEn && tk.hasUk) {
       reviewLink = '<a href="#/review/' + tk.id + '" class="review-link">&#x270E; ' + t('link.review') + '</a>';
     }
-    var pendingLabel = (!videoLinks && !tk.hasUk) ? '<div class="pending">' + t('badge.pending') + '</div>' : '';
     // Assemble card (all values are escaped or from trusted i18n)
     var dateHtml = tk.amrutaUrl
       ? '<a href="' + tk.amrutaUrl + '" target="_blank" title="' + t('link.amruta') + '" style="color:var(--fg5);text-decoration:none;">' + dateStr + ' &#x2197;</a>'
@@ -980,8 +979,7 @@ function renderIndex(el) {
     var statusBadge = renderStatusBadge(status, st);
     div.innerHTML = '<div class="talk-date"><span>' + dateHtml + expertHtml + '</span>' + statusBadge + '</div>'
       + '<div class="talk-title">' + esc(tk.title || tk.id) + '</div>'
-      + (videoLinks || reviewLink ? '<div class="talk-actions">' + videoLinks + reviewLink + '</div>' : '')
-      + pendingLabel;
+      + (videoLinks || reviewLink ? '<div class="talk-actions">' + videoLinks + reviewLink + '</div>' : '');
 
     // Expert mode: click card to expand inline DAG detail (one at a time)
     if (expertMode) {
