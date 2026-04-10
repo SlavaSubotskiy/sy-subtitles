@@ -347,7 +347,11 @@ jobs:
           path: whisper-downloads
 
       - name: Place artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          placed=0
+          # Strategy 1: subdirectories (merge-multiple: false creates dirs)
           for dir in whisper-downloads/whisper__*/; do
             [ -d "$dir" ] || continue
             name="$(basename "$dir")"
@@ -359,8 +363,32 @@ jobs:
               mkdir -p "$dest"
               cp "$dir/whisper.json" "$dest/whisper.json"
               echo "Placed: $dest/whisper.json"
+              placed=$((placed + 1))
             fi
           done
+
+          # Strategy 2: flat extraction fallback — download-artifact@v6 sometimes
+          # extracts a single artifact flat (no subdir). Recover names via gh API.
+          if [ "$placed" -eq 0 ] && [ -f "whisper-downloads/whisper.json" ]; then
+            echo "WARN: flat extraction detected, resolving via gh API"
+            artifact_name=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+              --jq '.artifacts[] | select(.name | startswith("whisper__")) | .name' | head -1)
+            echo "Artifact name: $artifact_name"
+            if [ -n "$artifact_name" ]; then
+              rest="${artifact_name#whisper__}"
+              video_slug="${rest##*__}"
+              talk_id="${rest%__*}"
+              dest="talks/${talk_id}/${video_slug}/source"
+              mkdir -p "$dest"
+              cp "whisper-downloads/whisper.json" "$dest/whisper.json"
+              echo "Placed (flat fallback): $dest/whisper.json"
+              placed=$((placed + 1))
+            else
+              echo "ERROR: could not resolve artifact name from gh API"
+            fi
+          fi
+
+          echo "Total placed: $placed"
 
       - name: Commit
         run: |
