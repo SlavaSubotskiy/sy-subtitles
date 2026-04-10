@@ -901,9 +901,8 @@ jobs:
             gh issue edit "$EXISTING" --remove-label "review:approved,review:in-progress" --add-label "review:pending" 2>/dev/null || true
           else
             META_TITLE=$(python3 -c "import yaml; print(yaml.safe_load(open('talks/$TALK_ID/meta.yaml'))['title'])" 2>/dev/null || echo "$TALK_ID")
-            gh issue create \
+            NEW_ISSUE=$(gh issue create \
               --title "Review: $TALK_ID" \
-              --label "review:pending" \
               --body "$(cat <<ISSUEEOF
           ## $META_TITLE
 
@@ -920,5 +919,8 @@ jobs:
           4. Report problems as comments on this issue
           5. When done, add the \`review:approved\` label
           ISSUEEOF
-          )"
+          )")
+            # Add label separately so the 'labeled' event fires and triggers sync-review-status
+            ISSUE_NUM=$(echo "$NEW_ISSUE" | grep -oP '(?<=/issues/)\d+')
+            gh issue edit "$ISSUE_NUM" --add-label "review:pending"
           fi
