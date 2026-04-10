@@ -918,6 +918,7 @@ function showIndex() {
 
 var expertMode = localStorage.getItem('sy_expert_mode') === '1';
 var activeFilter = expertMode ? 'pending' : 'needs-review';
+var expandedTalkId = null;
 
 function renderIndex(el) {
   el.innerHTML = '';
@@ -984,6 +985,7 @@ function renderIndex(el) {
       detailDiv.style.display = 'none';
       detailDiv.style.marginTop = '10px';
       div.appendChild(detailDiv);
+      div.dataset.talkId = tk.id;
       (function(tkRef, stagesRef, stRef, dd) {
         div.addEventListener('click', function(e) {
           if (e.target.tagName === 'A') return;
@@ -998,6 +1000,9 @@ function renderIndex(el) {
             div.classList.add('selected');
             dd.innerHTML = renderPipelineDAG(tkRef, stagesRef, stRef);
             dd.style.display = 'block';
+            expandedTalkId = tkRef.id;
+          } else {
+            expandedTalkId = null;
           }
         });
       })(tk, stages, st, detailDiv);
@@ -1007,6 +1012,11 @@ function renderIndex(el) {
   });
   // Show/hide expert-only elements based on current mode
   if (typeof applyExpertMode === 'function') applyExpertMode();
+  // Restore expanded card after re-render
+  if (expandedTalkId && expertMode) {
+    var card = el.querySelector('[data-talk-id="' + expandedTalkId + '"]');
+    if (card) card.click();
+  }
 }
 
 SPA.filterTalks = function(filter) {
