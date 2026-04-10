@@ -45,9 +45,9 @@ echo "Created PR: $PR_URL"
 
 # Try auto-merge first (requires branch protection with required checks).
 # Falls back to immediate merge if auto-merge is not available.
-if gh pr merge --auto --merge "$PR_URL" 2>/dev/null; then
-  echo "Auto-merge enabled"
+if gh pr merge --auto --delete-branch --merge "$PR_URL" 2>/dev/null; then
+  echo "Auto-merge enabled (branch will be deleted after merge)"
 else
   echo "Auto-merge not available, merging immediately"
-  gh pr merge --merge "$PR_URL"
+  gh pr merge --delete-branch --merge "$PR_URL"
 fi
