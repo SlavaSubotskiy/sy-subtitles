@@ -782,6 +782,10 @@ jobs:
             print(v['slug'])
           " | while read slug; do
             VIDEO="$TALK/$slug"
+            if [ ! -f "$VIDEO/final/uk.srt" ]; then
+              echo "SKIP $slug: no uk.srt"
+              continue
+            fi
             EXTRA_FLAGS=""
             if [ "$slug" != "$FIRST" ]; then
               EXTRA_FLAGS="--skip-text-check --skip-time-check"
