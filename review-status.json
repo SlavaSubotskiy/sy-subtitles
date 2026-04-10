@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-10T16:05:48.090845+00:00",
+  "updated_at": "2026-04-10T21:22:50.934016+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -91,6 +91,12 @@
       "reviewer": null,
       "issue_number": 21,
       "updated_at": "2026-04-10T08:58:31Z"
+    },
+    "1987-01-02_Talk-on-Innocence-Musical-Program-Morning": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 31,
+      "updated_at": "2026-04-10T21:11:39Z"
     }
   }
 }
