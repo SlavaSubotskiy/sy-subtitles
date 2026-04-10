@@ -48,7 +48,8 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; display: flex; flex-direction: column; margin: 0; }
+.view.active { flex: 1; }
 
 /* --- Shared --- */
 a { color: var(--link); text-decoration: none; }
@@ -917,7 +918,7 @@ function showIndex() {
 }
 
 var expertMode = localStorage.getItem('sy_expert_mode') === '1';
-var activeFilter = expertMode ? 'all' : 'needs-review';
+var activeFilter = window.__TEST_OVERRIDE_FILTER || (expertMode ? 'pending' : 'needs-review');
 var expandedTalkId = null;
 
 function renderIndex(el) {
@@ -1992,7 +1993,7 @@ updateFooter();
 SPA.toggleExpert = function() {
   expertMode = !expertMode;
   localStorage.setItem('sy_expert_mode', expertMode ? '1' : '0');
-  activeFilter = expertMode ? 'all' : 'needs-review';
+  activeFilter = expertMode ? 'pending' : 'needs-review';
   applyExpertMode();
   if (manifest) { renderStats(); renderIndex(document.getElementById('index-content')); }
 };

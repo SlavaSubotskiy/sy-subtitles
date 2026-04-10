@@ -182,7 +182,9 @@ def page(server, mock_player_js, browser):
     )
 
     # Clear cache; set expert mode to show all talks in tests
-    pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode', '1');")
+    pg.add_init_script(
+        "localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';window.__TEST_OVERRIDE_FILTER='all';"
+    )
     yield pg
     pg.close()
     ctx.close()
@@ -871,7 +873,9 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');")
+        pg.add_init_script(
+            "localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';"
+        )
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.in-review")
@@ -917,7 +921,9 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');")
+        pg.add_init_script(
+            "localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';"
+        )
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.approved")
@@ -951,7 +957,9 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');")
+        pg.add_init_script(
+            "localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';"
+        )
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         # Page loads fine with status badges (all in-progress when no review-status)
@@ -1249,7 +1257,7 @@ class TestBranchSelector:
         pg = make_page(ctx)
         pg.add_init_script(
             "localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_tree_cache__dev');"
-            "localStorage.setItem('sy_expert_mode','1');"
+            "localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';"
         )
         pg.goto(f"{server}{SPA_URL}")
         pg.wait_for_selector(".talk-item", timeout=10000)
