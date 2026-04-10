@@ -1064,7 +1064,7 @@ function renderPipelineDAG(tk, stages, st) {
     return '<span class="pipe-arrow' + (done ? ' done' : '') + '">&rarr;</span>';
   }
 
-  var wLabel = 'whisper' + (stages.nVideos > 1 ? ' ' + stages.whisperProgress : '');
+  var wLabel = 'ai-transcribed' + (stages.nVideos > 1 ? ' ' + stages.whisperProgress : '');
   var sLabel = 'srt' + (stages.nVideos > 1 ? ' ' + stages.srtProgress : '');
 
   var topBranch = node(wLabel, stages.whisper);
