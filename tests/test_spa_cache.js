@@ -2318,16 +2318,31 @@ describe('SW version independence', () => {
 // ============================================================
 // Deploy workflow stamps
 // ============================================================
-describe('AI labels in DAG', () => {
+describe('Pipeline DAG labels and i18n', () => {
   var fs = require('fs');
   var html = fs.readFileSync('site/index.html', 'utf8');
 
-  it('ai-translated label in DAG', () => {
-    assert.ok(html.includes('ai-translated'));
+  it('DAG uses t() for node labels', () => {
+    assert.ok(html.includes("t('pipe.added')"), 'pipe.added i18n key used');
+    assert.ok(html.includes("t('pipe.srt')"), 'pipe.srt i18n key used');
+    assert.ok(html.includes("t('pipe.review')"), 'pipe.review i18n key used');
+    assert.ok(html.includes("t('pipe.approved')"), 'pipe.approved i18n key used');
   });
 
-  it('ai-reviewed label in DAG', () => {
-    assert.ok(html.includes('ai-reviewed'));
+  it('i18n has pipe keys in uk', () => {
+    assert.ok(html.includes("'pipe.added'"));
+    assert.ok(html.includes("'pipe.ai_transcribed'"));
+    assert.ok(html.includes("'pipe.ai_translated'"));
+    assert.ok(html.includes("'pipe.ai_reviewed'"));
+    assert.ok(html.includes("'pipe.issue'"));
+    assert.ok(html.includes("'pipe.srt'"));
+    assert.ok(html.includes("'pipe.review'"));
+    assert.ok(html.includes("'pipe.approved'"));
+  });
+
+  it('DAG has issue node', () => {
+    assert.ok(html.includes("t('pipe.issue')"));
+    assert.ok(html.includes('hasIssue'));
   });
 });
 
@@ -2376,6 +2391,7 @@ function getPipelineStages(tk, st) {
     reviewed: tk.hasReviewReport,
     srt: nSrt >= nVideos && nVideos > 0,
     srtProgress: nVideos > 0 ? nSrt + '/' + nVideos : '0',
+    hasIssue: !!st,
     review: st && st.status !== 'pending',
     approved: st && st.status === 'approved',
     nVideos: nVideos, nWhisper: nWhisper, nSrt: nSrt
@@ -2393,13 +2409,26 @@ function countDoneStages(s) {
 }
 
 describe('Pipeline: getPipelineStages', () => {
-  it('empty talk — only added', () => {
+  it('empty talk — only added, no issue', () => {
     var tk = { videos: [], _whisperSlugs: [], hasUk: false, hasReviewReport: false };
     var s = getPipelineStages(tk, null);
     assert.strictEqual(s.added, true);
     assert.strictEqual(s.whisper, false);
     assert.strictEqual(s.translated, false);
     assert.strictEqual(s.srt, false);
+    assert.strictEqual(s.hasIssue, false);
+  });
+
+  it('hasIssue true when status exists', () => {
+    var tk = { videos: [], _whisperSlugs: [], hasUk: false, hasReviewReport: false };
+    assert.strictEqual(getPipelineStages(tk, { status: 'pending' }).hasIssue, true);
+    assert.strictEqual(getPipelineStages(tk, { status: 'in-progress' }).hasIssue, true);
+    assert.strictEqual(getPipelineStages(tk, { status: 'approved' }).hasIssue, true);
+  });
+
+  it('hasIssue false when no status', () => {
+    var tk = { videos: [], _whisperSlugs: [], hasUk: false, hasReviewReport: false };
+    assert.strictEqual(getPipelineStages(tk, null).hasIssue, false);
   });
 
   it('fully completed talk', () => {
