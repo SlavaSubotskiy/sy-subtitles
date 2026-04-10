@@ -2506,7 +2506,7 @@ describe('Expert mode: filter reset on toggle', () => {
   var html = fs.readFileSync('site/index.html', 'utf8');
 
   it('toggleExpert resets activeFilter', () => {
-    assert.ok(html.includes("activeFilter = expertMode ? 'pending' : 'needs-review'"),
+    assert.ok(html.includes("activeFilter = expertMode ? 'all' : 'needs-review'"),
       'toggleExpert should reset activeFilter based on mode');
   });
 
@@ -2773,8 +2773,8 @@ describe('Index filters: default filter by mode', () => {
   });
 
   it('expert mode default = pending', () => {
-    var defaultExpert = true ? 'pending' : 'needs-review';
-    assert.strictEqual(defaultExpert, 'pending');
+    var defaultExpert = true ? 'all' : 'needs-review';
+    assert.strictEqual(defaultExpert, 'all');
   });
 
   it('normal all count = needs-review + in-review', () => {

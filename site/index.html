@@ -917,7 +917,7 @@ function showIndex() {
 }
 
 var expertMode = localStorage.getItem('sy_expert_mode') === '1';
-var activeFilter = expertMode ? 'pending' : 'needs-review';
+var activeFilter = expertMode ? 'all' : 'needs-review';
 var expandedTalkId = null;
 
 function renderIndex(el) {
@@ -1992,7 +1992,7 @@ updateFooter();
 SPA.toggleExpert = function() {
   expertMode = !expertMode;
   localStorage.setItem('sy_expert_mode', expertMode ? '1' : '0');
-  activeFilter = expertMode ? 'pending' : 'needs-review';
+  activeFilter = expertMode ? 'all' : 'needs-review';
   applyExpertMode();
   if (manifest) { renderStats(); renderIndex(document.getElementById('index-content')); }
 };

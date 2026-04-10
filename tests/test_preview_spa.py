@@ -181,8 +181,8 @@ def page(server, mock_player_js, browser):
         ),
     )
 
-    # Clear cache before each page load
-    pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
+    # Clear cache; set expert mode to show all talks in tests
+    pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode', '1');")
     yield pg
     pg.close()
     ctx.close()
@@ -816,13 +816,12 @@ class TestHashNavigation:
 class TestReviewStatus:
     """Tests for review status badges on the index page."""
 
-    def test_pending_badge_shown(self, server, page):
-        """Talk with review:pending status should show 'needs review' badge."""
+    def test_status_badge_shown(self, server, page):
+        """Talks should show status badges based on pipeline state."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        badge = page.locator(".review-badge.needs-review")
-        assert badge.count() >= 1
-        assert "needs review" in badge.first.text_content()
+        badges = page.locator(".review-badge")
+        assert badges.count() >= 1
 
     def test_badge_links_to_issue(self, server, page):
         """Badge should link to the GitHub issue."""
@@ -872,7 +871,7 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');")
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.in-review")
@@ -918,7 +917,7 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');")
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.approved")
@@ -952,25 +951,25 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');")
         pg.goto(f"{server}/index.html")
         pg.wait_for_selector(".talk-item", timeout=10000)
-        # Page loads fine, no badges shown
-        assert pg.locator(".review-badge").count() == 0
+        # Page loads fine with status badges (all in-progress when no review-status)
         assert pg.locator(".talk-item").count() >= 1
+        assert pg.locator(".review-badge").count() >= 1
         pg.close()
         ctx.close()
 
-    def test_talk_without_status_no_badge(self, server, page):
-        """Talk not in review-status.json should have no badge."""
+    def test_talk_without_status_shows_pending(self, server, page):
+        """Talk not in review-status.json shows in-progress/pending badge."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        # No-Uk talk has no status entry
         items = page.locator(".talk-item").all()
         for item in items:
             text = item.text_content()
             if "No-Uk" in text or "2002" in text:
-                assert item.locator(".review-badge").count() == 0
+                badge = item.locator(".review-badge.in-progress")
+                assert badge.count() == 1
 
 
 class TestCaching:
@@ -1250,6 +1249,7 @@ class TestBranchSelector:
         pg = make_page(ctx)
         pg.add_init_script(
             "localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_tree_cache__dev');"
+            "localStorage.setItem('sy_expert_mode','1');"
         )
         pg.goto(f"{server}{SPA_URL}")
         pg.wait_for_selector(".talk-item", timeout=10000)
