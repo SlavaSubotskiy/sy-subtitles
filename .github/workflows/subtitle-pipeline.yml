@@ -473,7 +473,7 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           pattern: translation__*
-          merge-multiple: false
+          merge-multiple: true
 
       - uses: actions/setup-python@v6
         with:
