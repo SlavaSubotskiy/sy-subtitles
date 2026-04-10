@@ -10,6 +10,7 @@ Usage:
 
 import argparse
 import json
+import time
 
 
 def is_hallucination(text):
@@ -24,10 +25,13 @@ def run_whisper(video_path, output_path, model="medium", language="en"):
     """Run faster-whisper with VAD and save segments to JSON."""
     from faster_whisper import WhisperModel
 
-    print(f"Loading faster-whisper model: {model}")
+    print(f"Loading faster-whisper model: {model}...", flush=True)
+    t0 = time.time()
     model_obj = WhisperModel(model, device="cpu", compute_type="int8")
+    print(f"Model loaded in {time.time() - t0:.1f}s", flush=True)
 
-    print(f"Transcribing: {video_path}")
+    print(f"Transcribing: {video_path}", flush=True)
+    t0 = time.time()
     raw_segments, info = model_obj.transcribe(
         video_path,
         language=language,
@@ -48,9 +52,12 @@ def run_whisper(video_path, output_path, model="medium", language="en"):
     )
 
     segments = []
+    skipped = 0
+    last_progress = 0
     for seg in raw_segments:
         text = seg.text.strip()
         if is_hallucination(text):
+            skipped += 1
             continue
         seg_data = {
             "id": len(segments),
@@ -63,6 +70,12 @@ def run_whisper(video_path, output_path, model="medium", language="en"):
                 {"start": w.start, "end": w.end, "word": w.word.strip()} for w in seg.words if w.word.strip()
             ]
         segments.append(seg_data)
+        # Progress every 60s of audio
+        mins = int(seg.end / 60)
+        if mins > last_progress:
+            last_progress = mins
+            elapsed = time.time() - t0
+            print(f"  {mins}min processed ({len(segments)} segments, {elapsed:.0f}s elapsed)", flush=True)
 
     output = {
         "language": info.language,
@@ -72,8 +85,10 @@ def run_whisper(video_path, output_path, model="medium", language="en"):
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
 
+    elapsed = time.time() - t0
     total_words = sum(len(s.get("words", [])) for s in segments)
-    print(f"Saved {len(segments)} segments ({total_words} words) to {output_path}")
+    print(f"Done in {elapsed:.0f}s: {len(segments)} segments, {total_words} words, {skipped} hallucinations filtered")
+    print(f"Saved to {output_path}", flush=True)
     return output
 
 
