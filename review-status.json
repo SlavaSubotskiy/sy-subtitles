@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-09T08:41:58.559896+00:00",
+  "updated_at": "2026-04-10T06:10:30.509600+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -79,6 +79,18 @@
       "reviewer": "SlavaSubotskiy",
       "issue_number": 1,
       "updated_at": "2026-04-08T08:30:58Z"
+    },
+    "Kundalini Aur Yeshu Krist Mumbai NITL HD": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 22,
+      "updated_at": "2026-04-10T06:10:20Z"
+    },
+    "1988-05-08_Sahasrara-Puja-How-it-was-decided": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 21,
+      "updated_at": "2026-04-09T21:00:31Z"
     }
   }
 }
