@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-10T06:10:30.509600+00:00",
+  "updated_at": "2026-04-10T16:05:48.090845+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -11,8 +11,8 @@
     "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2": {
       "status": "pending",
       "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
+      "issue_number": 27,
+      "updated_at": "2026-04-10T15:53:12Z"
     },
     "1980-03-23_Birthday-Puja": {
       "status": "pending",
@@ -71,8 +71,8 @@
     "1992-02-25_Talk-To-Yogis-In-Christchurch": {
       "status": "pending",
       "reviewer": null,
-      "issue_number": null,
-      "updated_at": null
+      "issue_number": 26,
+      "updated_at": "2026-04-10T09:08:43Z"
     },
     "2001-07-29_Shri-Krishna-Puja-New-York": {
       "status": "approved",
@@ -90,7 +90,7 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 21,
-      "updated_at": "2026-04-09T21:00:31Z"
+      "updated_at": "2026-04-10T08:58:31Z"
     }
   }
 }
