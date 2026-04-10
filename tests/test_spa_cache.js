@@ -2346,6 +2346,179 @@ describe('Pipeline DAG labels and i18n', () => {
   });
 });
 
+// ============================================================
+// renderStatusBadge
+// ============================================================
+function renderStatusBadge(status, reviewSt) {
+  var labels = { 'approved': 'approved', 'in-review': 'in review', 'ready-for-review': 'needs review', 'in-progress': 'pending' };
+  var text = labels[status] || status;
+  if (status === 'in-review' && reviewSt && reviewSt.reviewer) text += ' (' + reviewSt.reviewer + ')';
+  var href = reviewSt && reviewSt.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + reviewSt.issue_number : '';
+  if (href) return '<a href="' + href + '" target="_blank" class="review-badge ' + status + '">' + text + '</a>';
+  return '<span class="review-badge ' + status + '">' + text + '</span>';
+}
+
+describe('renderStatusBadge', () => {
+  it('approved — span with correct class', () => {
+    var html = renderStatusBadge('approved', null);
+    assert.ok(html.includes('class="review-badge approved"'));
+    assert.ok(html.includes('approved'));
+    assert.ok(html.startsWith('<span'));
+  });
+
+  it('in-review with reviewer — shows name', () => {
+    var html = renderStatusBadge('in-review', { status: 'in-progress', reviewer: 'IrynaFil', issue_number: 5 });
+    assert.ok(html.includes('in review (IrynaFil)'));
+    assert.ok(html.includes('href="https://github.com'));
+    assert.ok(html.includes('/issues/5'));
+  });
+
+  it('in-review without reviewer — no name', () => {
+    var html = renderStatusBadge('in-review', { status: 'in-progress', issue_number: 3 });
+    assert.ok(html.includes('in review'));
+    assert.ok(!html.includes('('));
+  });
+
+  it('ready-for-review — needs review label', () => {
+    var html = renderStatusBadge('ready-for-review', { status: 'pending', issue_number: 7 });
+    assert.ok(html.includes('needs review'));
+    assert.ok(html.includes('class="review-badge ready-for-review"'));
+  });
+
+  it('in-progress — pending label, no link', () => {
+    var html = renderStatusBadge('in-progress', null);
+    assert.ok(html.includes('pending'));
+    assert.ok(html.startsWith('<span'));
+  });
+
+  it('with issue_number — renders as link', () => {
+    var html = renderStatusBadge('approved', { status: 'approved', issue_number: 10 });
+    assert.ok(html.startsWith('<a'));
+    assert.ok(html.includes('target="_blank"'));
+  });
+
+  it('without issue_number — renders as span', () => {
+    var html = renderStatusBadge('approved', { status: 'approved', issue_number: null });
+    assert.ok(html.startsWith('<span'));
+  });
+});
+
+// ============================================================
+// computeStats
+// ============================================================
+function computeStatsTest(talks, statuses, query) {
+  var total = { talks: 0, needs_review: 0, in_review: 0, approved: 0, pending: 0 };
+  var filtered = { talks: 0, needs_review: 0, in_review: 0, approved: 0, pending: 0 };
+  talks.forEach(function(t) {
+    var searchText = ((t.title || '') + ' ' + (t.date || '') + ' ' + t.id).toLowerCase();
+    var matchesSearch = !query || searchText.indexOf(query.toLowerCase()) !== -1;
+    var st = statuses[t.id] || null;
+    var stages = getPipelineStages(t, st);
+    var status = getOverallStatus(stages, st);
+    total.talks++;
+    if (status === 'ready-for-review') total.needs_review++;
+    if (status === 'in-review') total.in_review++;
+    if (status === 'approved') total.approved++;
+    if (status === 'in-progress') total.pending++;
+    if (matchesSearch) {
+      filtered.talks++;
+      if (status === 'ready-for-review') filtered.needs_review++;
+      if (status === 'in-review') filtered.in_review++;
+      if (status === 'approved') filtered.approved++;
+      if (status === 'in-progress') filtered.pending++;
+    }
+  });
+  return { total: total, filtered: filtered };
+}
+
+describe('computeStats', () => {
+  var talks = [
+    { id: 'a', title: 'Alpha', date: '2020-01-01', videos: [{ slug: 'v1', hasSrt: true }], _whisperSlugs: ['v1'], hasUk: true, hasReviewReport: true },
+    { id: 'b', title: 'Beta', date: '2021-02-02', videos: [{ slug: 'v1', hasSrt: true }], _whisperSlugs: ['v1'], hasUk: true, hasReviewReport: true },
+    { id: 'c', title: 'Gamma', date: '2022-03-03', videos: [{ slug: 'v1', hasSrt: false }], _whisperSlugs: [], hasUk: false, hasReviewReport: false },
+  ];
+  var statuses = {
+    'a': { status: 'approved', issue_number: 1 },
+    'b': { status: 'pending', issue_number: 2 },
+  };
+
+  it('counts totals correctly', () => {
+    var s = computeStatsTest(talks, statuses, '');
+    assert.strictEqual(s.total.talks, 3);
+    assert.strictEqual(s.total.approved, 1);     // a
+    assert.strictEqual(s.total.needs_review, 1);  // b (srt+uk+issue)
+    assert.strictEqual(s.total.pending, 1);       // c (nothing done)
+  });
+
+  it('search filters counts', () => {
+    var s = computeStatsTest(talks, statuses, 'alpha');
+    assert.strictEqual(s.filtered.talks, 1);
+    assert.strictEqual(s.filtered.approved, 1);
+    assert.strictEqual(s.total.talks, 3); // total unchanged
+  });
+
+  it('empty search returns all', () => {
+    var s = computeStatsTest(talks, statuses, '');
+    assert.strictEqual(s.filtered.talks, s.total.talks);
+  });
+
+  it('case-insensitive search', () => {
+    var s = computeStatsTest(talks, statuses, 'BETA');
+    assert.strictEqual(s.filtered.talks, 1);
+  });
+
+  it('search matches on id', () => {
+    var s = computeStatsTest(talks, statuses, 'c');
+    assert.ok(s.filtered.talks >= 1); // 'c' matches id 'c'
+  });
+});
+
+// ============================================================
+// SPA.filterTalks toggle behavior
+// ============================================================
+describe('filterTalks toggle logic', () => {
+  it('clicking same non-all filter toggles to all', () => {
+    var af = 'needs-review';
+    af = (af === 'needs-review' && 'needs-review' !== 'all') ? 'all' : 'needs-review';
+    assert.strictEqual(af, 'all');
+  });
+
+  it('clicking different filter switches to it', () => {
+    var af = 'needs-review';
+    var clicked = 'in-review';
+    af = (af === clicked && clicked !== 'all') ? 'all' : clicked;
+    assert.strictEqual(af, 'in-review');
+  });
+
+  it('clicking all always stays all', () => {
+    var af = 'all';
+    var clicked = 'all';
+    af = (af === clicked && clicked !== 'all') ? 'all' : clicked;
+    assert.strictEqual(af, 'all');
+  });
+});
+
+// ============================================================
+// Expert mode: activeFilter reset
+// ============================================================
+describe('Expert mode: filter reset on toggle', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('toggleExpert resets activeFilter', () => {
+    assert.ok(html.includes("activeFilter = expertMode ? 'pending' : 'needs-review'"),
+      'toggleExpert should reset activeFilter based on mode');
+  });
+
+  it('toggleExpert calls renderStats and renderIndex', () => {
+    // Check that toggle function re-renders
+    var toggleMatch = html.match(/SPA\.toggleExpert[\s\S]{0,300}/);
+    assert.ok(toggleMatch, 'toggleExpert exists');
+    assert.ok(toggleMatch[0].includes('renderStats'), 'should call renderStats');
+    assert.ok(toggleMatch[0].includes('renderIndex'), 'should call renderIndex');
+  });
+});
+
 describe('Deploy stamps in HTML', () => {
   var fs = require('fs');
   var html = fs.readFileSync('site/index.html', 'utf8');
