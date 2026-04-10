@@ -10,6 +10,7 @@ Usage:
 
 import argparse
 import json
+import subprocess
 import time
 
 
@@ -29,6 +30,19 @@ def run_whisper(video_path, output_path, model="medium", language="en"):
     t0 = time.time()
     model_obj = WhisperModel(model, device="cpu", compute_type="int8")
     print(f"Model loaded in {time.time() - t0:.1f}s", flush=True)
+
+    # Get audio duration for progress estimation
+    audio_duration = 0
+    try:
+        probe = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-show_entries", "format=duration", "-of", "csv=p=0", video_path],
+            capture_output=True,
+            text=True,
+        )
+        audio_duration = float(probe.stdout.strip())
+        print(f"Audio duration: {audio_duration / 60:.1f} min", flush=True)
+    except Exception:
+        pass
 
     print(f"Transcribing: {video_path}", flush=True)
     t0 = time.time()
@@ -75,7 +89,16 @@ def run_whisper(video_path, output_path, model="medium", language="en"):
         if mins > last_progress:
             last_progress = mins
             elapsed = time.time() - t0
-            print(f"  {mins}min processed ({len(segments)} segments, {elapsed:.0f}s elapsed)", flush=True)
+            if audio_duration > 0:
+                pct = min(100, seg.end / audio_duration * 100)
+                speed = seg.end / elapsed if elapsed > 0 else 0
+                eta = (audio_duration - seg.end) / speed if speed > 0 else 0
+                print(
+                    f"  {pct:5.1f}% | {mins}min/{audio_duration / 60:.0f}min | {len(segments)} seg | ETA {eta:.0f}s",
+                    flush=True,
+                )
+            else:
+                print(f"  {mins}min | {len(segments)} seg | {elapsed:.0f}s elapsed", flush=True)
 
     output = {
         "language": info.language,
