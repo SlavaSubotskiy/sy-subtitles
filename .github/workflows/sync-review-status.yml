@@ -2,7 +2,7 @@ name: Sync Review Status
 
 on:
   issues:
-    types: [opened, labeled, unlabeled, assigned, unassigned, closed, reopened]
+    types: [labeled, unlabeled, assigned, unassigned, closed, reopened]
   workflow_dispatch:
 
 permissions:
