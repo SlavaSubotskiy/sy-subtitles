@@ -287,13 +287,13 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install -r requirements.txt
-          pip install openai-whisper yt-dlp
+          pip install faster-whisper>=1.2.1 yt-dlp
 
       - name: Cache Whisper model
         uses: actions/cache@v5
         with:
-          path: ~/.cache/whisper
-          key: whisper-medium
+          path: ~/.cache/huggingface/hub
+          key: faster-whisper-medium
 
       - name: Download video
         run: |
