@@ -103,6 +103,25 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .expert-btn { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; background: var(--bg3); color: var(--fg5); border: 1px solid var(--border2); text-decoration: none; margin-left: 6px; }
 .expert-btn:hover { background: var(--bg4); color: var(--link); }
 
+/* --- Pipeline --- */
+.pipe-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; }
+.pipe-card .pipe-title { font-weight: 600; margin-bottom: 8px; }
+.pipe-card .pipe-date { font-size: 12px; color: var(--fg5); }
+.pipe-dag { display: flex; align-items: center; gap: 0; margin-top: 10px; flex-wrap: wrap; }
+.pipe-row { display: flex; align-items: center; }
+.pipe-node { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; font-size: 11px; border: 1.5px solid var(--border2); color: var(--fg5); background: var(--bg3); text-decoration: none; white-space: nowrap; }
+.pipe-node.done { border-color: var(--accent-green); color: var(--accent-green); background: var(--primary-bg); }
+.pipe-node.active { border-color: var(--link); color: var(--link); background: var(--stat-active-bg); }
+.pipe-node a { color: inherit; text-decoration: none; }
+.pipe-arrow { color: var(--border2); font-size: 10px; margin: 0 4px; }
+.pipe-arrow.done { color: var(--accent-green); }
+.pipe-fork { display: flex; flex-direction: column; gap: 4px; margin: 0 4px; }
+.pipe-compact { display: flex; justify-content: space-between; align-items: center; }
+.pipe-dots { display: inline-flex; gap: 3px; align-items: center; }
+.pipe-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bg4); border: 1.5px solid var(--border2); }
+.pipe-dots .dot.done { background: var(--accent-green); border-color: var(--accent-green); }
+.pipe-dots .dot.active { background: var(--link); border-color: var(--link); }
+
 /* --- Preview --- */
 .player-container { position: relative; width: 100%; max-width: 960px; margin: 20px auto; }
 .video-wrap { position: relative; padding-bottom: 56.25%; height: 0; }
@@ -196,7 +215,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 
 <!-- === INDEX VIEW === -->
 <div id="view-index" class="view">
-  <div class="header"><h1>SY Subtitles</h1><a href="#/add" data-i18n="add.link" style="color:var(--accent-green);font-size:13px;text-decoration:none;padding:4px 10px;border:1px solid var(--primary-border);border-radius:4px;">+ Add Talk</a></div>
+  <div class="header"><h1>SY Subtitles</h1><span style="display:flex;gap:8px;align-items:center;"><a href="#/pipeline" class="expert-only" style="display:none;color:var(--fg5);font-size:13px;text-decoration:none;padding:4px 10px;border:1px solid var(--border2);border-radius:4px;" data-i18n="pipeline.title">Pipeline Status</a><a href="#/add" data-i18n="add.link" style="color:var(--accent-green);font-size:13px;text-decoration:none;padding:4px 10px;border:1px solid var(--primary-border);border-radius:4px;">+ Add Talk</a></span></div>
   <div id="index-toolbar" style="max-width:800px;margin:8px auto;padding:0 20px;display:none">
     <input id="search-input" type="text" data-i18n-placeholder="search.placeholder" style="width:100%;padding:8px 12px;background:var(--bg3);color:var(--fg2);border:1px solid var(--border2);border-radius:6px;font-size:14px;margin-bottom:6px;">
     <div id="stats-bar" class="stats-bar"></div>
@@ -250,6 +269,16 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
   <div class="counter" id="review-counter" style="display:none" aria-live="polite">
     <span id="mark-count">0</span> <span data-i18n="review.marks">marks</span> &middot; <span id="edit-count">0</span> <span data-i18n="review.edits">edits</span>
     <div style="font-size:11px;color:var(--fg6);margin-top:2px" data-i18n="review.hint">Ctrl+M = toggle mark</div>
+  </div>
+</div>
+
+<!-- === PIPELINE VIEW === -->
+<div id="view-pipeline" class="view">
+  <div class="header">
+    <h1><a href="#/" data-i18n="nav.back">&larr; Home</a> &middot; <span data-i18n="pipeline.title">Pipeline Status</span></h1>
+  </div>
+  <div style="max-width:900px;margin:20px auto;padding:0 20px;">
+    <div id="pipeline-content"></div>
   </div>
 </div>
 
@@ -423,6 +452,7 @@ var I18N = {
     'freshness.error': '\u2717 \u041F\u043E\u043C\u0438\u043B\u043A\u0430:',
     'link.review': '\u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043F\u0435\u0440\u0435\u043A\u043B\u0430\u0434',
     'link.amruta': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u043D\u0430 amruta.org',
+    'pipeline.title': '\u0421\u0442\u0430\u0442\u0443\u0441 \u043F\u0430\u0439\u043F\u043B\u0430\u0439\u043D\u0443',
     'add.title': '\u0414\u043E\u0434\u0430\u0442\u0438 \u043F\u0440\u043E\u043C\u043E\u0432\u0443',
     'add.bookmarklet_hint': '\u041f\u0435\u0440\u0435\u0442\u044f\u0433\u043d\u0456\u0442\u044c \u0446\u044e \u043a\u043d\u043e\u043f\u043a\u0443 \u043d\u0430 \u043f\u0430\u043d\u0435\u043b\u044c \u0437\u0430\u043a\u043b\u0430\u0434\u043e\u043a, \u043f\u043e\u0442\u0456\u043c \u043d\u0430\u0442\u0438\u0441\u043d\u0456\u0442\u044c \u043d\u0430 \u043d\u0435\u0457 \u043f\u0435\u0440\u0435\u0431\u0443\u0432\u0430\u044e\u0447\u0438 \u043d\u0430 \u0441\u0442\u043e\u0440\u0456\u043d\u0446\u0456 \u043f\u0440\u043e\u043c\u043e\u0432\u0438 \u043d\u0430 amruta.org:',
     'add.field_title': '\u041D\u0430\u0437\u0432\u0430',
@@ -494,6 +524,7 @@ var I18N = {
     'freshness.error': '\u2717 Error:',
     'link.review': 'review translation',
     'link.amruta': 'Open on amruta.org',
+    'pipeline.title': 'Pipeline Status',
     'add.title': 'Add Talk',
     'add.bookmarklet_hint': 'Drag this button to your bookmarks bar, then click it while on a talk page at amruta.org:',
     'add.field_title': 'Title',
@@ -641,6 +672,9 @@ function route() {
   } else if (hash.startsWith('/add')) {
     document.getElementById('view-add').classList.add('active');
     showAddTalk(hash);
+  } else if (hash === '/pipeline') {
+    document.getElementById('view-pipeline').classList.add('active');
+    ensureManifest().then(function() { showPipeline(); });
   } else {
     showIndex();
   }
@@ -727,7 +761,7 @@ function buildManifest(tree) {
     var m = entry.path.match(/^talks\/([^/]+)\/meta\.yaml$/);
     if (m) {
       var tid = m[1];
-      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, _srtSlugs: [], _srtSha: {}, _srtLangs: {}, _transcriptSha: {}, transcripts: [] };
+      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, hasReviewReport: false, _whisperSlugs: [], _srtSlugs: [], _srtSha: {}, _srtLangs: {}, _transcriptSha: {}, transcripts: [] };
     }
   });
   // Pass 2: fill in transcripts and SRT
@@ -742,6 +776,12 @@ function buildManifest(tree) {
       if (talks[m[1]].transcripts.indexOf(m[2]) === -1) talks[m[1]].transcripts.push(m[2]);
       talks[m[1]]._transcriptSha[m[2]] = entry.sha || '';
     }
+    m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/source\/whisper\.json$/);
+    if (m && talks[m[1]]) {
+      if (talks[m[1]]._whisperSlugs.indexOf(m[2]) === -1) talks[m[1]]._whisperSlugs.push(m[2]);
+    }
+    m = entry.path.match(/^talks\/([^/]+)\/review_report\.md$/);
+    if (m && talks[m[1]]) talks[m[1]].hasReviewReport = true;
     m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/final\/([a-z]{2})\.srt$/);
     if (m && talks[m[1]]) {
       var srtSlug = m[2], srtLang = m[3];
@@ -941,6 +981,152 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// ============================================================
+// PIPELINE VIEW
+// ============================================================
+function getPipelineStages(tk, st) {
+  var nVideos = (tk.videos || []).length;
+  var nWhisper = (tk._whisperSlugs || []).length;
+  var nSrt = 0;
+  (tk.videos || []).forEach(function(v) { if (v.hasSrt) nSrt++; });
+  return {
+    added: true,
+    whisper: nWhisper >= nVideos && nVideos > 0,
+    whisperProgress: nVideos > 0 ? nWhisper + '/' + nVideos : '0',
+    translated: tk.hasUk,
+    reviewed: tk.hasReviewReport,
+    srt: nSrt >= nVideos && nVideos > 0,
+    srtProgress: nVideos > 0 ? nSrt + '/' + nVideos : '0',
+    review: st && st.status !== 'pending',
+    approved: st && st.status === 'approved',
+    nVideos: nVideos, nWhisper: nWhisper, nSrt: nSrt
+  };
+}
+
+function countDoneStages(s) {
+  var total = 6; // added, whisper, translated, reviewed, srt, review/approved
+  var done = 1; // added always done
+  if (s.whisper) done++;
+  if (s.translated) done++;
+  if (s.reviewed) done++;
+  if (s.srt) done++;
+  if (s.approved) done++;
+  else if (s.review) { done += 0.5; } // in-progress counts as half
+  return { done: Math.floor(done), total: total };
+}
+
+function renderPipelineDots(stages) {
+  // Compact: 6 dots showing progress
+  var dots = [
+    { done: stages.added, label: 'added' },
+    { done: stages.whisper, label: 'whisper' },
+    { done: stages.translated, label: 'translated' },
+    { done: stages.reviewed, label: 'reviewed' },
+    { done: stages.srt, label: 'srt' },
+    { done: stages.approved, active: stages.review && !stages.approved, label: 'review' }
+  ];
+  var html = '<span class="pipe-dots">';
+  dots.forEach(function(d) {
+    var cls = d.done ? 'dot done' : (d.active ? 'dot active' : 'dot');
+    html += '<span class="' + cls + '" title="' + d.label + '"></span>';
+  });
+  html += '</span>';
+  return html;
+}
+
+function renderPipelineDAG(tk, stages, st) {
+  function node(label, done, href) {
+    var cls = done ? 'pipe-node done' : 'pipe-node';
+    if (href) return '<a href="' + href + '" class="' + cls + '">' + esc(label) + '</a>';
+    return '<span class="' + cls + '">' + esc(label) + '</span>';
+  }
+  function arrow(done) {
+    return '<span class="pipe-arrow' + (done ? ' done' : '') + '">&rarr;</span>';
+  }
+
+  var wLabel = 'whisper' + (stages.nVideos > 1 ? ' ' + stages.whisperProgress : '');
+  var sLabel = 'srt' + (stages.nVideos > 1 ? ' ' + stages.srtProgress : '');
+
+  var topBranch = node(wLabel, stages.whisper);
+  var bottomBranch = node('translated', stages.translated)
+    + arrow(stages.translated)
+    + node('reviewed', stages.reviewed);
+
+  var forkHtml = '<div class="pipe-fork">'
+    + '<div class="pipe-row">' + topBranch + '</div>'
+    + '<div class="pipe-row">' + bottomBranch + '</div>'
+    + '</div>';
+
+  var reviewHref = st && st.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + st.issue_number : '';
+  var previewHref = stages.nSrt > 0 ? '#/preview/' + tk.id + '/' + (tk.videos[0] || {}).slug : '';
+  var reviewLinkHref = (tk.hasEn && tk.hasUk) ? '#/review/' + tk.id : '';
+
+  // Video links
+  var videoLinks = '';
+  (tk.videos || []).forEach(function(v) {
+    if (v.hasSrt && v.vimeo_url) {
+      videoLinks += '<a href="#/preview/' + tk.id + '/' + v.slug + '" class="pipe-node done" style="margin:2px;">&#x25B6; ' + esc(v.title) + '</a>';
+    }
+  });
+
+  return '<div class="pipe-dag">'
+    + node('added', true) + arrow(true)
+    + forkHtml + arrow(stages.whisper && stages.reviewed)
+    + node(sLabel, stages.srt, previewHref)
+    + arrow(stages.srt)
+    + node('review', stages.review || stages.approved, reviewHref)
+    + arrow(stages.approved)
+    + node('approved', stages.approved)
+    + '</div>'
+    + (videoLinks || reviewLinkHref ? '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">'
+      + videoLinks
+      + (reviewLinkHref ? '<a href="' + reviewLinkHref + '" class="pipe-node' + (stages.translated ? ' done' : '') + '">&#x270E; ' + t('link.review') + '</a>' : '')
+      + '</div>' : '');
+}
+
+function showPipeline() {
+  document.title = t('pipeline.title') + ' — SY Subtitles';
+  translatePage();
+  var el = document.getElementById('pipeline-content');
+  el.innerHTML = '';
+  var statuses = (reviewStatus && reviewStatus.talks) || {};
+
+  manifest.talks.forEach(function(tk) {
+    var st = statuses[tk.id] || null;
+    var stages = getPipelineStages(tk, st);
+    var progress = countDoneStages(stages);
+    var dateStr = tk.date || tk.id.substring(0, 10);
+
+    var div = document.createElement('div');
+    div.className = 'pipe-card';
+    div.style.cursor = 'pointer';
+
+    // Compact view
+    var amrutaLink = tk.amrutaUrl
+      ? '<a href="' + tk.amrutaUrl + '" target="_blank" style="color:var(--fg5);text-decoration:none;" onclick="event.stopPropagation()">' + dateStr + ' &#x2197;</a>'
+      : dateStr;
+
+    div.innerHTML = '<div class="pipe-compact">'
+      + '<span class="pipe-title">' + esc(tk.title || tk.id) + '</span>'
+      + '<span style="display:flex;align-items:center;gap:8px;">'
+      + renderPipelineDots(stages)
+      + '<span class="pipe-date">' + amrutaLink + '</span>'
+      + '</span>'
+      + '</div>'
+      + '<div class="pipe-detail" style="display:none;margin-top:10px;">'
+      + renderPipelineDAG(tk, stages, st)
+      + '</div>';
+
+    div.onclick = function(e) {
+      if (e.target.tagName === 'A') return;
+      var detail = div.querySelector('.pipe-detail');
+      detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
+    };
+
+    el.appendChild(div);
+  });
+}
 
 // ============================================================
 // PREVIEW VIEW

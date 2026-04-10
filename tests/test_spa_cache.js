@@ -2347,6 +2347,161 @@ describe('Deploy stamps in HTML', () => {
   });
 });
 
+// ============================================================
+// Pipeline view: stage computation
+// ============================================================
+function getPipelineStages(tk, st) {
+  var nVideos = (tk.videos || []).length;
+  var nWhisper = (tk._whisperSlugs || []).length;
+  var nSrt = 0;
+  (tk.videos || []).forEach(function(v) { if (v.hasSrt) nSrt++; });
+  return {
+    added: true,
+    whisper: nWhisper >= nVideos && nVideos > 0,
+    whisperProgress: nVideos > 0 ? nWhisper + '/' + nVideos : '0',
+    translated: tk.hasUk,
+    reviewed: tk.hasReviewReport,
+    srt: nSrt >= nVideos && nVideos > 0,
+    srtProgress: nVideos > 0 ? nSrt + '/' + nVideos : '0',
+    review: st && st.status !== 'pending',
+    approved: st && st.status === 'approved',
+    nVideos: nVideos, nWhisper: nWhisper, nSrt: nSrt
+  };
+}
+
+function countDoneStages(s) {
+  var done = 1;
+  if (s.whisper) done++;
+  if (s.translated) done++;
+  if (s.reviewed) done++;
+  if (s.srt) done++;
+  if (s.approved) done++;
+  return { done: done, total: 6 };
+}
+
+describe('Pipeline: getPipelineStages', () => {
+  it('empty talk — only added', () => {
+    var tk = { videos: [], _whisperSlugs: [], hasUk: false, hasReviewReport: false };
+    var s = getPipelineStages(tk, null);
+    assert.strictEqual(s.added, true);
+    assert.strictEqual(s.whisper, false);
+    assert.strictEqual(s.translated, false);
+    assert.strictEqual(s.srt, false);
+  });
+
+  it('fully completed talk', () => {
+    var tk = {
+      videos: [{ slug: 'v1', hasSrt: true }],
+      _whisperSlugs: ['v1'],
+      hasUk: true,
+      hasReviewReport: true
+    };
+    var s = getPipelineStages(tk, { status: 'approved', issue_number: 1 });
+    assert.strictEqual(s.whisper, true);
+    assert.strictEqual(s.translated, true);
+    assert.strictEqual(s.reviewed, true);
+    assert.strictEqual(s.srt, true);
+    assert.strictEqual(s.approved, true);
+  });
+
+  it('multi-video partial whisper', () => {
+    var tk = {
+      videos: [{ slug: 'v1', hasSrt: false }, { slug: 'v2', hasSrt: false }],
+      _whisperSlugs: ['v1'],
+      hasUk: false,
+      hasReviewReport: false
+    };
+    var s = getPipelineStages(tk, null);
+    assert.strictEqual(s.whisper, false); // 1/2
+    assert.strictEqual(s.whisperProgress, '1/2');
+  });
+
+  it('multi-video all whisper done', () => {
+    var tk = {
+      videos: [{ slug: 'v1', hasSrt: true }, { slug: 'v2', hasSrt: true }],
+      _whisperSlugs: ['v1', 'v2'],
+      hasUk: true,
+      hasReviewReport: true
+    };
+    var s = getPipelineStages(tk, { status: 'in-progress' });
+    assert.strictEqual(s.whisper, true);
+    assert.strictEqual(s.srt, true);
+    assert.strictEqual(s.review, true);
+    assert.strictEqual(s.approved, false);
+  });
+
+  it('review pending — review false', () => {
+    var tk = { videos: [{ slug: 'v1', hasSrt: true }], _whisperSlugs: ['v1'], hasUk: true, hasReviewReport: true };
+    var s = getPipelineStages(tk, { status: 'pending' });
+    assert.strictEqual(s.review, false);
+  });
+
+  it('no status — review falsy', () => {
+    var tk = { videos: [{ slug: 'v1', hasSrt: true }], _whisperSlugs: ['v1'], hasUk: true, hasReviewReport: true };
+    var s = getPipelineStages(tk, null);
+    assert.ok(!s.review);
+    assert.ok(!s.approved);
+  });
+});
+
+describe('Pipeline: countDoneStages', () => {
+  it('only added = 1/6', () => {
+    var p = countDoneStages({ added: true, whisper: false, translated: false, reviewed: false, srt: false, review: false, approved: false });
+    assert.strictEqual(p.done, 1);
+    assert.strictEqual(p.total, 6);
+  });
+
+  it('fully done = 6/6', () => {
+    var p = countDoneStages({ added: true, whisper: true, translated: true, reviewed: true, srt: true, review: true, approved: true });
+    assert.strictEqual(p.done, 6);
+  });
+
+  it('partial = 4/6', () => {
+    var p = countDoneStages({ added: true, whisper: true, translated: true, reviewed: true, srt: false, review: false, approved: false });
+    assert.strictEqual(p.done, 4);
+  });
+});
+
+describe('Pipeline: manifest tracking', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('buildManifest tracks whisper.json', () => {
+    assert.ok(html.includes('_whisperSlugs'));
+    assert.ok(html.includes("whisper\\.json"));
+  });
+
+  it('buildManifest tracks review_report.md', () => {
+    assert.ok(html.includes('hasReviewReport'));
+    assert.ok(html.includes("review_report\\.md"));
+  });
+
+  it('pipeline view exists', () => {
+    assert.ok(html.includes('id="view-pipeline"'));
+    assert.ok(html.includes('id="pipeline-content"'));
+  });
+
+  it('pipeline route registered', () => {
+    assert.ok(html.includes("/pipeline"));
+    assert.ok(html.includes('showPipeline'));
+  });
+
+  it('pipeline link in expert mode', () => {
+    assert.ok(html.includes('href="#/pipeline"'));
+  });
+
+  it('pipe-dots CSS exists', () => {
+    assert.ok(html.includes('.pipe-dots'));
+    assert.ok(html.includes('.dot.done'));
+    assert.ok(html.includes('.dot.active'));
+  });
+
+  it('compact + expandable structure', () => {
+    assert.ok(html.includes('pipe-compact'));
+    assert.ok(html.includes('pipe-detail'));
+  });
+});
+
 describe('i18n: no hardcoded UI text in HTML body', () => {
   var fs = require('fs');
   var html = fs.readFileSync('site/index.html', 'utf8');
