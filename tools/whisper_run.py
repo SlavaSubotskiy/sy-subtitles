@@ -12,6 +12,14 @@ import argparse
 import json
 
 
+def is_hallucination(text):
+    """Check if segment text is a whisper hallucination (dots, empty, repetitive)."""
+    t = text.strip()
+    if not t:
+        return True
+    return bool(all(c in ".… " for c in t))
+
+
 def run_whisper(video_path, output_path, model="medium", language="en"):
     """Run faster-whisper with VAD and save segments to JSON."""
     from faster_whisper import WhisperModel
@@ -42,8 +50,7 @@ def run_whisper(video_path, output_path, model="medium", language="en"):
     segments = []
     for seg in raw_segments:
         text = seg.text.strip()
-        # Skip hallucinated segments (dots only, empty)
-        if not text or all(c in ".… " for c in text):
+        if is_hallucination(text):
             continue
         seg_data = {
             "id": len(segments),
