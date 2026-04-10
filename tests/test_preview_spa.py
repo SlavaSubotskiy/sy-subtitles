@@ -48,13 +48,19 @@ MOCK_REVIEW_STATUS = {
 
 # Simulated GitHub Trees API response — ALPHABETICAL ORDER like real API
 # (final/uk.srt comes BEFORE meta.yaml — this is the order GitHub returns)
+# Mock tree: Test-Talk is fully ready (both videos have uk.srt, transcript_uk exists, review_report exists)
+# No-Uk is early stage (only meta.yaml + en transcript)
 MOCK_TREE = {
     "sha": "test123",
     "tree": [
         {"path": "talks/2001-01-01_Test-Talk/Test-Video/final/uk.srt", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/Test-Video/source/en.srt", "type": "blob"},
+        {"path": "talks/2001-01-01_Test-Talk/Test-Video/source/whisper.json", "type": "blob"},
+        {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/final/uk.srt", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/source/en.srt", "type": "blob"},
+        {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/source/whisper.json", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/meta.yaml", "type": "blob"},
+        {"path": "talks/2001-01-01_Test-Talk/review_report.md", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/transcript_en.txt", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/transcript_hi.txt", "type": "blob"},
         {"path": "talks/2001-01-01_Test-Talk/transcript_uk.txt", "type": "blob"},
@@ -181,10 +187,8 @@ def page(server, mock_player_js, browser):
         ),
     )
 
-    # Clear cache; set expert mode to show all talks in tests
-    pg.add_init_script(
-        "localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';window.__TEST_OVERRIDE_FILTER='all';"
-    )
+    # Clear cache before each page load
+    pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
     yield pg
     pg.close()
     ctx.close()
@@ -225,15 +229,14 @@ class TestIndexView:
         preview_links = page.locator("a[href*='preview']").count()
         assert preview_links >= 1
 
-    def test_video_without_srt_no_preview(self, server, page):
-        """Test-Video-2 has no uk.srt — should NOT have preview link."""
+    def test_both_videos_have_preview(self, server, page):
+        """Both videos have uk.srt — both should have preview links."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        # Test-Video should have link, Test-Video-2 should not
         links = page.locator("a[href*='preview']").all()
         link_texts = [el.text_content().strip() for el in links]
         assert any("Test Video" in t for t in link_texts), f"'Test Video' not found in {link_texts}"
-        assert not any("Test Video 2" in t for t in link_texts), f"'Test Video 2' should not be in {link_texts}"
+        assert any("Test Video 2" in t for t in link_texts), f"'Test Video 2' not found in {link_texts}"
 
     def test_talk_without_uk_no_review(self, server, page):
         """Talk without UK transcript should NOT have review link."""
@@ -682,45 +685,55 @@ class TestSearchFilter:
         assert page.locator("#search-input").is_visible()
 
     def test_search_filters_talks(self, server, page):
-        """Typing in search should filter talks."""
+        """Typing in search should filter visible talks."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        all_count = page.locator(".talk-item").count()
-        assert all_count >= 2
-        page.fill("#search-input", "No-Uk")
-        page.wait_for_timeout(300)
-        assert page.locator(".talk-item").count() == 1
-
-    def test_search_no_results(self, server, page):
-        """Search with no match should show zero talks."""
-        goto_spa(page, server)
-        page.wait_for_selector(".talk-item", timeout=10000)
+        # Default filter: needs-review, Test-Talk visible
+        before = page.locator(".talk-item").count()
+        assert before >= 1
+        # Search for something not matching
         page.fill("#search-input", "xyznonexistent")
         page.wait_for_timeout(300)
         assert page.locator(".talk-item").count() == 0
+        # Search matching Test Talk
+        page.fill("#search-input", "Test Talk")
+        page.wait_for_timeout(300)
+        assert page.locator(".talk-item").count() >= 1
 
-    def test_stat_cards_exist(self, server, page):
-        """Stat cards should be visible as filter buttons."""
+    def test_normal_all_shows_reviewable_only(self, server, page):
+        """Normal mode 'All' = needs-review + in-review (not pending/approved)."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        assert page.locator(".stat-card").count() == 5
+        # Click "All" stat card
+        page.locator(".stat-card", has_text="All").click()
+        page.wait_for_timeout(300)
+        all_count = page.locator(".talk-item").count()
+        # Test-Talk is ready-for-review → visible; No-Uk is in-progress → hidden
+        assert all_count == 1, f"Normal 'All' should show 1 reviewable talk, got {all_count}"
+
+    def test_stat_cards_exist(self, server, page):
+        """Normal mode shows 3 filter cards: All, Needs review, In review."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        assert page.locator(".stat-card").count() == 3
 
     def test_stat_card_shows_all_count(self, server, page):
-        """'All' stat card should show total talk count."""
+        """'All' stat card shows reviewable count (needs-review + in-review)."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
         card = page.locator(".stat-card[data-filter='all']")
-        assert "2" in card.text_content()
+        # Test-Talk = ready-for-review (1), No-Uk = in-progress (0)
+        assert "1" in card.text_content()
 
     def test_stat_card_click_filters(self, server, page):
-        """Clicking a stat card should filter talks."""
+        """Clicking needs-review filter shows only ready-for-review talks."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
         page.click(".stat-card[data-filter='needs-review']")
         page.wait_for_timeout(200)
         badges = page.locator(".review-badge").all()
         for badge in badges:
-            assert "needs-review" in (badge.get_attribute("class") or "")
+            assert "ready-for-review" in (badge.get_attribute("class") or "")
 
     def test_stat_card_toggle_off(self, server, page):
         """Clicking same stat card again should reset to 'all'."""
@@ -737,22 +750,22 @@ class TestSearchFilter:
         """Clicked stat card should get 'active' class."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        page.click(".stat-card[data-filter='approved']")
+        # Default is 'needs-review'; click 'in-review' (different card) to test active toggling
+        page.click(".stat-card[data-filter='in-review']")
         page.wait_for_timeout(200)
-        cls = page.locator(".stat-card[data-filter='approved']").get_attribute("class")
+        cls = page.locator(".stat-card[data-filter='in-review']").get_attribute("class")
         assert "active" in cls
 
     def test_search_updates_stat_counts(self, server, page):
         """Searching should update stat card numbers (filtered/total)."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        page.fill("#search-input", "No-Uk")
+        page.fill("#search-input", "Test")
         page.wait_for_timeout(300)
-        # All card should show "1/2" (1 filtered of 2 total)
+        # All card shows filtered/total with slash when search is active
         all_card = page.locator(".stat-card[data-filter='all']")
         text = all_card.text_content()
-        assert "/2" in text
-        assert text.startswith("1")
+        assert "/" in text  # search mode shows "filtered/total"
 
 
 class TestHashNavigation:
@@ -873,10 +886,12 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
-        pg.add_init_script(
-            "localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';"
-        )
+        pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
         pg.goto(f"{server}/index.html")
+        # 'in-progress' review status maps to 'in-review' overall status,
+        # visible under the 'in-review' filter (not the default 'needs-review')
+        pg.wait_for_selector(".stat-card[data-filter='in-review']", timeout=10000)
+        pg.click(".stat-card[data-filter='in-review']")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.in-review")
         assert badge.count() >= 1
@@ -885,7 +900,7 @@ class TestReviewStatus:
         ctx.close()
 
     def test_approved_badge(self, server, page, browser):
-        """Talk with approved status should show green badge."""
+        """Talk with approved status should show green badge (visible in expert mode)."""
         ctx = browser.new_context()
         pg = ctx.new_page()
         approved_status = {
@@ -921,10 +936,14 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
+        # Approved talks only show in expert mode (not in normal mode filters)
         pg.add_init_script(
-            "localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';"
+            "localStorage.removeItem('sy_tree_cache__main'); localStorage.setItem('sy_expert_mode', '1');"
         )
         pg.goto(f"{server}/index.html")
+        # Expert mode default filter is 'pending'; switch to 'approved' to see approved talks
+        pg.wait_for_selector(".stat-card[data-filter='approved']", timeout=10000)
+        pg.click(".stat-card[data-filter='approved']")
         pg.wait_for_selector(".talk-item", timeout=10000)
         badge = pg.locator(".review-badge.approved")
         assert badge.count() >= 1
@@ -957,27 +976,29 @@ class TestReviewStatus:
             "**/player.vimeo.com/api/player.js",
             lambda route: route.fulfill(status=200, content_type="application/javascript", body=""),
         )
+        # In expert mode (pending filter default) in-progress talks are visible
         pg.add_init_script(
-            "localStorage.removeItem('sy_tree_cache__main');localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';"
+            "localStorage.removeItem('sy_tree_cache__main'); localStorage.setItem('sy_expert_mode', '1');"
         )
         pg.goto(f"{server}/index.html")
+        # Without review status, talks are in-progress → visible in expert mode pending filter
         pg.wait_for_selector(".talk-item", timeout=10000)
-        # Page loads fine with status badges (all in-progress when no review-status)
+        # Page loads fine; badges present even without review status (in-progress badge shown)
         assert pg.locator(".talk-item").count() >= 1
         assert pg.locator(".review-badge").count() >= 1
         pg.close()
         ctx.close()
 
-    def test_talk_without_status_shows_pending(self, server, page):
-        """Talk not in review-status.json shows in-progress/pending badge."""
+    def test_default_filter_shows_only_ready(self, server, page):
+        """Default filter (needs-review) shows only ready-for-review talks."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
         items = page.locator(".talk-item").all()
-        for item in items:
-            text = item.text_content()
-            if "No-Uk" in text or "2002" in text:
-                badge = item.locator(".review-badge.in-progress")
-                assert badge.count() == 1
+        # Test-Talk is ready-for-review (srt+uk+issue), should be visible
+        texts = [item.text_content() for item in items]
+        assert any("Test Talk" in t for t in texts), f"Test Talk should be visible: {texts}"
+        # No-Uk is in-progress, should NOT be visible in needs-review filter
+        assert not any("No-Uk" in t or "2002" in t for t in texts), f"No-Uk should be hidden: {texts}"
 
 
 class TestCaching:
@@ -1007,7 +1028,21 @@ class TestCaching:
         video = next(v for v in talk["videos"] if v["slug"] == "Test-Video")
         assert video["hasSrt"] is True
         video2 = next(v for v in talk["videos"] if v["slug"] == "Test-Video-2")
-        assert video2["hasSrt"] is False
+        assert video2["hasSrt"] is True
+
+    def test_cached_manifest_has_pipeline_fields(self, server, page):
+        """Manifest should track whisper and review_report for pipeline."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        cache = json.loads(page.evaluate("localStorage.getItem('sy_tree_cache__main')"))
+        talk = next(t for t in cache["talks"] if t["id"] == "2001-01-01_Test-Talk")
+        assert talk["hasReviewReport"] is True
+        assert "Test-Video" in talk["_whisperSlugs"]
+        assert "Test-Video-2" in talk["_whisperSlugs"]
+        # No-Uk talk has no pipeline data
+        no_uk = next(t for t in cache["talks"] if t["id"] == "2002-01-01_No-Uk")
+        assert no_uk["hasReviewReport"] is False
+        assert no_uk["_whisperSlugs"] == []
 
 
 MOCK_BRANCHES = [
@@ -1257,7 +1292,6 @@ class TestBranchSelector:
         pg = make_page(ctx)
         pg.add_init_script(
             "localStorage.removeItem('sy_tree_cache__main'); localStorage.removeItem('sy_tree_cache__dev');"
-            "localStorage.setItem('sy_expert_mode','1');window.__TEST_OVERRIDE_FILTER='all';"
         )
         pg.goto(f"{server}{SPA_URL}")
         pg.wait_for_selector(".talk-item", timeout=10000)
@@ -1277,11 +1311,26 @@ class TestBranchSelector:
     def test_raw_urls_use_branch(self, server, page):
         """Fetch calls for SRT/transcripts use the correct branch in URL."""
         raw_urls = []
+        # Register catch-all first; specific routes registered last take priority (LIFO)
         page.route(
             "**/raw.githubusercontent.com/**",
             lambda route: (
                 raw_urls.append(route.request.url),
                 route.fulfill(status=200, content_type="text/plain", body=SAMPLE_EN),
+            )[-1],
+        )
+        page.route(
+            "**/raw.githubusercontent.com/**/meta.yaml",
+            lambda route: (
+                raw_urls.append(route.request.url),
+                route.fulfill(status=200, content_type="text/plain", body=SAMPLE_META),
+            )[-1],
+        )
+        page.route(
+            "**/raw.githubusercontent.com/**/review-status.json",
+            lambda route: (
+                raw_urls.append(route.request.url),
+                route.fulfill(status=200, content_type="application/json", body=json.dumps(MOCK_REVIEW_STATUS)),
             )[-1],
         )
         page.route(

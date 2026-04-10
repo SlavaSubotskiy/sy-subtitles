@@ -918,7 +918,7 @@ function showIndex() {
 }
 
 var expertMode = localStorage.getItem('sy_expert_mode') === '1';
-var activeFilter = window.__TEST_OVERRIDE_FILTER || (expertMode ? 'pending' : 'needs-review');
+var activeFilter = expertMode ? 'pending' : 'needs-review';
 var expandedTalkId = null;
 
 function renderIndex(el) {
