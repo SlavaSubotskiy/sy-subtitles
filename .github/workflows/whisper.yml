@@ -190,6 +190,8 @@ jobs:
           path: whisper-downloads
 
       - name: Place artifacts into talk directories
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "=== Downloaded artifacts ==="
           find whisper-downloads -type f 2>/dev/null || echo "No files found"
@@ -212,11 +214,25 @@ jobs:
             fi
           done
 
-          # Strategy 2: flat extraction fallback
+          # Strategy 2: flat extraction fallback — download-artifact@v6 sometimes
+          # extracts a single artifact flat (no subdir). Recover names via gh API.
           if [ "$placed" -eq 0 ] && [ -f "whisper-downloads/whisper.json" ]; then
-            echo "WARN: flat extraction detected, using matrix info"
-            # When only one artifact, use discover output
-            echo "Cannot place flat file without talk/video info — skipping"
+            echo "WARN: flat extraction detected, resolving via gh API"
+            artifact_name=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+              --jq '.artifacts[] | select(.name | startswith("whisper__")) | .name' | head -1)
+            echo "Artifact name: $artifact_name"
+            if [ -n "$artifact_name" ]; then
+              rest="${artifact_name#whisper__}"
+              video_slug="${rest##*__}"
+              talk_id="${rest%__*}"
+              dest="talks/${talk_id}/${video_slug}/source"
+              mkdir -p "$dest"
+              cp "whisper-downloads/whisper.json" "$dest/whisper.json"
+              echo "Placed (flat fallback): $dest/whisper.json"
+              placed=$((placed + 1))
+            else
+              echo "ERROR: could not resolve artifact name from gh API"
+            fi
           fi
 
           echo "Total placed: $placed"
