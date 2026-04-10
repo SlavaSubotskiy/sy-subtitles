@@ -117,10 +117,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .pipe-node a { color: inherit; text-decoration: none; }
 .pipe-arrow { color: var(--border2); font-size: 10px; margin: 0 4px; }
 .pipe-arrow.done { color: var(--accent-green); }
-.pipe-fork { display: flex; flex-direction: column; gap: 4px; margin: 0 2px; align-items: center; position: relative; padding: 6px 8px; }
-.pipe-fork::before, .pipe-fork::after { content: ''; position: absolute; width: 8px; border-color: var(--border2); border-style: solid; }
-.pipe-fork::before { left: 0; top: 0; bottom: 0; border-width: 2px 0 2px 2px; border-radius: 8px 0 0 8px; }
-.pipe-fork::after { right: 0; top: 0; bottom: 0; border-width: 2px 2px 2px 0; border-radius: 0 8px 8px 0; }
+.pipe-fork { display: flex; flex-direction: column; gap: 2px; margin: 0 2px; position: relative; padding: 0 6px; }
+.pipe-fork .pipe-row { position: relative; padding: 3px 0; }
+.pipe-fork .pipe-row::before { content: ''; position: absolute; left: -6px; top: 50%; width: 6px; border-top: 2px solid var(--border2); }
+.pipe-fork .pipe-row::after { content: ''; position: absolute; right: -6px; top: 50%; width: 6px; border-top: 2px solid var(--border2); }
+.pipe-fork::before { content: ''; position: absolute; left: 0; top: 25%; bottom: 25%; border-left: 2px solid var(--border2); }
+.pipe-fork::after { content: ''; position: absolute; right: 0; top: 25%; bottom: 25%; border-right: 2px solid var(--border2); }
 
 /* --- Preview --- */
 .player-container { position: relative; width: 100%; max-width: 960px; margin: 20px auto; }
@@ -1057,7 +1059,7 @@ function getPipelineStages(tk, st) {
     reviewed: tk.hasReviewReport,
     srt: nSrt >= nVideos && nVideos > 0,
     srtProgress: nVideos > 0 ? nSrt + '/' + nVideos : '0',
-    hasIssue: !!st,
+    hasIssue: !!(st && st.issue_number),
     review: st && st.status !== 'pending',
     approved: st && st.status === 'approved',
     nVideos: nVideos, nWhisper: nWhisper, nSrt: nSrt
@@ -1067,7 +1069,7 @@ function getPipelineStages(tk, st) {
 function getOverallStatus(stages, reviewSt) {
   if (reviewSt && reviewSt.status === 'approved') return 'approved';
   if (reviewSt && reviewSt.status === 'in-progress') return 'in-review';
-  if (stages.srt && stages.translated && reviewSt) return 'ready-for-review';
+  if (stages.srt && stages.translated && stages.hasIssue) return 'ready-for-review';
   return 'in-progress';
 }
 

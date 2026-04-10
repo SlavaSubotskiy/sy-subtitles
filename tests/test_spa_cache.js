@@ -2391,7 +2391,7 @@ function getPipelineStages(tk, st) {
     reviewed: tk.hasReviewReport,
     srt: nSrt >= nVideos && nVideos > 0,
     srtProgress: nVideos > 0 ? nSrt + '/' + nVideos : '0',
-    hasIssue: !!st,
+    hasIssue: !!(st && st.issue_number),
     review: st && st.status !== 'pending',
     approved: st && st.status === 'approved',
     nVideos: nVideos, nWhisper: nWhisper, nSrt: nSrt
@@ -2419,11 +2419,16 @@ describe('Pipeline: getPipelineStages', () => {
     assert.strictEqual(s.hasIssue, false);
   });
 
-  it('hasIssue true when status exists', () => {
+  it('hasIssue true when issue_number exists', () => {
     var tk = { videos: [], _whisperSlugs: [], hasUk: false, hasReviewReport: false };
-    assert.strictEqual(getPipelineStages(tk, { status: 'pending' }).hasIssue, true);
-    assert.strictEqual(getPipelineStages(tk, { status: 'in-progress' }).hasIssue, true);
-    assert.strictEqual(getPipelineStages(tk, { status: 'approved' }).hasIssue, true);
+    assert.strictEqual(getPipelineStages(tk, { status: 'pending', issue_number: 5 }).hasIssue, true);
+    assert.strictEqual(getPipelineStages(tk, { status: 'in-progress', issue_number: 3 }).hasIssue, true);
+  });
+
+  it('hasIssue false when status exists but no issue_number', () => {
+    var tk = { videos: [], _whisperSlugs: [], hasUk: false, hasReviewReport: false };
+    assert.strictEqual(getPipelineStages(tk, { status: 'pending', issue_number: null }).hasIssue, false);
+    assert.strictEqual(getPipelineStages(tk, { status: 'pending' }).hasIssue, false);
   });
 
   it('hasIssue false when no status', () => {
@@ -2490,7 +2495,7 @@ describe('Pipeline: getPipelineStages', () => {
 function getOverallStatus(stages, reviewSt) {
   if (reviewSt && reviewSt.status === 'approved') return 'approved';
   if (reviewSt && reviewSt.status === 'in-progress') return 'in-review';
-  if (stages.srt && stages.translated && reviewSt) return 'ready-for-review';
+  if (stages.srt && stages.translated && stages.hasIssue) return 'ready-for-review';
   return 'in-progress';
 }
 
@@ -2505,13 +2510,18 @@ describe('Pipeline: getOverallStatus', () => {
     assert.strictEqual(getOverallStatus(s, { status: 'in-progress' }), 'in-review');
   });
 
-  it('ready for review — srt + translated + issue exists', () => {
-    var s = { srt: true, translated: true };
-    assert.strictEqual(getOverallStatus(s, { status: 'pending' }), 'ready-for-review');
+  it('ready for review — srt + translated + hasIssue', () => {
+    var s = { srt: true, translated: true, hasIssue: true };
+    assert.strictEqual(getOverallStatus(s, { status: 'pending', issue_number: 5 }), 'ready-for-review');
   });
 
-  it('in-progress — srt + translated but NO issue', () => {
-    var s = { srt: true, translated: true };
+  it('in-progress — srt + translated but NO issue_number', () => {
+    var s = { srt: true, translated: true, hasIssue: false };
+    assert.strictEqual(getOverallStatus(s, { status: 'pending', issue_number: null }), 'in-progress');
+  });
+
+  it('in-progress — srt + translated but no status at all', () => {
+    var s = { srt: true, translated: true, hasIssue: false };
     assert.strictEqual(getOverallStatus(s, null), 'in-progress');
   });
 
