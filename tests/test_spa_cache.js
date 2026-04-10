@@ -2444,6 +2444,51 @@ describe('Pipeline: getPipelineStages', () => {
   });
 });
 
+// Overall status for compact card view
+function getOverallStatus(stages, reviewSt) {
+  if (reviewSt && reviewSt.status === 'approved') return 'approved';
+  if (reviewSt && reviewSt.status === 'in-progress') return 'in-review';
+  if (stages.srt && stages.translated) return 'ready-for-review';
+  return 'in-progress';
+}
+
+describe('Pipeline: getOverallStatus', () => {
+  it('approved', () => {
+    var s = { srt: true, translated: true };
+    assert.strictEqual(getOverallStatus(s, { status: 'approved' }), 'approved');
+  });
+
+  it('in-review', () => {
+    var s = { srt: true, translated: true };
+    assert.strictEqual(getOverallStatus(s, { status: 'in-progress' }), 'in-review');
+  });
+
+  it('ready for review — srt + translated, pending status', () => {
+    var s = { srt: true, translated: true };
+    assert.strictEqual(getOverallStatus(s, { status: 'pending' }), 'ready-for-review');
+  });
+
+  it('ready for review — srt + translated, no status', () => {
+    var s = { srt: true, translated: true };
+    assert.strictEqual(getOverallStatus(s, null), 'ready-for-review');
+  });
+
+  it('in-progress — no srt', () => {
+    var s = { srt: false, translated: true };
+    assert.strictEqual(getOverallStatus(s, null), 'in-progress');
+  });
+
+  it('in-progress — no translation', () => {
+    var s = { srt: true, translated: false };
+    assert.strictEqual(getOverallStatus(s, null), 'in-progress');
+  });
+
+  it('in-progress — nothing done', () => {
+    var s = { srt: false, translated: false };
+    assert.strictEqual(getOverallStatus(s, null), 'in-progress');
+  });
+});
+
 describe('Pipeline: countDoneStages', () => {
   it('only added = 1/6', () => {
     var p = countDoneStages({ added: true, whisper: false, translated: false, reviewed: false, srt: false, review: false, approved: false });
@@ -2478,7 +2523,8 @@ describe('Pipeline: manifest tracking', () => {
 
   it('pipeline view exists', () => {
     assert.ok(html.includes('id="view-pipeline"'));
-    assert.ok(html.includes('id="pipeline-content"'));
+    assert.ok(html.includes('id="pipeline-list"'));
+    assert.ok(html.includes('id="pipeline-detail"'));
   });
 
   it('pipeline route registered', () => {
@@ -2486,19 +2532,29 @@ describe('Pipeline: manifest tracking', () => {
     assert.ok(html.includes('showPipeline'));
   });
 
+  it('pipeline route loads reviewStatus', () => {
+    assert.ok(html.includes("loadReviewStatus"), 'pipeline route must load review status');
+  });
+
   it('pipeline link in expert mode', () => {
     assert.ok(html.includes('href="#/pipeline"'));
   });
 
-  it('pipe-dots CSS exists', () => {
-    assert.ok(html.includes('.pipe-dots'));
-    assert.ok(html.includes('.dot.done'));
-    assert.ok(html.includes('.dot.active'));
+  it('status badge CSS for all states', () => {
+    assert.ok(html.includes('.review-badge.ready-for-review'));
+    assert.ok(html.includes('.review-badge.in-progress'));
+    assert.ok(html.includes('.review-badge.in-review'));
+    assert.ok(html.includes('.review-badge.approved'));
   });
 
-  it('compact + expandable structure', () => {
+  it('master-detail layout', () => {
     assert.ok(html.includes('pipe-compact'));
-    assert.ok(html.includes('pipe-detail'));
+    assert.ok(html.includes('showPipelineDetail'));
+    assert.ok(html.includes('.pipe-card.selected'));
+  });
+
+  it('getOverallStatus function exists', () => {
+    assert.ok(html.includes('function getOverallStatus'));
   });
 });
 

@@ -100,6 +100,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .review-badge.needs-review { background: var(--issue-bg); color: var(--accent-orange); border: 1px solid var(--border2); }
 .review-badge.in-review { background: var(--stat-active-bg); color: var(--link); border: 1px solid var(--border2); }
 .review-badge.approved { background: var(--primary-bg); color: var(--accent-green); border: 1px solid var(--primary-border); }
+.review-badge.ready-for-review { background: var(--issue-bg); color: var(--accent-orange); border: 1px solid var(--border2); }
+.review-badge.in-progress { background: var(--bg3); color: var(--fg5); border: 1px solid var(--border2); }
 .expert-btn { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; background: var(--bg3); color: var(--fg5); border: 1px solid var(--border2); text-decoration: none; margin-left: 6px; }
 .expert-btn:hover { background: var(--bg4); color: var(--link); }
 
@@ -117,10 +119,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .pipe-arrow.done { color: var(--accent-green); }
 .pipe-fork { display: flex; flex-direction: column; gap: 4px; margin: 0 4px; }
 .pipe-compact { display: flex; justify-content: space-between; align-items: center; }
-.pipe-dots { display: inline-flex; gap: 3px; align-items: center; }
-.pipe-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bg4); border: 1.5px solid var(--border2); }
-.pipe-dots .dot.done { background: var(--accent-green); border-color: var(--accent-green); }
-.pipe-dots .dot.active { background: var(--link); border-color: var(--link); }
+.pipe-card.selected { border-color: var(--link); background: var(--stat-active-bg); }
 
 /* --- Preview --- */
 .player-container { position: relative; width: 100%; max-width: 960px; margin: 20px auto; }
@@ -277,8 +276,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
   <div class="header">
     <h1><a href="#/" data-i18n="nav.back">&larr; Home</a> &middot; <span data-i18n="pipeline.title">Pipeline Status</span></h1>
   </div>
-  <div style="max-width:900px;margin:20px auto;padding:0 20px;">
-    <div id="pipeline-content"></div>
+  <div style="max-width:1100px;margin:20px auto;padding:0 20px;display:flex;gap:20px;flex-wrap:wrap;">
+    <div id="pipeline-list" style="flex:1;min-width:280px;"></div>
+    <div id="pipeline-detail" style="flex:1;min-width:320px;"></div>
   </div>
 </div>
 
@@ -453,6 +453,7 @@ var I18N = {
     'link.review': '\u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043F\u0435\u0440\u0435\u043A\u043B\u0430\u0434',
     'link.amruta': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u043D\u0430 amruta.org',
     'pipeline.title': '\u0421\u0442\u0430\u0442\u0443\u0441 \u043F\u0430\u0439\u043F\u043B\u0430\u0439\u043D\u0443',
+    'pipeline.select_talk': '\u041E\u0431\u0435\u0440\u0456\u0442\u044C \u043F\u0440\u043E\u043C\u043E\u0432\u0443',
     'add.title': '\u0414\u043E\u0434\u0430\u0442\u0438 \u043F\u0440\u043E\u043C\u043E\u0432\u0443',
     'add.bookmarklet_hint': '\u041f\u0435\u0440\u0435\u0442\u044f\u0433\u043d\u0456\u0442\u044c \u0446\u044e \u043a\u043d\u043e\u043f\u043a\u0443 \u043d\u0430 \u043f\u0430\u043d\u0435\u043b\u044c \u0437\u0430\u043a\u043b\u0430\u0434\u043e\u043a, \u043f\u043e\u0442\u0456\u043c \u043d\u0430\u0442\u0438\u0441\u043d\u0456\u0442\u044c \u043d\u0430 \u043d\u0435\u0457 \u043f\u0435\u0440\u0435\u0431\u0443\u0432\u0430\u044e\u0447\u0438 \u043d\u0430 \u0441\u0442\u043e\u0440\u0456\u043d\u0446\u0456 \u043f\u0440\u043e\u043c\u043e\u0432\u0438 \u043d\u0430 amruta.org:',
     'add.field_title': '\u041D\u0430\u0437\u0432\u0430',
@@ -525,6 +526,7 @@ var I18N = {
     'link.review': 'review translation',
     'link.amruta': 'Open on amruta.org',
     'pipeline.title': 'Pipeline Status',
+    'pipeline.select_talk': 'Select a talk',
     'add.title': 'Add Talk',
     'add.bookmarklet_hint': 'Drag this button to your bookmarks bar, then click it while on a talk page at amruta.org:',
     'add.field_title': 'Title',
@@ -674,7 +676,10 @@ function route() {
     showAddTalk(hash);
   } else if (hash === '/pipeline') {
     document.getElementById('view-pipeline').classList.add('active');
-    ensureManifest().then(function() { showPipeline(); });
+    Promise.all([
+      ensureManifest(),
+      reviewStatus ? Promise.resolve() : loadReviewStatus()
+    ]).then(function() { showPipeline(); });
   } else {
     showIndex();
   }
@@ -1004,35 +1009,21 @@ function getPipelineStages(tk, st) {
   };
 }
 
-function countDoneStages(s) {
-  var total = 6; // added, whisper, translated, reviewed, srt, review/approved
-  var done = 1; // added always done
-  if (s.whisper) done++;
-  if (s.translated) done++;
-  if (s.reviewed) done++;
-  if (s.srt) done++;
-  if (s.approved) done++;
-  else if (s.review) { done += 0.5; } // in-progress counts as half
-  return { done: Math.floor(done), total: total };
+function getOverallStatus(stages, reviewSt) {
+  if (reviewSt && reviewSt.status === 'approved') return 'approved';
+  if (reviewSt && reviewSt.status === 'in-progress') return 'in-review';
+  if (stages.srt && stages.translated) return 'ready-for-review';
+  return 'in-progress';
 }
 
-function renderPipelineDots(stages) {
-  // Compact: 6 dots showing progress
-  var dots = [
-    { done: stages.added, label: 'added' },
-    { done: stages.whisper, label: 'whisper' },
-    { done: stages.translated, label: 'translated' },
-    { done: stages.reviewed, label: 'reviewed' },
-    { done: stages.srt, label: 'srt' },
-    { done: stages.approved, active: stages.review && !stages.approved, label: 'review' }
-  ];
-  var html = '<span class="pipe-dots">';
-  dots.forEach(function(d) {
-    var cls = d.done ? 'dot done' : (d.active ? 'dot active' : 'dot');
-    html += '<span class="' + cls + '" title="' + d.label + '"></span>';
-  });
-  html += '</span>';
-  return html;
+function renderStatusBadge(status) {
+  var labels = {
+    'approved': t('badge.approved'),
+    'in-review': t('badge.in_review'),
+    'ready-for-review': t('badge.needs_review'),
+    'in-progress': t('badge.pending')
+  };
+  return '<span class="review-badge ' + status + '">' + (labels[status] || status) + '</span>';
 }
 
 function renderPipelineDAG(tk, stages, st) {
@@ -1088,44 +1079,51 @@ function renderPipelineDAG(tk, stages, st) {
 function showPipeline() {
   document.title = t('pipeline.title') + ' — SY Subtitles';
   translatePage();
-  var el = document.getElementById('pipeline-content');
-  el.innerHTML = '';
+  var listEl = document.getElementById('pipeline-list');
+  var detailEl = document.getElementById('pipeline-detail');
+  listEl.innerHTML = '';
+  detailEl.innerHTML = '<div style="color:var(--fg5);padding:20px;text-align:center;">' + t('pipeline.select_talk') + '</div>';
   var statuses = (reviewStatus && reviewStatus.talks) || {};
 
   manifest.talks.forEach(function(tk) {
     var st = statuses[tk.id] || null;
     var stages = getPipelineStages(tk, st);
-    var progress = countDoneStages(stages);
+    var status = getOverallStatus(stages, st);
     var dateStr = tk.date || tk.id.substring(0, 10);
 
     var div = document.createElement('div');
     div.className = 'pipe-card';
     div.style.cursor = 'pointer';
 
-    // Compact view
-    var amrutaLink = tk.amrutaUrl
-      ? '<a href="' + tk.amrutaUrl + '" target="_blank" style="color:var(--fg5);text-decoration:none;" onclick="event.stopPropagation()">' + dateStr + ' &#x2197;</a>'
-      : dateStr;
-
     div.innerHTML = '<div class="pipe-compact">'
-      + '<span class="pipe-title">' + esc(tk.title || tk.id) + '</span>'
-      + '<span style="display:flex;align-items:center;gap:8px;">'
-      + renderPipelineDots(stages)
-      + '<span class="pipe-date">' + amrutaLink + '</span>'
-      + '</span>'
-      + '</div>'
-      + '<div class="pipe-detail" style="display:none;margin-top:10px;">'
-      + renderPipelineDAG(tk, stages, st)
+      + '<div><span class="pipe-date">' + dateStr + '</span> '
+      + '<span class="pipe-title">' + esc(tk.title || tk.id) + '</span></div>'
+      + renderStatusBadge(status)
       + '</div>';
 
-    div.onclick = function(e) {
-      if (e.target.tagName === 'A') return;
-      var detail = div.querySelector('.pipe-detail');
-      detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
+    div.onclick = function() {
+      listEl.querySelectorAll('.pipe-card').forEach(function(c) { c.classList.remove('selected'); });
+      div.classList.add('selected');
+      showPipelineDetail(tk, stages, st, detailEl);
     };
 
-    el.appendChild(div);
+    listEl.appendChild(div);
   });
+}
+
+function showPipelineDetail(tk, stages, st, el) {
+  var dateStr = tk.date || tk.id.substring(0, 10);
+  var amrutaLink = tk.amrutaUrl
+    ? '<a href="' + tk.amrutaUrl + '" target="_blank" style="color:var(--link);">' + esc(tk.title) + ' &#x2197;</a>'
+    : esc(tk.title);
+
+  el.innerHTML = '<div class="pipe-card">'
+    + '<div style="margin-bottom:12px;">'
+    + '<div style="font-size:16px;font-weight:600;">' + amrutaLink + '</div>'
+    + '<div class="pipe-date">' + dateStr + '</div>'
+    + '</div>'
+    + renderPipelineDAG(tk, stages, st)
+    + '</div>';
 }
 
 // ============================================================
