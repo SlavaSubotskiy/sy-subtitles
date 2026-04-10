@@ -1060,7 +1060,7 @@ function getPipelineStages(tk, st) {
 function getOverallStatus(stages, reviewSt) {
   if (reviewSt && reviewSt.status === 'approved') return 'approved';
   if (reviewSt && reviewSt.status === 'in-progress') return 'in-review';
-  if (stages.srt && stages.translated) return 'ready-for-review';
+  if (stages.srt && stages.translated && reviewSt) return 'ready-for-review';
   return 'in-progress';
 }
 
