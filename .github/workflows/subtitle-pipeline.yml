@@ -473,7 +473,26 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           pattern: translation__*
-          merge-multiple: true
+          merge-multiple: false
+
+      - name: Place translation artifacts
+        run: |
+          TALK_ID="${{ needs.prepare-build.outputs.talk_id }}"
+          # Strategy 1: subdirectory (merge-multiple: false)
+          DIR="translation__${TALK_ID}"
+          if [ -d "$DIR" ]; then
+            for f in transcript_uk.txt review_report.md glossary.json; do
+              [ -f "$DIR/$f" ] && cp "$DIR/$f" "talks/$TALK_ID/$f" && echo "Placed: talks/$TALK_ID/$f"
+            done
+          # Strategy 2: flat extraction fallback (single artifact)
+          elif [ -f "transcript_uk.txt" ]; then
+            echo "WARN: flat extraction detected"
+            for f in transcript_uk.txt review_report.md glossary.json; do
+              [ -f "$f" ] && cp "$f" "talks/$TALK_ID/$f" && echo "Placed (flat): talks/$TALK_ID/$f"
+            done
+          else
+            echo "No translation artifacts found"
+          fi
 
       - uses: actions/setup-python@v6
         with:
