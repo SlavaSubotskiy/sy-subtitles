@@ -265,7 +265,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 <!-- === REVIEW VIEW === -->
 <div id="view-review" class="view">
   <div class="header">
-    <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="r-title"></span></h1>
+    <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="r-title"></span>
+      <select id="review-mode-select" class="expert-only review-mode-toggle" style="display:none;margin-left:8px;font-size:13px;background:var(--bg4);color:var(--fg);border:1px solid var(--border3);border-radius:4px;padding:2px 6px;vertical-align:middle;" onchange="SPA.switchReviewMode(this.value, this.options[this.selectedIndex].dataset.video)">
+      </select>
+    </h1>
     <div class="header-actions">
       <button onclick="SPA.revertAllEdits()" id="btn-revert-all" style="display:none" data-i18n="btn.revert_all">Revert all</button>
       <button class="issue" onclick="SPA.createReviewIssue()" data-i18n="btn.create_review_issue">Create Issue</button>
@@ -375,6 +378,64 @@ function parseSRT(text) {
   }
   return result;
 }
+// ALIGN_START
+function alignSubtitlesByTime(enBlocks, ukBlocks) {
+  if (!enBlocks.length && !ukBlocks.length) return [];
+  if (!enBlocks.length) return ukBlocks.map(function(b) { return { en: null, uk: b, startMs: b.startMs, endMs: b.endMs }; });
+  if (!ukBlocks.length) return enBlocks.map(function(b) { return { en: b, uk: null, startMs: b.startMs, endMs: b.endMs }; });
+
+  // Collect all unique time boundaries
+  var times = {};
+  enBlocks.forEach(function(b) { times[b.startMs] = true; times[b.endMs] = true; });
+  ukBlocks.forEach(function(b) { times[b.startMs] = true; times[b.endMs] = true; });
+  var sorted = Object.keys(times).map(Number).sort(function(a, b) { return a - b; });
+
+  // Build time slots with active EN/UK block indices
+  var slots = [];
+  for (var i = 0; i < sorted.length - 1; i++) {
+    var s = sorted[i], e = sorted[i + 1];
+    var mid = (s + e) / 2;
+    var enIdx = -1, ukIdx = -1;
+    for (var j = 0; j < enBlocks.length; j++) {
+      if (mid >= enBlocks[j].startMs && mid < enBlocks[j].endMs) { enIdx = j; break; }
+    }
+    for (var j = 0; j < ukBlocks.length; j++) {
+      if (mid >= ukBlocks[j].startMs && mid < ukBlocks[j].endMs) { ukIdx = j; break; }
+    }
+    if (enIdx === -1 && ukIdx === -1) continue; // gap — skip
+    slots.push({ s: s, e: e, enIdx: enIdx, ukIdx: ukIdx });
+  }
+
+  // Merge consecutive slots with same EN+UK pair
+  var merged = [];
+  for (var i = 0; i < slots.length; i++) {
+    var cur = slots[i];
+    if (merged.length > 0) {
+      var prev = merged[merged.length - 1];
+      if (prev.enIdx === cur.enIdx && prev.ukIdx === cur.ukIdx) {
+        prev.e = cur.e;
+        continue;
+      }
+    }
+    merged.push({ s: cur.s, e: cur.e, enIdx: cur.enIdx, ukIdx: cur.ukIdx });
+  }
+
+  // Deduplicate: each block appears in exactly one row (the first one where it's active)
+  var usedEn = {}, usedUk = {};
+  var rows = [];
+  for (var i = 0; i < merged.length; i++) {
+    var m = merged[i];
+    var en = m.enIdx >= 0 && !usedEn[m.enIdx] ? enBlocks[m.enIdx] : null;
+    var uk = m.ukIdx >= 0 && !usedUk[m.ukIdx] ? ukBlocks[m.ukIdx] : null;
+    if (!en && !uk) continue;
+    if (en) usedEn[m.enIdx] = true;
+    if (uk) usedUk[m.ukIdx] = true;
+    rows.push({ en: en, uk: uk, startMs: m.s, endMs: m.e });
+  }
+  return rows;
+}
+// ALIGN_END
+
 function findActiveSubtitle(subs, ms) {
   for (var i = 0; i < subs.length; i++) {
     if (ms >= subs[i].startMs && ms < subs[i].endMs) return subs[i];
@@ -1377,7 +1438,7 @@ var LANG_NAMES = {
 };
 function langName(code) { return LANG_NAMES[code] || code.charAt(0).toUpperCase() + code.slice(1); }
 
-var reviewState = { talkId: '', leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n' };
+var reviewState = { talkId: '', leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n', mode: 'transcript', videoSlug: '' };
 
 function parseReviewLangs(hash, talkId) {
   var left = 'en', right = 'uk';
@@ -1448,7 +1509,102 @@ function showReview(talkId) {
     statusEl.textContent = 'Error: ' + err;
     statusEl.style.color = '#f66';
   });
+
+  // Populate mode selector (expert only)
+  var modeSel = document.getElementById('review-mode-select');
+  if (modeSel && talk) {
+    var saved = localStorage.getItem('sy_review_mode_' + talkId);
+    var savedObj = null;
+    try { savedObj = JSON.parse(saved); } catch(e) {}
+    var opts = '<option value="transcript">' + esc(talk.title || talkId) + ' [transcript]</option>';
+    (talk.videos || []).forEach(function(v) {
+      if (v.hasSrt) {
+        var sel = savedObj && savedObj.mode === 'srt' && savedObj.video === v.slug ? ' selected' : '';
+        opts += '<option value="srt" data-video="' + esc(v.slug) + '"' + sel + '>' + esc(v.title || v.slug) + ' [srt]</option>';
+      }
+    });
+    modeSel.innerHTML = opts;
+    if (savedObj && savedObj.mode === 'srt') {
+      reviewState.mode = 'srt';
+      reviewState.videoSlug = savedObj.video;
+      // Defer SRT loading until transcript load completes
+      Promise.all([
+        fetch(leftUrl).then(function(r) { return r.ok ? r.text() : ''; }),
+        fetch(rightUrl).then(function(r) { return r.ok ? r.text() : ''; })
+      ]).then(function() {
+        SPA.switchReviewMode('srt', savedObj.video);
+      });
+    }
+  }
 }
+
+SPA.switchReviewMode = function(mode, videoSlug) {
+  var talkId = reviewState.talkId;
+  var statusEl = document.getElementById('review-status');
+
+  if (mode === 'transcript') {
+    reviewState.mode = 'transcript';
+    reviewState.videoSlug = '';
+    localStorage.setItem('sy_review_mode_' + talkId, JSON.stringify({ mode: 'transcript' }));
+    // Reload transcripts
+    statusEl.textContent = t('review.loading');
+    statusEl.style.display = 'block';
+    var talk = reviewState.talk;
+    var leftSha = (talk && talk._transcriptSha && talk._transcriptSha[reviewState.leftLang]) || '';
+    var rightSha = (talk && talk._transcriptSha && talk._transcriptSha[reviewState.rightLang]) || '';
+    var leftUrl = RAW + '/talks/' + talkId + '/transcript_' + reviewState.leftLang + '.txt' + (leftSha ? '?v=' + leftSha.substring(0, 8) : '');
+    var rightUrl = RAW + '/talks/' + talkId + '/transcript_' + reviewState.rightLang + '.txt' + (rightSha ? '?v=' + rightSha.substring(0, 8) : '');
+    Promise.all([
+      fetch(leftUrl).then(function(r) { return r.ok ? r.text() : ''; }),
+      fetch(rightUrl).then(function(r) { return r.ok ? r.text() : ''; })
+    ]).then(function(texts) {
+      var left = parseTranscript(texts[0]);
+      var right = parseTranscript(texts[1]);
+      reviewState.leftParas = left.paragraphs;
+      reviewState.rightParas = right.paragraphs;
+      reviewState.rightHeader = right.header;
+      reviewState.rightSep = right.separator;
+      renderReview();
+      statusEl.style.display = 'none';
+    });
+    return;
+  }
+
+  // SRT mode
+  reviewState.mode = 'srt';
+  reviewState.videoSlug = videoSlug || '';
+  localStorage.setItem('sy_review_mode_' + talkId, JSON.stringify({ mode: 'srt', video: videoSlug }));
+  statusEl.textContent = t('review.loading');
+  statusEl.style.display = 'block';
+
+  var talk = reviewState.talk;
+  var enSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/en']) || '';
+  var ukSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/uk']) || '';
+  var enUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/source/en.srt' + (enSha ? '?v=' + enSha.substring(0, 8) : '');
+  var ukUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/final/uk.srt' + (ukSha ? '?v=' + ukSha.substring(0, 8) : '');
+
+  Promise.all([
+    fetch(enUrl).then(function(r) { return r.ok ? r.text() : ''; }),
+    fetch(ukUrl).then(function(r) { return r.ok ? r.text() : ''; })
+  ]).then(function(texts) {
+    var enBlocks = parseSRT(texts[0]);
+    var ukBlocks = parseSRT(texts[1]);
+    var aligned = alignSubtitlesByTime(enBlocks, ukBlocks);
+
+    // Convert to review format
+    reviewState.leftParas = aligned.map(function(r) { return r.en ? r.en.text : ''; });
+    reviewState.rightParas = aligned.map(function(r) { return r.uk ? r.uk.text : ''; });
+    reviewState.alignedRows = aligned;
+    reviewState.edits = {};
+    reviewState.marks = {};
+
+    renderReview();
+    statusEl.style.display = 'none';
+  }).catch(function(err) {
+    statusEl.textContent = 'Error loading SRT: ' + err;
+    statusEl.style.color = '#f66';
+  });
+};
 
 function parseTranscript(text) {
   var lines = text.split('\n');
@@ -1466,10 +1622,20 @@ function parseTranscript(text) {
   return { header: header, separator: useDouble ? '\n\n' : '\n', paragraphs: paras };
 }
 
+function msToTC(ms) {
+  var s = Math.floor(ms / 1000);
+  var m = Math.floor(s / 60); s = s % 60;
+  var h = Math.floor(m / 60); m = m % 60;
+  return (h ? h + ':' : '') + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
 function renderReview() {
   var grid = document.getElementById('review-grid');
   // Clear old rows (keep headers)
   while (grid.children.length > 2) grid.removeChild(grid.lastChild);
+
+  var isSrt = reviewState.mode === 'srt';
+  var aligned = isSrt ? (reviewState.alignedRows || []) : null;
 
   var n = Math.max(reviewState.leftParas.length, reviewState.rightParas.length);
   for (var i = 0; i < n; i++) {
@@ -1479,15 +1645,19 @@ function renderReview() {
     var marked = reviewState.marks[i] !== undefined;
     var displayRight = edited ? reviewState.edits[i] : right;
 
+    var label = isSrt && aligned && aligned[i]
+      ? msToTC(aligned[i].startMs)
+      : 'P' + (i+1);
+
     var leftDiv = document.createElement('div');
     leftDiv.className = 'cell en';
-    leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (i+1) + '</div>' + esc(left);
+    leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">' + label + '</div>' + esc(left);
 
     var rightDiv = document.createElement('div');
     rightDiv.className = 'cell uk' + (edited ? ' edited' : '') + (marked ? ' marked' : '');
     rightDiv.contentEditable = 'true';
     rightDiv.dataset.idx = i;
-    rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (i+1) + '</div>' + esc(displayRight);
+    rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">' + label + '</div>' + esc(displayRight);
     rightDiv.addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(i));
 
     grid.appendChild(leftDiv);

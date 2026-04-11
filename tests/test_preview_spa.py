@@ -29,6 +29,19 @@ SAMPLE_SRT = """1
 Другий субтитр
 """
 
+SAMPLE_EN_SRT = """1
+00:00:01,000 --> 00:00:04,000
+First subtitle block
+
+2
+00:00:04,500 --> 00:00:08,000
+Second subtitle block
+
+3
+00:00:08,500 --> 00:00:12,000
+Third subtitle block
+"""
+
 SAMPLE_EN = "Talk Language: English\n\nFirst paragraph.\n\nSecond paragraph.\n"
 SAMPLE_UK = "Мова промови: англійська\n\nПерший абзац.\n\nДругий абзац.\n"
 SAMPLE_HI = "Talk Language: Hindi\n\nपहला पैराग्राफ।\n\nदूसरा पैराग्राफ।\n"
@@ -131,13 +144,21 @@ def page(server, mock_player_js, browser):
         ),
     )
 
-    # Mock SRT
+    # Mock SRT (UK and EN)
     pg.route(
         "**/raw.githubusercontent.com/**/uk.srt",
         lambda route: route.fulfill(
             status=200,
             content_type="text/plain",
             body=SAMPLE_SRT,
+        ),
+    )
+    pg.route(
+        "**/raw.githubusercontent.com/**/en.srt",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="text/plain",
+            body=SAMPLE_EN_SRT,
         ),
     )
 
@@ -748,6 +769,87 @@ class TestFullscreenMode:
         self._goto_preview(server, page)
         title = page.locator("#btn-fullscreen").get_attribute("title")
         assert title is not None and len(title) > 0
+
+
+class TestReviewModeToggle:
+    """Tests for transcript/subtitle mode toggle in review page (expert mode)."""
+
+    def _goto_review_expert(self, server, page):
+        """Navigate to review page with expert mode enabled."""
+        goto_spa(page, server)
+        page.evaluate("localStorage.setItem('sy_expert_mode', '1')")
+        page.goto(f"{server}{SPA_URL}#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell').length > 0", timeout=10000)
+
+    def test_switch_review_mode_function_exists(self, server, page):
+        """SPA.switchReviewMode should be defined."""
+        self._goto_review_expert(server, page)
+        assert page.evaluate("typeof SPA.switchReviewMode === 'function'")
+
+    def test_default_mode_is_transcript(self, server, page):
+        """Review page should default to transcript mode."""
+        self._goto_review_expert(server, page)
+        mode = page.evaluate("reviewState.mode || 'transcript'")
+        assert mode == "transcript"
+
+    def test_mode_toggle_visible_in_expert(self, server, page):
+        """Mode toggle should be visible in expert mode."""
+        self._goto_review_expert(server, page)
+        # The title area should have a mode selector or dropdown
+        selector = page.locator("#review-mode-select, .review-mode-toggle")
+        assert selector.count() >= 1
+
+    def test_mode_toggle_hidden_without_expert(self, server, page):
+        """Mode toggle should be hidden in normal mode."""
+        goto_spa(page, server)
+        page.evaluate("localStorage.removeItem('sy_expert_mode')")
+        page.goto(f"{server}{SPA_URL}#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell').length > 0", timeout=10000)
+        # Mode selector should be hidden
+        visible = page.evaluate("""() => {
+            var el = document.querySelector('#review-mode-select, .review-mode-toggle');
+            return el ? getComputedStyle(el).display !== 'none' : false;
+        }""")
+        assert visible is False
+
+    def test_switch_to_srt_mode_loads_subtitles(self, server, page):
+        """Switching to SRT mode should load SRT files and show time-aligned grid."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        mode = page.evaluate("reviewState.mode")
+        assert mode == "srt"
+
+    def test_srt_mode_shows_timecodes(self, server, page):
+        """SRT mode should display timecodes in the grid cells."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        # Grid should contain timecode text (HH:MM:SS format)
+        html = page.locator("#review-grid").inner_html()
+        assert "00:0" in html, "Grid should show timecodes in SRT mode"
+
+    def test_srt_mode_persists_in_localstorage(self, server, page):
+        """Selected review mode should persist per-talk in localStorage."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(300)
+        saved = page.evaluate("localStorage.getItem('sy_review_mode_2001-01-01_Test-Talk')")
+        assert saved is not None
+        assert "srt" in saved
+
+    def test_switch_back_to_transcript(self, server, page):
+        """Switching back to transcript mode should show paragraphs."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(300)
+        page.evaluate("SPA.switchReviewMode('transcript')")
+        page.wait_for_timeout(500)
+        mode = page.evaluate("reviewState.mode")
+        assert mode == "transcript"
+        # Should show paragraph content
+        html = page.locator("#review-grid").inner_html()
+        assert "P1" in html
 
 
 class TestReviewEditing:

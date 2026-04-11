@@ -607,6 +607,185 @@ describe('Fullscreen mode', () => {
 });
 
 // ============================================================
+// Tests: Subtitle alignment algorithm
+// ============================================================
+
+// Extract alignSubtitlesByTime from index.html for unit testing
+var _alignFn = null;
+function getAlignFn() {
+  if (_alignFn) return _alignFn;
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+  // Extract the function body between markers
+  var start = html.indexOf('// ALIGN_START');
+  var end = html.indexOf('// ALIGN_END');
+  if (start === -1 || end === -1) throw new Error('alignSubtitlesByTime markers not found in index.html');
+  var code = html.substring(start, end);
+  // Load via require from temp file
+  var tmpPath = require('path').join(require('os').tmpdir(), '_align_test.js');
+  fs.writeFileSync(tmpPath, code + '\nmodule.exports = alignSubtitlesByTime;');
+  _alignFn = require(tmpPath);
+  return _alignFn;
+}
+
+describe('alignSubtitlesByTime', () => {
+  it('aligns identical timecodes 1:1', () => {
+    var align = getAlignFn();
+    var en = [
+      { startMs: 0, endMs: 3000, text: 'Hello' },
+      { startMs: 3000, endMs: 6000, text: 'World' },
+    ];
+    var uk = [
+      { startMs: 0, endMs: 3000, text: 'Привіт' },
+      { startMs: 3000, endMs: 6000, text: 'Світ' },
+    ];
+    var rows = align(en, uk);
+    assert.strictEqual(rows.length, 2);
+    assert.strictEqual(rows[0].en.text, 'Hello');
+    assert.strictEqual(rows[0].uk.text, 'Привіт');
+    assert.strictEqual(rows[1].en.text, 'World');
+    assert.strictEqual(rows[1].uk.text, 'Світ');
+  });
+
+  it('handles more EN blocks than UK', () => {
+    var align = getAlignFn();
+    var en = [
+      { startMs: 0, endMs: 2000, text: 'One' },
+      { startMs: 2000, endMs: 4000, text: 'Two' },
+      { startMs: 4000, endMs: 6000, text: 'Three' },
+    ];
+    var uk = [
+      { startMs: 0, endMs: 3000, text: 'Один-Два' },
+      { startMs: 3000, endMs: 6000, text: 'Три' },
+    ];
+    var rows = align(en, uk);
+    assert.ok(rows.length >= 2, 'should have at least 2 rows, got ' + rows.length);
+    var enTexts = rows.filter(function(r) { return r.en; }).map(function(r) { return r.en.text; });
+    var ukTexts = rows.filter(function(r) { return r.uk; }).map(function(r) { return r.uk.text; });
+    assert.ok(enTexts.includes('One'));
+    assert.ok(enTexts.includes('Two'));
+    assert.ok(enTexts.includes('Three'));
+    assert.ok(ukTexts.includes('Один-Два'));
+    assert.ok(ukTexts.includes('Три'));
+  });
+
+  it('handles more UK blocks than EN', () => {
+    var align = getAlignFn();
+    var en = [
+      { startMs: 0, endMs: 5000, text: 'Long sentence' },
+    ];
+    var uk = [
+      { startMs: 0, endMs: 2000, text: 'Частина 1' },
+      { startMs: 2000, endMs: 5000, text: 'Частина 2' },
+    ];
+    var rows = align(en, uk);
+    assert.ok(rows.length >= 2, 'should have at least 2 rows');
+    var ukTexts = rows.filter(function(r) { return r.uk; }).map(function(r) { return r.uk.text; });
+    assert.ok(ukTexts.includes('Частина 1'));
+    assert.ok(ukTexts.includes('Частина 2'));
+  });
+
+  it('handles gap between blocks', () => {
+    var align = getAlignFn();
+    var en = [
+      { startMs: 0, endMs: 2000, text: 'Before gap' },
+      { startMs: 5000, endMs: 7000, text: 'After gap' },
+    ];
+    var uk = [
+      { startMs: 0, endMs: 2000, text: 'До паузи' },
+      { startMs: 5000, endMs: 7000, text: 'Після паузи' },
+    ];
+    var rows = align(en, uk);
+    assert.strictEqual(rows.length, 2, 'gap should not produce extra rows');
+    assert.strictEqual(rows[0].en.text, 'Before gap');
+    assert.strictEqual(rows[1].en.text, 'After gap');
+  });
+
+  it('handles empty EN array', () => {
+    var align = getAlignFn();
+    var uk = [{ startMs: 0, endMs: 3000, text: 'Тест' }];
+    var rows = align([], uk);
+    assert.strictEqual(rows.length, 1);
+    assert.strictEqual(rows[0].en, null);
+    assert.strictEqual(rows[0].uk.text, 'Тест');
+  });
+
+  it('handles empty UK array', () => {
+    var align = getAlignFn();
+    var en = [{ startMs: 0, endMs: 3000, text: 'Test' }];
+    var rows = align(en, []);
+    assert.strictEqual(rows.length, 1);
+    assert.strictEqual(rows[0].uk, null);
+    assert.strictEqual(rows[0].en.text, 'Test');
+  });
+
+  it('handles both empty arrays', () => {
+    var align = getAlignFn();
+    var rows = align([], []);
+    assert.strictEqual(rows.length, 0);
+  });
+
+  it('rows have startMs and endMs', () => {
+    var align = getAlignFn();
+    var en = [{ startMs: 1000, endMs: 4000, text: 'A' }];
+    var uk = [{ startMs: 1000, endMs: 4000, text: 'Б' }];
+    var rows = align(en, uk);
+    assert.strictEqual(rows[0].startMs, 1000);
+    assert.strictEqual(rows[0].endMs, 4000);
+  });
+
+  it('each block appears exactly once across all rows', () => {
+    var align = getAlignFn();
+    var en = [
+      { startMs: 0, endMs: 2000, text: 'E1' },
+      { startMs: 2000, endMs: 4000, text: 'E2' },
+      { startMs: 4000, endMs: 8000, text: 'E3' },
+    ];
+    var uk = [
+      { startMs: 0, endMs: 3000, text: 'U1' },
+      { startMs: 3000, endMs: 5000, text: 'U2' },
+      { startMs: 5000, endMs: 8000, text: 'U3' },
+    ];
+    var rows = align(en, uk);
+    var seenEn = {};
+    var seenUk = {};
+    rows.forEach(function(r) {
+      if (r.en) {
+        assert.ok(!seenEn[r.en.text], 'EN block ' + r.en.text + ' appeared twice');
+        seenEn[r.en.text] = true;
+      }
+      if (r.uk) {
+        assert.ok(!seenUk[r.uk.text], 'UK block ' + r.uk.text + ' appeared twice');
+        seenUk[r.uk.text] = true;
+      }
+    });
+    assert.strictEqual(Object.keys(seenEn).length, 3, 'all EN blocks should appear');
+    assert.strictEqual(Object.keys(seenUk).length, 3, 'all UK blocks should appear');
+  });
+});
+
+// ============================================================
+// Tests: Review mode toggle (transcript vs subtitles)
+// ============================================================
+describe('Review mode toggle', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('SPA.switchReviewMode is defined', () => {
+    assert.ok(html.match(/SPA\.switchReviewMode\s*=/), 'SPA.switchReviewMode function should exist');
+  });
+
+  it('alignSubtitlesByTime function is defined', () => {
+    assert.ok(html.includes('function alignSubtitlesByTime'), 'alignment function should exist in HTML');
+  });
+
+  it('review mode options include transcript and srt', () => {
+    assert.ok(html.includes("'transcript'") || html.includes('"transcript"'), 'transcript mode should exist');
+    assert.ok(html.includes("'srt'") || html.includes('"srt"'), 'srt mode should exist');
+  });
+});
+
+// ============================================================
 // Tests: Theme system
 // ============================================================
 describe('Theme: CSS variables coverage', () => {
