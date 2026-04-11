@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-11T04:36:34.464242+00:00",
+  "updated_at": "2026-04-11T08:56:00.108649+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -97,6 +97,12 @@
       "reviewer": "SlavaSubotskiy",
       "issue_number": 31,
       "updated_at": "2026-04-11T04:36:33Z"
+    },
+    "Talk on Innocence & Musical Program (Morning)": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 37,
+      "updated_at": "2026-04-11T08:55:49Z"
     }
   }
 }
