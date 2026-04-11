@@ -324,7 +324,7 @@ class TestReviewView:
 
     def test_uk_editable(self, server, page):
         self._goto_review(server, page)
-        attr = page.locator(".cell.uk").first.get_attribute("contenteditable")
+        attr = page.locator(".cell.uk .cell-text").first.get_attribute("contenteditable")
         assert attr == "true"
 
     def test_has_back_link(self, server, page):
@@ -850,6 +850,61 @@ class TestReviewModeToggle:
         # Should show paragraph content
         html = page.locator("#review-grid").inner_html()
         assert "P1" in html
+
+
+class TestReviewCellStructure:
+    """Review cell label/text separation — labels must not be editable."""
+
+    def _goto_review(self, server, page):
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+
+    def test_label_is_outside_editable_area(self, server, page):
+        """Cell label (P1, timecode) should not be inside contentEditable element."""
+        self._goto_review(server, page)
+        # The contentEditable element should NOT contain the label
+        has_label_inside = page.evaluate("""() => {
+            var cell = document.querySelector('.cell.uk[contenteditable="true"], .cell.uk [contenteditable="true"]');
+            if (!cell) return false;
+            return /^P\\d/.test(cell.innerText);
+        }""")
+        assert has_label_inside is False, "Label P1 should not be inside contentEditable area"
+
+    def test_label_is_not_contenteditable(self, server, page):
+        """Cell label element must not be contentEditable."""
+        self._goto_review(server, page)
+        editable = page.evaluate("""() => {
+            var label = document.querySelector('.cell.uk .cell-label');
+            if (!label) return 'no .cell-label found';
+            return label.isContentEditable;
+        }""")
+        assert editable is False
+
+    def test_text_area_is_contenteditable(self, server, page):
+        """Cell text area must be contentEditable."""
+        self._goto_review(server, page)
+        editable = page.evaluate("""() => {
+            var text = document.querySelector('.cell.uk .cell-text');
+            if (!text) return false;
+            return text.isContentEditable;
+        }""")
+        assert editable is True
+
+    def test_editing_text_does_not_affect_label(self, server, page):
+        """Editing text should not change the label."""
+        self._goto_review(server, page)
+        # Get original label
+        label_before = page.evaluate("""
+            document.querySelector('.cell.uk .cell-label').textContent
+        """)
+        # Edit the text
+        page.locator(".cell.uk .cell-text").first.click()
+        page.keyboard.type(" test")
+        page.wait_for_timeout(200)
+        label_after = page.evaluate("""
+            document.querySelector('.cell.uk .cell-label').textContent
+        """)
+        assert label_before == label_after
 
 
 class TestReviewEditing:

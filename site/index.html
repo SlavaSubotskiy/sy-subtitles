@@ -169,7 +169,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 .cell.en { color: var(--fg4); }
 .cell.uk { color: var(--fg2); cursor: text; }
 .cell.uk:hover { background: var(--cell-hover); }
-.cell.uk:focus { background: var(--cell-edit-bg); outline: 1px solid var(--primary-border); }
+.cell-text { outline: none; }
+.cell-text:focus { background: var(--cell-edit-bg); outline: 1px solid var(--primary-border); border-radius: 3px; }
 .cell.uk.edited { background: var(--cell-edited-bg); }
 .cell.uk.marked { border-left: 3px solid var(--issue-border); }
 .counter { position: fixed; bottom: 16px; right: 16px; background: var(--bg3); border: 1px solid var(--border2);
@@ -1648,6 +1649,10 @@ function renderReview() {
   updateReviewCounter();
 }
 
+function cellLabel(text) {
+  return '<div class="cell-label" style="color:#555;font-size:11px;margin-bottom:2px;user-select:none">' + text + '</div>';
+}
+
 function renderReviewTranscript(grid) {
   var n = Math.max(reviewState.leftParas.length, reviewState.rightParas.length);
   for (var i = 0; i < n; i++) {
@@ -1656,17 +1661,16 @@ function renderReviewTranscript(grid) {
     var edited = reviewState.edits[i] !== undefined;
     var marked = reviewState.marks[i] !== undefined;
     var displayRight = edited ? reviewState.edits[i] : right;
+    var label = 'P' + (i+1);
 
     var leftDiv = document.createElement('div');
     leftDiv.className = 'cell en';
-    leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">P' + (i+1) + '</div>' + esc(left);
+    leftDiv.innerHTML = cellLabel(label) + esc(left);
 
     var rightDiv = document.createElement('div');
     rightDiv.className = 'cell uk' + (edited ? ' edited' : '') + (marked ? ' marked' : '');
-    rightDiv.contentEditable = 'true';
-    rightDiv.dataset.idx = i;
-    rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">P' + (i+1) + '</div>' + esc(displayRight);
-    rightDiv.addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(i));
+    rightDiv.innerHTML = cellLabel(label) + '<div class="cell-text" contenteditable="true" data-idx="' + i + '">' + esc(displayRight) + '</div>';
+    rightDiv.querySelector('.cell-text').addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(i));
 
     grid.appendChild(leftDiv);
     grid.appendChild(rightDiv);
@@ -1711,12 +1715,12 @@ function renderReviewSrt(grid) {
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
       if (enSpan > 1) leftDiv.style.gridRow = 'span ' + enSpan;
-      leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">' + tc + '</div>' + esc(row.en.text);
+      leftDiv.innerHTML = cellLabel(tc) + esc(row.en.text);
       grid.appendChild(leftDiv);
     } else if (!enKey) {
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
-      leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">' + tc + '</div>';
+      leftDiv.innerHTML = cellLabel(tc);
       grid.appendChild(leftDiv);
     }
 
@@ -1724,22 +1728,16 @@ function renderReviewSrt(grid) {
     if (ukKey && !ukUsed[ukKey]) {
       ukUsed[ukKey] = true;
       var rightDiv = document.createElement('div');
-      rightDiv.className = 'cell uk';
-      rightDiv.contentEditable = 'true';
-      rightDiv.dataset.idx = rowIdx;
+      rightDiv.className = 'cell uk' + (reviewState.edits[rowIdx] !== undefined ? ' edited' : '') + (reviewState.marks[rowIdx] !== undefined ? ' marked' : '');
       if (ukSpan > 1) rightDiv.style.gridRow = 'span ' + ukSpan;
-      var edited = reviewState.edits[rowIdx] !== undefined;
-      var marked = reviewState.marks[rowIdx] !== undefined;
-      if (edited) rightDiv.classList.add('edited');
-      if (marked) rightDiv.classList.add('marked');
-      var displayRight = edited ? reviewState.edits[rowIdx] : row.uk.text;
-      rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">' + tc + '</div>' + esc(displayRight);
-      rightDiv.addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(rowIdx));
+      var displayRight = reviewState.edits[rowIdx] !== undefined ? reviewState.edits[rowIdx] : row.uk.text;
+      rightDiv.innerHTML = cellLabel(tc) + '<div class="cell-text" contenteditable="true" data-idx="' + rowIdx + '">' + esc(displayRight) + '</div>';
+      rightDiv.querySelector('.cell-text').addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(rowIdx));
       grid.appendChild(rightDiv);
     } else if (!ukKey) {
       var rightDiv = document.createElement('div');
       rightDiv.className = 'cell uk';
-      rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">' + tc + '</div>';
+      rightDiv.innerHTML = cellLabel(tc);
       grid.appendChild(rightDiv);
     }
 
@@ -1748,10 +1746,11 @@ function renderReviewSrt(grid) {
 }
 
 function onReviewEdit(idx, el) {
-  var text = el.innerText.replace(/^P\d+\n/, '').trim();
+  var text = el.innerText.trim();
   var orig = reviewState.rightParas[idx] || '';
-  if (text === orig) { delete reviewState.edits[idx]; el.classList.remove('edited'); }
-  else { reviewState.edits[idx] = text; el.classList.add('edited'); }
+  var cell = el.closest('.cell.uk');
+  if (text === orig) { delete reviewState.edits[idx]; if (cell) cell.classList.remove('edited'); }
+  else { reviewState.edits[idx] = text; if (cell) cell.classList.add('edited'); }
   saveReview();
 }
 
@@ -1762,10 +1761,11 @@ function saveReview() {
 
 SPA.revertEdit = function(idx) {
   delete reviewState.edits[idx];
-  var cell = document.querySelector('.cell.uk[data-idx="' + idx + '"]');
-  if (cell) {
-    cell.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">P' + (idx+1) + '</div>' + esc(reviewState.rightParas[idx] || '');
-    cell.classList.remove('edited');
+  var textEl = document.querySelector('.cell-text[data-idx="' + idx + '"]');
+  if (textEl) {
+    textEl.textContent = reviewState.rightParas[idx] || '';
+    var cell = textEl.closest('.cell.uk');
+    if (cell) cell.classList.remove('edited');
   }
   saveReview();
   showToast(t('toast.reverted').replace('{n}', idx+1));
@@ -1792,11 +1792,13 @@ document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'm' && document.getElementById('view-review').classList.contains('active')) {
     e.preventDefault();
     var el = document.activeElement;
-    if (el && el.classList.contains('uk')) {
-      var idx = parseInt(el.dataset.idx);
+    var textEl = el && el.classList.contains('cell-text') ? el : null;
+    if (textEl) {
+      var idx = parseInt(textEl.dataset.idx);
+      var cell = textEl.closest('.cell.uk');
       if (reviewState.marks[idx] !== undefined) delete reviewState.marks[idx];
       else reviewState.marks[idx] = '';
-      el.classList.toggle('marked');
+      if (cell) cell.classList.toggle('marked');
       saveReview();
     }
   }
