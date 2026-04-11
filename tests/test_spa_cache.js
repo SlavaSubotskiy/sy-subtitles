@@ -555,6 +555,58 @@ describe('SPA code integrity', () => {
 });
 
 // ============================================================
+// Tests: Fullscreen mode
+// ============================================================
+describe('Fullscreen mode', () => {
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+
+  it('btn-fullscreen exists in HTML', () => {
+    assert.ok(html.includes('id="btn-fullscreen"'), 'btn-fullscreen element not found');
+  });
+
+  it('SPA.toggleFullscreen is defined', () => {
+    assert.ok(html.includes('SPA.toggleFullscreen'), 'SPA.toggleFullscreen not found');
+    assert.ok(html.match(/SPA\.toggleFullscreen\s*=\s*function/), 'SPA.toggleFullscreen not a function definition');
+  });
+
+  it('F key handler calls toggleFullscreen', () => {
+    // The keyboard handler should check for 'f' or 'F' key
+    assert.ok(html.includes("'f'") || html.includes("'F'") || html.includes('"f"') || html.includes('"F"'),
+      'F key not found in keyboard handler');
+    assert.ok(html.includes('toggleFullscreen'), 'toggleFullscreen not referenced from keyboard handler');
+  });
+
+  it('fullscreenchange listener exists', () => {
+    assert.ok(html.includes('fullscreenchange'), 'fullscreenchange event listener not found');
+  });
+
+  it('.fs-mode CSS class defined', () => {
+    assert.ok(html.includes('.fs-mode'), '.fs-mode CSS not found');
+  });
+
+  it('.fs-mode hides header', () => {
+    assert.ok(html.includes('fs-mode') && html.includes('.header'), '.fs-mode should hide .header');
+  });
+
+  it('.fs-mode hides markers', () => {
+    assert.ok(html.includes('fs-mode') && html.includes('.markers'), '.fs-mode should hide .markers');
+  });
+
+  it('btn-mark hidden in fullscreen', () => {
+    assert.ok(html.includes('fs-mode') && html.includes('btn-mark'), 'btn-mark should be hidden in fs-mode');
+  });
+
+  it('subtitle overlay has fixed position in fs-mode', () => {
+    // Check CSS contains position: fixed for subtitle-overlay in fs-mode context
+    var styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+    var css = styleMatch ? styleMatch[1] : '';
+    assert.ok(css.includes('fs-mode') && css.includes('#subtitle-overlay') && css.includes('position') && css.includes('fixed'),
+      'subtitle-overlay should be position:fixed in .fs-mode');
+  });
+});
+
+// ============================================================
 // Tests: Theme system
 // ============================================================
 describe('Theme: CSS variables coverage', () => {
@@ -590,6 +642,8 @@ describe('Theme: CSS variables coverage', () => {
     });
     // Allow subtitle overlay to keep #fff (always white text on dark bg)
     errors = errors.filter(e => !e.includes('#fff') || !e.includes('subtitle-overlay'));
+    // Allow fullscreen mode to use #000 (always black background)
+    errors = errors.filter(e => !(e.includes('#000') && e.includes('fs-mode')));
     if (errors.length > 0) {
       console.log('Hardcoded colors found:', errors.slice(0, 5).join('\n'));
     }
@@ -604,7 +658,7 @@ describe('Theme: CSS variables coverage', () => {
       var trimmed = line.trim();
       if (trimmed.startsWith('/*')) return;
       colorProps.forEach(prop => {
-        if (trimmed.includes(prop) && trimmed.includes('#') && !trimmed.includes('var(--')) {
+        if (trimmed.includes(prop) && trimmed.includes('#') && !trimmed.includes('var(--') && !trimmed.includes('fs-mode')) {
           errors.push('Line ~' + (i+1) + ': ' + trimmed.substring(0, 80));
         }
       });

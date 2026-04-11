@@ -618,6 +618,138 @@ class TestMarkers:
         assert display != "none"
 
 
+class TestFullscreenMode:
+    """Fullscreen preview mode tests.
+
+    Playwright headless doesn't support real Fullscreen API,
+    so we test by toggling .fs-mode class directly and verifying
+    CSS/DOM behavior, plus check that JS wiring exists.
+    """
+
+    def _goto_preview(self, server, page):
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(1000)
+
+    def _enter_fs(self, page):
+        """Simulate entering fullscreen by adding .fs-mode class."""
+        page.evaluate("document.getElementById('view-preview').classList.add('fs-mode')")
+        page.wait_for_timeout(100)
+
+    def _exit_fs(self, page):
+        """Simulate exiting fullscreen by removing .fs-mode class."""
+        page.evaluate("document.getElementById('view-preview').classList.remove('fs-mode')")
+        page.wait_for_timeout(100)
+
+    def test_fullscreen_button_exists(self, server, page):
+        """Preview should have a fullscreen toggle button."""
+        self._goto_preview(server, page)
+        btn = page.locator("#btn-fullscreen")
+        assert btn.count() == 1
+
+    def test_toggle_fullscreen_function_exists(self, server, page):
+        """SPA.toggleFullscreen should be a function."""
+        self._goto_preview(server, page)
+        is_fn = page.evaluate("typeof SPA.toggleFullscreen === 'function'")
+        assert is_fn
+
+    def test_fs_mode_hides_header(self, server, page):
+        """In fullscreen, the preview header should be hidden."""
+        self._goto_preview(server, page)
+        self._enter_fs(page)
+        display = page.evaluate("""
+            getComputedStyle(document.querySelector('#view-preview .header')).display
+        """)
+        assert display == "none"
+
+    def test_fs_mode_hides_markers(self, server, page):
+        """In fullscreen, markers section should be hidden."""
+        self._goto_preview(server, page)
+        self._enter_fs(page)
+        display = page.evaluate("""
+            getComputedStyle(document.querySelector('#view-preview .markers')).display
+        """)
+        assert display == "none"
+
+    def test_fs_mode_hides_mark_button(self, server, page):
+        """In fullscreen, marker button should be hidden (not needed)."""
+        self._goto_preview(server, page)
+        self._enter_fs(page)
+        display = page.evaluate("""
+            getComputedStyle(document.getElementById('btn-mark')).display
+        """)
+        assert display == "none"
+
+    def test_fs_mode_subtitle_overlay_fixed(self, server, page):
+        """In fullscreen, subtitle overlay should be position:fixed."""
+        self._goto_preview(server, page)
+        self._enter_fs(page)
+        position = page.evaluate("""
+            getComputedStyle(document.getElementById('subtitle-overlay')).position
+        """)
+        assert position == "fixed"
+
+    def test_fs_mode_subtitle_still_syncs(self, server, page):
+        """Subtitles should still update in fullscreen mode."""
+        self._goto_preview(server, page)
+        self._enter_fs(page)
+        text = page.evaluate("""() => {
+            window._vimeoPlayer._setTime(2);
+            return new Promise(resolve => {
+                setTimeout(() => resolve(document.getElementById('subtitle-overlay').textContent), 200);
+            });
+        }""")
+        assert text == "Перший субтитр"
+
+    def test_fs_mode_exit_restores_header(self, server, page):
+        """Exiting fullscreen should restore the header."""
+        self._goto_preview(server, page)
+        self._enter_fs(page)
+        self._exit_fs(page)
+        display = page.evaluate("""
+            getComputedStyle(document.querySelector('#view-preview .header')).display
+        """)
+        assert display != "none"
+
+    def test_fs_mode_exit_restores_subtitle_position(self, server, page):
+        """Exiting fullscreen should restore subtitle overlay to normal position."""
+        self._goto_preview(server, page)
+        self._enter_fs(page)
+        self._exit_fs(page)
+        position = page.evaluate("""
+            getComputedStyle(document.getElementById('subtitle-overlay')).position
+        """)
+        assert position != "fixed"
+
+    def test_f_key_calls_toggle_fullscreen(self, server, page):
+        """Pressing F should call SPA.toggleFullscreen."""
+        self._goto_preview(server, page)
+        # Track if toggleFullscreen was called
+        page.evaluate("window._fsCalled = false; SPA.toggleFullscreen = function() { window._fsCalled = true; }")
+        page.keyboard.press("f")
+        page.wait_for_timeout(200)
+        assert page.evaluate("window._fsCalled") is True
+
+    def test_f_key_guarded_by_input_check(self, server, page):
+        """Keyboard handler should check for INPUT/TEXTAREA before F key."""
+        self._goto_preview(server, page)
+        # Verify the keyboard handler has INPUT guard before F key handling
+        # by inspecting the actual JS source order
+        guard_ok = page.evaluate("""() => {
+            var src = document.documentElement.outerHTML;
+            var guardPos = src.indexOf("e.target.tagName === 'INPUT'");
+            var fKeyPos = src.indexOf("'f' || e.key === 'F'");
+            return guardPos > 0 && fKeyPos > 0 && guardPos < fKeyPos;
+        }""")
+        assert guard_ok, "INPUT guard must appear before F key handler"
+
+    def test_fullscreen_button_has_title(self, server, page):
+        """Fullscreen button should have a title/tooltip."""
+        self._goto_preview(server, page)
+        title = page.locator("#btn-fullscreen").get_attribute("title")
+        assert title is not None and len(title) > 0
+
+
 class TestReviewEditing:
     """Review page editing functionality tests."""
 
