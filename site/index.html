@@ -1466,8 +1466,14 @@ function parseReviewLangs(hash, talkId) {
 function updateColHeaders() {
   var lh = document.getElementById('col-header-left');
   var rh = document.getElementById('col-header-right');
-  if (lh) lh.firstChild.textContent = langName(reviewState.leftLang) + ' \u25BE';
-  if (rh) rh.firstChild.textContent = langName(reviewState.rightLang) + ' \u25BE';
+  if (reviewState.mode === 'srt') {
+    // SRT mode: show source/final language labels
+    if (lh) lh.firstChild.textContent = langName('en') + ' (source) \u25BE';
+    if (rh) rh.firstChild.textContent = langName('uk') + ' (final) \u25BE';
+  } else {
+    if (lh) lh.firstChild.textContent = langName(reviewState.leftLang) + ' \u25BE';
+    if (rh) rh.firstChild.textContent = langName(reviewState.rightLang) + ' \u25BE';
+  }
 }
 
 function showReview(talkId) {
@@ -1552,6 +1558,7 @@ SPA.switchReviewMode = function(mode, videoSlug) {
     reviewState.mode = 'transcript';
     reviewState.videoSlug = '';
     localStorage.setItem('sy_review_mode_' + talkId, JSON.stringify({ mode: 'transcript' }));
+    updateColHeaders();
     // Reload transcripts
     statusEl.textContent = t('review.loading');
     statusEl.style.display = 'block';
@@ -1580,6 +1587,7 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   reviewState.mode = 'srt';
   reviewState.videoSlug = videoSlug || '';
   localStorage.setItem('sy_review_mode_' + talkId, JSON.stringify({ mode: 'srt', video: videoSlug }));
+  updateColHeaders();
   statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
 
@@ -1884,6 +1892,26 @@ SPA.toggleTranscriptDropdown = function(side) {
   var dd = document.getElementById('transcript-dropdown-' + side);
   if (!dd) return;
   var talk = reviewState.talk;
+
+  if (reviewState.mode === 'srt') {
+    // SRT mode: show available SRT languages for this video
+    var srtLangs = (talk && talk._srtLangs && talk._srtLangs[reviewState.videoSlug]) || [];
+    // For left (source), show en.srt from source/; for right (final), show from final/
+    var enLangs = ['en']; // source always has en
+    var langs = side === 'left' ? enLangs : srtLangs.filter(function(l) { return l !== 'en'; });
+    if (langs.length <= 1) { return; } // no alternatives
+    dd.innerHTML = '';
+    langs.sort().forEach(function(lang) {
+      var d = document.createElement('div');
+      d.textContent = langName(lang);
+      d.onclick = function(e) { e.stopPropagation(); SPA.switchSrtLang(side, lang); };
+      dd.appendChild(d);
+    });
+    dd.classList.add('open');
+    return;
+  }
+
+  // Transcript mode
   var langs = (talk && talk.transcripts) || [];
   if (!langs.length) { showToast(t('no_transcripts')); return; }
   var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
