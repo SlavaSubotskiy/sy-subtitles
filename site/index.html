@@ -1155,12 +1155,16 @@ function showPreview(talkId, videoSlug) {
   document.getElementById('p-title').textContent = (talk ? talk.title : talkId) + ' — ' + (video ? video.title : videoSlug);
   document.title = (video ? video.title : videoSlug) + ' – Preview';
 
-  // Setup player
-  var iframe = document.getElementById('vimeo-player');
+  // Setup player — replace iframe to avoid stale Vimeo SDK cache
+  var oldIframe = document.getElementById('vimeo-player');
   var embedUrl = video ? vimeoEmbed(video.vimeo_url) : '';
-  if (embedUrl && iframe.src !== embedUrl + '&texttrack=false') {
-    iframe.src = embedUrl + '&texttrack=false';
-  }
+  var iframe = document.createElement('iframe');
+  iframe.id = 'vimeo-player';
+  iframe.allow = 'autoplay; fullscreen';
+  iframe.allowFullscreen = true;
+  iframe.style.cssText = oldIframe.style.cssText || 'position:absolute;top:0;left:0;width:100%;height:100%;border:0;';
+  if (embedUrl) iframe.src = embedUrl + '&texttrack=false';
+  oldIframe.parentNode.replaceChild(iframe, oldIframe);
 
   // Determine available subtitle languages (restore saved per-video choice)
   var availLangs = (talk && talk._srtLangs && talk._srtLangs[videoSlug]) || ['uk'];
