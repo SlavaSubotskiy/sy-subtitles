@@ -691,6 +691,10 @@ function route() {
     document.getElementById('view-add').classList.add('active');
     showAddTalk(hash);
   } else {
+    // Clean URL: remove #/ so index page has no hash
+    if (location.hash && location.hash !== '') {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
     showIndex();
   }
 }
