@@ -777,8 +777,8 @@ class TestReviewModeToggle:
     def _goto_review_expert(self, server, page):
         """Navigate to review page with expert mode enabled."""
         goto_spa(page, server)
-        page.evaluate("localStorage.setItem('sy_expert_mode', '1')")
-        page.goto(f"{server}{SPA_URL}#/review/2001-01-01_Test-Talk")
+        page.evaluate("localStorage.setItem('sy_expert_mode', '1'); expertMode = true; applyExpertMode();")
+        page.evaluate("location.hash = '#/review/2001-01-01_Test-Talk'")
         page.wait_for_function("document.querySelectorAll('.cell').length > 0", timeout=10000)
 
     def test_switch_review_mode_function_exists(self, server, page):
@@ -793,11 +793,26 @@ class TestReviewModeToggle:
         assert mode == "transcript"
 
     def test_mode_toggle_visible_in_expert(self, server, page):
-        """Mode toggle should be visible in expert mode."""
+        """Mode toggle should be visible and have SRT options in expert mode."""
         self._goto_review_expert(server, page)
-        # The title area should have a mode selector or dropdown
-        selector = page.locator("#review-mode-select, .review-mode-toggle")
-        assert selector.count() >= 1
+        sel = page.locator("#review-mode-select")
+        assert sel.count() == 1
+        # Must be actually visible (display != none)
+        display = page.evaluate("getComputedStyle(document.getElementById('review-mode-select')).display")
+        assert display != "none", f"Mode selector should be visible, got display={display}"
+        # Must have at least 2 options (transcript + at least one SRT video)
+        opts = page.evaluate("document.getElementById('review-mode-select').options.length")
+        assert opts >= 2, f"Expected at least 2 options (transcript + srt), got {opts}"
+
+    def test_select_srt_option_switches_mode(self, server, page):
+        """Selecting SRT option from dropdown should switch to SRT mode."""
+        self._goto_review_expert(server, page)
+        sel = page.locator("#review-mode-select")
+        # Select the SRT option (second option)
+        sel.select_option(index=1)
+        page.wait_for_timeout(500)
+        mode = page.evaluate("reviewState.mode")
+        assert mode == "srt", f"Expected srt mode after select, got {mode}"
 
     def test_mode_toggle_hidden_without_expert(self, server, page):
         """Mode toggle should be hidden in normal mode."""
