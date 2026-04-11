@@ -1659,13 +1659,13 @@ function renderReviewTranscript(grid) {
 
     var leftDiv = document.createElement('div');
     leftDiv.className = 'cell en';
-    leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (i+1) + '</div>' + esc(left);
+    leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">P' + (i+1) + '</div>' + esc(left);
 
     var rightDiv = document.createElement('div');
     rightDiv.className = 'cell uk' + (edited ? ' edited' : '') + (marked ? ' marked' : '');
     rightDiv.contentEditable = 'true';
     rightDiv.dataset.idx = i;
-    rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (i+1) + '</div>' + esc(displayRight);
+    rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">P' + (i+1) + '</div>' + esc(displayRight);
     rightDiv.addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(i));
 
     grid.appendChild(leftDiv);
@@ -1711,12 +1711,12 @@ function renderReviewSrt(grid) {
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
       if (enSpan > 1) leftDiv.style.gridRow = 'span ' + enSpan;
-      leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">' + tc + '</div>' + esc(row.en.text);
+      leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">' + tc + '</div>' + esc(row.en.text);
       grid.appendChild(leftDiv);
     } else if (!enKey) {
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
-      leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">' + tc + '</div>';
+      leftDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">' + tc + '</div>';
       grid.appendChild(leftDiv);
     }
 
@@ -1733,13 +1733,13 @@ function renderReviewSrt(grid) {
       if (edited) rightDiv.classList.add('edited');
       if (marked) rightDiv.classList.add('marked');
       var displayRight = edited ? reviewState.edits[rowIdx] : row.uk.text;
-      rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">' + tc + '</div>' + esc(displayRight);
+      rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">' + tc + '</div>' + esc(displayRight);
       rightDiv.addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(rowIdx));
       grid.appendChild(rightDiv);
     } else if (!ukKey) {
       var rightDiv = document.createElement('div');
       rightDiv.className = 'cell uk';
-      rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">' + tc + '</div>';
+      rightDiv.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">' + tc + '</div>';
       grid.appendChild(rightDiv);
     }
 
@@ -1764,7 +1764,7 @@ SPA.revertEdit = function(idx) {
   delete reviewState.edits[idx];
   var cell = document.querySelector('.cell.uk[data-idx="' + idx + '"]');
   if (cell) {
-    cell.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px">P' + (idx+1) + '</div>' + esc(reviewState.rightParas[idx] || '');
+    cell.innerHTML = '<div style="color:#555;font-size:11px;margin-bottom:2px;user-select:none" contenteditable="false">P' + (idx+1) + '</div>' + esc(reviewState.rightParas[idx] || '');
     cell.classList.remove('edited');
   }
   saveReview();
