@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-11T08:56:00.108649+00:00",
+  "updated_at": "2026-04-11T09:10:41.604388+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -103,6 +103,12 @@
       "reviewer": null,
       "issue_number": 37,
       "updated_at": "2026-04-11T08:55:49Z"
+    },
+    "Guru Puja Talk: Gravity": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 40,
+      "updated_at": "2026-04-11T09:10:28Z"
     }
   }
 }
