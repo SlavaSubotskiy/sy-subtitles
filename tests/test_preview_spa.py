@@ -853,58 +853,22 @@ class TestReviewModeToggle:
         assert saved is not None
         assert "srt" in saved
 
-    def test_column_dropdown_has_srt_options(self, server, page):
-        """Column dropdown in expert mode should include SRT options."""
+    def test_switch_srt_lang_function_exists(self, server, page):
+        """SPA.switchSrtLang should be defined."""
         self._goto_review_expert(server, page)
-        # Click column header to open dropdown
-        page.click("#col-header-right")
-        page.wait_for_timeout(200)
-        dd = page.locator("#transcript-dropdown-right")
-        assert dd.locator("div").count() >= 2, "Dropdown should have transcript + SRT options"
-        # Should have an SRT option
-        texts = [d.text_content() for d in dd.locator("div").all()]
-        assert any("subtitle" in t.lower() or "субтитр" in t.lower() for t in texts), (
-            f"Dropdown should have SRT option, got: {texts}"
-        )
+        assert page.evaluate("typeof SPA.switchSrtLang === 'function'")
 
-    def test_column_dropdown_switches_to_srt(self, server, page):
-        """Clicking SRT option in column dropdown should switch to SRT mode."""
+    def test_switch_srt_lang_reloads_grid(self, server, page):
+        """switchSrtLang should reload and re-render the SRT grid."""
         self._goto_review_expert(server, page)
-        page.click("#col-header-right")
-        page.wait_for_timeout(200)
-        # Find and click the SRT option
-        dd = page.locator("#transcript-dropdown-right")
-        srt_opts = [
-            d
-            for d in dd.locator("div").all()
-            if "subtitle" in d.text_content().lower() or "субтитр" in d.text_content().lower()
-        ]
-        assert len(srt_opts) > 0, "No SRT option found in dropdown"
-        srt_opts[0].click()
-        page.wait_for_timeout(500)
-        assert page.evaluate("reviewState.mode") == "srt"
-
-    def test_column_dropdown_switches_back_to_transcript(self, server, page):
-        """Clicking transcript option in column dropdown while in SRT mode should switch back."""
-        self._goto_review_expert(server, page)
-        # Switch to SRT first
         page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
         page.wait_for_timeout(500)
         assert page.evaluate("reviewState.mode") == "srt"
-        # Click column header to open dropdown
-        page.click("#col-header-right")
-        page.wait_for_timeout(200)
-        # Find and click transcript option
-        dd = page.locator("#transcript-dropdown-right")
-        transcript_opts = [
-            d
-            for d in dd.locator("div").all()
-            if "transcript" in d.text_content().lower() or "транскрипт" in d.text_content().lower()
-        ]
-        assert len(transcript_opts) > 0
-        transcript_opts[0].click()
+        # Call switchSrtLang — should reload grid
+        page.evaluate("SPA.switchSrtLang('right', 'uk')")
         page.wait_for_timeout(500)
-        assert page.evaluate("reviewState.mode") == "transcript"
+        html = page.locator("#review-grid").inner_html()
+        assert "00:0" in html, "Grid should still show timecodes after lang switch"
 
     def test_switch_back_to_transcript(self, server, page):
         """Switching back to transcript mode should show paragraphs."""

@@ -775,6 +775,10 @@ describe('Review mode toggle', () => {
     assert.ok(html.match(/SPA\.switchReviewMode\s*=/), 'SPA.switchReviewMode function should exist');
   });
 
+  it('SPA.switchSrtLang is defined', () => {
+    assert.ok(html.match(/SPA\.switchSrtLang\s*=/), 'SPA.switchSrtLang function should exist');
+  });
+
   it('alignSubtitlesByTime function is defined', () => {
     assert.ok(html.includes('function alignSubtitlesByTime'), 'alignment function should exist in HTML');
   });

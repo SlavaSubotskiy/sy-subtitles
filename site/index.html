@@ -1893,62 +1893,77 @@ SPA.toggleTranscriptDropdown = function(side) {
   if (!dd) return;
   var talk = reviewState.talk;
 
-  dd.innerHTML = '';
-  var isSrt = reviewState.mode === 'srt';
-  var currentLang = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
-
-  // Transcript options
-  var transcripts = (talk && talk.transcripts) || [];
-  if (transcripts.length) {
-    transcripts.sort().forEach(function(lang) {
+  if (reviewState.mode === 'srt') {
+    // SRT mode: show available SRT languages for this video
+    var srtLangs = (talk && talk._srtLangs && talk._srtLangs[reviewState.videoSlug]) || [];
+    var langs = side === 'left' ? ['en'] : srtLangs.filter(function(l) { return l !== 'en'; });
+    if (langs.length <= 1) { return; }
+    dd.innerHTML = '';
+    var currentSrtLang = side === 'left' ? 'en' : 'uk';
+    langs.sort().forEach(function(lang) {
       var d = document.createElement('div');
-      d.textContent = langName(lang) + ' [' + t('review.mode_transcript') + ']';
-      if (!isSrt && lang === currentLang) d.classList.add('active');
-      d.onclick = function(e) { e.stopPropagation(); SPA.switchTranscript(side, lang); };
+      d.textContent = langName(lang);
+      if (lang === currentSrtLang) d.classList.add('active');
+      d.onclick = function(e) { e.stopPropagation(); SPA.switchSrtLang(side, lang); };
       dd.appendChild(d);
     });
+    dd.classList.add('open');
+    return;
   }
 
-  // SRT options (per video, expert only)
-  if (expertMode && talk) {
-    (talk.videos || []).forEach(function(v) {
-      if (!v.hasSrt) return;
-      var srtLangs = (talk._srtLangs && talk._srtLangs[v.slug]) || [];
-      var targetLangs = side === 'left' ? srtLangs.filter(function(l) { return l === 'en'; }) : srtLangs.filter(function(l) { return l !== 'en'; });
-      targetLangs.forEach(function(lang) {
-        var d = document.createElement('div');
-        d.textContent = langName(lang) + ' [' + t('review.mode_srt') + ': ' + (v.title || v.slug) + ']';
-        if (isSrt && reviewState.videoSlug === v.slug) d.classList.add('active');
-        d.onclick = function(e) {
-          e.stopPropagation();
-          document.querySelectorAll('.transcript-dropdown.open').forEach(function(dd) { dd.classList.remove('open'); });
-          SPA.switchReviewMode('srt', v.slug);
-          var modeSel = document.getElementById('review-mode-select');
-          if (modeSel) { for (var k = 0; k < modeSel.options.length; k++) { if (modeSel.options[k].dataset.video === v.slug) { modeSel.selectedIndex = k; break; } } }
-        };
-        dd.appendChild(d);
-      });
-    });
-  }
-
-  if (!dd.children.length) { return; }
+  // Transcript mode
+  var langs = (talk && talk.transcripts) || [];
+  if (!langs.length) { showToast(t('no_transcripts')); return; }
+  var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
+  dd.innerHTML = '';
+  langs.sort().forEach(function(lang) {
+    var d = document.createElement('div');
+    d.textContent = langName(lang);
+    if (lang === current) d.classList.add('active');
+    d.onclick = function(e) { e.stopPropagation(); SPA.switchTranscript(side, lang); };
+    dd.appendChild(d);
+  });
   dd.classList.add('open');
 };
 
-SPA.switchTranscript = function(side, lang) {
+SPA.switchSrtLang = function(side, lang) {
   document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
-  // If in SRT mode, switch back to transcript first
-  if (reviewState.mode === 'srt') {
-    if (side === 'left') reviewState.leftLang = lang;
-    else reviewState.rightLang = lang;
-    SPA.switchReviewMode('transcript');
-    // Sync mode selector dropdown
-    var modeSel = document.getElementById('review-mode-select');
-    if (modeSel) modeSel.selectedIndex = 0;
-    return;
-  }
+  // Reload SRT with the new language for this side
+  var talkId = reviewState.talkId;
+  var videoSlug = reviewState.videoSlug;
+  var talk = reviewState.talk;
+  var statusEl = document.getElementById('review-status');
+  statusEl.textContent = t('review.loading');
+  statusEl.style.display = 'block';
+
+  var enLang = side === 'left' ? lang : 'en';
+  var ukLang = side === 'right' ? lang : 'uk';
+  var enSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/' + enLang]) || '';
+  var ukSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/' + ukLang]) || '';
+  var enUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/source/' + enLang + '.srt' + (enSha ? '?v=' + enSha.substring(0, 8) : '');
+  var ukUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/final/' + ukLang + '.srt' + (ukSha ? '?v=' + ukSha.substring(0, 8) : '');
+
+  Promise.all([
+    fetch(enUrl).then(function(r) { return r.ok ? r.text() : ''; }),
+    fetch(ukUrl).then(function(r) { return r.ok ? r.text() : ''; })
+  ]).then(function(texts) {
+    var enBlocks = parseSRT(texts[0]);
+    var ukBlocks = parseSRT(texts[1]);
+    var aligned = alignSubtitlesByTime(enBlocks, ukBlocks);
+    reviewState.leftParas = aligned.map(function(r) { return r.en ? r.en.text : ''; });
+    reviewState.rightParas = aligned.map(function(r) { return r.uk ? r.uk.text : ''; });
+    reviewState.alignedRows = aligned;
+    reviewState.edits = {};
+    reviewState.marks = {};
+    renderReview();
+    updateColHeaders();
+    statusEl.style.display = 'none';
+  });
+};
+
+SPA.switchTranscript = function(side, lang) {
   var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
-  if (lang === current) { return; }
+  if (lang === current) { document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); }); return; }
   if (Object.keys(reviewState.edits).length > 0) {
     if (!confirm(t('confirm.unsaved_edits'))) return;
     reviewState.edits = {};
