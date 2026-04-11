@@ -881,6 +881,53 @@ class TestReviewModeToggle:
         right_text = page.locator("#col-header-right").text_content()
         assert "Ukrainian" in right_text
 
+    def test_issue_body_links_to_srt_in_srt_mode(self, server, page):
+        """Create Issue body should reference SRT file, not transcript, in SRT mode."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        # Override window.open to capture URL
+        page.evaluate("window._openedUrl = null; window.open = function(u) { window._openedUrl = u; }")
+        page.evaluate("SPA.createReviewIssue()")
+        page.wait_for_timeout(300)
+        url = page.evaluate("window._openedUrl || ''")
+        assert "uk.srt" in url, f"Issue URL should reference uk.srt in SRT mode, got: {url[:200]}"
+        assert "Test-Video" in url, f"Issue URL should reference video slug, got: {url[:200]}"
+
+    def test_editor_opens_srt_in_srt_mode(self, server, page):
+        """Open Editor should link to SRT file in SRT mode."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        page.evaluate("window._openedUrl = null; window.open = function(u) { window._openedUrl = u; }")
+        page.evaluate("SPA.openEditor()")
+        page.wait_for_timeout(300)
+        url = page.evaluate("window._openedUrl || ''")
+        assert "uk.srt" in url, f"Editor URL should open uk.srt in SRT mode, got: {url}"
+        assert "Test-Video" in url, f"Editor URL should reference video slug, got: {url}"
+
+    def test_issue_body_links_to_transcript_in_transcript_mode(self, server, page):
+        """Create Issue body should reference transcript in transcript mode."""
+        self._goto_review_expert(server, page)
+        page.evaluate("window._openedUrl = null; window.open = function(u) { window._openedUrl = u; }")
+        page.evaluate("SPA.createReviewIssue()")
+        page.wait_for_timeout(300)
+        url = page.evaluate("window._openedUrl || ''")
+        assert "transcript_uk.txt" in url, f"Issue URL should reference transcript in transcript mode, got: {url[:200]}"
+
+    def test_issue_body_uses_timecodes_in_srt_mode(self, server, page):
+        """Issue body should use timecodes instead of P-numbers in SRT mode."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        # Mark first block
+        page.evaluate("reviewState.marks[0] = 'test'; saveReview()")
+        page.evaluate("window._openedUrl = null; window.open = function(u) { window._openedUrl = u; }")
+        page.evaluate("SPA.createReviewIssue()")
+        page.wait_for_timeout(300)
+        body = page.evaluate("decodeURIComponent(window._openedUrl || '')")
+        assert "00:0" in body, f"Issue body should use timecodes in SRT mode, got: {body[:300]}"
+
     def test_switch_back_to_transcript(self, server, page):
         """Switching back to transcript mode should show paragraphs."""
         self._goto_review_expert(server, page)

@@ -1816,23 +1816,35 @@ SPA.createReviewIssue = function() {
   var gh = 'https://github.com/' + REPO;
   var talk = manifest ? manifest.talks.find(function(t) { return t.id === reviewState.talkId; }) : null;
   var title = talk ? talk.title : reviewState.talkId;
+  var isSrt = reviewState.mode === 'srt';
+  var filePath = isSrt
+    ? 'talks/' + reviewState.talkId + '/' + reviewState.videoSlug + '/final/' + (reviewState.srtRightLang || 'uk') + '.srt'
+    : 'talks/' + reviewState.talkId + '/transcript_' + reviewState.rightLang + '.txt';
+  var fileLabel = isSrt ? 'Subtitles' : 'Transcript';
+  var aligned = isSrt ? (reviewState.alignedRows || []) : null;
+
+  function rowLabel(idx) {
+    if (isSrt && aligned && aligned[idx]) return msToTC(aligned[idx].startMs) + ' \u2013 ' + msToTC(aligned[idx].endMs);
+    return 'P' + (idx + 1);
+  }
+
   var lines = [
     '## Translation review: ' + title, '',
     '| | |', '|---|---|',
-    '| Transcript | [`talks/' + reviewState.talkId + '/transcript_uk.txt`](' + gh + '/blob/main/talks/' + reviewState.talkId + '/transcript_uk.txt) |', ''
+    '| ' + fileLabel + ' | [`' + filePath + '`](' + gh + '/blob/main/' + filePath + ') |', ''
   ];
   var markIdxs = Object.keys(reviewState.marks).map(Number).sort(function(a,b){return a-b;});
   if (markIdxs.length) {
-    lines.push('### Marked paragraphs', '', '| P# | English | Ukrainian | Comment |', '|----|---------|-----------|---------|');
+    lines.push('### Marked paragraphs', '', '| # | English | Ukrainian | Comment |', '|----|---------|-----------|---------|');
     markIdxs.forEach(function(idx) {
-      lines.push('| P' + (idx+1) + ' | ' + (reviewState.leftParas[idx]||'') + ' | ' + (reviewState.edits[idx]||reviewState.rightParas[idx]||'') + ' | ' + (reviewState.marks[idx]||'') + ' |');
+      lines.push('| ' + rowLabel(idx) + ' | ' + (reviewState.leftParas[idx]||'') + ' | ' + (reviewState.edits[idx]||reviewState.rightParas[idx]||'') + ' | ' + (reviewState.marks[idx]||'') + ' |');
     });
   }
   var editIdxs = Object.keys(reviewState.edits).map(Number).sort(function(a,b){return a-b;});
   if (editIdxs.length) {
     lines.push('', '### Suggested edits', '');
     editIdxs.forEach(function(idx) {
-      lines.push('<details><summary><b>P' + (idx+1) + '</b></summary>', '', '**Before:**', '> ' + (reviewState.rightParas[idx]||''), '', '**After:**', '> ' + reviewState.edits[idx], '', '</details>', '');
+      lines.push('<details><summary><b>' + rowLabel(idx) + '</b></summary>', '', '**Before:**', '> ' + (reviewState.rightParas[idx]||''), '', '**After:**', '> ' + reviewState.edits[idx], '', '</details>', '');
     });
   }
   var issueTitle = 'Translation review: ' + title;
@@ -1853,7 +1865,10 @@ SPA.createReviewIssue = function() {
 };
 
 SPA.openEditor = function() {
-  var url = 'https://github.com/' + REPO + '/edit/main/talks/' + reviewState.talkId + '/transcript_' + reviewState.rightLang + '.txt';
+  var filePath = reviewState.mode === 'srt'
+    ? 'talks/' + reviewState.talkId + '/' + reviewState.videoSlug + '/final/' + (reviewState.srtRightLang || 'uk') + '.srt'
+    : 'talks/' + reviewState.talkId + '/transcript_' + reviewState.rightLang + '.txt';
+  var url = 'https://github.com/' + REPO + '/edit/main/' + filePath;
   if (Object.keys(reviewState.edits).length > 0) {
     var paras = [];
     for (var i = 0; i < reviewState.rightParas.length; i++) {
