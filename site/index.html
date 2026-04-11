@@ -203,10 +203,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 #view-preview.fs-mode .video-wrap { flex: 1; padding-bottom: 0; height: 100%; }
 #view-preview.fs-mode .video-wrap iframe,
 #view-preview.fs-mode .video-wrap > div { position: relative; width: 100%; height: 100%; }
-#view-preview.fs-mode #subtitle-overlay { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 10000; font-size: clamp(18px, 2.2vw, 48px); background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 40px 10% 28px; min-height: 0; border-radius: 0; text-shadow: 0 2px 6px rgba(0,0,0,1); pointer-events: none; }
-#view-preview.fs-mode .controls { position: fixed; top: 12px; right: 16px; z-index: 10001; background: rgba(0,0,0,0.5); border-radius: 8px; padding: 4px 8px; opacity: 0; transition: opacity 0.3s; }
-#view-preview.fs-mode:hover .controls,
-#view-preview.fs-mode .controls:focus-within { opacity: 1; }
+#view-preview.fs-mode #subtitle-overlay { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 10000; font-size: clamp(28px, 4vw, 80px); background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 40px 10% 28px; min-height: 0; border-radius: 0; text-shadow: 0 2px 6px rgba(0,0,0,1); pointer-events: none; }
+#view-preview.fs-mode .controls { display: none !important; }
 </style>
 </head>
 <body>
@@ -248,7 +246,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
       <span id="time-display">00:00:00</span>
       <select id="srt-lang-select" style="display:none;background:var(--bg4);color:var(--fg);border:1px solid var(--border3);border-radius:4px;padding:4px 8px;font-size:13px;cursor:pointer;" data-i18n-title="title.srt_lang"></select>
       <button id="btn-mark" onclick="SPA.addMarker()" data-i18n-title="btn.mark_title" data-i18n="btn.mark">&#x1F4CC; Mark</button>
-      <button id="btn-fullscreen" onclick="SPA.toggleFullscreen()" title="F = fullscreen" style="padding:4px 10px;font-size:16px;">&#x26F6;</button>
+      <button id="btn-fullscreen" onclick="SPA.toggleFullscreen()" title="F = fullscreen" style="padding:4px 10px;font-size:16px;">&#x2922;</button>
     </div>
   </div>
   <div class="markers">
