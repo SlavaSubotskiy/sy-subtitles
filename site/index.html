@@ -1893,42 +1893,62 @@ SPA.toggleTranscriptDropdown = function(side) {
   if (!dd) return;
   var talk = reviewState.talk;
 
-  if (reviewState.mode === 'srt') {
-    // SRT mode: show available SRT languages for this video
-    var srtLangs = (talk && talk._srtLangs && talk._srtLangs[reviewState.videoSlug]) || [];
-    // For left (source), show en.srt from source/; for right (final), show from final/
-    var enLangs = ['en']; // source always has en
-    var langs = side === 'left' ? enLangs : srtLangs.filter(function(l) { return l !== 'en'; });
-    if (langs.length <= 1) { return; } // no alternatives
-    dd.innerHTML = '';
-    langs.sort().forEach(function(lang) {
+  dd.innerHTML = '';
+  var isSrt = reviewState.mode === 'srt';
+  var currentLang = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
+
+  // Transcript options
+  var transcripts = (talk && talk.transcripts) || [];
+  if (transcripts.length) {
+    transcripts.sort().forEach(function(lang) {
       var d = document.createElement('div');
-      d.textContent = langName(lang);
-      d.onclick = function(e) { e.stopPropagation(); SPA.switchSrtLang(side, lang); };
+      d.textContent = langName(lang) + ' [' + t('review.mode_transcript') + ']';
+      if (!isSrt && lang === currentLang) d.classList.add('active');
+      d.onclick = function(e) { e.stopPropagation(); SPA.switchTranscript(side, lang); };
       dd.appendChild(d);
     });
-    dd.classList.add('open');
-    return;
   }
 
-  // Transcript mode
-  var langs = (talk && talk.transcripts) || [];
-  if (!langs.length) { showToast(t('no_transcripts')); return; }
-  var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
-  dd.innerHTML = '';
-  langs.sort().forEach(function(lang) {
-    var d = document.createElement('div');
-    d.textContent = langName(lang);
-    if (lang === current) d.classList.add('active');
-    d.onclick = function(e) { e.stopPropagation(); SPA.switchTranscript(side, lang); };
-    dd.appendChild(d);
-  });
+  // SRT options (per video, expert only)
+  if (expertMode && talk) {
+    (talk.videos || []).forEach(function(v) {
+      if (!v.hasSrt) return;
+      var srtLangs = (talk._srtLangs && talk._srtLangs[v.slug]) || [];
+      var targetLangs = side === 'left' ? srtLangs.filter(function(l) { return l === 'en'; }) : srtLangs.filter(function(l) { return l !== 'en'; });
+      targetLangs.forEach(function(lang) {
+        var d = document.createElement('div');
+        d.textContent = langName(lang) + ' [' + t('review.mode_srt') + ': ' + (v.title || v.slug) + ']';
+        if (isSrt && reviewState.videoSlug === v.slug) d.classList.add('active');
+        d.onclick = function(e) {
+          e.stopPropagation();
+          document.querySelectorAll('.transcript-dropdown.open').forEach(function(dd) { dd.classList.remove('open'); });
+          SPA.switchReviewMode('srt', v.slug);
+          var modeSel = document.getElementById('review-mode-select');
+          if (modeSel) { for (var k = 0; k < modeSel.options.length; k++) { if (modeSel.options[k].dataset.video === v.slug) { modeSel.selectedIndex = k; break; } } }
+        };
+        dd.appendChild(d);
+      });
+    });
+  }
+
+  if (!dd.children.length) { return; }
   dd.classList.add('open');
 };
 
 SPA.switchTranscript = function(side, lang) {
+  document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+  // If in SRT mode, switch back to transcript first
+  if (reviewState.mode === 'srt') {
+    if (side === 'left') reviewState.leftLang = lang;
+    else reviewState.rightLang = lang;
+    SPA.switchReviewMode('transcript');
+    // Sync mode selector dropdown
+    var modeSel = document.getElementById('review-mode-select');
+    if (modeSel) modeSel.selectedIndex = 0;
+    return;
+  }
   var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
-  if (lang === current) { document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); }); return; }
+  if (lang === current) { return; }
   if (Object.keys(reviewState.edits).length > 0) {
     if (!confirm(t('confirm.unsaved_edits'))) return;
     reviewState.edits = {};

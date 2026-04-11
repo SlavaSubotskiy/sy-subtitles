@@ -853,6 +853,59 @@ class TestReviewModeToggle:
         assert saved is not None
         assert "srt" in saved
 
+    def test_column_dropdown_has_srt_options(self, server, page):
+        """Column dropdown in expert mode should include SRT options."""
+        self._goto_review_expert(server, page)
+        # Click column header to open dropdown
+        page.click("#col-header-right")
+        page.wait_for_timeout(200)
+        dd = page.locator("#transcript-dropdown-right")
+        assert dd.locator("div").count() >= 2, "Dropdown should have transcript + SRT options"
+        # Should have an SRT option
+        texts = [d.text_content() for d in dd.locator("div").all()]
+        assert any("subtitle" in t.lower() or "субтитр" in t.lower() for t in texts), (
+            f"Dropdown should have SRT option, got: {texts}"
+        )
+
+    def test_column_dropdown_switches_to_srt(self, server, page):
+        """Clicking SRT option in column dropdown should switch to SRT mode."""
+        self._goto_review_expert(server, page)
+        page.click("#col-header-right")
+        page.wait_for_timeout(200)
+        # Find and click the SRT option
+        dd = page.locator("#transcript-dropdown-right")
+        srt_opts = [
+            d
+            for d in dd.locator("div").all()
+            if "subtitle" in d.text_content().lower() or "субтитр" in d.text_content().lower()
+        ]
+        assert len(srt_opts) > 0, "No SRT option found in dropdown"
+        srt_opts[0].click()
+        page.wait_for_timeout(500)
+        assert page.evaluate("reviewState.mode") == "srt"
+
+    def test_column_dropdown_switches_back_to_transcript(self, server, page):
+        """Clicking transcript option in column dropdown while in SRT mode should switch back."""
+        self._goto_review_expert(server, page)
+        # Switch to SRT first
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        assert page.evaluate("reviewState.mode") == "srt"
+        # Click column header to open dropdown
+        page.click("#col-header-right")
+        page.wait_for_timeout(200)
+        # Find and click transcript option
+        dd = page.locator("#transcript-dropdown-right")
+        transcript_opts = [
+            d
+            for d in dd.locator("div").all()
+            if "transcript" in d.text_content().lower() or "транскрипт" in d.text_content().lower()
+        ]
+        assert len(transcript_opts) > 0
+        transcript_opts[0].click()
+        page.wait_for_timeout(500)
+        assert page.evaluate("reviewState.mode") == "transcript"
+
     def test_switch_back_to_transcript(self, server, page):
         """Switching back to transcript mode should show paragraphs."""
         self._goto_review_expert(server, page)
@@ -1817,9 +1870,9 @@ class TestTranscriptSelector:
         page.locator("#col-header-left").click()
         page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
         texts = [el.text_content() for el in page.locator("#transcript-dropdown-left div").all()]
-        assert "English" in texts
-        assert "Hindi" in texts
-        assert "Ukrainian" in texts
+        assert any("English" in t for t in texts), f"Expected English in {texts}"
+        assert any("Hindi" in t for t in texts), f"Expected Hindi in {texts}"
+        assert any("Ukrainian" in t for t in texts), f"Expected Ukrainian in {texts}"
 
     def test_current_language_marked_active(self, server, page):
         """Current language has .active class in dropdown."""
