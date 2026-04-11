@@ -1472,7 +1472,8 @@ function updateColHeaders() {
 
 function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
-  reviewState.talkId = talkId;
+  // Reset all state for new talk
+  reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n', mode: 'transcript', videoSlug: '', alignedRows: null };
 
   var langs = parseReviewLangs(location.hash, talkId);
   reviewState.leftLang = langs.left;
