@@ -864,11 +864,22 @@ class TestReviewModeToggle:
         page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
         page.wait_for_timeout(500)
         assert page.evaluate("reviewState.mode") == "srt"
-        # Call switchSrtLang — should reload grid
         page.evaluate("SPA.switchSrtLang('right', 'uk')")
         page.wait_for_timeout(500)
         html = page.locator("#review-grid").inner_html()
         assert "00:0" in html, "Grid should still show timecodes after lang switch"
+
+    def test_switch_srt_lang_updates_column_header(self, server, page):
+        """switchSrtLang should update the column header text."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        # Store srtLeftLang and srtRightLang in reviewState
+        assert page.evaluate("reviewState.srtLeftLang") == "en"
+        assert page.evaluate("reviewState.srtRightLang") == "uk"
+        # Column header should reflect current SRT language
+        right_text = page.locator("#col-header-right").text_content()
+        assert "Ukrainian" in right_text
 
     def test_switch_back_to_transcript(self, server, page):
         """Switching back to transcript mode should show paragraphs."""

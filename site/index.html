@@ -1443,7 +1443,7 @@ var LANG_NAMES = {
 };
 function langName(code) { return LANG_NAMES[code] || code.charAt(0).toUpperCase() + code.slice(1); }
 
-var reviewState = { talkId: '', leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n', mode: 'transcript', videoSlug: '' };
+var reviewState = { talkId: '', leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n', mode: 'transcript', videoSlug: '', srtLeftLang: 'en', srtRightLang: 'uk' };
 
 function parseReviewLangs(hash, talkId) {
   var left = 'en', right = 'uk';
@@ -1467,9 +1467,8 @@ function updateColHeaders() {
   var lh = document.getElementById('col-header-left');
   var rh = document.getElementById('col-header-right');
   if (reviewState.mode === 'srt') {
-    // SRT mode: show source/final language labels
-    if (lh) lh.firstChild.textContent = langName('en') + ' (source) \u25BE';
-    if (rh) rh.firstChild.textContent = langName('uk') + ' (final) \u25BE';
+    if (lh) lh.firstChild.textContent = langName(reviewState.srtLeftLang || 'en') + ' (source) \u25BE';
+    if (rh) rh.firstChild.textContent = langName(reviewState.srtRightLang || 'uk') + ' (final) \u25BE';
   } else {
     if (lh) lh.firstChild.textContent = langName(reviewState.leftLang) + ' \u25BE';
     if (rh) rh.firstChild.textContent = langName(reviewState.rightLang) + ' \u25BE';
@@ -1479,7 +1478,7 @@ function updateColHeaders() {
 function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
   // Reset all state for new talk
-  reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n', mode: 'transcript', videoSlug: '', alignedRows: null };
+  reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n', mode: 'transcript', videoSlug: '', alignedRows: null, srtLeftLang: 'en', srtRightLang: 'uk' };
 
   var langs = parseReviewLangs(location.hash, talkId);
   reviewState.leftLang = langs.left;
@@ -1899,7 +1898,7 @@ SPA.toggleTranscriptDropdown = function(side) {
     var langs = side === 'left' ? ['en'] : srtLangs.filter(function(l) { return l !== 'en'; });
     if (langs.length <= 1) { return; }
     dd.innerHTML = '';
-    var currentSrtLang = side === 'left' ? 'en' : 'uk';
+    var currentSrtLang = side === 'left' ? (reviewState.srtLeftLang || 'en') : (reviewState.srtRightLang || 'uk');
     langs.sort().forEach(function(lang) {
       var d = document.createElement('div');
       d.textContent = langName(lang);
@@ -1936,8 +1935,10 @@ SPA.switchSrtLang = function(side, lang) {
   statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
 
-  var enLang = side === 'left' ? lang : 'en';
-  var ukLang = side === 'right' ? lang : 'uk';
+  var enLang = side === 'left' ? lang : (reviewState.srtLeftLang || 'en');
+  var ukLang = side === 'right' ? lang : (reviewState.srtRightLang || 'uk');
+  reviewState.srtLeftLang = enLang;
+  reviewState.srtRightLang = ukLang;
   var enSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/' + enLang]) || '';
   var ukSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/' + ukLang]) || '';
   var enUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/source/' + enLang + '.srt' + (enSha ? '?v=' + enSha.substring(0, 8) : '');
