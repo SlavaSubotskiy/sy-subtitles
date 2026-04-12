@@ -2166,3 +2166,139 @@ class TestTranscriptSelector:
         assert "en" in transcripts
         assert "hi" in transcripts
         assert "uk" in transcripts
+
+
+REAL_TRANSCRIPT_FIXTURES = [
+    "single_sep.txt",
+    "single_sep_v2.txt",
+    "double_sep.txt",
+]
+
+
+class TestRealTranscriptRoundTrip:
+    """Round-trip real-world transcript files through the SPA review page.
+
+    Loads each fixture as transcript_uk.txt, navigates to review (transcript
+    mode), edits one paragraph programmatically, calls Open Editor, and
+    asserts that the clipboard content equals the original file with only
+    the targeted edit applied. Catches paragraph-split / separator /
+    whitespace regressions in parseTranscript and openEditor reconstruction.
+    """
+
+    @staticmethod
+    def _load_fixture(name: str) -> str:
+        return Path(__file__).parent.joinpath("fixtures", "transcripts", name).read_text(encoding="utf-8")
+
+    def _goto_review_with(self, server, page, transcript_text: str):
+        """Override the transcript_uk.txt route to serve the given content,
+        then navigate to the review page in transcript mode."""
+        # Specific routes registered later take priority over the default
+        # SAMPLE_UK route already registered by the page fixture.
+        page.route(
+            "**/raw.githubusercontent.com/**/transcript_uk.txt",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=transcript_text),
+        )
+        goto_spa(page, server)
+        page.evaluate("localStorage.setItem('sy_expert_mode', '1'); expertMode = true; applyExpertMode();")
+        page.evaluate("location.hash = '#/review/2001-01-01_Test-Talk'")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+
+    @pytest.mark.parametrize("fixture", REAL_TRANSCRIPT_FIXTURES)
+    def test_no_edits_clipboard_byte_identical(self, server, page, fixture):
+        """With zero edits, Open Editor's clipboard content must equal the
+        original file byte-for-byte. Any difference means parseTranscript or
+        the reconstruction in openEditor is silently mutating the file."""
+        original = self._load_fixture(fixture)
+        self._goto_review_with(server, page, original)
+        page.evaluate(
+            """
+            window._clipText = '';
+            navigator.clipboard.writeText = function(t) { window._clipText = t; return Promise.resolve(); };
+            window.alert = function() {};
+            window.open = function() {};
+            // Force at least one edit so openEditor takes the clipboard branch.
+            // Then immediately revert it so the diff is empty.
+            var firstIdx = 0;
+            reviewState.edits[firstIdx] = reviewState.rightParas[firstIdx];
+            saveReview();
+            """
+        )
+        page.evaluate("SPA.openEditor()")
+        page.wait_for_timeout(300)
+        clip = page.evaluate("window._clipText || ''")
+        assert clip == original, (
+            f"[{fixture}] clipboard content drifted from original\n"
+            f"orig len: {len(original)}, clip len: {len(clip)}\n"
+            f"first diff at: {next((i for i in range(min(len(original), len(clip))) if original[i] != clip[i]), 'tail')}\n"
+            f"orig head: {original[:200]!r}\n"
+            f"clip head: {clip[:200]!r}\n"
+        )
+
+    @pytest.mark.parametrize("fixture", REAL_TRANSCRIPT_FIXTURES)
+    def test_single_edit_only_target_paragraph_changes(self, server, page, fixture):
+        """A single paragraph edit must produce a clipboard that differs from
+        the original ONLY in the edited paragraph. Header, separators, and all
+        other paragraphs are byte-identical."""
+        original = self._load_fixture(fixture)
+        self._goto_review_with(server, page, original)
+
+        # Pick a middle paragraph to edit (avoid first/last to also catch
+        # boundary issues).
+        para_count = page.evaluate("reviewState.rightParas.length")
+        assert para_count >= 3, f"[{fixture}] need at least 3 paragraphs, got {para_count}"
+        target_idx = para_count // 2
+        original_para = page.evaluate(f"reviewState.rightParas[{target_idx}]")
+        edited_para = original_para + " [TEST_EDIT]"
+
+        page.evaluate(
+            """
+            window._clipText = '';
+            navigator.clipboard.writeText = function(t) { window._clipText = t; return Promise.resolve(); };
+            window.alert = function() {};
+            window.open = function() {};
+            """
+        )
+        page.evaluate(f"reviewState.edits[{target_idx}] = {json.dumps(edited_para)}; saveReview()")
+        page.evaluate("SPA.openEditor()")
+        page.wait_for_timeout(300)
+        clip = page.evaluate("window._clipText || ''")
+
+        # The edit must be present
+        assert "[TEST_EDIT]" in clip, f"[{fixture}] edit marker not found in clipboard"
+
+        # Replace the edit back to the original — the result must equal the
+        # original file byte-for-byte. This proves the only diff is our edit.
+        clip_reverted = clip.replace(" [TEST_EDIT]", "", 1)
+        assert clip_reverted == original, (
+            f"[{fixture}] clipboard differs from original beyond the edit\n"
+            f"orig len: {len(original)}, reverted len: {len(clip_reverted)}\n"
+            f"first diff: {next((i for i in range(min(len(original), len(clip_reverted))) if original[i] != clip_reverted[i]), 'tail')}\n"
+        )
+
+    @pytest.mark.parametrize("fixture", REAL_TRANSCRIPT_FIXTURES)
+    def test_paragraph_count_preserved(self, server, page, fixture):
+        """parseTranscript must split the body into the same number of
+        paragraphs the file actually has, regardless of separator style."""
+        original = self._load_fixture(fixture)
+        self._goto_review_with(server, page, original)
+        para_count = page.evaluate("reviewState.rightParas.length")
+
+        # Count paragraphs by parsing the body the same way the SPA should:
+        # everything after the language line, split by either \n\n+ or single \n.
+        lines = original.split("\n")
+        body_start = 0
+        for i, line in enumerate(lines[:10]):
+            if line.strip().startswith(("Talk Language:", "Language:", "Мова промови:", "Мова:", "भाषण भाषा:")):
+                body_start = i + 1
+                break
+        body = "\n".join(lines[body_start:]).strip()
+        import re as _re
+
+        if _re.search(r"\n\s*\n", body):
+            expected = len([p for p in _re.split(r"\n\s*\n", body) if p.strip()])
+        else:
+            expected = len([p for p in body.split("\n") if p.strip()])
+
+        assert para_count == expected, (
+            f"[{fixture}] paragraph count mismatch: SPA reports {para_count}, expected {expected}"
+        )

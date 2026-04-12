@@ -1652,7 +1652,12 @@ function parseTranscript(text) {
   var header = '';
   for (var i = 0; i < Math.min(lines.length, 10); i++) {
     if (/^(Talk Language:|Language:|Мова промови:|Мова:|भाषण भाषा:)/i.test(lines[i].trim())) {
-      bodyStart = i + 1; header = lines.slice(0, bodyStart).join('\n'); break;
+      header = lines.slice(0, i + 1).join('\n');
+      bodyStart = i + 1;
+      // Consume any blank separator lines between header and body so the
+      // body's leading newlines don't confuse separator detection.
+      while (bodyStart < lines.length && lines[bodyStart].trim() === '') bodyStart++;
+      break;
     }
   }
   var body = lines.slice(bodyStart).join('\n');
@@ -1940,7 +1945,10 @@ SPA.openEditor = function() {
       for (var i = 0; i < reviewState.rightParas.length; i++) {
         paras.push(reviewState.edits[i] !== undefined ? reviewState.edits[i] : reviewState.rightParas[i]);
       }
-      full = reviewState.rightHeader ? reviewState.rightHeader + reviewState.rightSep + paras.join(reviewState.rightSep) + '\n' : paras.join(reviewState.rightSep) + '\n';
+      // Header is always followed by a blank-line separator regardless of
+      // the in-body paragraph separator (single vs double newline). This
+      // matches how the source files are written.
+      full = reviewState.rightHeader ? reviewState.rightHeader + '\n\n' + paras.join(reviewState.rightSep) + '\n' : paras.join(reviewState.rightSep) + '\n';
     }
     navigator.clipboard.writeText(full).then(function() {
       alert(t('editor.clipboard_alert'));
