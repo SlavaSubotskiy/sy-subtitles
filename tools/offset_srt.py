@@ -73,15 +73,31 @@ def detect_offset(srt1_path, srt2_path, check_blocks=10, tolerance_ms=500, simil
 
 
 def apply_offset(srt_path, offset_ms, output_path):
-    """Apply a time offset to all blocks in an SRT file."""
-    blocks = parse_srt(srt_path)
+    """Apply a time offset to all blocks in an SRT file.
 
+    Drops blocks whose shifted end time is <= 0 (they'd be off-screen
+    before the video even starts) and clamps negative start times to 0
+    so write_srt never emits a negative timecode — validate_subtitles
+    would otherwise refuse to parse them and report every subsequent
+    block as a numbering error.
+    """
+    blocks = parse_srt(srt_path)
+    kept = []
+    dropped = 0
     for b in blocks:
         b["start_ms"] += offset_ms
         b["end_ms"] += offset_ms
-
-    write_srt(blocks, output_path)
-    print(f"Written {len(blocks)} blocks to {output_path} (offset: {offset_ms:+d}ms)")
+        if b["end_ms"] <= 0:
+            dropped += 1
+            continue
+        if b["start_ms"] < 0:
+            b["start_ms"] = 0
+        kept.append(b)
+    write_srt(kept, output_path)
+    msg = f"Written {len(kept)} blocks to {output_path} (offset: {offset_ms:+d}ms)"
+    if dropped:
+        msg += f"; dropped {dropped} blocks before t=0"
+    print(msg)
 
 
 def main():

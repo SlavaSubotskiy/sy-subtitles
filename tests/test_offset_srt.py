@@ -445,25 +445,32 @@ class TestApplyOffset:
         blocks = parse_srt(str(srt_out))
         assert len(blocks) == 0
 
-    def test_negative_offset_can_produce_negative_timecodes(self, tmp_path):
-        """Large negative offset on early blocks results in negative ms values.
-
-        Note: the current implementation does NOT clamp to zero.
-        This test documents the actual behavior.
-        """
+    def test_negative_offset_drops_blocks_before_zero(self, tmp_path):
+        """A large negative offset that would push a block's end before
+        t=0 must drop that block, and any block whose start goes negative
+        gets clamped to 0 so write_srt never emits an invalid timecode."""
         srt_in = tmp_path / "input.srt"
         srt_out = tmp_path / "output.srt"
 
-        _write_srt(srt_in, [(1000, 3000, "Early block.")])
+        _write_srt(
+            srt_in,
+            [
+                (1000, 3000, "Dropped entirely."),
+                (4000, 9000, "Clamped start."),
+                (20000, 24000, "Kept intact."),
+            ],
+        )
 
         apply_offset(str(srt_in), -5000, str(srt_out))
 
-        # The function writes the file; verify values went negative
-        # (write_srt with negative ms will produce malformed timecodes)
-        # We read the raw file to confirm behavior
-        raw = srt_out.read_text(encoding="utf-8")
-        # The block was written (function completed without error)
-        assert raw.strip() != ""
+        kept = parse_srt(str(srt_out))
+        assert len(kept) == 2
+        # First survivor had start=4000 → -1000, clamped to 0; end stays 4000
+        assert kept[0]["start_ms"] == 0
+        assert kept[0]["end_ms"] == 4000
+        # Second survivor shifted normally
+        assert kept[1]["start_ms"] == 15000
+        assert kept[1]["end_ms"] == 19000
 
     def test_output_file_is_valid_srt(self, tmp_path):
         """Output file is a valid SRT that can be re-parsed."""
