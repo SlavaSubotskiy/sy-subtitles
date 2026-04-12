@@ -181,8 +181,14 @@ class TestSyncTextSwap:
 
 
 class TestSyncBlockCountChange:
-    def test_block_count_change_redistributes(self, talk_dir):
-        """When edit changes CPL split count — redistribute timecodes, not fail."""
+    """Block-count-change edits (edits that cross CPL boundaries) must return
+    an error — text-only sync can't fabricate timing without whisper. See
+    feedback_no_proportional. Callers should fall back to the full pipeline."""
+
+    def test_block_count_change_errors_out(self, talk_dir):
+        """When an edit grows a sentence past the CPL limit so it splits into
+        more blocks, sync_transcript must return an error instead of
+        redistributing timecodes proportionally."""
         new = (
             HEADER
             + "Перше дуже довге речення першого абзацу яке тепер має набагато більше тексту і буде розбите інакше."
@@ -192,21 +198,16 @@ class TestSyncBlockCountChange:
         new_path.write_text(new, encoding="utf-8")
 
         result = sync_transcript(str(talk_dir), "Video", str(talk_dir / "transcript_uk_old.txt"), str(new_path))
-        assert "error" not in result
-        assert result["needs_optimize"] is True
+        assert "error" in result
+        assert "block count changed" in result["error"].lower()
+        assert "pipeline" in result["error"].lower()
 
+    def test_block_count_change_leaves_srt_untouched(self, talk_dir):
+        """On block-count error the SRT file must not be modified — partial
+        rewrites are banned by feedback_no_proportional."""
         from tools.srt_utils import parse_srt
 
-        srt = parse_srt(str(talk_dir / "Video" / "final" / "uk.srt"))
-        # New blocks should cover the original time range
-        assert srt[0]["start_ms"] == 1000  # original first block start
-        assert srt[-2]["end_ms"] == 10000  # original last block end of paragraph 1
-        # Last block (paragraph 2) unchanged
-        assert srt[-1]["text"] == "Єдине речення другого абзацу."
-        assert srt[-1]["start_ms"] == 12000
-
-    def test_block_count_change_renumbers(self, talk_dir):
-        """After redistribution, block indices are sequential."""
+        srt_before = parse_srt(str(talk_dir / "Video" / "final" / "uk.srt"))
         new = (
             HEADER
             + "Перше дуже довге речення першого абзацу яке тепер має набагато більше тексту і буде розбите інакше."
@@ -217,39 +218,21 @@ class TestSyncBlockCountChange:
 
         sync_transcript(str(talk_dir), "Video", str(talk_dir / "transcript_uk_old.txt"), str(new_path))
 
-        from tools.srt_utils import parse_srt
+        srt_after = parse_srt(str(talk_dir / "Video" / "final" / "uk.srt"))
+        assert len(srt_after) == len(srt_before)
+        for a, b in zip(srt_after, srt_before, strict=True):
+            assert a == b
 
-        srt = parse_srt(str(talk_dir / "Video" / "final" / "uk.srt"))
-        for i, b in enumerate(srt):
-            assert b["idx"] == i + 1
-
-    def test_block_count_change_no_overlap(self, talk_dir):
-        """Redistributed blocks should not overlap."""
-        new = (
-            HEADER
-            + "Перше дуже довге речення першого абзацу яке тепер має набагато більше тексту і буде розбите інакше."
-            + " Друге речення першого абзацу.\n\nЄдине речення другого абзацу.\n"
-        )
-        new_path = talk_dir / "new.txt"
-        new_path.write_text(new, encoding="utf-8")
-
-        sync_transcript(str(talk_dir), "Video", str(talk_dir / "transcript_uk_old.txt"), str(new_path))
-
-        from tools.srt_utils import parse_srt
-
-        srt = parse_srt(str(talk_dir / "Video" / "final" / "uk.srt"))
-        for i in range(len(srt) - 1):
-            assert srt[i]["end_ms"] <= srt[i + 1]["start_ms"]
-
-    def test_same_block_count_no_optimize_flag(self, talk_dir):
-        """When block count is unchanged, needs_optimize should not be set."""
+    def test_same_block_count_succeeds(self, talk_dir):
+        """Unchanged block count is the happy path — result has no error,
+        no legacy needs_optimize flag."""
         new = HEADER + "Виправлене перше речення. Друге речення першого абзацу.\n\nЄдине речення другого абзацу.\n"
         new_path = talk_dir / "new.txt"
         new_path.write_text(new, encoding="utf-8")
 
         result = sync_transcript(str(talk_dir), "Video", str(talk_dir / "transcript_uk_old.txt"), str(new_path))
         assert "error" not in result
-        assert result.get("needs_optimize") is not True
+        assert "needs_optimize" not in result
 
     def test_paragraph_count_mismatch_fails(self, talk_dir):
         new = HEADER + "Тільки один абзац.\n"

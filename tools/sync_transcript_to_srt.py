@@ -39,38 +39,16 @@ def find_paragraph_blocks(srt_blocks: list, para_blocks: list) -> list | None:
     return None
 
 
-def redistribute_timecodes(srt_blocks: list, srt_indices: list, new_blocks: list) -> list:
-    """Replace old SRT blocks with new ones, distributing timecodes proportionally by text length."""
-    start_ms = srt_blocks[srt_indices[0]]["start_ms"]
-    end_ms = srt_blocks[srt_indices[-1]]["end_ms"]
-    total_ms = end_ms - start_ms
-    gap = 80  # ms gap between blocks
-
-    total_chars = sum(len(b["text"]) for b in new_blocks)
-    usable_ms = total_ms - gap * (len(new_blocks) - 1)
-    if usable_ms < len(new_blocks):
-        usable_ms = len(new_blocks)  # minimum 1ms per block
-
-    replacement = []
-    cursor = start_ms
-    for i, nb in enumerate(new_blocks):
-        proportion = len(nb["text"]) / total_chars if total_chars else 1 / len(new_blocks)
-        duration = round(usable_ms * proportion)
-        block_end = cursor + duration
-        if i == len(new_blocks) - 1:
-            block_end = end_ms  # last block takes remainder
-        replacement.append({"idx": 0, "start_ms": cursor, "end_ms": block_end, "text": nb["text"]})
-        cursor = block_end + gap
-
-    # Replace old blocks with new
-    first = srt_indices[0]
-    last = srt_indices[-1]
-    srt_blocks[first : last + 1] = replacement
-    return srt_blocks
-
-
 def sync_transcript(talk_dir: str, video_slug: str, old_transcript: str, new_transcript: str) -> dict:
-    """Swap changed paragraph text in SRT. Redistribute timecodes when block count changes."""
+    """Swap changed paragraph text in SRT.
+
+    Only handles edits that preserve block count (same CPL layout). When a
+    paragraph's edit causes a different number of subtitle blocks (e.g. a
+    sentence grew/shrunk enough to cross the CPL threshold), returns an
+    error — the caller should fall back to the full pipeline, which
+    rebuilds timing from whisper. We deliberately do NOT redistribute
+    timecodes proportionally (see feedback_no_proportional).
+    """
     old_paras = load_transcript(old_transcript)
     new_paras = load_transcript(new_transcript)
     srt_path = Path(talk_dir) / video_slug / "final" / "uk.srt"
@@ -90,7 +68,6 @@ def sync_transcript(talk_dir: str, video_slug: str, old_transcript: str, new_tra
     print(f"Changed paragraphs: {len(changed_paras)}", file=sys.stderr)
 
     total_updated = 0
-    needs_optimize = False
     for p_idx in changed_paras:
         old_blocks = prepare_blocks([old_paras[p_idx]])
         new_blocks = prepare_blocks([new_paras[p_idx]])
@@ -106,15 +83,19 @@ def sync_transcript(talk_dir: str, video_slug: str, old_transcript: str, new_tra
             return {"error": f"P{p_idx + 1}: cannot find matching blocks in SRT"}
 
         if len(old_blocks) != len(new_blocks):
-            print(
-                f"  P{p_idx + 1}: block count {len(old_blocks)} → {len(new_blocks)}, redistributing timecodes",
-                file=sys.stderr,
-            )
-            for b in new_blocks:
-                print(f"      [{len(b['text']):2d} CPL] {b['text']}", file=sys.stderr)
-            srt_blocks = redistribute_timecodes(srt_blocks, srt_indices, new_blocks)
-            total_updated += len(new_blocks)
-            needs_optimize = True
+            # Block count changed means the edit crossed a CPL boundary and
+            # the paragraph now needs a different number of subtitle blocks.
+            # Proportional or approximate time distribution is banned
+            # (see feedback_no_proportional): subtly-wrong timing is worse
+            # than a clear error. Surface it and let the full pipeline
+            # rebuild timing via whisper.
+            return {
+                "error": (
+                    f"P{p_idx + 1}: block count changed {len(old_blocks)} → {len(new_blocks)} "
+                    f"(edit crosses CPL boundary). Run the full subtitle pipeline to rebuild timing — "
+                    f"text-only sync can't place new blocks without whisper."
+                )
+            }
         else:
             for j, srt_idx in enumerate(srt_indices):
                 old_text = srt_blocks[srt_idx]["text"]
@@ -131,11 +112,7 @@ def sync_transcript(talk_dir: str, video_slug: str, old_transcript: str, new_tra
 
     write_srt(srt_blocks, str(srt_path))
     print(f"Updated: {srt_path} ({total_updated} blocks)", file=sys.stderr)
-    result = {"changed": len(changed_paras), "updated_blocks": total_updated}
-    if needs_optimize:
-        result["needs_optimize"] = True
-        print("NEEDS_OPTIMIZE: block count changed, run optimizer", file=sys.stderr)
-    return result
+    return {"changed": len(changed_paras), "updated_blocks": total_updated}
 
 
 def main():
@@ -152,8 +129,6 @@ def main():
         sys.exit(1)
     if result["changed"] == 0:
         print("No changes", file=sys.stderr)
-    if result.get("needs_optimize"):
-        sys.exit(2)  # signal to workflow: run optimizer
 
 
 if __name__ == "__main__":

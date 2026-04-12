@@ -41,8 +41,6 @@ from pathlib import Path
 
 import yaml
 
-from .config import OptimizeConfig
-from .optimize_srt import optimize
 from .sync_common import load_base_from_git
 from .sync_srt_to_transcript import sync_srt_to_transcript
 from .sync_transcript_to_srt import sync_transcript
@@ -208,14 +206,9 @@ def _process_talk(
             step_b_failed = True
             continue
 
-        if result.get("needs_optimize"):
-            print(f"  [{talk_id}/{slug}] optimize (block count changed)", file=sys.stderr)
-            optimize(
-                srt_path=str(srt_file),
-                json_path=None,
-                output_path=str(srt_file),
-                config=OptimizeConfig(skip_duration_split=True, skip_cps_split=True),
-            )
+        # Block-count-changed edits (sync_transcript returns error) no longer
+        # auto-optimize — the pipeline rebuilds timing properly via whisper.
+        # See feedback_no_proportional: approximate timing is banned.
 
         # Validate the updated SRT against the updated transcript. Matches
         # the old bash step's flags: we skip time/duration checks because

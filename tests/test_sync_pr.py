@@ -65,6 +65,11 @@ def repo(tmp_path, monkeypatch):
     _git(repo_path, "init", "-q", "-b", "main")
     _git(repo_path, "config", "user.email", "test@example.com")
     _git(repo_path, "config", "user.name", "Test")
+    # Explicitly disable GPG signing — the ambient user config may have it
+    # enabled (1Password SSH/GPG agent) and tests must not depend on an
+    # unlocked signer.
+    _git(repo_path, "config", "commit.gpgsign", "false")
+    _git(repo_path, "config", "tag.gpgsign", "false")
     _git(repo_path, "add", ".")
     _git(repo_path, "commit", "-q", "-m", "base")
     base_sha = _git(repo_path, "rev-parse", "HEAD").strip()

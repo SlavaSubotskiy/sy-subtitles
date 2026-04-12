@@ -2190,6 +2190,28 @@ class TestTranscriptSelector:
         }""")
         assert relative == "en-above-uk", f"Expected EN above UK, got: {relative}"
 
+    def test_per_cell_revert_button(self, server, page):
+        """Edited cells expose a visible revert button wired to SPA.revertEdit.
+        Clicking it should drop the edit and restore the original text."""
+        goto_spa(page, server)
+        page.evaluate("location.hash = '#/review/2001-01-01_Test-Talk'")
+        # Wait for real transcripts (not skeleton cells).
+        page.wait_for_function(
+            "reviewState && reviewState.rightParas && reviewState.rightParas.length > 0",
+            timeout=10000,
+        )
+        orig = page.evaluate("reviewState.rightParas[0]")
+        page.evaluate("reviewState.edits[0] = 'EDITED'; saveReview(); renderReview();")
+        page.wait_for_timeout(100)
+        btn_exists = page.evaluate("!!document.querySelector('.cell.uk.edited .cell-revert[data-idx=\"0\"]')")
+        assert btn_exists, "revert button should exist on edited cell"
+        page.click(".cell.uk.edited .cell-revert[data-idx='0']")
+        page.wait_for_timeout(200)
+        has_edit = page.evaluate("reviewState.edits[0] !== undefined")
+        assert not has_edit, "edit should be cleared after revert click"
+        text_after = page.evaluate("document.querySelector('.cell-text[data-idx=\"0\"]').textContent")
+        assert text_after == orig
+
     def test_editable_cells_have_aria_label(self, server, page):
         """Contenteditable cells must have role=textbox and aria-labelledby
         pointing to the sibling .cell-label so screen readers announce

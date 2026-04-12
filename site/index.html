@@ -19,6 +19,7 @@
   --overlay-bg: rgba(0,0,0,0.85);
   --stat-active-bg: #1a2a3a; --primary-bg: #2a4a2a; --primary-border: #4a4; --primary-fg: #8f8;
   --issue-bg: #3a2a4a; --issue-border: #84c; --issue-fg: #c8f;
+  --mark-bg: rgba(136, 68, 204, 0.12);
   --danger-bg: #4a2a2a; --danger-border: #a44; --danger-fg: #f88;
   --cell-hover: #222; --cell-edit-bg: #1a2a1a; --cell-edited-bg: #2a2a1a;
 }
@@ -31,6 +32,7 @@
     --overlay-bg: rgba(0,0,0,0.75);
     --stat-active-bg: #e0f0ff; --primary-bg: #e8f5e8; --primary-border: #4a4; --primary-fg: #166016;
     --issue-bg: #f0e8f5; --issue-border: #84c; --issue-fg: #5a2a7a;
+    --mark-bg: rgba(136, 68, 204, 0.10);
     --danger-bg: #f5e8e8; --danger-border: #a44; --danger-fg: #a01010;
     --cell-hover: #f0f0f0; --cell-edit-bg: #e8f5e8; --cell-edited-bg: #f5f0e0;
   }
@@ -43,6 +45,7 @@
   --overlay-bg: rgba(0,0,0,0.75);
   --stat-active-bg: #e0f0ff; --primary-bg: #e8f5e8; --primary-border: #4a4; --primary-fg: #166016;
   --issue-bg: #f0e8f5; --issue-border: #84c; --issue-fg: #5a2a7a;
+  --mark-bg: rgba(136, 68, 204, 0.10);
   --danger-bg: #f5e8e8; --danger-border: #a44; --danger-fg: #a01010;
   --cell-hover: #f0f0f0; --cell-edit-bg: #e8f5e8; --cell-edited-bg: #f5f0e0;
 }
@@ -97,6 +100,7 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
   opacity: 0; transition: opacity 0.3s; pointer-events: none; }
 .toast.show { opacity: 1; }
 #status { text-align: center; padding: 16px; color: var(--fg5); }
+.status-error { color: var(--accent-red) !important; }
 .view { display: none; }
 .view.active { display: block; }
 
@@ -203,7 +207,29 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .cell-text { outline: none; }
 .cell-text:focus { background: var(--cell-edit-bg); outline: 1px solid var(--primary-border); border-radius: 3px; }
 .cell.uk.edited { background: var(--cell-edited-bg); }
-.cell.uk.marked { border-left: 3px solid var(--issue-border); }
+.cell.uk.marked { border-left: 3px solid var(--issue-border); background: var(--mark-bg); }
+/* Per-cell revert button — only visible on an edited cell. Sits as an
+   absolutely-positioned overlay so it doesn't push the text around. */
+.cell.uk { position: relative; }
+.cell-revert {
+  position: absolute; top: 4px; right: 6px;
+  background: transparent; border: 1px solid var(--border3);
+  border-radius: 4px; padding: 1px 6px; font-size: 11px;
+  color: var(--fg5); cursor: pointer;
+  opacity: 0; transition: opacity 0.1s;
+}
+.cell.uk.edited .cell-revert { opacity: 1; }
+.cell-revert:hover { color: var(--fg); border-color: var(--fg4); }
+/* Skeleton shimmer while the review grid is loading. Uses a distinct
+   class (not .cell) so waits on .cell.uk/.cell.en only match real
+   content. */
+.skeleton-cell {
+  padding: 10px 16px; border-bottom: 1px solid var(--bg5);
+  min-height: 56px; background: var(--bg3);
+  animation: skel-pulse 1.2s ease-in-out infinite;
+}
+.skeleton-cell:nth-child(even) { animation-delay: 0.3s; }
+@keyframes skel-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
 .counter { position: fixed; bottom: 16px; right: 16px; background: var(--bg3); border: 1px solid var(--border2);
   border-radius: 8px; padding: 8px 14px; font-size: 13px; color: var(--fg5); }
 .counter span { color: var(--fg); }
@@ -220,6 +246,11 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .branch-dropdown div.active { color: var(--accent-green); }
 
 @media (max-width: 768px) {
+  /* Header action buttons wrap cleanly and hit the 44px touch target. */
+  .header { padding: 10px 12px; }
+  .header h1 { font-size: 16px; flex: 1 1 100%; }
+  .header-actions { flex-wrap: wrap; gap: 6px; width: 100%; }
+  .header-actions button { min-height: 44px; padding: 8px 12px; flex: 1 1 auto; font-size: 13px; }
   .grid { grid-template-columns: 1fr; }
   .col-header.en { display: none; }
   /* Stack EN above its UK partner instead of hiding EN: a translation
@@ -573,6 +604,7 @@ var I18N = {
     'btn.create_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 issue',
     'btn.clear_all': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0435',
     'btn.revert_all': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
+    'btn.revert_cell': 'Скасувати правку цього блоку',
     'btn.create_review_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 Issue',
     'btn.open_editor': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u0432 GitHub Editor',
     'review.loading': '\u0417\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043D\u044F \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442\u0456\u0432...',
@@ -610,6 +642,8 @@ var I18N = {
 
     'add.link': '+ \u0414\u043E\u0434\u0430\u0442\u0438',
     'error.srt': '\u041F\u043E\u043C\u0438\u043B\u043A\u0430 \u0437\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043D\u044F \u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0456\u0432',
+    'review.load_error': 'Не вдалося завантажити транскрипт: {err}',
+    'review.srt_load_error': 'Не вдалося завантажити субтитри: {err}',
     'badge.needs_review': '\u043F\u043E\u0442\u0440\u0435\u0431\u0443\u0454 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u043A\u0438',
     'badge.in_review': '\u043D\u0430 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0446\u0456',
     'badge.approved': '\u0437\u0430\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043E',
@@ -655,6 +689,7 @@ var I18N = {
     'btn.create_issue': 'Create issue',
     'btn.clear_all': 'Clear all',
     'btn.revert_all': 'Revert all',
+    'btn.revert_cell': 'Revert this block edit',
     'btn.create_review_issue': 'Create Issue',
     'btn.open_editor': 'Open in GitHub Editor',
     'review.loading': 'Loading transcripts...',
@@ -692,6 +727,8 @@ var I18N = {
 
     'add.link': '+ Add Talk',
     'error.srt': 'Error loading subtitles',
+    'review.load_error': 'Failed to load transcript: {err}',
+    'review.srt_load_error': 'Failed to load subtitles: {err}',
     'badge.needs_review': 'needs review',
     'badge.in_review': 'in review',
     'badge.approved': 'approved',
@@ -1070,9 +1107,10 @@ function showIndex() {
     renderStats();
     renderIndex(contentEl);
     statusEl.style.display = 'none';
+    statusEl.classList.remove('status-error');
   }).catch(function(err) {
-    statusEl.textContent = 'Error: ' + err;
-    statusEl.style.color = '#f66';
+    statusEl.textContent = t('review.load_error').replace('{err}', err);
+    statusEl.classList.add('status-error');
   });
 }
 
@@ -1574,6 +1612,7 @@ function showReview(talkId) {
   var statusEl = document.getElementById('review-status');
   statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
+  renderReviewSkeleton();
 
   // Populate the mode selector (expert only) and detect an SRT-mode
   // resume BEFORE firing any fetches. When resuming into SRT mode we
@@ -1617,9 +1656,10 @@ function showReview(talkId) {
     reviewState.rightParsed = right;
     renderReview();
     statusEl.style.display = 'none';
+    statusEl.classList.remove('status-error');
   }).catch(function(err) {
-    statusEl.textContent = 'Error: ' + err;
-    statusEl.style.color = '#f66';
+    statusEl.textContent = t('review.load_error').replace('{err}', err);
+    statusEl.classList.add('status-error');
   });
 }
 
@@ -1635,6 +1675,7 @@ SPA.switchReviewMode = function(mode, videoSlug) {
     // Reload transcripts
     statusEl.textContent = t('review.loading');
     statusEl.style.display = 'block';
+    renderReviewSkeleton();
     var talk = reviewState.talk;
     var leftSha = (talk && talk._transcriptSha && talk._transcriptSha[reviewState.leftLang]) || '';
     var rightSha = (talk && talk._transcriptSha && talk._transcriptSha[reviewState.rightLang]) || '';
@@ -1662,6 +1703,7 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   updateColHeaders();
   statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
+  renderReviewSkeleton();
 
   var talk = reviewState.talk;
   var enSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/en']) || '';
@@ -1686,9 +1728,10 @@ SPA.switchReviewMode = function(mode, videoSlug) {
 
     renderReview();
     statusEl.style.display = 'none';
+    statusEl.classList.remove('status-error');
   }).catch(function(err) {
-    statusEl.textContent = 'Error loading SRT: ' + err;
-    statusEl.style.color = '#f66';
+    statusEl.textContent = t('review.srt_load_error').replace('{err}', err);
+    statusEl.classList.add('status-error');
   });
 };
 
@@ -1765,6 +1808,19 @@ function renderReview() {
   updateReviewCounter();
 }
 
+function renderReviewSkeleton() {
+  var grid = document.getElementById('review-grid');
+  while (grid.children.length > 2) grid.removeChild(grid.lastChild);
+  // Use a dedicated `.skeleton` class (not `.cell`) so tests/helpers
+  // that wait on `.cell.uk` / `.cell.en` still correctly distinguish
+  // real content from placeholder shimmer.
+  for (var i = 0; i < 12; i++) {
+    var d = document.createElement('div');
+    d.className = 'skeleton-cell';
+    grid.appendChild(d);
+  }
+}
+
 // Counter for unique cell label ids so contenteditable cells can aria-labelledby them.
 var _cellLabelSeq = 0;
 function cellLabel(text) {
@@ -1791,9 +1847,11 @@ function renderReviewTranscript(grid) {
     var rightDiv = document.createElement('div');
     rightDiv.className = 'cell uk' + (edited ? ' edited' : '') + (marked ? ' marked' : '');
     rightDiv.innerHTML = rightLbl.html +
+      '<button type="button" class="cell-revert" data-idx="' + i + '" title="' + esc(t('btn.revert_cell')) + '" aria-label="' + esc(t('btn.revert_cell')) + '">\u21ba</button>' +
       '<div class="cell-text" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="' + rightLbl.id + '" data-idx="' + i + '">' +
       esc(displayRight) + '</div>';
     rightDiv.querySelector('.cell-text').addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(i));
+    rightDiv.querySelector('.cell-revert').addEventListener('click', (function(idx) { return function(e) { e.stopPropagation(); SPA.revertEdit(idx); }; })(i));
 
     grid.appendChild(leftDiv);
     grid.appendChild(rightDiv);
@@ -1857,9 +1915,11 @@ function renderReviewSrt(grid) {
       var displayRight = reviewState.edits[rowIdx] !== undefined ? reviewState.edits[rowIdx] : row.uk.text;
       var ukLbl = cellLabel(ukTc);
       rightDiv.innerHTML = ukLbl.html +
+        '<button type="button" class="cell-revert" data-idx="' + rowIdx + '" title="' + esc(t('btn.revert_cell')) + '" aria-label="' + esc(t('btn.revert_cell')) + '">\u21ba</button>' +
         '<div class="cell-text" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="' + ukLbl.id + '" data-idx="' + rowIdx + '">' +
         esc(displayRight) + '</div>';
       rightDiv.querySelector('.cell-text').addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(rowIdx));
+      rightDiv.querySelector('.cell-revert').addEventListener('click', (function(idx) { return function(e) { e.stopPropagation(); SPA.revertEdit(idx); }; })(rowIdx));
       grid.appendChild(rightDiv);
     } else if (!ukKey) {
       var rightDiv = document.createElement('div');
