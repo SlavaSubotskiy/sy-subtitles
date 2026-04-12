@@ -19,49 +19,9 @@ import subprocess
 import sys
 
 from .srt_utils import load_whisper_json
+from .text_segmentation import load_transcript
 
-# ---------------------------------------------------------------------------
-# Step 1: Parse inputs
-# ---------------------------------------------------------------------------
-
-
-def load_transcript(path):
-    """Load transcript text and split into paragraphs.
-
-    Supports both formats:
-    - transcript_uk.txt: paragraphs separated by double line breaks (\\n\\n)
-    - transcript_en.txt: one paragraph per line (single \\n)
-
-    Strips metadata header (date, location, language lines at the top).
-    Returns list of non-empty paragraph strings.
-    """
-    with open(path, encoding="utf-8") as f:
-        text = f.read()
-
-    # Strip metadata header from amruta.org transcript format.
-    # Header ends at the "Talk Language:" / "Мова промови:" line.
-    # For transcripts without a header, body_start stays at 0.
-    lines = text.split("\n")
-    body_start = 0
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if re.match(r"^(Talk Language:|Language:|Мова промови:|Мова:)", stripped):
-            body_start = i + 1
-            break
-        # Stop scanning after first 10 lines — no header found
-        if i >= 10:
-            break
-
-    body = "\n".join(lines[body_start:])
-
-    # Detect format: if double newlines exist, split on them
-    if "\n\n" in body:
-        paragraphs = [p.strip() for p in re.split(r"\n\n+", body) if p.strip()]
-    else:
-        # Single newline per paragraph (transcript_en.txt format)
-        paragraphs = [line.strip() for line in body.split("\n") if line.strip()]
-
-    return paragraphs
+__all__ = ["load_transcript"]
 
 
 # ---------------------------------------------------------------------------

@@ -16,150 +16,17 @@ Usage:
 """
 
 import argparse
-import re
 import sys
 
-from .align_uk import load_transcript
 from .srt_utils import load_whisper_json, ms_to_time, parse_srt
-
-MAX_CPL = 84
-
-# ---------------------------------------------------------------------------
-# Sentence splitting
-# ---------------------------------------------------------------------------
-
-# Split on .!? followed by space + uppercase, but NOT after abbreviations
-_SENT_RE = re.compile(
-    r"(?<!Mr\.)(?<!Mrs\.)(?<!Ms\.)(?<!Dr\.)(?<!St\.)(?<!Prof\.)"
-    r"(?<!Rev\.)(?<!Jr\.)(?<!Sr\.)(?<!vs\.)(?<!etc\.)(?<!Inc\.)(?<!Ltd\.)"
-    r"(?<=[.!?])\s+(?=[A-ZА-ЯІЇЄҐ«\"])"
+from .text_segmentation import (
+    MAX_CPL,
+    load_transcript,
+    split_sentences,
+    split_text_to_lines,
 )
 
-
-def split_sentences(text):
-    """Split text into sentences at .!? followed by uppercase."""
-    parts = _SENT_RE.split(text)
-    return [p.strip() for p in parts if p.strip()]
-
-
-# ---------------------------------------------------------------------------
-# Text splitting for ≤ MAX_CPL
-# ---------------------------------------------------------------------------
-
-_CONJUNCTIONS = frozenset(
-    {
-        "що",
-        "який",
-        "яка",
-        "яке",
-        "які",
-        "і",
-        "та",
-        "але",
-        "бо",
-        "тому",
-        "коли",
-        "де",
-        "як",
-        "ні",
-        "або",
-        "чи",
-        "адже",
-        "проте",
-        "однак",
-        "якщо",
-        "хоча",
-    }
-)
-
-_PREPOSITIONS = frozenset(
-    {
-        "в",
-        "у",
-        "на",
-        "з",
-        "із",
-        "від",
-        "до",
-        "для",
-        "без",
-        "через",
-        "після",
-        "перед",
-        "між",
-        "під",
-        "над",
-        "за",
-        "при",
-        "про",
-        "по",
-    }
-)
-
-
-def _split_once(text):
-    """Find the best single split point for text > MAX_CPL.
-
-    Returns two parts, or [text] if can't split.
-    """
-    words = text.split()
-    if len(words) <= 1:
-        return [text]
-
-    mid = len(text) // 2
-    candidates = []  # (char_pos, priority, distance_from_mid)
-    char_pos = 0
-
-    for i, word in enumerate(words[:-1]):
-        char_pos += len(word)
-        next_word = words[i + 1]
-        next_clean = next_word.lower().rstrip(".,;:!?—»\"'")
-
-        if word[-1] in ".!?":
-            priority = 1
-        elif word[-1] in ",;:" or word.endswith("—"):
-            priority = 2
-        elif next_clean in _CONJUNCTIONS:
-            priority = 3
-        elif next_clean in _PREPOSITIONS:
-            priority = 4
-        else:
-            priority = 5
-
-        left_len = char_pos
-        right_len = len(text) - char_pos - 1
-
-        if left_len <= MAX_CPL and right_len <= MAX_CPL:
-            candidates.append((char_pos, priority, abs(char_pos - mid)))
-
-        char_pos += 1  # space
-
-    if not candidates:
-        char_pos = 0
-        for word in words[:-1]:
-            char_pos += len(word)
-            candidates.append((char_pos, 5, abs(char_pos - mid)))
-            char_pos += 1
-
-    if not candidates:
-        return [text]
-
-    candidates.sort(key=lambda x: (x[1], x[2]))
-    split_at = candidates[0][0]
-    return [text[:split_at].strip(), text[split_at:].strip()]
-
-
-def split_text_to_lines(text):
-    """Recursively split text into lines of ≤ MAX_CPL characters."""
-    if len(text) <= MAX_CPL:
-        return [text]
-    parts = _split_once(text)
-    if len(parts) == 1:
-        return parts
-    result = []
-    for part in parts:
-        result.extend(split_text_to_lines(part))
-    return result
+__all__ = ["MAX_CPL", "load_transcript", "split_sentences", "split_text_to_lines"]
 
 
 # ---------------------------------------------------------------------------

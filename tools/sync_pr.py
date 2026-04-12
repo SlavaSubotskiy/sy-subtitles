@@ -43,6 +43,7 @@ import yaml
 
 from .config import OptimizeConfig
 from .optimize_srt import optimize
+from .sync_common import load_base_from_git
 from .sync_srt_to_transcript import sync_srt_to_transcript
 from .sync_transcript_to_srt import sync_transcript
 from .validate_subtitles import validate as validate_subtitles
@@ -66,19 +67,8 @@ def _list_changed(base_sha: str) -> list[str]:
     return [line for line in out.splitlines() if line.strip()]
 
 
-def _show_base(base_sha: str, path: str, dest: Path) -> bool:
-    """Write the base-SHA version of `path` to `dest`. Returns False if
-    the file didn't exist at base (e.g. newly added in the PR)."""
-    try:
-        data = subprocess.run(
-            ["git", "show", f"{base_sha}:{path}"],
-            capture_output=True,
-            check=True,
-        ).stdout
-    except subprocess.CalledProcessError:
-        return False
-    dest.write_bytes(data)
-    return True
+# _show_base was lifted into tools.sync_common.load_base_from_git.
+_show_base = load_base_from_git
 
 
 def _list_video_slugs(meta_path: Path) -> list[str]:

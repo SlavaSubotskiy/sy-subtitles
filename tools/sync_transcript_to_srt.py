@@ -14,9 +14,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from .align_uk import load_transcript
-from .generate_map import split_sentences, split_text_to_lines
 from .srt_utils import parse_srt, write_srt
+from .text_segmentation import load_transcript, split_sentences, split_text_to_lines
 
 
 def prepare_blocks(paragraphs: list) -> list:

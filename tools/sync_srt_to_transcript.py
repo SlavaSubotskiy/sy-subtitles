@@ -29,29 +29,11 @@ import difflib
 import sys
 
 from .srt_utils import parse_srt, write_srt
+from .sync_common import delete_from_text, find_in_text
 
-
-def _find_in_transcript(text: str, needle: str, cursor: int) -> int:
-    """Return position of needle in text starting at cursor, or -1."""
-    return text.find(needle, cursor)
-
-
-def _delete_from_transcript(text: str, cursor: int, old_t: str) -> dict:
-    """Remove the first occurrence of `old_t` from `text` at/after `cursor`.
-
-    Trims one adjacent space to avoid double-spaces. Returns a dict with
-    `action` ("removed" or "skipped"), plus `text` and `cursor` when removed.
-    Skipped means the text wasn't found — caller decides how to handle it.
-    """
-    pos = _find_in_transcript(text, old_t, cursor)
-    if pos == -1:
-        return {"action": "skipped"}
-    end = pos + len(old_t)
-    if pos > 0 and text[pos - 1] == " ":
-        pos -= 1
-    elif end < len(text) and text[end] == " ":
-        end += 1
-    return {"action": "removed", "text": text[:pos] + text[end:], "cursor": pos}
+# Thin aliases kept for in-file readability (and to not churn call sites).
+_find_in_transcript = find_in_text
+_delete_from_transcript = delete_from_text
 
 
 def _match_blocks_by_similarity(old_slice: list[str], new_slice: list[str]) -> list[int | None]:

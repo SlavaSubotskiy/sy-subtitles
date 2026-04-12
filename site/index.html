@@ -438,18 +438,20 @@ function alignSubtitlesByTime(enBlocks, ukBlocks) {
   ukBlocks.forEach(function(b) { times[b.startMs] = true; times[b.endMs] = true; });
   var sorted = Object.keys(times).map(Number).sort(function(a, b) { return a - b; });
 
-  // Build time slots with active EN/UK block indices
+  // Build time slots with active EN/UK block indices via a two-pointer
+  // walk. Blocks within each column are sorted and non-overlapping in
+  // valid SRT files, and slot midpoints advance monotonically, so each
+  // block is visited at most twice (once when it becomes current, once
+  // when it expires). Total work: O(slots + enBlocks + ukBlocks).
   var slots = [];
+  var enPtr = 0, ukPtr = 0;
   for (var i = 0; i < sorted.length - 1; i++) {
     var s = sorted[i], e = sorted[i + 1];
     var mid = (s + e) / 2;
-    var enIdx = -1, ukIdx = -1;
-    for (var j = 0; j < enBlocks.length; j++) {
-      if (mid >= enBlocks[j].startMs && mid < enBlocks[j].endMs) { enIdx = j; break; }
-    }
-    for (var j = 0; j < ukBlocks.length; j++) {
-      if (mid >= ukBlocks[j].startMs && mid < ukBlocks[j].endMs) { ukIdx = j; break; }
-    }
+    while (enPtr < enBlocks.length && enBlocks[enPtr].endMs <= mid) enPtr++;
+    while (ukPtr < ukBlocks.length && ukBlocks[ukPtr].endMs <= mid) ukPtr++;
+    var enIdx = (enPtr < enBlocks.length && enBlocks[enPtr].startMs <= mid) ? enPtr : -1;
+    var ukIdx = (ukPtr < ukBlocks.length && ukBlocks[ukPtr].startMs <= mid) ? ukPtr : -1;
     if (enIdx === -1 && ukIdx === -1) continue; // gap — skip
     slots.push({ s: s, e: e, enIdx: enIdx, ukIdx: ukIdx });
   }
@@ -1573,6 +1575,32 @@ function showReview(talkId) {
   statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
 
+  // Populate the mode selector (expert only) and detect an SRT-mode
+  // resume BEFORE firing any fetches. When resuming into SRT mode we
+  // skip the transcript load entirely — switchReviewMode handles its
+  // own SRT fetches.
+  var modeSel = document.getElementById('review-mode-select');
+  var savedObj = null;
+  if (modeSel && talk) {
+    var saved = localStorage.getItem('sy_review_mode_' + talkId);
+    try { savedObj = JSON.parse(saved); } catch(e) {}
+    var opts = '<option value="transcript">' + esc(talk.title || talkId) + ' [' + t('review.mode_transcript') + ']</option>';
+    (talk.videos || []).forEach(function(v) {
+      if (v.hasSrt) {
+        var sel = savedObj && savedObj.mode === 'srt' && savedObj.video === v.slug ? ' selected' : '';
+        opts += '<option value="srt" data-video="' + esc(v.slug) + '"' + sel + '>' + esc(v.title || v.slug) + ' [' + t('review.mode_srt') + ']</option>';
+      }
+    });
+    modeSel.innerHTML = opts;
+  }
+
+  if (savedObj && savedObj.mode === 'srt') {
+    reviewState.mode = 'srt';
+    reviewState.videoSlug = savedObj.video;
+    SPA.switchReviewMode('srt', savedObj.video);
+    return;
+  }
+
   var leftSha = (talk && talk._transcriptSha && talk._transcriptSha[reviewState.leftLang]) || '';
   var rightSha = (talk && talk._transcriptSha && talk._transcriptSha[reviewState.rightLang]) || '';
   var leftUrl = RAW + '/talks/' + talkId + '/transcript_' + reviewState.leftLang + '.txt' + (leftSha ? '?v=' + leftSha.substring(0, 8) : '');
@@ -1593,33 +1621,6 @@ function showReview(talkId) {
     statusEl.textContent = 'Error: ' + err;
     statusEl.style.color = '#f66';
   });
-
-  // Populate mode selector (expert only)
-  var modeSel = document.getElementById('review-mode-select');
-  if (modeSel && talk) {
-    var saved = localStorage.getItem('sy_review_mode_' + talkId);
-    var savedObj = null;
-    try { savedObj = JSON.parse(saved); } catch(e) {}
-    var opts = '<option value="transcript">' + esc(talk.title || talkId) + ' [' + t('review.mode_transcript') + ']</option>';
-    (talk.videos || []).forEach(function(v) {
-      if (v.hasSrt) {
-        var sel = savedObj && savedObj.mode === 'srt' && savedObj.video === v.slug ? ' selected' : '';
-        opts += '<option value="srt" data-video="' + esc(v.slug) + '"' + sel + '>' + esc(v.title || v.slug) + ' [' + t('review.mode_srt') + ']</option>';
-      }
-    });
-    modeSel.innerHTML = opts;
-    if (savedObj && savedObj.mode === 'srt') {
-      reviewState.mode = 'srt';
-      reviewState.videoSlug = savedObj.video;
-      // Defer SRT loading until transcript load completes
-      Promise.all([
-        fetch(leftUrl).then(function(r) { return r.ok ? r.text() : ''; }),
-        fetch(rightUrl).then(function(r) { return r.ok ? r.text() : ''; })
-      ]).then(function() {
-        SPA.switchReviewMode('srt', savedObj.video);
-      });
-    }
-  }
 }
 
 SPA.switchReviewMode = function(mode, videoSlug) {

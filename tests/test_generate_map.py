@@ -3,11 +3,11 @@
 from tools.generate_map import (
     _distribute_in_range,
     _distribute_times_proportional,
-    _split_once,
     assign_blocks_to_paragraphs,
     split_sentences,
     split_text_to_lines,
 )
+from tools.text_segmentation import _split_once
 
 # ---------------------------------------------------------------------------
 # split_sentences
