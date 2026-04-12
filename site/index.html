@@ -80,6 +80,18 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 }
 .select-chip:hover { border-color: var(--fg4); }
 .select-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Standard form input — consolidates the 7+ inline input/textarea styles.
+   Width defaults to 100% so .input can drop straight into narrow columns. */
+.input {
+  width: 100%; padding: 8px 12px;
+  background: var(--bg3); color: var(--fg);
+  border: 1px solid var(--border2); border-radius: 6px;
+  font: inherit; font-size: 14px; line-height: 1.3;
+}
+.input:hover { border-color: var(--border3); }
+.input[type="date"], .input.compact { padding: 8px; font-size: 13px; }
+textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bg4);
   color: var(--fg); padding: 8px 20px; border-radius: 8px; font-size: 14px; z-index: 100;
   opacity: 0; transition: opacity 0.3s; pointer-events: none; }
@@ -187,6 +199,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .cell.en { color: var(--fg4); }
 .cell.uk { color: var(--fg2); cursor: text; }
 .cell.uk:hover { background: var(--cell-hover); }
+.cell-label { color: var(--fg5); font-size: 11px; margin-bottom: 2px; user-select: none; }
 .cell-text { outline: none; }
 .cell-text:focus { background: var(--cell-edit-bg); outline: 1px solid var(--primary-border); border-radius: 3px; }
 .cell.uk.edited { background: var(--cell-edited-bg); }
@@ -208,7 +221,19 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 
 @media (max-width: 768px) {
   .grid { grid-template-columns: 1fr; }
-  .col-header.en, .cell.en { display: none; }
+  .col-header.en { display: none; }
+  /* Stack EN above its UK partner instead of hiding EN: a translation
+     review tool is useless without the source text. EN cell is visually
+     muted and compact so UK remains the focus. grid-row: auto !important
+     resets the inline row-span set by the SRT renderer for the 2-column
+     layout — cells now flow one per row. */
+  .cell.en {
+    font-size: 13px; color: var(--fg5); padding: 8px 16px 2px;
+    border-bottom: none;
+    grid-row: auto !important;
+  }
+  .cell.uk { grid-row: auto !important; }
+  .cell.uk, .cell.en { min-height: 0; }
   #subtitle-overlay { font-size: 24px; min-height: 40px; padding: 8px 12px; }
   .controls button { min-height: 44px; min-width: 44px; }
 }
@@ -246,7 +271,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 <div id="view-index" class="view">
   <div class="header"><h1>SY Subtitles</h1><a href="#/add" data-i18n="add.link" style="color:var(--accent-green);font-size:13px;text-decoration:none;padding:4px 10px;border:1px solid var(--primary-border);border-radius:4px;">+ Add Talk</a></div>
   <div id="index-toolbar" style="max-width:800px;margin:8px auto;padding:0 20px;display:none">
-    <input id="search-input" type="text" data-i18n-placeholder="search.placeholder" style="width:100%;padding:8px 12px;background:var(--bg3);color:var(--fg2);border:1px solid var(--border2);border-radius:6px;font-size:14px;margin-bottom:6px;">
+    <input id="search-input" type="text" class="input" data-i18n-placeholder="search.placeholder" style="margin-bottom:6px">
     <div id="stats-bar" class="stats-bar"></div>
   </div>
   <div id="index-status" class="status" data-i18n="index.loading">Loading...</div>
@@ -296,8 +321,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   </div>
   <div id="review-status" class="status" data-i18n="review.loading">Loading transcripts...</div>
   <div class="grid" id="review-grid">
-    <div class="col-header en" id="col-header-left" onclick="SPA.toggleTranscriptDropdown('left')">English &#x25BE;<div class="transcript-dropdown" id="transcript-dropdown-left"></div></div>
-    <div class="col-header uk" id="col-header-right" onclick="SPA.toggleTranscriptDropdown('right')">Ukrainian &#x25BE;<div class="transcript-dropdown" id="transcript-dropdown-right"></div></div>
+    <div class="col-header en" id="col-header-left" role="button" tabindex="0" aria-haspopup="listbox"
+         onclick="SPA.toggleTranscriptDropdown('left')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();SPA.toggleTranscriptDropdown('left');}">English &#x25BE;<div class="transcript-dropdown" id="transcript-dropdown-left" role="listbox"></div></div>
+    <div class="col-header uk" id="col-header-right" role="button" tabindex="0" aria-haspopup="listbox"
+         onclick="SPA.toggleTranscriptDropdown('right')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();SPA.toggleTranscriptDropdown('right');}">Ukrainian &#x25BE;<div class="transcript-dropdown" id="transcript-dropdown-right" role="listbox"></div></div>
   </div>
   <div class="counter" id="review-counter" style="display:none" aria-live="polite">
     <span id="mark-count">0</span> <span data-i18n="review.marks">marks</span> &middot; <span id="edit-count">0</span> <span data-i18n="review.edits">edits</span>
@@ -329,24 +358,24 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
     <form id="add-form" style="display:none;" onsubmit="return SPA.submitAddTalk()">
       <label style="display:block;margin-bottom:12px;">
         <span style="color:var(--fg4);font-size:13px;">amruta.org URL</span>
-        <input id="add-url" type="url" style="width:100%;padding:8px;background:var(--bg3);color:var(--fg);border:1px solid var(--border2);border-radius:4px;margin-top:4px;" placeholder="https://www.amruta.org/1979/09/27/...">
+        <input id="add-url" type="url" class="input compact" style="margin-top:4px" placeholder="https://www.amruta.org/1979/09/27/...">
       </label>
       <label style="display:block;margin-bottom:12px;">
         <span style="color:var(--fg4);font-size:13px;" data-i18n="add.field_title">Title</span>
-        <input id="add-title" type="text" style="width:100%;padding:8px;background:var(--bg3);color:var(--fg);border:1px solid var(--border2);border-radius:4px;margin-top:4px;">
+        <input id="add-title" type="text" class="input compact" style="margin-top:4px">
       </label>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
         <label>
           <span style="color:var(--fg4);font-size:13px;" data-i18n="add.field_date">Date</span>
-          <input id="add-date" type="date" style="width:100%;padding:8px;background:var(--bg3);color:var(--fg);border:1px solid var(--border2);border-radius:4px;margin-top:4px;">
+          <input id="add-date" type="date" class="input compact" style="margin-top:4px">
         </label>
         <label>
           <span style="color:var(--fg4);font-size:13px;" data-i18n="add.field_location">Location</span>
-          <input id="add-location" type="text" style="width:100%;padding:8px;background:var(--bg3);color:var(--fg);border:1px solid var(--border2);border-radius:4px;margin-top:4px;">
+          <input id="add-location" type="text" class="input compact" style="margin-top:4px">
         </label>
         <label>
           <span style="color:var(--fg4);font-size:13px;" data-i18n="add.field_language">Language</span>
-          <select id="add-language" style="width:100%;padding:8px;background:var(--bg3);color:var(--fg);border:1px solid var(--border2);border-radius:4px;margin-top:4px;">
+          <select id="add-language" class="input compact" style="margin-top:4px">
             <option value="en">English</option>
             <option value="hi">Hindi</option>
             <option value="mr">Marathi</option>
@@ -356,7 +385,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
       <div id="add-videos" style="margin-bottom:12px;"></div>
       <label style="display:block;margin-bottom:12px;">
         <span style="color:var(--fg4);font-size:13px;" data-i18n="add.field_transcript">Transcript (from page)</span>
-        <textarea id="add-transcript" rows="6" style="width:100%;padding:8px;background:var(--bg3);color:var(--fg);border:1px solid var(--border2);border-radius:4px;margin-top:4px;font-size:13px;font-family:monospace;resize:vertical;"></textarea>
+        <textarea id="add-transcript" rows="6" class="input compact" style="margin-top:4px"></textarea>
       </label>
       <div style="margin-bottom:12px;padding:12px;background:var(--bg3);border-radius:4px;">
         <span style="color:var(--fg5);font-size:12px;" data-i18n="add.preview_label">meta.yaml preview:</span>
@@ -1735,8 +1764,11 @@ function renderReview() {
   updateReviewCounter();
 }
 
+// Counter for unique cell label ids so contenteditable cells can aria-labelledby them.
+var _cellLabelSeq = 0;
 function cellLabel(text) {
-  return '<div class="cell-label" style="color:#555;font-size:11px;margin-bottom:2px;user-select:none">' + text + '</div>';
+  var id = 'cell-label-' + (++_cellLabelSeq);
+  return { html: '<div id="' + id + '" class="cell-label">' + text + '</div>', id: id };
 }
 
 function renderReviewTranscript(grid) {
@@ -1749,13 +1781,17 @@ function renderReviewTranscript(grid) {
     var displayRight = edited ? reviewState.edits[i] : right;
     var label = 'P' + (i+1);
 
+    var leftLbl = cellLabel(label);
     var leftDiv = document.createElement('div');
     leftDiv.className = 'cell en';
-    leftDiv.innerHTML = cellLabel(label) + esc(left);
+    leftDiv.innerHTML = leftLbl.html + esc(left);
 
+    var rightLbl = cellLabel(label);
     var rightDiv = document.createElement('div');
     rightDiv.className = 'cell uk' + (edited ? ' edited' : '') + (marked ? ' marked' : '');
-    rightDiv.innerHTML = cellLabel(label) + '<div class="cell-text" contenteditable="true" data-idx="' + i + '">' + esc(displayRight) + '</div>';
+    rightDiv.innerHTML = rightLbl.html +
+      '<div class="cell-text" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="' + rightLbl.id + '" data-idx="' + i + '">' +
+      esc(displayRight) + '</div>';
     rightDiv.querySelector('.cell-text').addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(i));
 
     grid.appendChild(leftDiv);
@@ -1802,12 +1838,12 @@ function renderReviewSrt(grid) {
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
       if (enSpan > 1) leftDiv.style.gridRow = 'span ' + enSpan;
-      leftDiv.innerHTML = cellLabel(enTc) + esc(row.en.text);
+      leftDiv.innerHTML = cellLabel(enTc).html + esc(row.en.text);
       grid.appendChild(leftDiv);
     } else if (!enKey) {
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
-      leftDiv.innerHTML = cellLabel('');
+      leftDiv.innerHTML = cellLabel('').html;
       grid.appendChild(leftDiv);
     }
 
@@ -1818,13 +1854,16 @@ function renderReviewSrt(grid) {
       rightDiv.className = 'cell uk' + (reviewState.edits[rowIdx] !== undefined ? ' edited' : '') + (reviewState.marks[rowIdx] !== undefined ? ' marked' : '');
       if (ukSpan > 1) rightDiv.style.gridRow = 'span ' + ukSpan;
       var displayRight = reviewState.edits[rowIdx] !== undefined ? reviewState.edits[rowIdx] : row.uk.text;
-      rightDiv.innerHTML = cellLabel(ukTc) + '<div class="cell-text" contenteditable="true" data-idx="' + rowIdx + '">' + esc(displayRight) + '</div>';
+      var ukLbl = cellLabel(ukTc);
+      rightDiv.innerHTML = ukLbl.html +
+        '<div class="cell-text" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="' + ukLbl.id + '" data-idx="' + rowIdx + '">' +
+        esc(displayRight) + '</div>';
       rightDiv.querySelector('.cell-text').addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(rowIdx));
       grid.appendChild(rightDiv);
     } else if (!ukKey) {
       var rightDiv = document.createElement('div');
       rightDiv.className = 'cell uk';
-      rightDiv.innerHTML = cellLabel('');
+      rightDiv.innerHTML = cellLabel('').html;
       grid.appendChild(rightDiv);
     }
 
@@ -2014,10 +2053,12 @@ function fmtTime(sec) {
 // Transcript Language Selector
 // ============================================================
 SPA.toggleTranscriptDropdown = function(side) {
-  // Close all transcript dropdowns first
-  document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
   var dd = document.getElementById('transcript-dropdown-' + side);
   if (!dd) return;
+  // If this dropdown is already open, toggle it closed and bail out.
+  var wasOpen = dd.classList.contains('open');
+  document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+  if (wasOpen) return;
   var talk = reviewState.talk;
 
   if (reviewState.mode === 'srt') {
@@ -2300,9 +2341,9 @@ function addVideoRowWithUrl(vimeoUrl, videoTitle) {
   var div = document.createElement('div');
   div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end;';
   div.innerHTML = '<label><span style="color:var(--fg4);font-size:13px;">' + t('add.video_title') + '</span>'
-    + '<input class="add-video-title" type="text" value="' + esc(videoTitle || '') + '" style="width:100%;padding:8px;background:var(--bg3);color:var(--fg);border:1px solid var(--border2);border-radius:4px;margin-top:4px;"></label>'
+    + '<input class="add-video-title input compact" type="text" value="' + esc(videoTitle || '') + '" style="margin-top:4px"></label>'
     + '<label><span style="color:var(--fg4);font-size:13px;">' + t('add.vimeo_url') + '</span>'
-    + '<input class="add-video-url" type="url" value="' + esc(vimeoUrl || '') + '" style="width:100%;padding:8px;background:var(--bg3);color:var(--fg);border:1px solid var(--border2);border-radius:4px;margin-top:4px;"></label>'
+    + '<input class="add-video-url input compact" type="url" value="' + esc(vimeoUrl || '') + '" style="margin-top:4px"></label>'
     + '<button type="button" onclick="this.parentElement.remove();updateAddPreview()" style="padding:8px;background:var(--danger-bg);color:var(--danger-fg);border:1px solid var(--danger-border);border-radius:4px;cursor:pointer;">&times;</button>';
   container.appendChild(div);
   div.querySelectorAll('input').forEach(function(inp) { inp.addEventListener('input', updateAddPreview); });

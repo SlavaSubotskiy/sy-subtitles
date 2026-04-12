@@ -2156,6 +2156,97 @@ class TestTranscriptSelector:
         result = page.evaluate("langName('xyz')")
         assert result == "Xyz"
 
+    def test_mobile_viewport_shows_both_en_and_uk(self, server, page):
+        """On a narrow viewport the review page must still show EN cells —
+        a translation review tool without the source text is broken. Before
+        this fix .cell.en had display:none under the 768px breakpoint."""
+        page.set_viewport_size({"width": 375, "height": 800})
+        goto_spa(page, server)
+        page.evaluate("location.hash = '#/review/2001-01-01_Test-Talk'")
+        page.wait_for_function("document.querySelectorAll('.cell').length > 0", timeout=10000)
+        # Both .cell.en and .cell.uk should be visible (non-zero box)
+        en_visible = page.evaluate("""() => {
+            var el = document.querySelector('.cell.en');
+            if (!el) return false;
+            var r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none';
+        }""")
+        uk_visible = page.evaluate("""() => {
+            var el = document.querySelector('.cell.uk');
+            if (!el) return false;
+            var r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none';
+        }""")
+        assert en_visible, "EN cell should be visible on mobile"
+        assert uk_visible, "UK cell should be visible on mobile"
+        # In 1-column layout EN should visually precede its UK partner
+        relative = page.evaluate("""() => {
+            var en = document.querySelector('.cell.en');
+            var uk = document.querySelector('.cell.uk');
+            if (!en || !uk) return 'missing';
+            var enR = en.getBoundingClientRect();
+            var ukR = uk.getBoundingClientRect();
+            return enR.bottom <= ukR.top ? 'en-above-uk' : 'side-by-side';
+        }""")
+        assert relative == "en-above-uk", f"Expected EN above UK, got: {relative}"
+
+    def test_editable_cells_have_aria_label(self, server, page):
+        """Contenteditable cells must have role=textbox and aria-labelledby
+        pointing to the sibling .cell-label so screen readers announce
+        P1/P2/timecode + 'editable' together."""
+        goto_spa(page, server)
+        page.evaluate("location.hash = '#/review/2001-01-01_Test-Talk'")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+        info = page.evaluate("""() => {
+            var text = document.querySelector('.cell-text');
+            if (!text) return null;
+            var labelId = text.getAttribute('aria-labelledby');
+            var label = labelId && document.getElementById(labelId);
+            return {
+                role: text.getAttribute('role'),
+                labelId: labelId,
+                labelText: label && label.textContent,
+            };
+        }""")
+        assert info is not None
+        assert info["role"] == "textbox"
+        assert info["labelId"] and info["labelId"].startswith("cell-label-")
+        assert info["labelText"] and info["labelText"].startswith("P")
+
+    def test_col_header_keyboard_accessible(self, server, page):
+        """Column header dropdowns must be reachable and activatable via
+        keyboard: tabindex=0, role=button, and Enter/Space should toggle."""
+        goto_spa(page, server)
+        page.evaluate("location.hash = '#/review/2001-01-01_Test-Talk'")
+        page.wait_for_function("document.querySelectorAll('.cell').length > 0", timeout=10000)
+        # Both headers should have role=button and tabindex=0
+        attrs = page.evaluate("""() => {
+            var lh = document.getElementById('col-header-left');
+            var rh = document.getElementById('col-header-right');
+            return {
+                lhRole: lh && lh.getAttribute('role'),
+                lhTabindex: lh && lh.getAttribute('tabindex'),
+                rhRole: rh && rh.getAttribute('role'),
+                rhTabindex: rh && rh.getAttribute('tabindex'),
+            };
+        }""")
+        assert attrs["lhRole"] == "button"
+        assert attrs["lhTabindex"] == "0"
+        assert attrs["rhRole"] == "button"
+        assert attrs["rhTabindex"] == "0"
+        # Focus and press Enter on the right header — dropdown should open
+        page.evaluate("document.getElementById('col-header-right').focus()")
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(200)
+        is_open = page.evaluate("document.getElementById('transcript-dropdown-right').classList.contains('open')")
+        assert is_open, "dropdown should open on Enter"
+        # Press Space to close
+        page.evaluate("document.getElementById('col-header-right').focus()")
+        page.keyboard.press(" ")
+        page.wait_for_timeout(200)
+        is_open_after = page.evaluate("document.getElementById('transcript-dropdown-right').classList.contains('open')")
+        assert not is_open_after, "dropdown should close on Space"
+
     def test_manifest_has_transcripts_array(self, server, page):
         """Manifest talks contain transcripts array with all languages."""
         goto_spa(page, server)
