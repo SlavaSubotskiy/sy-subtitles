@@ -263,6 +263,128 @@ class TestSyncSrtToTranscript:
         assert new_blocks[0]["start_ms"] == 3000
         assert new_blocks[1]["text"] == "Друге речення."
 
+    def test_mixed_edit_and_delete_preserves_cursor_ordering(self, tmp_path):
+        """A single PR that both edits and deletes blocks: difflib emits
+        `replace` and `delete` opcodes in sequence. The cursor walk must
+        advance through each operation correctly so that following operations
+        land on the right occurrence of their text."""
+        talk_dir = tmp_path / "talk"
+        video = talk_dir / "Video" / "final"
+        video.mkdir(parents=True)
+
+        old_srt = """1
+00:00:01,000 --> 00:00:03,000
+Перше речення.
+
+2
+00:00:03,100 --> 00:00:05,000
+Проміжне речення.
+
+3
+00:00:05,100 --> 00:00:07,000
+Друге речення — потребує правки.
+
+4
+00:00:07,100 --> 00:00:09,000
+Третє речення.
+"""
+        # Block 2 deleted (present in transcript, should be removed)
+        # Block 3 edited (text change)
+        # Blocks 1 and 4 unchanged
+        new_srt = """1
+00:00:01,000 --> 00:00:03,000
+Перше речення.
+
+3
+00:00:05,100 --> 00:00:07,000
+Друге речення — вже виправлене.
+
+4
+00:00:07,100 --> 00:00:09,000
+Третє речення.
+"""
+        (talk_dir / "uk_old.srt").write_text(old_srt, encoding="utf-8")
+        (video / "uk.srt").write_text(new_srt, encoding="utf-8")
+        (talk_dir / "transcript_uk.txt").write_text(
+            HEADER + "Перше речення. Проміжне речення. Друге речення — потребує правки. Третє речення.\n",
+            encoding="utf-8",
+        )
+
+        result = sync_srt_to_transcript(
+            old_srt=str(talk_dir / "uk_old.srt"),
+            new_srt=str(video / "uk.srt"),
+            transcript=str(talk_dir / "transcript_uk.txt"),
+        )
+        assert "error" not in result, f"unexpected error: {result.get('error')}"
+        assert result.get("removed", 0) >= 1
+        assert result["changed"] >= 1
+        text = (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8")
+        # The deleted block's text is gone
+        assert "Проміжне речення." not in text
+        # The edited block's new text is in
+        assert "Друге речення — вже виправлене." in text
+        # The original edited text is gone
+        assert "Друге речення — потребує правки." not in text
+        # Unchanged blocks preserved
+        assert "Перше речення." in text
+        assert "Третє речення." in text
+
+    def test_mixed_delete_then_edit_of_repeated_text(self, tmp_path):
+        """Stress: delete one occurrence of a repeated phrase, then edit a
+        later block whose text matches that phrase. The cursor walk must put
+        the edit on the *second* occurrence (still in transcript), not the
+        first (which was deleted)."""
+        talk_dir = tmp_path / "talk"
+        video = talk_dir / "Video" / "final"
+        video.mkdir(parents=True)
+
+        old_srt = """1
+00:00:01,000 --> 00:00:02,000
+Привіт.
+
+2
+00:00:02,100 --> 00:00:03,000
+Це тест.
+
+3
+00:00:03,100 --> 00:00:04,000
+Привіт.
+
+4
+00:00:04,100 --> 00:00:05,000
+Кінець.
+"""
+        # Delete the first "Привіт" (block 1), edit the second "Привіт" (block 3)
+        new_srt = """2
+00:00:02,100 --> 00:00:03,000
+Це тест.
+
+3
+00:00:03,100 --> 00:00:04,000
+Добрий день.
+
+4
+00:00:04,100 --> 00:00:05,000
+Кінець.
+"""
+        (talk_dir / "uk_old.srt").write_text(old_srt, encoding="utf-8")
+        (video / "uk.srt").write_text(new_srt, encoding="utf-8")
+        (talk_dir / "transcript_uk.txt").write_text(HEADER + "Привіт. Це тест. Привіт. Кінець.\n", encoding="utf-8")
+
+        result = sync_srt_to_transcript(
+            old_srt=str(talk_dir / "uk_old.srt"),
+            new_srt=str(video / "uk.srt"),
+            transcript=str(talk_dir / "transcript_uk.txt"),
+        )
+        assert "error" not in result, f"unexpected error: {result.get('error')}"
+        text = (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8")
+        # One "Привіт." deleted, the second replaced with "Добрий день."
+        assert text.count("Привіт.") == 0
+        assert "Добрий день." in text
+        # Other blocks preserved
+        assert "Це тест." in text
+        assert "Кінець." in text
+
     def test_drift_in_unchanged_blocks_does_not_fail_delete_only_pr(self, tmp_path):
         """Real-world drift: an unchanged SRT block has a wording that doesn't
         match the transcript verbatim (e.g. capitalization, missing word). For a
@@ -318,6 +440,108 @@ class TestSyncSrtToTranscript:
         assert "error" not in result, f"unexpected error: {result.get('error')}"
         # Transcript untouched (placeholder wasn't there, drift is left alone)
         assert (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8") == before
+
+    def test_workflow_step_a_transcript_only_pr_noop(self, tmp_path):
+        """A PR that only edits transcript_uk.txt (no SRT changes) must leave
+        Step A a no-op and let Step B handle everything. The workflow's
+        detect step will produce an empty SRTs list, Step A runs zero times,
+        and Step B's existing transcript→SRT sync does its normal job. This
+        test just confirms sync_srt_to_transcript returns 0/0/0 when the SRT
+        is byte-identical to its base."""
+        talk_dir = tmp_path / "talk"
+        video = talk_dir / "Video" / "final"
+        video.mkdir(parents=True)
+
+        srt = """1
+00:00:01,000 --> 00:00:03,000
+Перше.
+
+2
+00:00:03,100 --> 00:00:05,000
+Друге.
+"""
+        (talk_dir / "base.srt").write_text(srt, encoding="utf-8")
+        (video / "uk.srt").write_text(srt, encoding="utf-8")
+        (talk_dir / "transcript_uk.txt").write_text(HEADER + "Перше. Друге.\n", encoding="utf-8")
+        before = (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8")
+
+        result = sync_srt_to_transcript(
+            old_srt=str(talk_dir / "base.srt"),
+            new_srt=str(video / "uk.srt"),
+            transcript=str(talk_dir / "transcript_uk.txt"),
+        )
+        assert "error" not in result
+        assert result["changed"] == 0
+        assert result.get("removed", 0) == 0
+        # Transcript byte-identical
+        assert (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8") == before
+
+    @pytest.mark.xfail(
+        reason=(
+            "Step B uses a single base-SHA transcript as old baseline for every "
+            "video, so for a video whose SRT was already edited in the same PR, "
+            "find_paragraph_blocks can't locate the OLD text (it's been rewritten). "
+            "Needs per-video effective-old-transcript baseline — tracked in follow-up."
+        ),
+        strict=True,
+    )
+    def test_workflow_mixed_srt_and_transcript_edits_in_one_pr(self, tmp_path):
+        """A single PR that edits both transcript_uk.txt and a uk.srt file.
+        Currently fails for the edited-SRT video because Step B's sync runs
+        against base-SHA transcript whose old text doesn't exist in the
+        already-edited SRT anymore. Marked xfail to document the gap."""
+        talk_dir = tmp_path / "talks" / "test"
+        video1 = talk_dir / "Video1" / "final"
+        video2 = talk_dir / "Video2" / "final"
+        video1.mkdir(parents=True)
+        video2.mkdir(parents=True)
+
+        base_srt = """1
+00:00:01,000 --> 00:00:03,000
+Перше речення першого абзацу.
+
+2
+00:00:03,100 --> 00:00:05,000
+Друге речення першого абзацу.
+
+3
+00:00:05,100 --> 00:00:07,000
+Єдине речення другого абзацу.
+"""
+        base_transcript = HEADER + (
+            "Перше речення першого абзацу. Друге речення першого абзацу.\n\nЄдине речення другого абзацу.\n"
+        )
+        (talk_dir / "base_video1.srt").write_text(base_srt, encoding="utf-8")
+        (talk_dir / "base_transcript.txt").write_text(base_transcript, encoding="utf-8")
+        (video1 / "uk.srt").write_text(
+            base_srt.replace("Перше речення першого абзацу.", "Виправлене перше речення."),
+            encoding="utf-8",
+        )
+        (video2 / "uk.srt").write_text(base_srt, encoding="utf-8")
+        (talk_dir / "transcript_uk.txt").write_text(
+            base_transcript.replace("Єдине речення другого абзацу.", "Нове речення другого абзацу."),
+            encoding="utf-8",
+        )
+
+        step_a = sync_srt_to_transcript(
+            old_srt=str(talk_dir / "base_video1.srt"),
+            new_srt=str(video1 / "uk.srt"),
+            transcript=str(talk_dir / "transcript_uk.txt"),
+        )
+        assert "error" not in step_a
+
+        for slug in ("Video1", "Video2"):
+            sync_result = sync_transcript(
+                talk_dir=str(talk_dir),
+                video_slug=slug,
+                old_transcript=str(talk_dir / "base_transcript.txt"),
+                new_transcript=str(talk_dir / "transcript_uk.txt"),
+            )
+            assert "error" not in sync_result, f"{slug}: {sync_result.get('error')}"
+
+        v1 = (video1 / "uk.srt").read_text(encoding="utf-8")
+        assert "Виправлене перше речення." in v1
+        assert "Нове речення другого абзацу." in v1
 
     def test_pr43_scenario_two_leading_placeholders_removed(self, tmp_path):
         """Reproduces PR #43: user removed two leading placeholder blocks

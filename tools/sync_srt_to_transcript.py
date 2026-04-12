@@ -36,6 +36,49 @@ def _find_in_transcript(text: str, needle: str, cursor: int) -> int:
     return text.find(needle, cursor)
 
 
+def _delete_from_transcript(text: str, cursor: int, old_t: str) -> dict:
+    """Remove the first occurrence of `old_t` from `text` at/after `cursor`.
+
+    Trims one adjacent space to avoid double-spaces. Returns a dict with
+    `action` ("removed" or "skipped"), plus `text` and `cursor` when removed.
+    Skipped means the text wasn't found — caller decides how to handle it.
+    """
+    pos = _find_in_transcript(text, old_t, cursor)
+    if pos == -1:
+        return {"action": "skipped"}
+    end = pos + len(old_t)
+    if pos > 0 and text[pos - 1] == " ":
+        pos -= 1
+    elif end < len(text) and text[end] == " ":
+        end += 1
+    return {"action": "removed", "text": text[:pos] + text[end:], "cursor": pos}
+
+
+def _match_blocks_by_similarity(old_slice: list[str], new_slice: list[str]) -> list[int | None]:
+    """Pair each old block with the most similar new block (ratio > 0.5).
+
+    Returns a list parallel to `old_slice`; each entry is either the index
+    in `new_slice` of the matched block, or None if the old block should be
+    treated as a deletion. Each new block is matched at most once.
+    """
+    matches: list[int | None] = []
+    available = list(range(len(new_slice)))
+    for old_text in old_slice:
+        best_idx = None
+        best_ratio = 0.0
+        for ni in available:
+            ratio = difflib.SequenceMatcher(None, old_text, new_slice[ni]).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_idx = ni
+        if best_idx is not None and best_ratio > 0.5:
+            matches.append(best_idx)
+            available.remove(best_idx)
+        else:
+            matches.append(None)
+    return matches
+
+
 def sync_srt_to_transcript(old_srt: str, new_srt: str, transcript: str) -> dict:
     """Apply text-level diff between old_srt and new_srt to the transcript file.
 
@@ -76,16 +119,55 @@ def sync_srt_to_transcript(old_srt: str, new_srt: str, transcript: str) -> dict:
                     continue
                 cursor = pos + len(old_texts[k])
 
-        elif tag == "replace" and (i2 - i1) == (j2 - j1):
-            # 1:1 text substitution
-            for offset in range(i2 - i1):
-                old_t = old_texts[i1 + offset]
-                new_t = new_texts[j1 + offset]
+        elif tag == "replace":
+            # Pair old blocks to new blocks by similarity ratio. Equal-count
+            # replaces degenerate to 1:1; unequal-count replaces (edit + delete
+            # bundled together by difflib) match what they can and treat any
+            # unmatched old block as a deletion. Any unmatched *new* block is
+            # a real insertion and errors out.
+            old_slice = old_texts[i1:i2]
+            new_slice = new_texts[j1:j2]
+            matches = (
+                list(range(i2 - i1)) if (i2 - i1) == (j2 - j1) else _match_blocks_by_similarity(old_slice, new_slice)
+            )
+            matched_new_indices = {m for m in matches if m is not None}
+            unmatched_new = [ni for ni in range(len(new_slice)) if ni not in matched_new_indices]
+            if unmatched_new:
+                return {
+                    "error": (
+                        f"Block group replaced ({i2 - i1} → {j2 - j1}) with "
+                        f"{len(unmatched_new)} unmatched new block(s) — likely an "
+                        f"insertion. Run the full pipeline."
+                    )
+                }
+
+            for local_idx, match_idx in enumerate(matches):
+                old_t = old_slice[local_idx]
+                src_block = old_blocks[i1 + local_idx]
+                if match_idx is None:
+                    # Treat as deletion
+                    op = _delete_from_transcript(text, cursor, old_t)
+                    if op["action"] == "skipped":
+                        print(
+                            f"  Block {src_block['idx']}: «{old_t[:60]}» not in transcript — skipping (placeholder?)",
+                            file=sys.stderr,
+                        )
+                        skipped += 1
+                    else:
+                        text = op["text"]
+                        cursor = op["cursor"]
+                        removed += 1
+                        print(
+                            f"  Block {src_block['idx']}: removed «{old_t[:60]}»",
+                            file=sys.stderr,
+                        )
+                    continue
+                new_t = new_slice[match_idx]
                 pos = _find_in_transcript(text, old_t, cursor)
                 if pos == -1:
                     return {
                         "error": (
-                            f"Block {old_blocks[i1 + offset]['idx']}: cannot find "
+                            f"Block {src_block['idx']}: cannot find "
                             f"«{old_t[:60]}» in transcript (searching from offset {cursor})."
                         )
                     }
@@ -96,7 +178,7 @@ def sync_srt_to_transcript(old_srt: str, new_srt: str, transcript: str) -> dict:
                 cursor = pos + len(new_t)
                 changed += 1
                 print(
-                    f"  Block {old_blocks[i1 + offset]['idx']}: «{old_t[:60]}» → «{new_t[:60]}»",
+                    f"  Block {src_block['idx']}: «{old_t[:60]}» → «{new_t[:60]}»",
                     file=sys.stderr,
                 )
 
@@ -108,22 +190,16 @@ def sync_srt_to_transcript(old_srt: str, new_srt: str, transcript: str) -> dict:
             # never the source of that text.
             for k in range(i1, i2):
                 old_t = old_texts[k]
-                pos = _find_in_transcript(text, old_t, cursor)
-                if pos == -1:
+                op = _delete_from_transcript(text, cursor, old_t)
+                if op["action"] == "skipped":
                     print(
                         f"  Block {old_blocks[k]['idx']}: «{old_t[:60]}» not in transcript — skipping (placeholder?)",
                         file=sys.stderr,
                     )
                     skipped += 1
                     continue
-                end = pos + len(old_t)
-                # Trim a single adjacent space so we don't leave a double space
-                if pos > 0 and text[pos - 1] == " ":
-                    pos -= 1
-                elif end < len(text) and text[end] == " ":
-                    end += 1
-                text = text[:pos] + text[end:]
-                cursor = pos
+                text = op["text"]
+                cursor = op["cursor"]
                 removed += 1
                 print(
                     f"  Block {old_blocks[k]['idx']}: removed «{old_t[:60]}»",
@@ -135,13 +211,6 @@ def sync_srt_to_transcript(old_srt: str, new_srt: str, transcript: str) -> dict:
                 "error": (
                     f"Cannot propagate inserted blocks ({j2 - j1} new) — "
                     f"transcript has no signal where to put new text. Run the full pipeline."
-                )
-            }
-        else:  # tag == 'replace' with unequal counts
-            return {
-                "error": (
-                    f"Block group replaced ({i2 - i1} → {j2 - j1}) — "
-                    f"too ambiguous for text-level propagation. Run the full pipeline."
                 )
             }
 

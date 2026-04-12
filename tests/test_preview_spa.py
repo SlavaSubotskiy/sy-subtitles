@@ -2172,6 +2172,7 @@ REAL_TRANSCRIPT_FIXTURES = [
     "single_sep.txt",
     "single_sep_v2.txt",
     "double_sep.txt",
+    "hindi_header.txt",
 ]
 
 

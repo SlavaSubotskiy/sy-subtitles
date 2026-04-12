@@ -1512,8 +1512,8 @@ function updateColHeaders() {
   var lh = document.getElementById('col-header-left');
   var rh = document.getElementById('col-header-right');
   if (reviewState.mode === 'srt') {
-    if (lh) lh.firstChild.textContent = langName(reviewState.srtLeftLang || 'en') + ' (source) \u25BE';
-    if (rh) rh.firstChild.textContent = langName(reviewState.srtRightLang || 'uk') + ' (final) \u25BE';
+    if (lh) lh.firstChild.textContent = langName(reviewState.srtLeftLang) + ' (source) \u25BE';
+    if (rh) rh.firstChild.textContent = langName(reviewState.srtRightLang) + ' (final) \u25BE';
   } else {
     if (lh) lh.firstChild.textContent = langName(reviewState.leftLang) + ' \u25BE';
     if (rh) rh.firstChild.textContent = langName(reviewState.rightLang) + ' \u25BE';
@@ -1897,7 +1897,7 @@ SPA.createReviewIssue = function() {
   var title = talk ? talk.title : reviewState.talkId;
   var isSrt = reviewState.mode === 'srt';
   var filePath = isSrt
-    ? 'talks/' + reviewState.talkId + '/' + reviewState.videoSlug + '/final/' + (reviewState.srtRightLang || 'uk') + '.srt'
+    ? 'talks/' + reviewState.talkId + '/' + reviewState.videoSlug + '/final/' + (reviewState.srtRightLang) + '.srt'
     : 'talks/' + reviewState.talkId + '/transcript_' + reviewState.rightLang + '.txt';
   var fileLabel = isSrt ? 'Subtitles' : 'Transcript';
   var aligned = isSrt ? (reviewState.alignedRows || []) : null;
@@ -1949,7 +1949,7 @@ SPA.createReviewIssue = function() {
 SPA.openEditor = function() {
   var isSrt = reviewState.mode === 'srt';
   var filePath = isSrt
-    ? 'talks/' + reviewState.talkId + '/' + reviewState.videoSlug + '/final/' + (reviewState.srtRightLang || 'uk') + '.srt'
+    ? 'talks/' + reviewState.talkId + '/' + reviewState.videoSlug + '/final/' + (reviewState.srtRightLang) + '.srt'
     : 'talks/' + reviewState.talkId + '/transcript_' + reviewState.rightLang + '.txt';
   var url = 'https://github.com/' + REPO + '/edit/main/' + filePath;
   if (Object.keys(reviewState.edits).length > 0) {
@@ -2026,7 +2026,7 @@ SPA.toggleTranscriptDropdown = function(side) {
     var langs = side === 'left' ? ['en'] : srtLangs.filter(function(l) { return l !== 'en'; });
     if (langs.length <= 1) { return; }
     dd.innerHTML = '';
-    var currentSrtLang = side === 'left' ? (reviewState.srtLeftLang || 'en') : (reviewState.srtRightLang || 'uk');
+    var currentSrtLang = side === 'left' ? (reviewState.srtLeftLang) : (reviewState.srtRightLang);
     langs.sort().forEach(function(lang) {
       var d = document.createElement('div');
       d.textContent = langName(lang);
@@ -2063,8 +2063,8 @@ SPA.switchSrtLang = function(side, lang) {
   statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
 
-  var enLang = side === 'left' ? lang : (reviewState.srtLeftLang || 'en');
-  var ukLang = side === 'right' ? lang : (reviewState.srtRightLang || 'uk');
+  var enLang = side === 'left' ? lang : (reviewState.srtLeftLang);
+  var ukLang = side === 'right' ? lang : (reviewState.srtRightLang);
   reviewState.srtLeftLang = enLang;
   reviewState.srtRightLang = ukLang;
   var enSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/' + enLang]) || '';
