@@ -446,8 +446,8 @@ jobs:
         if: needs.translate-and-review.result == 'success'
         uses: actions/download-artifact@v6
         with:
-          pattern: translation__*${{ inputs.dry_run_tag }}
-          merge-multiple: false
+          name: translation__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
+          path: translation__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
 
       - name: Place translation artifacts
         if: needs.translate-and-review.result == 'success'
@@ -551,8 +551,8 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v6
         with:
-          pattern: translation__*${{ inputs.dry_run_tag }}
-          merge-multiple: false
+          name: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
+          path: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
 
       - name: Place translation artifacts
         env:
@@ -967,7 +967,7 @@ jobs:
       - name: Download subtitle artifacts
         uses: actions/download-artifact@v6
         with:
-          pattern: subtitles__*${{ inputs.dry_run_tag }}
+          name: subtitles__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: /tmp/subtitles
 
       - name: Stage artifacts back under talks/
@@ -1019,14 +1019,14 @@ jobs:
         if: needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'failure'
         uses: actions/download-artifact@v6
         with:
-          pattern: translation__*${{ inputs.dry_run_tag }}
+          name: translation__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: /tmp/translation
 
       - name: Download subtitle artifacts
         if: needs.assemble-build.result == 'success' || needs.build-en-srt.result == 'success'
         uses: actions/download-artifact@v6
         with:
-          pattern: subtitles__*${{ inputs.dry_run_tag }}
+          name: subtitles__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: /tmp/subtitles
 
       - name: Place artifacts into talk directories
