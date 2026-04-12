@@ -61,7 +61,25 @@ a:hover { text-decoration: underline; }
 .header-actions button.primary { background: var(--primary-bg); border-color: var(--primary-border); color: var(--primary-fg); }
 .header-actions button.issue { background: var(--issue-bg); border-color: var(--issue-border); color: var(--issue-fg); }
 .header-actions button:active { opacity: 0.7; }
-button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+button:focus-visible, a:focus-visible,
+input:focus-visible, select:focus-visible, textarea:focus-visible,
+[contenteditable="true"]:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+/* Styled native select (.select-chip) — matches button chip aesthetic.
+   Used for #review-mode-select and #srt-lang-select. */
+.select-chip {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  background-color: var(--bg4); color: var(--fg);
+  border: 1px solid var(--border3); border-radius: 6px;
+  padding: 6px 28px 6px 12px; font: inherit; font-size: 13px; line-height: 1.2;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path fill='%239aa0a6' d='M0 0l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 8px;
+}
+.select-chip:hover { border-color: var(--fg4); }
+.select-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bg4);
   color: var(--fg); padding: 8px 20px; border-radius: 8px; font-size: 14px; z-index: 100;
   opacity: 0; transition: opacity 0.3s; pointer-events: none; }
@@ -245,7 +263,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
     <div id="subtitle-overlay"></div>
     <div class="controls">
       <span id="time-display">00:00:00</span>
-      <select id="srt-lang-select" style="display:none;background:var(--bg4);color:var(--fg);border:1px solid var(--border3);border-radius:4px;padding:4px 8px;font-size:13px;cursor:pointer;" data-i18n-title="title.srt_lang"></select>
+      <select id="srt-lang-select" class="select-chip" style="display:none" data-i18n-title="title.srt_lang"></select>
       <button id="btn-mark" onclick="SPA.addMarker()" data-i18n-title="btn.mark_title" data-i18n="btn.mark">&#x1F4CC; Mark</button>
       <button id="btn-fullscreen" onclick="SPA.toggleFullscreen()" title="F = fullscreen" style="padding:4px 10px;font-size:16px;">&#x2922;</button>
     </div>
@@ -267,7 +285,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-
 <div id="view-review" class="view">
   <div class="header">
     <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="r-title"></span>
-      <select id="review-mode-select" class="expert-only review-mode-toggle" style="margin-left:8px;font-size:13px;background:var(--bg4);color:var(--fg);border:1px solid var(--border3);border-radius:4px;padding:2px 6px;vertical-align:middle;" onchange="SPA.switchReviewMode(this.value, this.options[this.selectedIndex].dataset.video)">
+      <select id="review-mode-select" class="expert-only review-mode-toggle select-chip" style="margin-left:8px;vertical-align:middle" onchange="SPA.switchReviewMode(this.value, this.options[this.selectedIndex].dataset.video)">
       </select>
     </h1>
     <div class="header-actions">
@@ -1470,7 +1488,7 @@ var LANG_NAMES = {
 };
 function langName(code) { return LANG_NAMES[code] || code.charAt(0).toUpperCase() + code.slice(1); }
 
-var reviewState = { talkId: '', leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n', mode: 'transcript', videoSlug: '', srtLeftLang: 'en', srtRightLang: 'uk' };
+var reviewState = { talkId: '', leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightParsed: null, mode: 'transcript', videoSlug: '', srtLeftLang: 'en', srtRightLang: 'uk' };
 
 function parseReviewLangs(hash, talkId) {
   var left = 'en', right = 'uk';
@@ -1505,7 +1523,7 @@ function updateColHeaders() {
 function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
   // Reset all state for new talk
-  reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightHeader: '', rightSep: '\n', mode: 'transcript', videoSlug: '', alignedRows: null, srtLeftLang: 'en', srtRightLang: 'uk' };
+  reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightParsed: null, mode: 'transcript', videoSlug: '', alignedRows: null, srtLeftLang: 'en', srtRightLang: 'uk' };
 
   var langs = parseReviewLangs(location.hash, talkId);
   reviewState.leftLang = langs.left;
@@ -1539,8 +1557,7 @@ function showReview(talkId) {
     var right = parseTranscript(texts[1]);
     reviewState.leftParas = left.paragraphs;
     reviewState.rightParas = right.paragraphs;
-    reviewState.rightHeader = right.header;
-    reviewState.rightSep = right.separator;
+    reviewState.rightParsed = right;
     renderReview();
     statusEl.style.display = 'none';
   }).catch(function(err) {
@@ -1601,8 +1618,7 @@ SPA.switchReviewMode = function(mode, videoSlug) {
       var right = parseTranscript(texts[1]);
       reviewState.leftParas = left.paragraphs;
       reviewState.rightParas = right.paragraphs;
-      reviewState.rightHeader = right.header;
-      reviewState.rightSep = right.separator;
+      reviewState.rightParsed = right;
       renderReview();
       statusEl.style.display = 'none';
     });
@@ -1646,7 +1662,16 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   });
 };
 
+// PARSE_TRANSCRIPT_START
 function parseTranscript(text) {
+  // Strip UTF-8 BOM if present. We never re-emit it — fetch().text() strips
+  // BOM transparently for network loads anyway, so round-tripping it isn't
+  // achievable from the SPA. This is purely defensive for pasted input.
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  // Normalize CRLF → LF for parsing; track the original line ending so
+  // serializeTranscript can write the file back the same way.
+  var lineEnding = /\r\n/.test(text) ? '\r\n' : '\n';
+  if (lineEnding === '\r\n') text = text.replace(/\r\n/g, '\n');
   var lines = text.split('\n');
   var bodyStart = 0;
   var header = '';
@@ -1664,8 +1689,21 @@ function parseTranscript(text) {
   var useDouble = /\n\s*\n/.test(body);
   var paras = useDouble ? body.split(/\n\s*\n/) : body.split('\n');
   paras = paras.map(function(p) { return p.trim(); }).filter(Boolean);
-  return { header: header, separator: useDouble ? '\n\n' : '\n', paragraphs: paras };
+  return {
+    header: header, separator: useDouble ? '\n\n' : '\n', paragraphs: paras,
+    lineEnding: lineEnding
+  };
 }
+
+// Serialize a parsed transcript back to a file-identical string.
+// Accepts the same shape parseTranscript returns, plus the edited paragraphs.
+function serializeTranscript(parsed, paragraphs) {
+  var body = paragraphs.join(parsed.separator);
+  var text = parsed.header ? parsed.header + '\n\n' + body + '\n' : body + '\n';
+  if (parsed.lineEnding === '\r\n') text = text.replace(/\n/g, '\r\n');
+  return text;
+}
+// PARSE_TRANSCRIPT_END
 
 function msToTC(ms) {
   var s = Math.floor(ms / 1000);
@@ -1945,10 +1983,10 @@ SPA.openEditor = function() {
       for (var i = 0; i < reviewState.rightParas.length; i++) {
         paras.push(reviewState.edits[i] !== undefined ? reviewState.edits[i] : reviewState.rightParas[i]);
       }
-      // Header is always followed by a blank-line separator regardless of
-      // the in-body paragraph separator (single vs double newline). This
-      // matches how the source files are written.
-      full = reviewState.rightHeader ? reviewState.rightHeader + '\n\n' + paras.join(reviewState.rightSep) + '\n' : paras.join(reviewState.rightSep) + '\n';
+      // Rebuild via serializeTranscript so BOM, CRLF, and header→body
+      // separator all match the original file byte-for-byte.
+      var parsed = reviewState.rightParsed || { header: '', separator: '\n', bom: '', lineEnding: '\n' };
+      full = serializeTranscript(parsed, paras);
     }
     navigator.clipboard.writeText(full).then(function() {
       alert(t('editor.clipboard_alert'));

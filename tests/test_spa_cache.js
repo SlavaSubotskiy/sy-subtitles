@@ -628,6 +628,99 @@ function getAlignFn() {
   return _alignFn;
 }
 
+// Extract parseTranscript + serializeTranscript from index.html.
+var _parseFns = null;
+function getParseFns() {
+  if (_parseFns) return _parseFns;
+  var fs = require('fs');
+  var html = fs.readFileSync('site/index.html', 'utf8');
+  var start = html.indexOf('// PARSE_TRANSCRIPT_START');
+  var end = html.indexOf('// PARSE_TRANSCRIPT_END');
+  if (start === -1 || end === -1) throw new Error('parseTranscript markers not found in index.html');
+  var code = html.substring(start, end);
+  var tmpPath = require('path').join(require('os').tmpdir(), '_parse_transcript_test.js');
+  fs.writeFileSync(
+    tmpPath,
+    code + '\nmodule.exports = { parseTranscript: parseTranscript, serializeTranscript: serializeTranscript };'
+  );
+  _parseFns = require(tmpPath);
+  return _parseFns;
+}
+
+describe('parseTranscript / serializeTranscript', () => {
+  var HEADER_LINE = 'Мова промови: англійська';
+
+  it('parse+serialize is lossless for single-newline separator', () => {
+    var { parseTranscript, serializeTranscript } = getParseFns();
+    var src = 'Title\n' + HEADER_LINE + '\n\nПерший абзац.\nДругий абзац.\nТретій абзац.\n';
+    var parsed = parseTranscript(src);
+    assert.strictEqual(parsed.paragraphs.length, 3);
+    assert.strictEqual(parsed.separator, '\n');
+    assert.strictEqual(parsed.header, 'Title\n' + HEADER_LINE);
+    var rebuilt = serializeTranscript(parsed, parsed.paragraphs);
+    assert.strictEqual(rebuilt, src);
+  });
+
+  it('parse+serialize is lossless for double-newline separator', () => {
+    var { parseTranscript, serializeTranscript } = getParseFns();
+    var src = HEADER_LINE + '\n\nПерший.\n\nДругий.\n\nТретій.\n';
+    var parsed = parseTranscript(src);
+    assert.strictEqual(parsed.paragraphs.length, 3);
+    assert.strictEqual(parsed.separator, '\n\n');
+    var rebuilt = serializeTranscript(parsed, parsed.paragraphs);
+    assert.strictEqual(rebuilt, src);
+  });
+
+  it('strips UTF-8 BOM defensively', () => {
+    var { parseTranscript } = getParseFns();
+    var src = '\uFEFF' + HEADER_LINE + '\n\nПерший абзац.\n';
+    var parsed = parseTranscript(src);
+    assert.strictEqual(parsed.header, HEADER_LINE, 'BOM should be stripped from header');
+    assert.strictEqual(parsed.paragraphs[0], 'Перший абзац.');
+  });
+
+  it('preserves CRLF line endings on round-trip', () => {
+    var { parseTranscript, serializeTranscript } = getParseFns();
+    var src = HEADER_LINE + '\r\n\r\nПерший.\r\nДругий.\r\n';
+    var parsed = parseTranscript(src);
+    assert.strictEqual(parsed.lineEnding, '\r\n');
+    assert.strictEqual(parsed.paragraphs.length, 2);
+    var rebuilt = serializeTranscript(parsed, parsed.paragraphs);
+    assert.strictEqual(rebuilt, src);
+  });
+
+  it('edits round-trip with byte-identical unchanged paragraphs', () => {
+    var { parseTranscript, serializeTranscript } = getParseFns();
+    var src = HEADER_LINE + '\n\nПерший.\nДругий.\nТретій.\n';
+    var parsed = parseTranscript(src);
+    var paras = parsed.paragraphs.slice();
+    paras[1] = 'Відредаговане.';
+    var rebuilt = serializeTranscript(parsed, paras);
+    assert.strictEqual(
+      rebuilt,
+      HEADER_LINE + '\n\nПерший.\nВідредаговане.\nТретій.\n'
+    );
+  });
+
+  it('file with no header line treats all content as body', () => {
+    var { parseTranscript, serializeTranscript } = getParseFns();
+    var src = 'Перший.\nДругий.\nТретій.\n';
+    var parsed = parseTranscript(src);
+    assert.strictEqual(parsed.header, '');
+    assert.strictEqual(parsed.paragraphs.length, 3);
+    var rebuilt = serializeTranscript(parsed, parsed.paragraphs);
+    assert.strictEqual(rebuilt, src);
+  });
+
+  it('consumes blank lines between header and body', () => {
+    var { parseTranscript } = getParseFns();
+    var src = HEADER_LINE + '\n\n\n\nПерший.\n';
+    var parsed = parseTranscript(src);
+    // body_start advances past all blank lines; first paragraph is the real content
+    assert.strictEqual(parsed.paragraphs[0], 'Перший.');
+  });
+});
+
 describe('alignSubtitlesByTime', () => {
   it('aligns identical timecodes 1:1', () => {
     var align = getAlignFn();
