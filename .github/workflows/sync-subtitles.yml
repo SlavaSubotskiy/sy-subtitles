@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'talks/*/transcript_uk.txt'
+      - 'talks/*/*/final/uk.srt'
 
 permissions:
   contents: write
@@ -24,40 +25,98 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
 
-      - name: Detect changed transcripts
+      - name: Detect changed files
         id: detect
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
-          CHANGED=$(git diff --name-only "$BASE" "$HEAD" | grep 'talks/.*/transcript_uk.txt' || true)
-          if [ -z "$CHANGED" ]; then
+          DIFF=$(git diff --name-only "$BASE" "$HEAD")
+          TRANSCRIPTS=$(echo "$DIFF" | grep 'talks/.*/transcript_uk.txt' || true)
+          SRTS=$(echo "$DIFF" | grep 'talks/.*/.*/final/uk.srt' || true)
+
+          if [ -z "$TRANSCRIPTS" ] && [ -z "$SRTS" ]; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           else
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
-            echo "Changed: $CHANGED"
+            [ -n "$TRANSCRIPTS" ] && echo "Changed transcripts: $TRANSCRIPTS"
+            [ -n "$SRTS" ] && echo "Changed SRTs: $SRTS"
           fi
-          echo "files<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$CHANGED" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-          echo "base_sha=$BASE" >> "$GITHUB_OUTPUT"
 
+          # Collect TALK_DIRs touched by either side (deduped)
+          TALK_DIRS=$(printf '%s\n%s\n' "$TRANSCRIPTS" "$SRTS" | grep -v '^$' | while read -r f; do
+            case "$f" in
+              talks/*/transcript_uk.txt) dirname "$f" ;;
+              talks/*/*/final/uk.srt)    echo "$f" | sed 's|/[^/]*/final/uk.srt||' ;;
+            esac
+          done | sort -u)
+
+          {
+            echo "talk_dirs<<EOF"
+            echo "$TALK_DIRS"
+            echo "EOF"
+            echo "srts<<EOF"
+            echo "$SRTS"
+            echo "EOF"
+            echo "base_sha=$BASE"
+          } >> "$GITHUB_OUTPUT"
+
+      # Step A: For each changed SRT, propagate text edits back to transcript_uk.txt.
+      # After this step the transcript holds the source-of-truth text and Step B can
+      # re-sync it back out to all videos' SRTs in the talk.
+      - name: Propagate SRT edits to transcript
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          BASE_SHA="${{ steps.detect.outputs.base_sha }}"
+          echo "${{ steps.detect.outputs.srts }}" | while IFS= read -r srt; do
+            [ -z "$srt" ] && continue
+            VIDEO_DIR=$(dirname "$(dirname "$srt")")
+            TALK_DIR=$(dirname "$VIDEO_DIR")
+            TRANSCRIPT="$TALK_DIR/transcript_uk.txt"
+            [ -f "$TRANSCRIPT" ] || { echo "  $srt: no transcript_uk.txt — skip"; continue; }
+
+            echo ""
+            echo "=========================================="
+            echo "  SRT → transcript: $srt"
+            echo "=========================================="
+
+            git show "$BASE_SHA:$srt" > /tmp/old_uk.srt 2>/dev/null || {
+              echo "  New SRT file — skip"
+              continue
+            }
+
+            python -m tools.sync_srt_to_transcript \
+              --old-srt /tmp/old_uk.srt \
+              --new-srt "$srt" \
+              --transcript "$TRANSCRIPT" \
+              || {
+                echo "::error::$srt: failed to propagate edits to transcript"
+                echo "SYNC_FAILED=1" >> "$GITHUB_ENV"
+                continue
+              }
+          done
+
+      # Step B: For each affected talk, sync transcript → all videos' SRTs.
+      # Uses the (potentially just-updated) transcript as source. Blocks already
+      # in sync are no-ops; only newly-propagated changes (from Step A or from a
+      # direct transcript PR) actually rewrite SRTs.
       - name: Sync, optimize, validate
         if: steps.detect.outputs.has_changes == 'true'
         run: |
           BASE_SHA="${{ steps.detect.outputs.base_sha }}"
 
-          echo "${{ steps.detect.outputs.files }}" | while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            TALK_DIR=$(dirname "$file")
+          echo "${{ steps.detect.outputs.talk_dirs }}" | while IFS= read -r TALK_DIR; do
+            [ -z "$TALK_DIR" ] && continue
             TALK_ID=$(basename "$TALK_DIR")
+            TRANSCRIPT="$TALK_DIR/transcript_uk.txt"
+            [ -f "$TRANSCRIPT" ] || { echo "  $TALK_ID: no transcript — skip"; continue; }
+
             echo ""
             echo "=========================================="
             echo "  $TALK_ID"
             echo "=========================================="
 
-            # Get old transcript version
-            git show "$BASE_SHA:$file" > /tmp/old_transcript.txt 2>/dev/null || {
-              echo "  New file — skip"
+            git show "$BASE_SHA:$TRANSCRIPT" > /tmp/old_transcript.txt 2>/dev/null || {
+              echo "  New transcript file — skip"
               continue
             }
 
@@ -79,7 +138,7 @@ jobs:
                 --talk-dir "$TALK_DIR" \
                 --video-slug "$slug" \
                 --old-transcript /tmp/old_transcript.txt \
-                --new-transcript "$file" \
+                --new-transcript "$TRANSCRIPT" \
                 && SYNC_RC=0 || SYNC_RC=$?
               if [ "$SYNC_RC" = "1" ]; then
                 echo "::error::$TALK_ID/$slug: sync failed — needs full subtitle rebuild via pipeline"
@@ -103,7 +162,7 @@ jobs:
               echo "  [3/3] Validate..."
               if ! python -m tools.validate_subtitles \
                 --srt "$SRT" \
-                --transcript "$file" \
+                --transcript "$TRANSCRIPT" \
                 --skip-time-check --skip-duration-check \
                 --report /dev/null; then
                 echo "::error::$TALK_ID/$slug: validation failed — needs full subtitle rebuild via pipeline"
@@ -117,9 +176,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add talks/*/*/final/uk.srt
-          git diff --cached --quiet && { echo "No subtitle changes"; exit 0; }
-          git commit -m "Sync subtitles from transcript edits"
+          git add talks/*/*/final/uk.srt talks/*/transcript_uk.txt
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "Sync subtitles and transcript edits"
           git push
 
       - name: Check results

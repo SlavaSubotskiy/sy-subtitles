@@ -147,6 +147,10 @@ python -m tools.validate_subtitles --srt PATH --transcript PATH [--whisper-json 
 python -m tools.sync_transcript_to_srt --talk-dir PATH --video-slug SLUG \
   --old-transcript OLD --new-transcript NEW
 
+# Sync SRT text edits back into transcript_uk.txt (reverse direction, for PR workflow)
+python -m tools.sync_srt_to_transcript --old-srt OLD --new-srt NEW \
+  --transcript transcript_uk.txt
+
 # Detect and apply timecode offset between videos
 python -m tools.offset_srt detect --srt1 PATH --srt2 PATH
 python -m tools.offset_srt apply --srt PATH --offset-ms N --output PATH
