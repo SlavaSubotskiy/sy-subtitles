@@ -25,178 +25,36 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
 
-      - name: Detect changed files
-        id: detect
-        run: |
-          BASE="${{ github.event.pull_request.base.sha }}"
-          HEAD="${{ github.event.pull_request.head.sha }}"
-          DIFF=$(git diff --name-only "$BASE" "$HEAD")
-          TRANSCRIPTS=$(echo "$DIFF" | grep 'talks/.*/transcript_uk.txt' || true)
-          SRTS=$(echo "$DIFF" | grep 'talks/.*/.*/final/uk.srt' || true)
-
-          if [ -z "$TRANSCRIPTS" ] && [ -z "$SRTS" ]; then
-            echo "has_changes=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_changes=true" >> "$GITHUB_OUTPUT"
-            [ -n "$TRANSCRIPTS" ] && echo "Changed transcripts: $TRANSCRIPTS"
-            [ -n "$SRTS" ] && echo "Changed SRTs: $SRTS"
-          fi
-
-          # Collect TALK_DIRs touched by either side (deduped)
-          TALK_DIRS=$(printf '%s\n%s\n' "$TRANSCRIPTS" "$SRTS" | grep -v '^$' | while read -r f; do
-            case "$f" in
-              talks/*/transcript_uk.txt) dirname "$f" ;;
-              talks/*/*/final/uk.srt)    echo "$f" | sed 's|/[^/]*/final/uk.srt||' ;;
-            esac
-          done | sort -u)
-
-          {
-            echo "talk_dirs<<EOF"
-            echo "$TALK_DIRS"
-            echo "EOF"
-            echo "srts<<EOF"
-            echo "$SRTS"
-            echo "EOF"
-            echo "base_sha=$BASE"
-          } >> "$GITHUB_OUTPUT"
-
-      # Step A: For each changed SRT, propagate text edits back to transcript_uk.txt.
-      # After this step the transcript holds the source-of-truth text and Step B can
-      # re-sync it back out to all videos' SRTs in the talk. Talks whose Step A
-      # failed are recorded in /tmp/failed_talks.txt so Step B can skip them and
-      # avoid cascading failures from a stale or invalid SRT.
-      - name: Propagate SRT edits to transcript
-        if: steps.detect.outputs.has_changes == 'true'
-        run: |
-          BASE_SHA="${{ steps.detect.outputs.base_sha }}"
-          : > /tmp/failed_talks.txt
-          echo "${{ steps.detect.outputs.srts }}" | while IFS= read -r srt; do
-            [ -z "$srt" ] && continue
-            VIDEO_DIR=$(dirname "$(dirname "$srt")")
-            TALK_DIR=$(dirname "$VIDEO_DIR")
-            TRANSCRIPT="$TALK_DIR/transcript_uk.txt"
-            [ -f "$TRANSCRIPT" ] || { echo "  $srt: no transcript_uk.txt — skip"; continue; }
-
-            echo ""
-            echo "=========================================="
-            echo "  SRT → transcript: $srt"
-            echo "=========================================="
-
-            git show "$BASE_SHA:$srt" > /tmp/old_uk.srt 2>/dev/null || {
-              echo "  New SRT file — skip"
-              continue
-            }
-
-            if ! python -m tools.sync_srt_to_transcript \
-              --old-srt /tmp/old_uk.srt \
-              --new-srt "$srt" \
-              --transcript "$TRANSCRIPT"; then
-              echo "::error::$srt: failed to propagate edits to transcript — SRT may be structurally invalid (e.g. empty text blocks) or has merged/split blocks. Edit the transcript directly, or run the full subtitle pipeline."
-              echo "$TALK_DIR" >> /tmp/failed_talks.txt
-              echo "SYNC_FAILED=1" >> "$GITHUB_ENV"
-            fi
-          done
-
-      # Step B: For each affected talk, sync transcript → all videos' SRTs.
-      # Uses the (potentially just-updated) transcript as source. Blocks already
-      # in sync are no-ops; only newly-propagated changes (from Step A or from a
-      # direct transcript PR) actually rewrite SRTs.
+      # tools.sync_pr walks `git diff --name-only $BASE HEAD`, runs the
+      # two-pass SRT↔transcript sync (with per-video effective-old
+      # baselines for mixed PRs), optimizes, validates, and writes
+      # everything back into the working tree. Exits non-zero on any
+      # sync/optimize/validate failure, emitting ::error:: annotations.
+      # We capture the exit code so that partial progress still gets
+      # committed before we fail the job.
       - name: Sync, optimize, validate
-        if: steps.detect.outputs.has_changes == 'true'
+        id: sync
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          BASE_SHA="${{ steps.detect.outputs.base_sha }}"
+          set +e
+          python -m tools.sync_pr --base-sha "$BASE_SHA"
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
-          echo "${{ steps.detect.outputs.talk_dirs }}" | while IFS= read -r TALK_DIR; do
-            [ -z "$TALK_DIR" ] && continue
-            TALK_ID=$(basename "$TALK_DIR")
-            TRANSCRIPT="$TALK_DIR/transcript_uk.txt"
-            [ -f "$TRANSCRIPT" ] || { echo "  $TALK_ID: no transcript — skip"; continue; }
-
-            # Skip talks whose Step A failed — Step B would just cascade the same
-            # failure through validation against the broken SRT.
-            if [ -f /tmp/failed_talks.txt ] && grep -Fxq "$TALK_DIR" /tmp/failed_talks.txt; then
-              echo ""
-              echo "=========================================="
-              echo "  $TALK_ID — skipped (SRT-side sync failed)"
-              echo "=========================================="
-              continue
-            fi
-
-            echo ""
-            echo "=========================================="
-            echo "  $TALK_ID"
-            echo "=========================================="
-
-            git show "$BASE_SHA:$TRANSCRIPT" > /tmp/old_transcript.txt 2>/dev/null || {
-              echo "  New transcript file — skip"
-              continue
-            }
-
-            python3 -c "
-          import yaml
-          with open('$TALK_DIR/meta.yaml') as f:
-              meta = yaml.safe_load(f)
-          for v in meta.get('videos', []):
-              print(v['slug'])
-          " | while IFS= read -r slug; do
-              SRT="$TALK_DIR/$slug/final/uk.srt"
-              [ -f "$SRT" ] || { echo "  $slug: no uk.srt — skip"; continue; }
-
-              echo "  --- $slug ---"
-
-              # 1. Sync text
-              echo "  [1/3] Sync text..."
-              python -m tools.sync_transcript_to_srt \
-                --talk-dir "$TALK_DIR" \
-                --video-slug "$slug" \
-                --old-transcript /tmp/old_transcript.txt \
-                --new-transcript "$TRANSCRIPT" \
-                && SYNC_RC=0 || SYNC_RC=$?
-              if [ "$SYNC_RC" = "1" ]; then
-                echo "::error::$TALK_ID/$slug: sync failed — needs full subtitle rebuild via pipeline"
-                echo "SYNC_FAILED=1" >> "$GITHUB_ENV"
-                continue
-              fi
-
-              # 2. Optimize (if block count changed, sync returns exit code 2)
-              if [ "$SYNC_RC" = "2" ]; then
-                echo "  [2/3] Optimize (block count changed)..."
-                python -m tools.optimize_srt \
-                  --srt "$SRT" \
-                  --output "$SRT" \
-                  --skip-duration-split \
-                  --skip-cps-split
-              else
-                echo "  [2/3] Optimize — skipped (no block count change)"
-              fi
-
-              # 3. Validate
-              echo "  [3/3] Validate..."
-              if ! python -m tools.validate_subtitles \
-                --srt "$SRT" \
-                --transcript "$TRANSCRIPT" \
-                --skip-time-check --skip-duration-check \
-                --report /dev/null; then
-                echo "::error::$TALK_ID/$slug: validation failed — needs full subtitle rebuild via pipeline"
-                echo "VALIDATE_FAILED=1" >> "$GITHUB_ENV"
-              fi
-            done
-          done
-
-      - name: Commit
-        if: steps.detect.outputs.has_changes == 'true'
+      - name: Commit and push
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add talks/*/*/final/uk.srt talks/*/transcript_uk.txt
-          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
           git commit -m "Sync subtitles and transcript edits"
           git push
 
-      - name: Check results
-        if: steps.detect.outputs.has_changes == 'true'
+      - name: Fail if sync had errors
+        if: always()
         run: |
-          if [ "${SYNC_FAILED:-}" = "1" ] || [ "${VALIDATE_FAILED:-}" = "1" ]; then
-            echo "::error::Some subtitles could not be synced automatically. Run the full subtitle pipeline to rebuild."
+          if [ "${{ steps.sync.outputs.exit_code }}" != "0" ]; then
+            echo "::error::Some subtitles could not be synced automatically. See earlier log lines."
             exit 1
           fi

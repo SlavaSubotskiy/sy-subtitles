@@ -476,72 +476,10 @@ class TestSyncSrtToTranscript:
         # Transcript byte-identical
         assert (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8") == before
 
-    @pytest.mark.xfail(
-        reason=(
-            "Step B uses a single base-SHA transcript as old baseline for every "
-            "video, so for a video whose SRT was already edited in the same PR, "
-            "find_paragraph_blocks can't locate the OLD text (it's been rewritten). "
-            "Needs per-video effective-old-transcript baseline — tracked in follow-up."
-        ),
-        strict=True,
-    )
-    def test_workflow_mixed_srt_and_transcript_edits_in_one_pr(self, tmp_path):
-        """A single PR that edits both transcript_uk.txt and a uk.srt file.
-        Currently fails for the edited-SRT video because Step B's sync runs
-        against base-SHA transcript whose old text doesn't exist in the
-        already-edited SRT anymore. Marked xfail to document the gap."""
-        talk_dir = tmp_path / "talks" / "test"
-        video1 = talk_dir / "Video1" / "final"
-        video2 = talk_dir / "Video2" / "final"
-        video1.mkdir(parents=True)
-        video2.mkdir(parents=True)
-
-        base_srt = """1
-00:00:01,000 --> 00:00:03,000
-Перше речення першого абзацу.
-
-2
-00:00:03,100 --> 00:00:05,000
-Друге речення першого абзацу.
-
-3
-00:00:05,100 --> 00:00:07,000
-Єдине речення другого абзацу.
-"""
-        base_transcript = HEADER + (
-            "Перше речення першого абзацу. Друге речення першого абзацу.\n\nЄдине речення другого абзацу.\n"
-        )
-        (talk_dir / "base_video1.srt").write_text(base_srt, encoding="utf-8")
-        (talk_dir / "base_transcript.txt").write_text(base_transcript, encoding="utf-8")
-        (video1 / "uk.srt").write_text(
-            base_srt.replace("Перше речення першого абзацу.", "Виправлене перше речення."),
-            encoding="utf-8",
-        )
-        (video2 / "uk.srt").write_text(base_srt, encoding="utf-8")
-        (talk_dir / "transcript_uk.txt").write_text(
-            base_transcript.replace("Єдине речення другого абзацу.", "Нове речення другого абзацу."),
-            encoding="utf-8",
-        )
-
-        step_a = sync_srt_to_transcript(
-            old_srt=str(talk_dir / "base_video1.srt"),
-            new_srt=str(video1 / "uk.srt"),
-            transcript=str(talk_dir / "transcript_uk.txt"),
-        )
-        assert "error" not in step_a
-
-        for slug in ("Video1", "Video2"):
-            sync_result = sync_transcript(
-                talk_dir=str(talk_dir),
-                video_slug=slug,
-                old_transcript=str(talk_dir / "base_transcript.txt"),
-                new_transcript=str(talk_dir / "transcript_uk.txt"),
-            )
-            assert "error" not in sync_result, f"{slug}: {sync_result.get('error')}"
-
-        v1 = (video1 / "uk.srt").read_text(encoding="utf-8")
-        assert "Виправлене перше речення." in v1
-        assert "Нове речення другого абзацу." in v1
+    # Mixed-PR case (transcript AND an SRT edited in one commit) is covered
+    # end-to-end in tests/test_sync_pr.py via the sync_pr driver, which
+    # handles it with per-video effective-old baselines. The bare
+    # two-tool composition is no longer the canonical flow.
 
     def test_pr43_scenario_two_leading_placeholders_removed(self, tmp_path):
         """Reproduces PR #43: user removed two leading placeholder blocks
