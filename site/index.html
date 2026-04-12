@@ -1642,6 +1642,14 @@ function msToTC(ms) {
   return (h ? h + ':' : '') + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
+function msToSrtTime(ms) {
+  var ms3 = ms % 1000;
+  var s = Math.floor(ms / 1000);
+  var m = Math.floor(s / 60); s = s % 60;
+  var h = Math.floor(m / 60); m = m % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + ',' + String(ms3).padStart(3, '0');
+}
+
 function renderReview() {
   var grid = document.getElementById('review-grid');
   // Clear old rows (keep headers)
@@ -1694,7 +1702,8 @@ function renderReviewSrt(grid) {
 
   for (var i = 0; i < aligned.length; i++) {
     var row = aligned[i];
-    var tc = msToTC(row.startMs) + ' \u2013 ' + msToTC(row.endMs);
+    var enTc = row.en ? msToTC(row.en.startMs) + ' \u2013 ' + msToTC(row.en.endMs) : '';
+    var ukTc = row.uk ? msToTC(row.uk.startMs) + ' \u2013 ' + msToTC(row.uk.endMs) : '';
 
     // EN cell: skip if this EN block was already rendered (spanning)
     var enKey = row.en ? row.en.startMs + '_' + row.en.endMs : null;
@@ -1723,12 +1732,12 @@ function renderReviewSrt(grid) {
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
       if (enSpan > 1) leftDiv.style.gridRow = 'span ' + enSpan;
-      leftDiv.innerHTML = cellLabel(tc) + esc(row.en.text);
+      leftDiv.innerHTML = cellLabel(enTc) + esc(row.en.text);
       grid.appendChild(leftDiv);
     } else if (!enKey) {
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
-      leftDiv.innerHTML = cellLabel(tc);
+      leftDiv.innerHTML = cellLabel('');
       grid.appendChild(leftDiv);
     }
 
@@ -1739,13 +1748,13 @@ function renderReviewSrt(grid) {
       rightDiv.className = 'cell uk' + (reviewState.edits[rowIdx] !== undefined ? ' edited' : '') + (reviewState.marks[rowIdx] !== undefined ? ' marked' : '');
       if (ukSpan > 1) rightDiv.style.gridRow = 'span ' + ukSpan;
       var displayRight = reviewState.edits[rowIdx] !== undefined ? reviewState.edits[rowIdx] : row.uk.text;
-      rightDiv.innerHTML = cellLabel(tc) + '<div class="cell-text" contenteditable="true" data-idx="' + rowIdx + '">' + esc(displayRight) + '</div>';
+      rightDiv.innerHTML = cellLabel(ukTc) + '<div class="cell-text" contenteditable="true" data-idx="' + rowIdx + '">' + esc(displayRight) + '</div>';
       rightDiv.querySelector('.cell-text').addEventListener('input', (function(idx) { return function() { onReviewEdit(idx, this); }; })(rowIdx));
       grid.appendChild(rightDiv);
     } else if (!ukKey) {
       var rightDiv = document.createElement('div');
       rightDiv.className = 'cell uk';
-      rightDiv.innerHTML = cellLabel(tc);
+      rightDiv.innerHTML = cellLabel('');
       grid.appendChild(rightDiv);
     }
 
@@ -1824,7 +1833,10 @@ SPA.createReviewIssue = function() {
   var aligned = isSrt ? (reviewState.alignedRows || []) : null;
 
   function rowLabel(idx) {
-    if (isSrt && aligned && aligned[idx]) return msToTC(aligned[idx].startMs) + ' \u2013 ' + msToTC(aligned[idx].endMs);
+    if (isSrt && aligned && aligned[idx]) {
+      var blk = aligned[idx].uk || aligned[idx].en;
+      if (blk) return msToTC(blk.startMs) + ' \u2013 ' + msToTC(blk.endMs);
+    }
     return 'P' + (idx + 1);
   }
 
@@ -1865,16 +1877,44 @@ SPA.createReviewIssue = function() {
 };
 
 SPA.openEditor = function() {
-  var filePath = reviewState.mode === 'srt'
+  var isSrt = reviewState.mode === 'srt';
+  var filePath = isSrt
     ? 'talks/' + reviewState.talkId + '/' + reviewState.videoSlug + '/final/' + (reviewState.srtRightLang || 'uk') + '.srt'
     : 'talks/' + reviewState.talkId + '/transcript_' + reviewState.rightLang + '.txt';
   var url = 'https://github.com/' + REPO + '/edit/main/' + filePath;
   if (Object.keys(reviewState.edits).length > 0) {
-    var paras = [];
-    for (var i = 0; i < reviewState.rightParas.length; i++) {
-      paras.push(reviewState.edits[i] !== undefined ? reviewState.edits[i] : reviewState.rightParas[i]);
+    var full;
+    if (isSrt) {
+      // Rebuild a valid SRT from alignedRows: keep block numbering and timecodes
+      // from the original UK blocks, substitute edited text where present.
+      var aligned = reviewState.alignedRows || [];
+      var blocks = [];
+      var seen = {};
+      for (var i = 0; i < aligned.length; i++) {
+        var uk = aligned[i].uk;
+        if (!uk) continue;
+        var key = uk.startMs + '_' + uk.endMs;
+        if (seen[key]) continue;
+        seen[key] = true;
+        var text = reviewState.edits[i] !== undefined ? reviewState.edits[i] : uk.text;
+        blocks.push({ startMs: uk.startMs, endMs: uk.endMs, text: text });
+      }
+      blocks.sort(function(a, b) { return a.startMs - b.startMs; });
+      var lines = [];
+      for (var j = 0; j < blocks.length; j++) {
+        lines.push(String(j + 1));
+        lines.push(msToSrtTime(blocks[j].startMs) + ' --> ' + msToSrtTime(blocks[j].endMs));
+        lines.push(blocks[j].text);
+        lines.push('');
+      }
+      full = lines.join('\n');
+    } else {
+      var paras = [];
+      for (var i = 0; i < reviewState.rightParas.length; i++) {
+        paras.push(reviewState.edits[i] !== undefined ? reviewState.edits[i] : reviewState.rightParas[i]);
+      }
+      full = reviewState.rightHeader ? reviewState.rightHeader + reviewState.rightSep + paras.join(reviewState.rightSep) + '\n' : paras.join(reviewState.rightSep) + '\n';
     }
-    var full = reviewState.rightHeader ? reviewState.rightHeader + reviewState.rightSep + paras.join(reviewState.rightSep) + '\n' : paras.join(reviewState.rightSep) + '\n';
     navigator.clipboard.writeText(full).then(function() {
       alert(t('editor.clipboard_alert'));
       window.open(url);

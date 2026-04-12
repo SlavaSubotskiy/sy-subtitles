@@ -928,6 +928,130 @@ class TestReviewModeToggle:
         body = page.evaluate("decodeURIComponent(window._openedUrl || '')")
         assert "00:0" in body, f"Issue body should use timecodes in SRT mode, got: {body[:300]}"
 
+    def test_srt_cell_shows_actual_block_timecode(self, server, page):
+        """Each SRT cell must show its own block's timecode, not alignment slot boundaries.
+
+        EN block 1: 00:00:01,000 --> 00:00:04,000
+        UK block 1: 00:00:01,000 --> 00:00:05,000
+        The UK cell's label must show 00:00:01 - 00:00:05 (the UK block's actual end),
+        not 00:00:01 - 00:00:04 (slot boundary clipped by EN block 1 end).
+        """
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        # First UK cell should show the UK block's real timecode (00:01 - 00:05)
+        first_uk_label = page.evaluate("document.querySelector('.cell.uk .cell-label').textContent")
+        assert "00:01" in first_uk_label, f"Expected UK block start, got: {first_uk_label}"
+        assert "00:05" in first_uk_label, f"Expected UK block real end (00:05), got: {first_uk_label}"
+        # First EN cell should show EN block's real timecode (00:01 - 00:04)
+        first_en_label = page.evaluate("document.querySelector('.cell.en .cell-label').textContent")
+        assert "00:01" in first_en_label, f"Expected EN block start, got: {first_en_label}"
+        assert "00:04" in first_en_label, f"Expected EN block real end (00:04), got: {first_en_label}"
+
+    def test_transcript_clipboard_is_original_with_edits_applied(self, server, page):
+        """Open Editor in transcript mode: clipboard contains the full original file
+        with only the edits substituted in place."""
+        self._goto_review_expert(server, page)
+        page.evaluate("""
+            window._clipText = '';
+            navigator.clipboard.writeText = function(t) { window._clipText = t; return Promise.resolve(); };
+            window.alert = function() {};
+            window.open = function() {};
+        """)
+        # Edit only paragraph 0; leave paragraph 1 untouched
+        page.evaluate("reviewState.edits[0] = 'ВІДРЕДАГОВАНИЙ ПЕРШИЙ'; saveReview()")
+        page.evaluate("SPA.openEditor()")
+        page.wait_for_timeout(300)
+        clip = page.evaluate("window._clipText || ''")
+        # The header from SAMPLE_UK
+        assert "Мова промови: англійська" in clip, f"Clipboard missing original header: {clip[:400]}"
+        # The edited paragraph
+        assert "ВІДРЕДАГОВАНИЙ ПЕРШИЙ" in clip, f"Clipboard missing edited text: {clip[:400]}"
+        # The unedited paragraph (preserved verbatim)
+        assert "Другий абзац." in clip, f"Clipboard missing unedited paragraph: {clip[:400]}"
+        # The original text of paragraph 0 must be gone (replaced)
+        assert "Перший абзац." not in clip, f"Clipboard still contains pre-edit text: {clip[:400]}"
+
+    def test_transcript_issue_body_shows_edits_and_links_full_file(self, server, page):
+        """Create Issue in transcript mode: body links to transcript file and the
+        Suggested edits section shows Before/After only for edited rows."""
+        self._goto_review_expert(server, page)
+        page.evaluate("reviewState.edits[0] = 'EDITED_TRANSCRIPT'; saveReview()")
+        page.evaluate("window._openedUrl = null; window.open = function(u) { window._openedUrl = u; }")
+        page.evaluate("SPA.createReviewIssue()")
+        page.wait_for_timeout(300)
+        body = page.evaluate("decodeURIComponent(window._openedUrl || '')")
+        assert "transcript_uk.txt" in body, "Body must reference transcript file"
+        assert "Suggested edits" in body, "Body must contain edits section"
+        assert "EDITED_TRANSCRIPT" in body, "Body must contain edited text"
+        # Original (Before) for the edited row should still be present
+        assert "Перший абзац." in body, "Body must include the Before text for the edited row"
+        # Unedited row should NOT appear in the Suggested edits section
+        assert "Другий абзац" not in body, f"Unedited paragraph leaked into body: {body[:400]}"
+
+    def test_srt_clipboard_is_original_with_edits_applied(self, server, page):
+        """Open Editor in SRT mode: clipboard contains the full original SRT
+        with only the edited block's text substituted."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        page.evaluate("""
+            window._clipText = '';
+            navigator.clipboard.writeText = function(t) { window._clipText = t; return Promise.resolve(); };
+            window.alert = function() {};
+            window.open = function() {};
+        """)
+        # Edit the row whose UK text is "Перший субтитр"
+        page.evaluate("""
+            for (var i = 0; i < reviewState.rightParas.length; i++) {
+              if (reviewState.rightParas[i] === 'Перший субтитр') {
+                reviewState.edits[i] = 'ВІДРЕДАГОВАНИЙ СУБТИТР';
+                break;
+              }
+            }
+            saveReview();
+        """)
+        page.evaluate("SPA.openEditor()")
+        page.wait_for_timeout(300)
+        clip = page.evaluate("window._clipText || ''")
+        # Original block numbering and timecodes preserved
+        assert "00:00:01,000 --> 00:00:05,000" in clip, f"Clipboard missing block 1 timecode: {clip[:500]}"
+        assert "00:00:06,000 --> 00:00:10,000" in clip, f"Clipboard missing block 2 timecode: {clip[:500]}"
+        # Edited text appears
+        assert "ВІДРЕДАГОВАНИЙ СУБТИТР" in clip, f"Clipboard missing edited text: {clip[:500]}"
+        # Other (unedited) block text preserved verbatim
+        assert "Другий субтитр" in clip, f"Clipboard missing unedited block: {clip[:500]}"
+        # Original text of the edited block is replaced
+        assert "Перший субтитр" not in clip, f"Clipboard still contains pre-edit text: {clip[:500]}"
+
+    def test_srt_issue_body_shows_edits_and_links_srt_file(self, server, page):
+        """Create Issue in SRT mode: body links to SRT file and Suggested edits
+        section shows Before/After only for edited blocks."""
+        self._goto_review_expert(server, page)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        page.evaluate("""
+            for (var i = 0; i < reviewState.rightParas.length; i++) {
+              if (reviewState.rightParas[i] === 'Перший субтитр') {
+                reviewState.edits[i] = 'EDITED_SUBTITLE';
+                break;
+              }
+            }
+            saveReview();
+        """)
+        page.evaluate("window._openedUrl = null; window.open = function(u) { window._openedUrl = u; }")
+        page.evaluate("SPA.createReviewIssue()")
+        page.wait_for_timeout(300)
+        body = page.evaluate("decodeURIComponent(window._openedUrl || '')")
+        assert "uk.srt" in body, "Body must reference the SRT file"
+        assert "Test-Video" in body, "Body must reference video slug"
+        assert "Suggested edits" in body, "Body must contain edits section"
+        assert "EDITED_SUBTITLE" in body, "Body must contain edited text"
+        # Before text of the edited block
+        assert "Перший субтитр" in body, "Body must include Before text for edited block"
+        # Other (unedited) block must NOT leak into Suggested edits
+        assert "Другий субтитр" not in body, f"Unedited block leaked into body: {body[:500]}"
+
     def test_switch_back_to_transcript(self, server, page):
         """Switching back to transcript mode should show paragraphs."""
         self._goto_review_expert(server, page)
