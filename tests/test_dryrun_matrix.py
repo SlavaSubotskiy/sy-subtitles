@@ -61,26 +61,13 @@ def _discover_cases() -> list[DryrunCase]:
 
 CASES = _discover_cases()
 
-# Talks where shipped transcript_uk.txt drifted from final/uk.srt — the
-# dry-run replay will always fail text_preservation because the snapshot's
-# "expected" transcript doesn't round-trip through the shipped uk.srt.
-# These overlap with tests/test_golden_talks.KNOWN_BROKEN_VALIDATION; once
-# the underlying shipped files are fixed, remove the entry and rerun
-# bootstrap_snapshot.
-KNOWN_BROKEN_DRYRUN: dict[str, str] = {
-    "1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-English-Talk": "shipped text drift",
-    "1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet": "shipped text drift",
-}
+# The dry-run corpus is a strict subset of shipped talks that already pass
+# validate_subtitles end-to-end — see tools.bootstrap_snapshot.KNOWN_GOOD_TALKS.
+# No xfails here: anything in the corpus must always be green.
 
 
 def _case_params():
-    params = []
-    for c in CASES:
-        marks = []
-        if c.name in KNOWN_BROKEN_DRYRUN:
-            marks.append(pytest.mark.xfail(reason=KNOWN_BROKEN_DRYRUN[c.name], strict=True))
-        params.append(pytest.param(c, marks=marks, id=c.name))
-    return params
+    return [pytest.param(c, id=c.name) for c in CASES]
 
 
 def test_dryrun_corpus_nonempty() -> None:

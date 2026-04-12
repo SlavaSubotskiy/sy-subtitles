@@ -988,16 +988,37 @@ jobs:
         env:
           TALK_ID: ${{ inputs.talk_id }}
         run: |
-          for snap in tests/fixtures/pipeline_snapshots/${TALK_ID}/*/; do
-            [ -d "$snap" ] || continue
-            video=$(basename "$snap")
-            if [ -f "talks/${TALK_ID}/${video}/final/uk.srt" ]; then
-              python -m tools.verify_snapshot \
-                --talk-dir "talks/${TALK_ID}" \
-                --video-slug "${video}" \
-                --snapshot "${snap%/}"
-            fi
-          done
+          # The pipeline builds only the PRIMARY video (most whisper words)
+          # and generates offset-video SRTs via offset_srt apply. Verify only
+          # the primary — offset videos are trivially derived.
+          primary=$(python3 -c "
+          import json, os, yaml
+          talk=os.environ['TALK_ID']
+          with open(f'talks/{talk}/meta.yaml') as f:
+              meta=yaml.safe_load(f)
+          best_slug, best_words = None, -1
+          for v in meta['videos']:
+              wpath=f'talks/{talk}/{v[\"slug\"]}/source/whisper.json'
+              try:
+                  with open(wpath) as wf:
+                      segs=json.load(wf)['segments']
+                  nw=sum(len(s.get('words', [])) for s in segs)
+              except Exception:
+                  nw=0
+              if nw>best_words:
+                  best_words, best_slug = nw, v['slug']
+          print(best_slug)
+          ")
+          echo "Primary video: ${primary}"
+          snap="tests/fixtures/pipeline_snapshots/${TALK_ID}/${primary}"
+          if [ ! -d "$snap" ]; then
+            echo "::error::no snapshot for ${TALK_ID}/${primary}"
+            exit 1
+          fi
+          python -m tools.verify_snapshot \
+            --talk-dir "talks/${TALK_ID}" \
+            --video-slug "${primary}" \
+            --snapshot "${snap}"
 
   # Single commit job – collects all artifacts and pushes
   commit:
