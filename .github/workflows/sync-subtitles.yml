@@ -62,11 +62,14 @@ jobs:
 
       # Step A: For each changed SRT, propagate text edits back to transcript_uk.txt.
       # After this step the transcript holds the source-of-truth text and Step B can
-      # re-sync it back out to all videos' SRTs in the talk.
+      # re-sync it back out to all videos' SRTs in the talk. Talks whose Step A
+      # failed are recorded in /tmp/failed_talks.txt so Step B can skip them and
+      # avoid cascading failures from a stale or invalid SRT.
       - name: Propagate SRT edits to transcript
         if: steps.detect.outputs.has_changes == 'true'
         run: |
           BASE_SHA="${{ steps.detect.outputs.base_sha }}"
+          : > /tmp/failed_talks.txt
           echo "${{ steps.detect.outputs.srts }}" | while IFS= read -r srt; do
             [ -z "$srt" ] && continue
             VIDEO_DIR=$(dirname "$(dirname "$srt")")
@@ -84,15 +87,14 @@ jobs:
               continue
             }
 
-            python -m tools.sync_srt_to_transcript \
+            if ! python -m tools.sync_srt_to_transcript \
               --old-srt /tmp/old_uk.srt \
               --new-srt "$srt" \
-              --transcript "$TRANSCRIPT" \
-              || {
-                echo "::error::$srt: failed to propagate edits to transcript"
-                echo "SYNC_FAILED=1" >> "$GITHUB_ENV"
-                continue
-              }
+              --transcript "$TRANSCRIPT"; then
+              echo "::error::$srt: failed to propagate edits to transcript — SRT may be structurally invalid (e.g. empty text blocks) or has merged/split blocks. Edit the transcript directly, or run the full subtitle pipeline."
+              echo "$TALK_DIR" >> /tmp/failed_talks.txt
+              echo "SYNC_FAILED=1" >> "$GITHUB_ENV"
+            fi
           done
 
       # Step B: For each affected talk, sync transcript → all videos' SRTs.
@@ -109,6 +111,16 @@ jobs:
             TALK_ID=$(basename "$TALK_DIR")
             TRANSCRIPT="$TALK_DIR/transcript_uk.txt"
             [ -f "$TRANSCRIPT" ] || { echo "  $TALK_ID: no transcript — skip"; continue; }
+
+            # Skip talks whose Step A failed — Step B would just cascade the same
+            # failure through validation against the broken SRT.
+            if [ -f /tmp/failed_talks.txt ] && grep -Fxq "$TALK_DIR" /tmp/failed_talks.txt; then
+              echo ""
+              echo "=========================================="
+              echo "  $TALK_ID — skipped (SRT-side sync failed)"
+              echo "=========================================="
+              continue
+            fi
 
             echo ""
             echo "=========================================="
