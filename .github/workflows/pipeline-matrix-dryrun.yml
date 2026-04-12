@@ -29,8 +29,14 @@ on:
   schedule:
     - cron: "23 3 * * 1"  # Monday 03:23 UTC, weekly
 
+# Permissions must be a superset of subtitle-pipeline.yml — even though
+# dry-run never commits, GitHub validates permissions statically against
+# the reusable workflow's declared needs.
 permissions:
-  contents: read
+  contents: write
+  id-token: write
+  issues: write
+  pull-requests: write
 
 jobs:
   full:
