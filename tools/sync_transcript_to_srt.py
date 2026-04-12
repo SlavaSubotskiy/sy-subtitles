@@ -15,17 +15,16 @@ import sys
 from pathlib import Path
 
 from .srt_utils import parse_srt, write_srt
-from .text_segmentation import load_transcript, split_sentences, split_text_to_lines
+from .text_segmentation import build_blocks_from_paragraphs, load_transcript
 
 
 def prepare_blocks(paragraphs: list) -> list:
-    """Split paragraphs into subtitle-sized blocks (<=84 CPL)."""
-    blocks = []
-    for para_idx, para in enumerate(paragraphs):
-        for sent in split_sentences(para):
-            for line in split_text_to_lines(sent):
-                blocks.append({"text": line, "para_idx": para_idx})
-    return blocks
+    """Split paragraphs into subtitle-sized blocks (<=84 CPL).
+
+    Thin wrapper around text_segmentation.build_blocks_from_paragraphs — the
+    canonical implementation shared with build_map.prepare_uk_blocks.
+    """
+    return build_blocks_from_paragraphs(paragraphs)
 
 
 def find_paragraph_blocks(srt_blocks: list, para_blocks: list) -> list | None:

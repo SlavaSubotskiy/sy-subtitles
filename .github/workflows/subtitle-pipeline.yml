@@ -65,16 +65,34 @@ jobs:
 
       - name: Find talks, videos, and pending whisper
         id: find
+        env:
+          INPUT_TALK_ID: ${{ inputs.talk_id }}
         run: |
           python3 << 'PYEOF'
           import json, os, subprocess, yaml
 
-          talk_id_input = "${{ inputs.talk_id }}".strip()
+          from tools.workflow_validation import (
+              InvalidWorkflowInput,
+              die,
+              validate_talk_id,
+              validate_video_slug,
+          )
+
+          talk_id_input = os.environ.get("INPUT_TALK_ID", "").strip()
+          if talk_id_input:
+              try:
+                  validate_talk_id(talk_id_input)
+              except InvalidWorkflowInput as e:
+                  die(str(e))
           video_includes = []
           talk_ids = set()
           whisper_talk_ids = set()
 
           def process_talk(talk_id):
+              try:
+                  validate_talk_id(talk_id)
+              except InvalidWorkflowInput as e:
+                  die(str(e))
               meta_path = f"talks/{talk_id}/meta.yaml"
               if not os.path.isfile(meta_path):
                   print(f"SKIP: {meta_path} not found")
@@ -85,6 +103,10 @@ jobs:
               slugs_seen = set()
               for v in meta.get("videos", []):
                   slug = v["slug"]
+                  try:
+                      validate_video_slug(slug)
+                  except InvalidWorkflowInput as e:
+                      die(f"{meta_path}: {e}")
                   if slug in slugs_seen:
                       print(f"::warning::duplicate slug '{slug}' in {meta_path}")
                   slugs_seen.add(slug)
@@ -566,10 +588,21 @@ jobs:
             Every UK block must have a timecode. Do not skip any blocks.
             Do not use TodoWrite.
 
-      - name: Build SRT from mapping
+      - name: Validate uk.map contract
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
         run: |
-          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
-          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
+          python -m tools.validate_artifacts \
+            --uk-map "talks/${TALK_ID}/${VIDEO_SLUG}/work/uk.map"
+
+      - name: Build SRT from mapping
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+        run: |
+          TALK="talks/${TALK_ID}"
+          VIDEO="${VIDEO_SLUG}"
           mkdir -p "$TALK/$VIDEO/final"
           python -m tools.build_srt \
             --mapping "$TALK/$VIDEO/work/uk.map" \

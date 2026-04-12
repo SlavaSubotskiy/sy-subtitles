@@ -1,0 +1,88 @@
+name: Canary
+run-name: "Canary ${{ github.event_name }} ${{ inputs.mode || 'dryrun' }}"
+
+# Two canary modes:
+#   dryrun — scheduled every 6h, runs tools.pipeline_dryrun on the 1988
+#            Sahasrara fixture. Zero API cost. Detects any Python-side
+#            regression that would silently break shipped talks.
+#   live   — workflow_dispatch only. Reserved for a future API-level canary
+#            that runs the real translate/review/build phases through Claude
+#            Code Action on a minimal talk. Flip to scheduled once the
+#            budget is agreed.
+
+on:
+  schedule:
+    - cron: "7 */6 * * *"  # every 6 hours, offset to avoid the top-of-hour cron rush
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "canary mode"
+        type: choice
+        options:
+          - dryrun
+          - live
+        default: dryrun
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  dryrun:
+    if: github.event_name == 'schedule' || inputs.mode == 'dryrun'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline dry-run on 1988 Sahasrara fixture
+        id: dryrun
+        run: |
+          python -m tools.pipeline_dryrun \
+            --talk-dir talks/1988-05-08_Sahasrara-Puja-How-it-was-decided \
+            --video-slug Sahasrara-Puja-Talk \
+            --uk-map tests/fixtures/llm_responses/1988_sahasrara.uk.map \
+            --work-dir "$RUNNER_TEMP/dryrun_work" | tee "$RUNNER_TEMP/dryrun.log"
+
+      - name: Run full shipped-talks regression (golden + schemas)
+        run: |
+          python -m pytest tests/test_golden_talks.py tests/test_schemas.py \
+            tests/test_pipeline_replay.py tests/test_uk_map.py -q
+
+      - name: Open issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="Canary dryrun failed on $(date -u +%Y-%m-%dT%H:%MZ)"
+          tail_log="$(tail -80 "$RUNNER_TEMP/dryrun.log" 2>/dev/null || echo 'no dryrun log captured')"
+          body=$(printf '%s\n\n**Run:** %s\n\n**Dryrun log tail:**\n\n```\n%s\n```\n' \
+            "The scheduled canary dry-run failed — shipped Python code broke a replayable-locally invariant." \
+            "$RUN_URL" "$tail_log")
+          existing=$(gh issue list --label canary-failure --state open --json number --jq '.[0].number' || echo "")
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh label create canary-failure --description "Canary pipeline dryrun regression" --color d93f0b 2>/dev/null || true
+            gh issue create --title "$title" --label canary-failure --body "$body"
+          fi
+
+  live:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'live'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Live canary placeholder
+        run: |
+          echo "Live canary mode is not yet wired. Once budget is agreed,"
+          echo "this job should dispatch subtitle-pipeline.yml on a minimal"
+          echo "canary talk and assert the resulting final/uk.srt passes"
+          echo "validate_subtitles against the expected transcript."
+          exit 0

@@ -47,14 +47,30 @@ jobs:
 
       - name: Build video matrix
         id: build
+        env:
+          INPUT_TALK_ID: ${{ inputs.talk_id }}
+          INPUT_FORCE: ${{ inputs.force }}
         run: |
           python3 << 'PYEOF'
           import json
           import os
           import yaml
 
-          talk_id_input = "${{ inputs.talk_id }}".strip()
-          force = "${{ inputs.force }}".strip().lower() == "true"
+          from tools.workflow_validation import (
+              InvalidWorkflowInput,
+              die,
+              validate_talk_id,
+              validate_video_slug,
+              validate_vimeo_url,
+          )
+
+          talk_id_input = os.environ.get("INPUT_TALK_ID", "").strip()
+          force = os.environ.get("INPUT_FORCE", "").strip().lower() == "true"
+          if talk_id_input:
+              try:
+                  validate_talk_id(talk_id_input)
+              except InvalidWorkflowInput as e:
+                  die(str(e))
 
           # Find meta.yaml files
           if talk_id_input:
@@ -73,6 +89,10 @@ jobs:
                   continue
 
               talk_id = meta_path.split("/")[1]
+              try:
+                  validate_talk_id(talk_id)
+              except InvalidWorkflowInput as e:
+                  die(str(e))
               with open(meta_path) as f:
                   meta = yaml.safe_load(f)
 
@@ -80,6 +100,11 @@ jobs:
               for video in videos:
                   slug = video["slug"]
                   vimeo_url = video["vimeo_url"]
+                  try:
+                      validate_video_slug(slug)
+                      validate_vimeo_url(vimeo_url)
+                  except InvalidWorkflowInput as e:
+                      die(f"{meta_path}: {e}")
                   whisper_path = f"talks/{talk_id}/{slug}/source/whisper.json"
 
                   if os.path.isfile(whisper_path) and not force:
@@ -109,8 +134,19 @@ jobs:
       max-parallel: 3
       fail-fast: false
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    env:
+      TALK_ID: ${{ matrix.talk_id }}
+      VIDEO_SLUG: ${{ matrix.video_slug }}
+      VIMEO_URL: ${{ matrix.vimeo_url }}
     steps:
       - uses: actions/checkout@v5
+
+      - name: Validate matrix values
+        run: |
+          python3 -m tools.workflow_validation_cli \
+            --talk-id "$TALK_ID" \
+            --video-slug "$VIDEO_SLUG" \
+            --vimeo-url "$VIMEO_URL"
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -144,14 +180,14 @@ jobs:
           yt-dlp \
             --referer "https://www.amruta.org/" \
             -o "/tmp/whisper_work/video.mp4" \
-            "${{ matrix.vimeo_url }}"
+            "$VIMEO_URL"
 
       - name: Run Whisper
         run: |
-          mkdir -p "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source"
+          mkdir -p "talks/${TALK_ID}/${VIDEO_SLUG}/source"
           LANG_FLAG=$(python3 -c "
-          import yaml
-          with open('talks/${{ matrix.talk_id }}/meta.yaml') as f:
+          import os, yaml
+          with open('talks/' + os.environ['TALK_ID'] + '/meta.yaml') as f:
             meta = yaml.safe_load(f)
           if meta.get('other_languages'):
             print('')
@@ -161,9 +197,14 @@ jobs:
           echo "Whisper language flag: ${LANG_FLAG:-auto-detect}"
           python -m tools.whisper_run \
             --video /tmp/whisper_work/video.mp4 \
-            --output "talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json" \
+            --output "talks/${TALK_ID}/${VIDEO_SLUG}/source/whisper.json" \
             --model medium \
             $LANG_FLAG
+
+      - name: Validate whisper.json contract
+        run: |
+          python -m tools.validate_artifacts \
+            --whisper "talks/${TALK_ID}/${VIDEO_SLUG}/source/whisper.json"
 
       - name: Cleanup video
         if: always()

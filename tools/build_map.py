@@ -19,10 +19,9 @@ import sys
 from difflib import SequenceMatcher
 from pathlib import Path
 
-from .align_uk import load_transcript
 from .build_srt import build_srt as run_build_srt
-from .generate_map import split_sentences, split_text_to_lines
 from .srt_utils import load_whisper_json, ms_to_time
+from .text_segmentation import build_blocks_from_paragraphs, load_transcript
 
 # --- Configuration ---
 CHUNK_TARGET = 30
@@ -36,13 +35,12 @@ CHUNK_MAX_PARAS = 15
 
 
 def prepare_uk_blocks(uk_paragraphs):
-    """Split UK paragraphs into subtitle blocks (≤84 CPL)."""
-    blocks = []
-    for para_idx, para in enumerate(uk_paragraphs):
-        for sent in split_sentences(para):
-            for line in split_text_to_lines(sent):
-                blocks.append({"id": len(blocks) + 1, "text": line, "para_idx": para_idx})
-    return blocks
+    """Split UK paragraphs into subtitle blocks (≤84 CPL).
+
+    Thin wrapper around text_segmentation.build_blocks_from_paragraphs — the
+    canonical implementation shared with sync_transcript_to_srt.
+    """
+    return build_blocks_from_paragraphs(uk_paragraphs)
 
 
 # ---------------------------------------------------------------------------

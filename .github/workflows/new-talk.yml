@@ -45,6 +45,14 @@ jobs:
 
           import yaml
 
+          from tools.workflow_validation import (
+              InvalidWorkflowInput,
+              die,
+              validate_talk_id,
+              validate_video_slug,
+              validate_vimeo_url,
+          )
+
           base = os.environ["PR_BASE_SHA"]
           head = os.environ["PR_HEAD_SHA"]
 
@@ -69,22 +77,32 @@ jobs:
               for meta_path in new_metas:
                   talk_dir = os.path.dirname(meta_path)
                   talk_id = os.path.basename(talk_dir)
+                  try:
+                      validate_talk_id(talk_id)
+                  except InvalidWorkflowInput as e:
+                      die(str(e))
                   with open(meta_path) as f:
                       meta = yaml.safe_load(f)
                   for video in meta.get("videos", []):
                       vimeo_url = video.get("vimeo_url", "")
                       if not vimeo_url:
                           continue
-                      whisper_path = f"{talk_dir}/{video['slug']}/source/whisper.json"
+                      slug = video.get("slug", "")
+                      try:
+                          validate_video_slug(slug)
+                          validate_vimeo_url(vimeo_url)
+                      except InvalidWorkflowInput as e:
+                          die(f"{meta_path}: {e}")
+                      whisper_path = f"{talk_dir}/{slug}/source/whisper.json"
                       if os.path.exists(whisper_path):
                           print(f"SKIP whisper: {whisper_path} exists")
                           continue
                       whisper_matrix.append({
                           "talk_id": talk_id,
-                          "video_slug": video["slug"],
+                          "video_slug": slug,
                           "vimeo_url": vimeo_url,
                       })
-                      print(f"QUEUE whisper: {talk_id}/{video['slug']}")
+                      print(f"QUEUE whisper: {talk_id}/{slug}")
 
               print(f"\nNew talks: {new_metas}")
               print(f"Whisper jobs: {len(whisper_matrix)}")
@@ -295,6 +313,13 @@ jobs:
           path: ~/.cache/huggingface/hub
           key: faster-whisper-medium
 
+      - name: Validate matrix values
+        run: |
+          python3 -m tools.workflow_validation_cli \
+            --talk-id "$TALK_ID" \
+            --video-slug "$VIDEO_SLUG" \
+            --vimeo-url "$VIMEO_URL"
+
       - name: Download video
         run: |
           mkdir -p /tmp/whisper_work
@@ -303,8 +328,8 @@ jobs:
       - name: Run Whisper
         run: |
           LANG_FLAG=$(python3 -c "
-          import yaml
-          with open('talks/${{ matrix.talk_id }}/meta.yaml') as f:
+          import os, yaml
+          with open('talks/' + os.environ['TALK_ID'] + '/meta.yaml') as f:
             meta = yaml.safe_load(f)
           if meta.get('other_languages'):
             print('')

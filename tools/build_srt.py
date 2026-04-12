@@ -12,63 +12,19 @@ import argparse
 import sys
 
 from .config import OptimizeConfig
-from .srt_utils import ms_to_time, time_to_ms, write_srt
+from .srt_utils import ms_to_time, write_srt
+from .uk_map import parse_uk_map
 
 
-def parse_mapping(filepath):
-    """Parse pipe-separated mapping into blocks.
+def parse_mapping(filepath, *, strict=False):
+    """Parse pipe-separated mapping into blocks via the canonical uk_map parser.
 
-    Format: block# | start_tc | end_tc | text
-    Skips blank lines and # comments.
-
-    Returns list of {idx, start_ms, end_ms, text}.
+    strict=False preserves legacy build_srt behaviour (WARNINGs, drop bad lines).
+    strict=True raises UkMapError on any contract violation — use from tests and
+    from the pipeline validate-artifacts step.
     """
-    blocks = []
-    with open(filepath, encoding="utf-8") as f:
-        for line_no, line in enumerate(f, 1):
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            parts = line.split("|")
-            if len(parts) < 4:
-                print(f"WARNING: line {line_no}: expected 4+ pipe-separated fields, got {len(parts)}: {line[:80]}")
-                continue
-            try:
-                idx = int(parts[0].strip())
-            except ValueError:
-                print(f"WARNING: line {line_no}: invalid block number '{parts[0].strip()}'")
-                continue
-            try:
-                start_ms = time_to_ms(parts[1].strip())
-                end_ms = time_to_ms(parts[2].strip())
-            except (ValueError, IndexError):
-                print(f"WARNING: line {line_no}: invalid timecode in '{parts[1].strip()}' or '{parts[2].strip()}'")
-                continue
-            # Text may contain pipes (unlikely but safe)
-            text = "|".join(parts[3:]).strip()
-
-            if start_ms >= end_ms:
-                print(
-                    f"WARNING: line {line_no}: start >= end for block #{idx} ({parts[1].strip()} >= {parts[2].strip()})"
-                )
-                continue
-
-            blocks.append(
-                {
-                    "idx": idx,
-                    "start_ms": start_ms,
-                    "end_ms": end_ms,
-                    "text": text,
-                }
-            )
-
-    # Validate sequential numbering
-    for i, b in enumerate(blocks):
-        expected = i + 1
-        if b["idx"] != expected:
-            print(f"WARNING: expected block #{expected}, got #{b['idx']}")
-
-    return blocks
+    blocks = parse_uk_map(filepath, strict=strict)
+    return [b.as_dict() for b in blocks]
 
 
 def apply_padding(blocks, config=None):

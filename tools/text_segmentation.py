@@ -193,3 +193,23 @@ def split_text_to_lines(text: str) -> list[str]:
     for part in parts:
         result.extend(split_text_to_lines(part))
     return result
+
+
+# ---------------------------------------------------------------------------
+# Canonical paragraph → subtitle-block builder
+# ---------------------------------------------------------------------------
+
+
+def build_blocks_from_paragraphs(paragraphs: list[str]) -> list[dict]:
+    """Turn transcript paragraphs into subtitle-sized blocks.
+
+    Canonical form used by build_map.prepare_uk_blocks and
+    sync_transcript_to_srt.prepare_blocks so they can never drift.
+    Each returned block has keys: id (1-based), text, para_idx.
+    """
+    blocks: list[dict] = []
+    for para_idx, para in enumerate(paragraphs):
+        for sent in split_sentences(para):
+            for line in split_text_to_lines(sent):
+                blocks.append({"id": len(blocks) + 1, "text": line, "para_idx": para_idx})
+    return blocks
