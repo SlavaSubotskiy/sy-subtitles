@@ -1,0 +1,18 @@
+{
+  "talk_id": "1993-09-19_Ganesha-Puja-Cabella",
+  "video_slug": "Ganesha-Puja",
+  "n_blocks": 473,
+  "n_chunks": 14,
+  "bootstrap_method": "paragraph_distribution",
+  "directly_timed": 473,
+  "baseline": {
+    "n_blocks": 433,
+    "avg_cps": 8.67,
+    "max_cps": 15.09,
+    "cps_over_hard": 0,
+    "cps_over_target": 1,
+    "duration_under_min": 0,
+    "duration_over_max": 0
+  },
+  "source": "bootstrap_snapshot from repo artefacts"
+}

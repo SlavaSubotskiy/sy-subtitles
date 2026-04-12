@@ -36,6 +36,33 @@ on:
           - whisper
           - en-srt
         default: whisper
+      dry_run:
+        description: 'Replay fake LLM responses from snapshots, skip commit'
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      talk_id:
+        required: true
+        type: string
+      whisper:
+        type: boolean
+        default: true
+      translate:
+        type: boolean
+        default: true
+      review:
+        type: boolean
+        default: true
+      build:
+        type: boolean
+        default: true
+      timing_source:
+        type: string
+        default: whisper
+      dry_run:
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -188,8 +215,22 @@ jobs:
           echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
           echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
 
+      - name: Translate (dry-run fake)
+        if: inputs.translate != false && inputs.dry_run == true
+        env:
+          TALK_ID: ${{ matrix.talk_id }}
+        run: |
+          python -m tools.fake_llm translate \
+            --snapshot "tests/fixtures/pipeline_snapshots/${TALK_ID}/_dryrun_video" \
+            --talk-dir "talks/${TALK_ID}" || true
+          # Fallback to first video slug's snapshot if _dryrun_video link missing:
+          if [ ! -f "talks/${TALK_ID}/transcript_uk.txt" ]; then
+            snap=$(ls -d tests/fixtures/pipeline_snapshots/${TALK_ID}/*/ 2>/dev/null | head -1 | sed 's:/$::')
+            python -m tools.fake_llm translate --snapshot "$snap" --talk-dir "talks/${TALK_ID}"
+          fi
+
       - name: Translate to Ukrainian
-        if: inputs.translate != false
+        if: inputs.translate != false && inputs.dry_run != true
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -284,8 +325,16 @@ jobs:
 
           echo "Paragraph counts match: $EN_COUNT"
 
+      - name: Review (dry-run fake)
+        if: inputs.review != false && inputs.dry_run == true
+        env:
+          TALK_ID: ${{ matrix.talk_id }}
+        run: |
+          snap=$(ls -d tests/fixtures/pipeline_snapshots/${TALK_ID}/*/ 2>/dev/null | head -1 | sed 's:/$::')
+          python -m tools.fake_llm review --snapshot "$snap" --talk-dir "talks/${TALK_ID}"
+
       - name: Review translation (2+1)
-        if: inputs.review != false
+        if: inputs.review != false && inputs.dry_run != true
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -548,7 +597,18 @@ jobs:
           echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
           echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
 
+      - name: Build EN-SRT (dry-run fake)
+        if: inputs.dry_run == true
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+        run: |
+          python -m tools.fake_llm build-en-srt \
+            --snapshot "tests/fixtures/pipeline_snapshots/${TALK_ID}/${VIDEO_SLUG}" \
+            --work-dir "talks/${TALK_ID}/${VIDEO_SLUG}/work"
+
       - name: Build subtitles from EN SRT
+        if: inputs.dry_run != true
         uses: anthropics/claude-code-action@v1
         env:
           CLAUDE_CODE_MAX_OUTPUT_TOKENS: "64000"
@@ -700,7 +760,20 @@ jobs:
           echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
           echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
 
+      - name: Chunk ${{ matrix.ci }} (dry-run fake)
+        if: inputs.dry_run == true
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+          CI: ${{ matrix.ci }}
+        run: |
+          python -m tools.fake_llm build-chunk \
+            --snapshot "tests/fixtures/pipeline_snapshots/${TALK_ID}/${VIDEO_SLUG}" \
+            --work-dir "talks/${TALK_ID}/${VIDEO_SLUG}/work" \
+            --chunk-idx "${CI}"
+
       - name: Determine timecodes for chunk ${{ matrix.ci }}
+        if: inputs.dry_run != true
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -863,12 +936,63 @@ jobs:
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
 
+  # Dry-run verifier — replaces the commit job when inputs.dry_run is true.
+  # Asserts produced artifacts match the snapshot baseline but does NOT push.
+  verify-dryrun:
+    needs: [translate-and-review, assemble-build, build-en-srt]
+    if: |
+      inputs.dry_run == true && always() && !cancelled() &&
+      (needs.assemble-build.result == 'success' || needs.build-en-srt.result == 'success') &&
+      (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+
+      - name: Download subtitle artifacts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: subtitles__*
+          path: /tmp/subtitles
+
+      - name: Stage artifacts back under talks/
+        env:
+          TALK_ID: ${{ inputs.talk_id }}
+        run: |
+          find /tmp/subtitles \( -name 'uk.srt' -o -name 'uk.map' \) | while read src; do
+            rel=$(echo "$src" | grep -o '[^/]*/\(work\|final\)/[^/]*$' || true)
+            if [ -n "$rel" ]; then
+              dest="talks/${TALK_ID}/${rel}"
+              mkdir -p "$(dirname "$dest")"
+              cp "$src" "$dest"
+              echo "  -> $dest"
+            fi
+          done
+
+      - name: Verify against snapshot
+        env:
+          TALK_ID: ${{ inputs.talk_id }}
+        run: |
+          for snap in tests/fixtures/pipeline_snapshots/${TALK_ID}/*/; do
+            [ -d "$snap" ] || continue
+            video=$(basename "$snap")
+            if [ -f "talks/${TALK_ID}/${video}/final/uk.srt" ]; then
+              python -m tools.verify_snapshot \
+                --talk-dir "talks/${TALK_ID}" \
+                --video-slug "${video}" \
+                --snapshot "${snap%/}"
+            fi
+          done
+
   # Single commit job – collects all artifacts and pushes
   commit:
     needs: [translate-and-review, assemble-build, build-en-srt]
-    # commit runs after any build path completes
+    # commit runs after any build path completes; skipped for dry-runs.
     if: |
-      always() &&
+      inputs.dry_run != true && always() &&
       !cancelled() &&
       (needs.assemble-build.result == 'success' || needs.assemble-build.result == 'failure' || needs.assemble-build.result == 'skipped') &&
       (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'failure' || needs.translate-and-review.result == 'skipped')

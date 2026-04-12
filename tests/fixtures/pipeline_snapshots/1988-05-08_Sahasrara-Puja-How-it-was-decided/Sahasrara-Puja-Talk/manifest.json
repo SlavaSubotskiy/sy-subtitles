@@ -1,0 +1,18 @@
+{
+  "talk_id": "1988-05-08_Sahasrara-Puja-How-it-was-decided",
+  "video_slug": "Sahasrara-Puja-Talk",
+  "n_blocks": 399,
+  "n_chunks": 12,
+  "bootstrap_method": "paragraph_distribution",
+  "directly_timed": 399,
+  "baseline": {
+    "n_blocks": 381,
+    "avg_cps": 8.27,
+    "max_cps": 14.99,
+    "cps_over_hard": 0,
+    "cps_over_target": 0,
+    "duration_under_min": 0,
+    "duration_over_max": 0
+  },
+  "source": "bootstrap_snapshot from repo artefacts"
+}

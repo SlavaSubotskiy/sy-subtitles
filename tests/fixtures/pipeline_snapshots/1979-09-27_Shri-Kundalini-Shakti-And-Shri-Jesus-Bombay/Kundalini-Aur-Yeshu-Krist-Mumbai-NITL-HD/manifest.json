@@ -1,0 +1,18 @@
+{
+  "talk_id": "1979-09-27_Shri-Kundalini-Shakti-And-Shri-Jesus-Bombay",
+  "video_slug": "Kundalini-Aur-Yeshu-Krist-Mumbai-NITL-HD",
+  "n_blocks": 809,
+  "n_chunks": 23,
+  "bootstrap_method": "paragraph_distribution",
+  "directly_timed": 809,
+  "baseline": {
+    "n_blocks": 784,
+    "avg_cps": 39.84,
+    "max_cps": 69.17,
+    "cps_over_hard": 743,
+    "cps_over_target": 777,
+    "duration_under_min": 2,
+    "duration_over_max": 0
+  },
+  "source": "bootstrap_snapshot from repo artefacts"
+}

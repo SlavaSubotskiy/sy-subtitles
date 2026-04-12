@@ -1,0 +1,136 @@
+name: Pipeline Matrix Dryrun
+run-name: "Matrix dryrun ${{ github.event_name }}"
+
+# Drives subtitle-pipeline.yml with dry_run=true over a matrix of
+# (talk, mode) cells. Zero API cost — every LLM step is replaced by
+# fake_llm pulling canned responses from tests/fixtures/pipeline_snapshots.
+#
+# Failing cells surface regressions in the pipeline YAML itself, the
+# Python build_map/build_srt/optimize_srt stack, or the fake_llm ↔
+# verify_snapshot contract — things the standalone tools.pipeline_dryrun
+# local test does NOT cover (Actions wiring, matrix-job flow, artifact
+# passing, cancellation guards).
+#
+# Trigger: workflow_dispatch or scheduled cron. Never runs on PRs so
+# the matrix isn't held hostage by unrelated PR traffic.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Which mode to run"
+        type: choice
+        options:
+          - full
+          - build-only
+          - en-srt
+          - all
+        default: all
+  schedule:
+    - cron: "23 3 * * 1"  # Monday 03:23 UTC, weekly
+
+permissions:
+  contents: read
+
+jobs:
+  full:
+    if: github.event_name == 'schedule' || inputs.mode == 'full' || inputs.mode == 'all'
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        talk_id:
+          - 1979-02-25_Puja-In-Pune-Marathi
+          - 1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2
+          - 1980-03-23_Birthday-Puja
+          - 1981-03-21_Birthday-Puja-1981-Sydney
+          - 1982-07-11_From-Heart-To-Sahastrar-Derby
+          - 1987-01-02_Talk-on-Innocence-Musical-Program-Morning
+          - 1988-05-08_Sahasrara-Puja-How-it-was-decided
+          - 1992-07-19_Guru-Puja
+          - 1993-09-19_Ganesha-Puja-Cabella
+          - 2001-07-29_Shri-Krishna-Puja-New-York
+    uses: ./.github/workflows/subtitle-pipeline.yml
+    with:
+      talk_id: ${{ matrix.talk_id }}
+      whisper: false
+      translate: true
+      review: true
+      build: true
+      timing_source: whisper
+      dry_run: true
+    secrets: inherit
+
+  build-only:
+    if: github.event_name == 'schedule' || inputs.mode == 'build-only' || inputs.mode == 'all'
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        talk_id:
+          - 1979-02-25_Puja-In-Pune-Marathi
+          - 1988-05-08_Sahasrara-Puja-How-it-was-decided
+          - 1992-07-19_Guru-Puja
+          - 1993-09-19_Ganesha-Puja-Cabella
+          - 2001-07-29_Shri-Krishna-Puja-New-York
+    uses: ./.github/workflows/subtitle-pipeline.yml
+    with:
+      talk_id: ${{ matrix.talk_id }}
+      whisper: false
+      translate: false
+      review: false
+      build: true
+      timing_source: whisper
+      dry_run: true
+    secrets: inherit
+
+  en-srt:
+    # Build-only with en-srt timing source — uses the single-agent path
+    # in subtitle-pipeline.yml (build-en-srt job) instead of chunks.
+    if: github.event_name == 'schedule' || inputs.mode == 'en-srt' || inputs.mode == 'all'
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        talk_id:
+          - 1980-03-23_Birthday-Puja
+          - 1982-07-11_From-Heart-To-Sahastrar-Derby
+          - 1988-05-08_Sahasrara-Puja-How-it-was-decided
+          - 1992-07-19_Guru-Puja
+    uses: ./.github/workflows/subtitle-pipeline.yml
+    with:
+      talk_id: ${{ matrix.talk_id }}
+      whisper: false
+      translate: false
+      review: false
+      build: true
+      timing_source: en-srt
+      dry_run: true
+    secrets: inherit
+
+  summary:
+    if: always()
+    needs: [full, build-only, en-srt]
+    runs-on: ubuntu-latest
+    env:
+      FULL_RESULT: ${{ needs.full.result }}
+      BUILD_ONLY_RESULT: ${{ needs.build-only.result }}
+      EN_SRT_RESULT: ${{ needs.en-srt.result }}
+    steps:
+      - name: Summary
+        run: |
+          {
+            echo "## Pipeline matrix dryrun summary"
+            echo ""
+            echo "| Mode | Result |"
+            echo "|------|--------|"
+            echo "| full | $FULL_RESULT |"
+            echo "| build-only | $BUILD_ONLY_RESULT |"
+            echo "| en-srt | $EN_SRT_RESULT |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$FULL_RESULT" = "failure" ] || \
+             [ "$BUILD_ONLY_RESULT" = "failure" ] || \
+             [ "$EN_SRT_RESULT" = "failure" ]; then
+            echo "::error::One or more matrix modes failed"
+            exit 1
+          fi
