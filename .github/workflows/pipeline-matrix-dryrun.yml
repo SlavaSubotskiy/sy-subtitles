@@ -65,6 +65,7 @@ jobs:
       build: true
       timing_source: whisper
       dry_run: true
+      dry_run_tag: __full
     secrets: inherit
 
   build-only:
@@ -88,6 +89,7 @@ jobs:
       build: true
       timing_source: whisper
       dry_run: true
+      dry_run_tag: __buildonly
     secrets: inherit
 
   en-srt:
@@ -112,6 +114,7 @@ jobs:
       build: true
       timing_source: en-srt
       dry_run: true
+      dry_run_tag: __ensrt
     secrets: inherit
 
   summary:

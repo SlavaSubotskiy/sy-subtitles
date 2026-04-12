@@ -63,6 +63,10 @@ on:
       dry_run:
         type: boolean
         default: false
+      dry_run_tag:
+        description: 'Unique suffix appended to artifact names when called from a matrix driver'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -220,14 +224,13 @@ jobs:
         env:
           TALK_ID: ${{ matrix.talk_id }}
         run: |
-          python -m tools.fake_llm translate \
-            --snapshot "tests/fixtures/pipeline_snapshots/${TALK_ID}/_dryrun_video" \
-            --talk-dir "talks/${TALK_ID}" || true
-          # Fallback to first video slug's snapshot if _dryrun_video link missing:
-          if [ ! -f "talks/${TALK_ID}/transcript_uk.txt" ]; then
-            snap=$(ls -d tests/fixtures/pipeline_snapshots/${TALK_ID}/*/ 2>/dev/null | head -1 | sed 's:/$::')
-            python -m tools.fake_llm translate --snapshot "$snap" --talk-dir "talks/${TALK_ID}"
+          # Snapshot has transcript_uk.txt at the video level; any video in
+          # the talk will do (they all share the talk-level transcript).
+          snap=$(ls -d tests/fixtures/pipeline_snapshots/"${TALK_ID}"/*/ 2>/dev/null | head -1)
+          if [ -z "$snap" ]; then
+            echo "::error::no snapshot for ${TALK_ID}"; exit 1
           fi
+          python -m tools.fake_llm translate --snapshot "${snap%/}" --talk-dir "talks/${TALK_ID}"
 
       - name: Translate to Ukrainian
         if: inputs.translate != false && inputs.dry_run != true
@@ -330,8 +333,11 @@ jobs:
         env:
           TALK_ID: ${{ matrix.talk_id }}
         run: |
-          snap=$(ls -d tests/fixtures/pipeline_snapshots/${TALK_ID}/*/ 2>/dev/null | head -1 | sed 's:/$::')
-          python -m tools.fake_llm review --snapshot "$snap" --talk-dir "talks/${TALK_ID}"
+          snap=$(ls -d tests/fixtures/pipeline_snapshots/"${TALK_ID}"/*/ 2>/dev/null | head -1)
+          if [ -z "$snap" ]; then
+            echo "::error::no snapshot for ${TALK_ID}"; exit 1
+          fi
+          python -m tools.fake_llm review --snapshot "${snap%/}" --talk-dir "talks/${TALK_ID}"
 
       - name: Review translation (2+1)
         if: inputs.review != false && inputs.dry_run != true
@@ -408,7 +414,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           retention-days: 7
-          name: translation__${{ matrix.talk_id }}
+          name: translation__${{ matrix.talk_id }}${{ inputs.dry_run_tag }}
           if-no-files-found: warn
           path: |
             talks/${{ matrix.talk_id }}/transcript_uk.txt
@@ -440,37 +446,39 @@ jobs:
         if: needs.translate-and-review.result == 'success'
         uses: actions/download-artifact@v6
         with:
-          pattern: translation__*
+          pattern: translation__*${{ inputs.dry_run_tag }}
           merge-multiple: false
 
       - name: Place translation artifacts
         if: needs.translate-and-review.result == 'success'
+        env:
+          TALK_ID: ${{ inputs.talk_id }}
         run: |
           echo "=== Artifact directories ==="
           ls -la translation__*/ 2>/dev/null || echo "No translation__* dirs found"
           find . -maxdepth 3 -name "transcript_uk.txt" 2>/dev/null || true
 
+          # Prepare-build only processes ONE talk at a time, so copy the
+          # contents of whichever translation__* directory is present.
           for dir in translation__*/; do
             [ -d "$dir" ] || continue
-            name="${dir%/}"
-            talk_id="${name#translation__}"
-            echo "Processing: $talk_id"
+            echo "Processing: $(basename "$dir")"
             for f in transcript_uk.txt review_report.md glossary.json; do
               src=$(find "$dir" -name "$f" -type f | head -1)
               if [ -n "$src" ]; then
-                cp "$src" "talks/$talk_id/$f"
-                echo "  -> talks/$talk_id/$f"
+                cp "$src" "talks/${TALK_ID}/$f"
+                echo "  -> talks/${TALK_ID}/$f"
               fi
             done
           done
 
           # Fallback: check if files were extracted flat
-          if [ ! -f "talks/${{ inputs.talk_id }}/transcript_uk.txt" ]; then
+          if [ ! -f "talks/${TALK_ID}/transcript_uk.txt" ]; then
             echo "=== Fallback: searching workspace ==="
             src=$(find . -name "transcript_uk.txt" -not -path "./talks/*" -type f | head -1)
             if [ -n "$src" ]; then
-              cp "$src" "talks/${{ inputs.talk_id }}/transcript_uk.txt"
-              echo "  -> (fallback) talks/${{ inputs.talk_id }}/transcript_uk.txt"
+              cp "$src" "talks/${TALK_ID}/transcript_uk.txt"
+              echo "  -> (fallback) talks/${TALK_ID}/transcript_uk.txt"
             fi
           fi
 
@@ -523,7 +531,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           retention-days: 7
-          name: chunks__${{ inputs.talk_id }}
+          name: chunks__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: |
             talks/${{ inputs.talk_id }}/*/work/chunk_*.txt
             talks/${{ inputs.talk_id }}/*/work/uk_blocks.json
@@ -543,26 +551,30 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v6
         with:
-          pattern: translation__*
+          pattern: translation__*${{ inputs.dry_run_tag }}
           merge-multiple: false
 
       - name: Place translation artifacts
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
         run: |
-          TALK_ID="${{ needs.prepare-build.outputs.talk_id }}"
-          # Strategy 1: subdirectory (merge-multiple: false)
-          DIR="translation__${TALK_ID}"
-          if [ -d "$DIR" ]; then
+          # Pick whichever translation__* directory we got (tagged or not).
+          placed=0
+          for dir in translation__*/; do
+            [ -d "$dir" ] || continue
             for f in transcript_uk.txt review_report.md glossary.json; do
-              [ -f "$DIR/$f" ] && cp "$DIR/$f" "talks/$TALK_ID/$f" && echo "Placed: talks/$TALK_ID/$f"
+              if [ -f "$dir/$f" ]; then
+                cp "$dir/$f" "talks/${TALK_ID}/$f"
+                echo "Placed: talks/${TALK_ID}/$f"
+                placed=$((placed + 1))
+              fi
             done
-          # Strategy 2: flat extraction fallback (single artifact)
-          elif [ -f "transcript_uk.txt" ]; then
+          done
+          if [ "$placed" -eq 0 ] && [ -f "transcript_uk.txt" ]; then
             echo "WARN: flat extraction detected"
             for f in transcript_uk.txt review_report.md glossary.json; do
-              [ -f "$f" ] && cp "$f" "talks/$TALK_ID/$f" && echo "Placed (flat): talks/$TALK_ID/$f"
+              [ -f "$f" ] && cp "$f" "talks/${TALK_ID}/$f" && echo "Placed (flat): talks/${TALK_ID}/$f"
             done
-          else
-            echo "No translation artifacts found"
           fi
 
       - uses: actions/setup-python@v6
@@ -715,7 +727,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           retention-days: 7
-          name: subtitles__${{ needs.prepare-build.outputs.talk_id }}
+          name: subtitles__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
           path: |
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/uk.map
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/uk.srt
@@ -737,7 +749,7 @@ jobs:
       - name: Download chunk files
         uses: actions/download-artifact@v6
         with:
-          name: chunks__${{ needs.prepare-build.outputs.talk_id }}
+          name: chunks__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
           path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
       - name: Setup Bun
@@ -800,7 +812,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           retention-days: 7
-          name: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__${{ matrix.ci }}
+          name: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__${{ matrix.ci }}${{ inputs.dry_run_tag }}
           path: |
             talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}_result.txt
 
@@ -818,13 +830,13 @@ jobs:
       - name: Download chunk files
         uses: actions/download-artifact@v6
         with:
-          name: chunks__${{ needs.prepare-build.outputs.talk_id }}
+          name: chunks__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
           path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
       - name: Download chunk results
         uses: actions/download-artifact@v6
         with:
-          pattern: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__*
+          pattern: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__*${{ inputs.dry_run_tag }}
           merge-multiple: true
           path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
@@ -929,7 +941,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           retention-days: 7
-          name: subtitles__${{ needs.prepare-build.outputs.talk_id }}
+          name: subtitles__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
           path: |
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/uk.map
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/uk.srt
@@ -955,7 +967,7 @@ jobs:
       - name: Download subtitle artifacts
         uses: actions/download-artifact@v6
         with:
-          pattern: subtitles__*
+          pattern: subtitles__*${{ inputs.dry_run_tag }}
           path: /tmp/subtitles
 
       - name: Stage artifacts back under talks/
@@ -1007,14 +1019,14 @@ jobs:
         if: needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'failure'
         uses: actions/download-artifact@v6
         with:
-          pattern: translation__*
+          pattern: translation__*${{ inputs.dry_run_tag }}
           path: /tmp/translation
 
       - name: Download subtitle artifacts
         if: needs.assemble-build.result == 'success' || needs.build-en-srt.result == 'success'
         uses: actions/download-artifact@v6
         with:
-          pattern: subtitles__*
+          pattern: subtitles__*${{ inputs.dry_run_tag }}
           path: /tmp/subtitles
 
       - name: Place artifacts into talk directories
