@@ -814,16 +814,37 @@ class TestReviewModeToggle:
         mode = page.evaluate("reviewState.mode")
         assert mode == "srt", f"Expected srt mode after select, got {mode}"
 
-    def test_mode_toggle_hidden_without_expert(self, server, page):
-        """Mode toggle should be hidden in normal mode."""
+    def test_mode_toggle_visible_without_expert(self, server, page):
+        """Mode toggle is available to all users (not expert-only). When a
+        talk has at least one SRT-capable video, the selector must be
+        visible in non-expert mode too."""
         goto_spa(page, server)
         page.evaluate("localStorage.removeItem('sy_expert_mode')")
         page.goto(f"{server}{SPA_URL}#/review/2001-01-01_Test-Talk")
-        page.wait_for_function("document.querySelectorAll('.cell').length > 0", timeout=10000)
-        # Mode selector should be hidden
+        page.wait_for_function(
+            "reviewState && reviewState.rightParas && reviewState.rightParas.length > 0",
+            timeout=10000,
+        )
         visible = page.evaluate("""() => {
-            var el = document.querySelector('#review-mode-select, .review-mode-toggle');
+            var el = document.querySelector('#review-mode-select');
             return el ? getComputedStyle(el).display !== 'none' : false;
+        }""")
+        assert visible is True
+        # And it must have the SRT options populated
+        opts = page.evaluate("document.getElementById('review-mode-select').options.length")
+        assert opts >= 2
+
+    def test_mode_toggle_hidden_when_no_srt_videos(self, server, page):
+        """If the talk has no SRT-capable video, there's nothing to toggle
+        to — the selector should stay hidden."""
+        goto_spa(page, server)
+        # Navigate to No-Uk which is early-stage (no uk.srt)
+        page.goto(f"{server}{SPA_URL}#/review/2001-01-01_No-Uk")
+        page.wait_for_timeout(500)
+        visible = page.evaluate("""() => {
+            var el = document.querySelector('#review-mode-select');
+            if (!el) return false;
+            return getComputedStyle(el).display !== 'none';
         }""")
         assert visible is False
 
@@ -1502,6 +1523,41 @@ class TestReviewStatus:
         assert any("Test Talk" in t for t in texts), f"Test Talk should be visible: {texts}"
         # No-Uk is in-progress, should NOT be visible in needs-review filter
         assert not any("No-Uk" in t or "2002" in t for t in texts), f"No-Uk should be hidden: {texts}"
+
+    def test_ready_for_review_requires_only_srt_and_issue(self, server, page):
+        """Per relaxed criteria: a talk with SRT + GitHub issue is
+        ready-for-review even without transcript_uk.txt or review_report.md.
+        Transcript and proofreading are optional quality-of-life artefacts,
+        not gating requirements."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        # Call getOverallStatus directly with constructed stage flags.
+        status = page.evaluate("""() => getOverallStatus(
+            { srt: true, translated: false, reviewed: false, hasIssue: true },
+            null
+        )""")
+        assert status == "ready-for-review"
+
+    def test_srt_only_without_issue_still_in_progress(self, server, page):
+        """SRT alone is not enough — without a review issue the talk stays
+        in-progress. The issue is what tells reviewers where to report."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        status = page.evaluate("""() => getOverallStatus(
+            { srt: true, translated: true, reviewed: true, hasIssue: false },
+            null
+        )""")
+        assert status == "in-progress"
+
+    def test_transcript_without_srt_stays_in_progress(self, server, page):
+        """SRTs are required: transcript alone (with issue) is not enough."""
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        status = page.evaluate("""() => getOverallStatus(
+            { srt: false, translated: true, reviewed: true, hasIssue: true },
+            null
+        )""")
+        assert status == "in-progress"
 
 
 class TestCaching:

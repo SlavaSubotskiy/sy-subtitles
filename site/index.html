@@ -341,7 +341,7 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 <div id="view-review" class="view">
   <div class="header">
     <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="r-title"></span>
-      <select id="review-mode-select" class="expert-only review-mode-toggle select-chip" style="margin-left:8px;vertical-align:middle" onchange="SPA.switchReviewMode(this.value, this.options[this.selectedIndex].dataset.video)">
+      <select id="review-mode-select" class="review-mode-toggle select-chip" style="display:none;margin-left:8px;vertical-align:middle" onchange="SPA.switchReviewMode(this.value, this.options[this.selectedIndex].dataset.video)">
       </select>
     </h1>
     <div class="header-actions">
@@ -1262,7 +1262,12 @@ function getPipelineStages(tk, st) {
 function getOverallStatus(stages, reviewSt) {
   if (reviewSt && reviewSt.status === 'approved') return 'approved';
   if (reviewSt && reviewSt.status === 'in-progress') return 'in-review';
-  if (stages.srt && stages.translated && stages.hasIssue) return 'ready-for-review';
+  // Subtitles + review issue are the required artefacts. The Ukrainian
+  // transcript and the review_report (proofreading) are optional: if the
+  // SRTs are built and an issue exists, reviewers can start work from
+  // the SRT alone. A missing transcript or report is a quality-of-life
+  // gap, not a blocker.
+  if (stages.srt && stages.hasIssue) return 'ready-for-review';
   return 'in-progress';
 }
 
@@ -1614,23 +1619,27 @@ function showReview(talkId) {
   statusEl.style.display = 'block';
   renderReviewSkeleton();
 
-  // Populate the mode selector (expert only) and detect an SRT-mode
-  // resume BEFORE firing any fetches. When resuming into SRT mode we
-  // skip the transcript load entirely — switchReviewMode handles its
-  // own SRT fetches.
+  // Populate the mode selector and detect an SRT-mode resume BEFORE
+  // firing any fetches. When resuming into SRT mode we skip the
+  // transcript load entirely — switchReviewMode handles its own SRT
+  // fetches. The selector is hidden when there's nothing to choose
+  // between (only the transcript option, no SRT-capable video).
   var modeSel = document.getElementById('review-mode-select');
   var savedObj = null;
   if (modeSel && talk) {
     var saved = localStorage.getItem('sy_review_mode_' + talkId);
     try { savedObj = JSON.parse(saved); } catch(e) {}
     var opts = '<option value="transcript">' + esc(talk.title || talkId) + ' [' + t('review.mode_transcript') + ']</option>';
+    var srtOptCount = 0;
     (talk.videos || []).forEach(function(v) {
       if (v.hasSrt) {
+        srtOptCount++;
         var sel = savedObj && savedObj.mode === 'srt' && savedObj.video === v.slug ? ' selected' : '';
         opts += '<option value="srt" data-video="' + esc(v.slug) + '"' + sel + '>' + esc(v.title || v.slug) + ' [' + t('review.mode_srt') + ']</option>';
       }
     });
     modeSel.innerHTML = opts;
+    modeSel.style.display = srtOptCount >= 1 ? '' : 'none';
   }
 
   if (savedObj && savedObj.mode === 'srt') {
