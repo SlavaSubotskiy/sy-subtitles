@@ -734,7 +734,7 @@ describe('alignSubtitlesByTime', () => {
     assert.strictEqual(rows[0].endMs, 4000);
   });
 
-  it('each block appears exactly once across all rows', () => {
+  it('each block appears at least once across all rows', () => {
     var align = getAlignFn();
     var en = [
       { startMs: 0, endMs: 2000, text: 'E1' },
@@ -750,17 +750,102 @@ describe('alignSubtitlesByTime', () => {
     var seenEn = {};
     var seenUk = {};
     rows.forEach(function(r) {
-      if (r.en) {
-        assert.ok(!seenEn[r.en.text], 'EN block ' + r.en.text + ' appeared twice');
-        seenEn[r.en.text] = true;
-      }
-      if (r.uk) {
-        assert.ok(!seenUk[r.uk.text], 'UK block ' + r.uk.text + ' appeared twice');
-        seenUk[r.uk.text] = true;
-      }
+      if (r.en) seenEn[r.en.text] = true;
+      if (r.uk) seenUk[r.uk.text] = true;
     });
     assert.strictEqual(Object.keys(seenEn).length, 3, 'all EN blocks should appear');
     assert.strictEqual(Object.keys(seenUk).length, 3, 'all UK blocks should appear');
+  });
+
+  it('overlapping non-aligned blocks produce no empty cells', () => {
+    var align = getAlignFn();
+    // EN: [1-4, 4.5-8, 8.5-12] (3 blocks)
+    // UK: [1-5, 6-10]            (2 blocks)
+    var en = [
+      { startMs: 1000, endMs: 4000, text: 'E1' },
+      { startMs: 4500, endMs: 8000, text: 'E2' },
+      { startMs: 8500, endMs: 12000, text: 'E3' },
+    ];
+    var uk = [
+      { startMs: 1000, endMs: 5000, text: 'U1' },
+      { startMs: 6000, endMs: 10000, text: 'U2' },
+    ];
+    var rows = align(en, uk);
+    rows.forEach(function(r, i) {
+      assert.ok(r.en !== null, 'row ' + i + ' should not have null EN, got: ' + JSON.stringify(r));
+      assert.ok(r.uk !== null, 'row ' + i + ' should not have null UK, got: ' + JSON.stringify(r));
+    });
+    // Expected pairings: (E1,U1), (E2,U1), (E2,U2), (E3,U2)
+    assert.strictEqual(rows.length, 4, 'expected 4 rows, got ' + rows.length);
+    assert.strictEqual(rows[0].en.text, 'E1');
+    assert.strictEqual(rows[0].uk.text, 'U1');
+    assert.strictEqual(rows[1].en.text, 'E2');
+    assert.strictEqual(rows[1].uk.text, 'U1');
+    assert.strictEqual(rows[2].en.text, 'E2');
+    assert.strictEqual(rows[2].uk.text, 'U2');
+    assert.strictEqual(rows[3].en.text, 'E3');
+    assert.strictEqual(rows[3].uk.text, 'U2');
+  });
+
+  it('orphan EN block at start keeps empty UK cell', () => {
+    var align = getAlignFn();
+    // EN[0] (0-1) has no UK overlap; EN[1] (2-4) overlaps UK[0] (2.5-3.5)
+    var en = [
+      { startMs: 0, endMs: 1000, text: 'Orphan' },
+      { startMs: 2000, endMs: 4000, text: 'Paired' },
+    ];
+    var uk = [
+      { startMs: 2500, endMs: 3500, text: 'UK' },
+    ];
+    var rows = align(en, uk);
+    var orphanRow = rows.find(function(r) { return r.en && r.en.text === 'Orphan'; });
+    assert.ok(orphanRow, 'orphan EN block should still appear');
+    assert.strictEqual(orphanRow.uk, null, 'orphan EN should have null UK partner');
+    var pairedRow = rows.find(function(r) { return r.en && r.en.text === 'Paired'; });
+    assert.ok(pairedRow, 'paired EN block should appear');
+    assert.ok(pairedRow.uk && pairedRow.uk.text === 'UK', 'paired EN should be paired with UK');
+  });
+
+  it('orphan UK block in middle keeps empty EN cell', () => {
+    var align = getAlignFn();
+    var en = [
+      { startMs: 0, endMs: 2000, text: 'E1' },
+      { startMs: 8000, endMs: 10000, text: 'E2' },
+    ];
+    var uk = [
+      { startMs: 0, endMs: 2000, text: 'U1' },
+      { startMs: 4000, endMs: 6000, text: 'U_orphan' },
+      { startMs: 8000, endMs: 10000, text: 'U2' },
+    ];
+    var rows = align(en, uk);
+    var orphanRow = rows.find(function(r) { return r.uk && r.uk.text === 'U_orphan'; });
+    assert.ok(orphanRow, 'orphan UK block should still appear');
+    assert.strictEqual(orphanRow.en, null, 'orphan UK should have null EN partner');
+  });
+
+  it('block spanning across multiple partner rows is consecutive', () => {
+    var align = getAlignFn();
+    // EN block 4.5-8 should pair with both UK blocks 1-5 and 6-10
+    var en = [
+      { startMs: 1000, endMs: 4000, text: 'E1' },
+      { startMs: 4500, endMs: 8000, text: 'E_span' },
+      { startMs: 8500, endMs: 12000, text: 'E3' },
+    ];
+    var uk = [
+      { startMs: 1000, endMs: 5000, text: 'U1' },
+      { startMs: 6000, endMs: 10000, text: 'U2' },
+    ];
+    var rows = align(en, uk);
+    // Find consecutive rows where E_span appears — they must be adjacent
+    var spanIndices = [];
+    rows.forEach(function(r, i) {
+      if (r.en && r.en.text === 'E_span') spanIndices.push(i);
+    });
+    assert.ok(spanIndices.length >= 1, 'E_span should appear at least once');
+    for (var i = 1; i < spanIndices.length; i++) {
+      assert.strictEqual(spanIndices[i], spanIndices[i - 1] + 1,
+        'E_span occurrences must be consecutive for grid spanning to work');
+    }
   });
 });
 

@@ -421,19 +421,46 @@ function alignSubtitlesByTime(enBlocks, ukBlocks) {
     merged.push({ s: cur.s, e: cur.e, enIdx: cur.enIdx, ukIdx: cur.ukIdx });
   }
 
-  // Deduplicate: each block appears in exactly one row (the first one where it's active)
-  var usedEn = {}, usedUk = {};
+  // Determine which blocks have at least one fully-paired slot (both EN and UK present).
+  // Half-empty slots are then absorbed into the paired ones via grid spanning, so we
+  // drop those half-empty slots whose visible side is already covered by a paired slot.
+  var pairedEn = {}, pairedUk = {};
+  for (var i = 0; i < merged.length; i++) {
+    if (merged[i].enIdx >= 0 && merged[i].ukIdx >= 0) {
+      pairedEn[merged[i].enIdx] = true;
+      pairedUk[merged[i].ukIdx] = true;
+    }
+  }
+
   var rows = [];
   for (var i = 0; i < merged.length; i++) {
     var m = merged[i];
-    var en = m.enIdx >= 0 && !usedEn[m.enIdx] ? enBlocks[m.enIdx] : null;
-    var uk = m.ukIdx >= 0 && !usedUk[m.ukIdx] ? ukBlocks[m.ukIdx] : null;
+    // Drop a half-empty slot if its visible block also appears in a fully-paired slot.
+    // The paired slot will display that block (possibly via row spanning), so the
+    // half-empty slot would render as a redundant row with one orphan cell.
+    if (m.enIdx === -1 && m.ukIdx >= 0 && pairedUk[m.ukIdx]) continue;
+    if (m.ukIdx === -1 && m.enIdx >= 0 && pairedEn[m.enIdx]) continue;
+    var en = m.enIdx >= 0 ? enBlocks[m.enIdx] : null;
+    var uk = m.ukIdx >= 0 ? ukBlocks[m.ukIdx] : null;
     if (!en && !uk) continue;
-    if (en) usedEn[m.enIdx] = true;
-    if (uk) usedUk[m.ukIdx] = true;
     rows.push({ en: en, uk: uk, startMs: m.s, endMs: m.e });
   }
-  return rows;
+
+  // Re-merge consecutive rows with the same EN+UK pair (drops above may have made
+  // previously-separated identical pairs adjacent — this rarely matters but keeps
+  // the spanning logic in the renderer compact).
+  var compact = [];
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (compact.length > 0) {
+      var prev = compact[compact.length - 1];
+      var sameEn = (prev.en === r.en) || (prev.en && r.en && prev.en.startMs === r.en.startMs && prev.en.endMs === r.en.endMs);
+      var sameUk = (prev.uk === r.uk) || (prev.uk && r.uk && prev.uk.startMs === r.uk.startMs && prev.uk.endMs === r.uk.endMs);
+      if (sameEn && sameUk) { prev.endMs = r.endMs; continue; }
+    }
+    compact.push(r);
+  }
+  return compact;
 }
 // ALIGN_END
 
