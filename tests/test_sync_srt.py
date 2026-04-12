@@ -263,6 +263,62 @@ class TestSyncSrtToTranscript:
         assert new_blocks[0]["start_ms"] == 3000
         assert new_blocks[1]["text"] == "Друге речення."
 
+    def test_drift_in_unchanged_blocks_does_not_fail_delete_only_pr(self, tmp_path):
+        """Real-world drift: an unchanged SRT block has a wording that doesn't
+        match the transcript verbatim (e.g. capitalization, missing word). For a
+        delete-only PR the cursor anchor isn't needed, so the tool should treat
+        this as a benign warning, not an error."""
+        talk_dir = tmp_path / "talk"
+        video = talk_dir / "Video" / "final"
+        video.mkdir(parents=True)
+
+        old_srt = """1
+00:00:00,000 --> 00:00:02,000
+[Placeholder]
+
+2
+00:00:03,000 --> 00:00:05,000
+Перше речення.
+
+3
+00:00:05,100 --> 00:00:08,000
+Але Бог – це особистість, яка поза запитаннями.
+
+4
+00:00:08,100 --> 00:00:10,000
+Третє речення.
+"""
+        new_srt = """2
+00:00:03,000 --> 00:00:05,000
+Перше речення.
+
+3
+00:00:05,100 --> 00:00:08,000
+Але Бог – це особистість, яка поза запитаннями.
+
+4
+00:00:08,100 --> 00:00:10,000
+Третє речення.
+"""
+        (talk_dir / "uk_old.srt").write_text(old_srt, encoding="utf-8")
+        (video / "uk.srt").write_text(new_srt, encoding="utf-8")
+        # Transcript has the SAME sentence but with different capitalization and
+        # an extra word — drift the SRT had at edit time.
+        (talk_dir / "transcript_uk.txt").write_text(
+            HEADER + "Перше речення. Але Бог – це Особистість, яка перебуває поза запитаннями. Третє речення.\n",
+            encoding="utf-8",
+        )
+        before = (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8")
+
+        result = sync_srt_to_transcript(
+            old_srt=str(talk_dir / "uk_old.srt"),
+            new_srt=str(video / "uk.srt"),
+            transcript=str(talk_dir / "transcript_uk.txt"),
+        )
+        assert "error" not in result, f"unexpected error: {result.get('error')}"
+        # Transcript untouched (placeholder wasn't there, drift is left alone)
+        assert (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8") == before
+
     def test_pr43_scenario_two_leading_placeholders_removed(self, tmp_path):
         """Reproduces PR #43: user removed two leading placeholder blocks
         ([Промова англійською]) that were never in the transcript."""

@@ -58,20 +58,22 @@ def sync_srt_to_transcript(old_srt: str, new_srt: str, transcript: str) -> dict:
     removed = 0
     skipped = 0
 
+    drifted = 0
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
             # Walk the cursor through these unchanged blocks so subsequent
-            # find()s land in the right region of the transcript.
+            # find()s land in the right region of the transcript. The walk
+            # is best-effort: SRTs in older talks have legitimate drift from
+            # the transcript (manual edits, capitalization changes, etc.).
+            # If a block isn't found we leave the cursor where it was —
+            # ordering may then be approximate, but for delete-only PRs the
+            # cursor doesn't matter and the workflow still does the right
+            # thing.
             for k in range(i1, i2):
                 pos = _find_in_transcript(text, old_texts[k], cursor)
                 if pos == -1:
-                    return {
-                        "error": (
-                            f"Block {old_blocks[k]['idx']}: cannot find "
-                            f"«{old_texts[k][:60]}» in transcript "
-                            f"(searching from offset {cursor}). Transcript may have drifted from SRT."
-                        )
-                    }
+                    drifted += 1
+                    continue
                 cursor = pos + len(old_texts[k])
 
         elif tag == "replace" and (i2 - i1) == (j2 - j1):
@@ -148,6 +150,12 @@ def sync_srt_to_transcript(old_srt: str, new_srt: str, transcript: str) -> dict:
             f.write(text)
         print(
             f"Updated transcript: {transcript} (changed: {changed}, removed: {removed}, skipped: {skipped})",
+            file=sys.stderr,
+        )
+    if drifted:
+        print(
+            f"Note: {drifted} unchanged block(s) not found in transcript verbatim — "
+            f"likely benign drift (capitalization, punctuation). Cursor walk continued best-effort.",
             file=sys.stderr,
         )
 
