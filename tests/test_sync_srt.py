@@ -103,10 +103,23 @@ class TestSyncSrtToTranscript:
         assert "Перше речення першого абзацу." not in text
         assert "Єдине речення другого абзацу." not in text
 
-    def test_block_count_mismatch_fails(self, talk):
+    def test_block_inserted_fails(self, talk):
+        """Inserting a brand-new block (no place to put text in transcript) is unsupported."""
         new_srt = """1
 00:00:01,000 --> 00:00:05,000
-Тільки один блок.
+Перше речення першого абзацу.
+
+2
+00:00:05,100 --> 00:00:10,000
+Друге речення першого абзацу.
+
+3
+00:00:10,500 --> 00:00:11,500
+Новий вставлений блок.
+
+4
+00:00:12,000 --> 00:00:18,000
+Єдине речення другого абзацу.
 """
         (talk / "Video" / "final" / "uk.srt").write_text(new_srt, encoding="utf-8")
 
@@ -116,6 +129,192 @@ class TestSyncSrtToTranscript:
             transcript=str(talk / "transcript_uk.txt"),
         )
         assert "error" in result
+
+    def test_deleted_placeholder_block_skipped_silently(self, tmp_path):
+        """Deleting a block whose text is NOT in the transcript (e.g. a placeholder
+        like '[Промова англійською]') should succeed without touching the transcript."""
+        talk_dir = tmp_path / "talk"
+        video = talk_dir / "Video" / "final"
+        video.mkdir(parents=True)
+
+        old_srt = """1
+00:00:00,000 --> 00:00:02,000
+[Промова англійською]
+
+2
+00:00:03,000 --> 00:00:05,000
+Перше справжнє речення.
+
+3
+00:00:05,100 --> 00:00:10,000
+Друге речення.
+"""
+        new_srt = """2
+00:00:03,000 --> 00:00:05,000
+Перше справжнє речення.
+
+3
+00:00:05,100 --> 00:00:10,000
+Друге речення.
+"""
+        (talk_dir / "uk_old.srt").write_text(old_srt, encoding="utf-8")
+        (video / "uk.srt").write_text(new_srt, encoding="utf-8")
+
+        transcript = HEADER + "Перше справжнє речення. Друге речення.\n"
+        (talk_dir / "transcript_uk.txt").write_text(transcript, encoding="utf-8")
+        before = transcript
+
+        result = sync_srt_to_transcript(
+            old_srt=str(talk_dir / "uk_old.srt"),
+            new_srt=str(video / "uk.srt"),
+            transcript=str(talk_dir / "transcript_uk.txt"),
+        )
+        assert "error" not in result, f"unexpected error: {result.get('error')}"
+        assert (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8") == before
+
+    def test_deleted_block_present_in_transcript_is_removed(self, tmp_path):
+        """If a deleted block's text IS in the transcript, it should be removed."""
+        talk_dir = tmp_path / "talk"
+        video = talk_dir / "Video" / "final"
+        video.mkdir(parents=True)
+
+        old_srt = """1
+00:00:01,000 --> 00:00:03,000
+Перше речення.
+
+2
+00:00:03,100 --> 00:00:05,000
+Зайве речення.
+
+3
+00:00:05,100 --> 00:00:08,000
+Третє речення.
+"""
+        new_srt = """1
+00:00:01,000 --> 00:00:03,000
+Перше речення.
+
+3
+00:00:05,100 --> 00:00:08,000
+Третє речення.
+"""
+        (talk_dir / "uk_old.srt").write_text(old_srt, encoding="utf-8")
+        (video / "uk.srt").write_text(new_srt, encoding="utf-8")
+
+        transcript = HEADER + "Перше речення. Зайве речення. Третє речення.\n"
+        (talk_dir / "transcript_uk.txt").write_text(transcript, encoding="utf-8")
+
+        result = sync_srt_to_transcript(
+            old_srt=str(talk_dir / "uk_old.srt"),
+            new_srt=str(video / "uk.srt"),
+            transcript=str(talk_dir / "transcript_uk.txt"),
+        )
+        assert "error" not in result
+        text = (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8")
+        assert "Зайве речення." not in text
+        assert "Перше речення." in text
+        assert "Третє речення." in text
+
+    def test_renumbers_new_srt_after_deletion(self, tmp_path):
+        """When the user's SRT skipped renumbering after deleting blocks, the
+        tool should normalize block indices to start at 1 and be sequential."""
+        talk_dir = tmp_path / "talk"
+        video = talk_dir / "Video" / "final"
+        video.mkdir(parents=True)
+
+        old_srt = """1
+00:00:00,000 --> 00:00:02,000
+[Placeholder]
+
+2
+00:00:03,000 --> 00:00:05,000
+Перше речення.
+
+3
+00:00:05,100 --> 00:00:08,000
+Друге речення.
+"""
+        # User removed block 1 but did NOT renumber — block "2" is now first
+        new_srt = """2
+00:00:03,000 --> 00:00:05,000
+Перше речення.
+
+3
+00:00:05,100 --> 00:00:08,000
+Друге речення.
+"""
+        (talk_dir / "uk_old.srt").write_text(old_srt, encoding="utf-8")
+        (video / "uk.srt").write_text(new_srt, encoding="utf-8")
+        (talk_dir / "transcript_uk.txt").write_text(HEADER + "Перше речення. Друге речення.\n", encoding="utf-8")
+
+        result = sync_srt_to_transcript(
+            old_srt=str(talk_dir / "uk_old.srt"),
+            new_srt=str(video / "uk.srt"),
+            transcript=str(talk_dir / "transcript_uk.txt"),
+        )
+        assert "error" not in result
+
+        from tools.srt_utils import parse_srt
+
+        new_blocks = parse_srt(str(video / "uk.srt"))
+        assert [b["idx"] for b in new_blocks] == [1, 2]
+        # Texts and timecodes preserved
+        assert new_blocks[0]["text"] == "Перше речення."
+        assert new_blocks[0]["start_ms"] == 3000
+        assert new_blocks[1]["text"] == "Друге речення."
+
+    def test_pr43_scenario_two_leading_placeholders_removed(self, tmp_path):
+        """Reproduces PR #43: user removed two leading placeholder blocks
+        ([Промова англійською]) that were never in the transcript."""
+        talk_dir = tmp_path / "talk"
+        video = talk_dir / "Video" / "final"
+        video.mkdir(parents=True)
+
+        old_srt = """1
+00:00:00,000 --> 00:00:02,920
+[Промова англійською]
+
+2
+00:00:03,000 --> 00:00:05,920
+на англійську]
+
+3
+00:00:06,000 --> 00:00:09,500
+Шрі Матаджі зауважила: «Це була улюблена пісня».
+
+4
+00:00:09,580 --> 00:00:16,850
+Багато людей завжди запитували Мене.
+"""
+        new_srt = """3
+00:00:06,000 --> 00:00:09,500
+Шрі Матаджі зауважила: «Це була улюблена пісня».
+
+4
+00:00:09,580 --> 00:00:16,850
+Багато людей завжди запитували Мене.
+"""
+        (talk_dir / "uk_old.srt").write_text(old_srt, encoding="utf-8")
+        (video / "uk.srt").write_text(new_srt, encoding="utf-8")
+        (talk_dir / "transcript_uk.txt").write_text(
+            HEADER + "Шрі Матаджі зауважила: «Це була улюблена пісня». Багато людей завжди запитували Мене.\n",
+            encoding="utf-8",
+        )
+        before = (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8")
+
+        result = sync_srt_to_transcript(
+            old_srt=str(talk_dir / "uk_old.srt"),
+            new_srt=str(video / "uk.srt"),
+            transcript=str(talk_dir / "transcript_uk.txt"),
+        )
+        assert "error" not in result, f"unexpected error: {result.get('error')}"
+        # Transcript untouched (placeholders weren't there)
+        assert (talk_dir / "transcript_uk.txt").read_text(encoding="utf-8") == before
+        # SRT renumbered to 1, 2
+        from tools.srt_utils import parse_srt
+
+        blocks = parse_srt(str(video / "uk.srt"))
+        assert [b["idx"] for b in blocks] == [1, 2]
 
     def test_old_text_not_in_transcript_fails(self, talk):
         # Make transcript drift from SRT
