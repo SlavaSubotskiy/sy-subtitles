@@ -877,6 +877,7 @@ var ExpertPlayer = (function() {
   var mount = null;
   var timeEl = null;
   var persistTimer = null;
+  var gridClickHandler = null;
 
   function freshState(talkId, videoSlug) {
     return {
@@ -933,6 +934,11 @@ var ExpertPlayer = (function() {
       state.follow = saved.follow !== false;
       state.lastTime = saved.lastTime || 0;
     }
+    var grid = document.getElementById('review-grid');
+    if (grid) {
+      gridClickHandler = onGridClick;
+      grid.addEventListener('click', gridClickHandler);
+    }
     if (btnExpert) btnExpert.style.display = '';
     var view = document.getElementById('view-review');
     if (view) view.classList.add('expert-mode');
@@ -943,6 +949,9 @@ var ExpertPlayer = (function() {
     if (!state) return;
     hide();
     clearMount();
+    var grid = document.getElementById('review-grid');
+    if (grid && gridClickHandler) grid.removeEventListener('click', gridClickHandler);
+    gridClickHandler = null;
     state = null;
     if (btnExpert) btnExpert.style.display = 'none';
     var view = document.getElementById('view-review');
@@ -1061,6 +1070,25 @@ var ExpertPlayer = (function() {
     var sec = s % 60;
     function pad(n) { return n < 10 ? '0' + n : '' + n; }
     return pad(h) + ':' + pad(m) + ':' + pad(sec);
+  }
+
+  function seekTo(ms) {
+    if (!state || !state.player) return;
+    try { state.player.setCurrentTime(ms / 1000); } catch (_) {}
+    state.followPaused = false;
+    if (btnFollow) btnFollow.classList.remove('paused');
+  }
+
+  function onGridClick(e) {
+    if (!state || !state.player) return;
+    if (e.target.closest('.cell-text')) return;  // editing area — skip
+    var isLabel = !!e.target.closest('.cell-label');
+    var cell = e.target.closest('.cell');
+    if (!cell) return;
+    if (!isLabel && !cell.classList.contains('en')) return;
+    var ms = Number(cell.dataset.msStart);
+    if (Number.isNaN(ms)) return;
+    seekTo(ms);
   }
 
   return {

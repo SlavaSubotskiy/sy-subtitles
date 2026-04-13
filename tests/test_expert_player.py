@@ -131,3 +131,45 @@ class TestHighlight:
           ).map(c => c.dataset.msStart)
         """)
         assert highlighted == ["6000"]
+
+
+class TestClickToSeek:
+    def test_click_en_cell_seeks_player(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # SAMPLE_EN_SRT (from test_preview_spa): row 2 starts at 4500 ms.
+        page.evaluate("""
+          () => {
+            var cells = document.querySelectorAll('#review-grid .cell.en');
+            cells[1].click();
+          }
+        """)
+        current = page.evaluate("window._vimeoPlayer._currentTime")
+        assert abs(current - 4.5) < 0.01
+
+    def test_click_cell_label_seeks_player(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        page.evaluate("""
+          () => {
+            document.querySelectorAll('#review-grid .cell-label')[0].click();
+          }
+        """)
+        current = page.evaluate("window._vimeoPlayer._currentTime")
+        assert abs(current - 1.0) < 0.01
+
+    def test_click_uk_text_does_not_seek(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        before = page.evaluate("window._vimeoPlayer._currentTime")
+        page.evaluate("""
+          () => document.querySelector('#review-grid .cell.uk .cell-text').click()
+        """)
+        after = page.evaluate("window._vimeoPlayer._currentTime")
+        assert before == after
