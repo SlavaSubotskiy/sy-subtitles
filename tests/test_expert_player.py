@@ -784,3 +784,123 @@ class TestRevertAllEditsHighlightRecovery:
 
         count = page.evaluate("document.querySelectorAll('.cell.uk.current').length")
         assert count == 1, f".current must self-heal after revertAllEdits + timeupdate, got {count}"
+
+
+# ---------------------------------------------------------------------------
+# Smoke: A1 — Mobile viewport caps .expert-bar at 22vh
+# ---------------------------------------------------------------------------
+class TestMobileViewport:
+    def test_mobile_caps_expert_bar_at_22vh(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 375, "height": 812})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        max_h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).maxHeight")
+        # 22vh of 812px = 178.64px.  Allow 1px rounding tolerance.
+        assert max_h.endswith("px"), f"Expected px value, got {max_h!r}"
+        val = float(max_h[:-2])
+        assert 177 < val < 180, f"Expected ~178.64px (22vh of 812) on mobile viewport, got {max_h!r}"
+
+
+# ---------------------------------------------------------------------------
+# Smoke: A2 — .current cell has inset box-shadow at runtime
+# ---------------------------------------------------------------------------
+class TestCurrentBoxShadow:
+    def test_current_row_has_inset_box_shadow(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(50)
+        shadow = page.evaluate("""
+          () => {
+            var el = document.querySelector('.cell.uk.current');
+            return el ? getComputedStyle(el).boxShadow : null;
+          }
+        """)
+        assert shadow, "No .cell.uk.current element found"
+        # Expect inset + some non-zero value (exact color varies by theme).
+        assert "inset" in shadow, f"Expected inset box-shadow on .current cell, got {shadow!r}"
+
+
+# ---------------------------------------------------------------------------
+# Smoke: A3 — .current + .marked + .edited compose on the same cell
+# ---------------------------------------------------------------------------
+class TestHighlightComposition:
+    def test_current_marked_edited_compose(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Drive timeupdate to row 0 (startMs=1000) so it gets .current.
+        page.evaluate("window._vimeoPlayer._setTime(1)")
+        page.wait_for_timeout(50)
+
+        # Edit the first cell-text — triggers .edited on its parent .cell.uk.
+        page.evaluate("""
+          () => {
+            var ct = document.querySelector('#review-grid .cell-text');
+            ct.textContent = ct.textContent + ' x';
+            ct.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        """)
+        page.wait_for_timeout(50)
+
+        # Focus the first cell-text and press Ctrl+M to toggle .marked.
+        page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
+        page.wait_for_timeout(30)
+        page.keyboard.press("Control+m")
+        page.wait_for_timeout(50)
+
+        # Re-drive timeupdate so .current is re-applied after potential rerender.
+        page.evaluate("window._vimeoPlayer._setTime(1.1)")
+        page.wait_for_timeout(50)
+
+        has_composition = page.evaluate("""
+          () => Array.from(document.querySelectorAll('#review-grid .cell.uk')).some(
+            el => el.classList.contains('current') &&
+                  el.classList.contains('edited') &&
+                  el.classList.contains('marked')
+          )
+        """)
+        assert has_composition, "No cell has current+edited+marked simultaneously. Classes on first uk cell: " + str(
+            page.evaluate("Array.from(document.querySelector('#review-grid .cell.uk').classList)")
+        )
+
+
+# ---------------------------------------------------------------------------
+# Smoke: A4 — .current indicator survives a theme toggle (dark → light)
+# ---------------------------------------------------------------------------
+class TestThemeToggle:
+    def test_current_box_shadow_persists_through_theme_toggle(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(50)
+
+        # Force the theme cycle to a known dark state regardless of system preference.
+        # cycleTheme rotates auto→dark→light→auto; starting from unknown,
+        # we force 'dark' by setting localStorage directly then re-applying.
+        page.evaluate("""
+          () => {
+            localStorage.setItem('sy_theme', 'dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        """)
+        page.wait_for_timeout(50)
+
+        dark_shadow = page.evaluate("getComputedStyle(document.querySelector('.cell.uk.current')).boxShadow")
+        assert "inset" in dark_shadow, f"Expected inset box-shadow in dark theme, got {dark_shadow!r}"
+
+        # Cycle to light theme.
+        page.evaluate("SPA.cycleTheme()")  # dark → light
+        page.wait_for_timeout(50)
+
+        light_shadow = page.evaluate("getComputedStyle(document.querySelector('.cell.uk.current')).boxShadow")
+        assert "inset" in light_shadow, f"Expected inset box-shadow in light theme, got {light_shadow!r}"
+
+        # The --link token differs: dark=#6af light=#0066cc, so shadows should differ.
+        assert dark_shadow != light_shadow, (
+            f"Expected different shadow colors per theme: dark={dark_shadow!r}, light={light_shadow!r}"
+        )
