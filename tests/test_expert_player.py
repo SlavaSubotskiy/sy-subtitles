@@ -121,7 +121,6 @@ class TestHighlight:
         page.click("#btn-expert-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
-        # SAMPLE_SRT (from tests/test_preview_spa.py): UK row 2 starts at 6000 ms.
         page.evaluate("window._vimeoPlayer._setTime(6)")
         page.wait_for_timeout(50)
 
@@ -139,7 +138,6 @@ class TestClickToSeek:
         page.click("#btn-expert-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
-        # SAMPLE_EN_SRT (from test_preview_spa): row 2 starts at 4500 ms.
         page.evaluate("""
           () => {
             var cells = document.querySelectorAll('#review-grid .cell.en');
@@ -301,7 +299,7 @@ class TestCleanup:
 
 class TestFinalReviewFixes:
     def test_binary_search_skips_null_uk_rows(self, server, page):  # noqa: F811
-        """Critical: alignedRows can contain rows with uk=null (EN-only)."""
+        """alignedRows can contain rows with uk=null (EN-only)."""
         _goto_review_srt(page, server)
         result = page.evaluate("""
           () => {
@@ -311,8 +309,6 @@ class TestFinalReviewFixes:
               { uk: null, en: { startMs: 3000 } },
               { uk: { startMs: 5000 } },
             ];
-            // Caller is expected to filter; this confirms the raw helper
-            // still works on a pre-filtered array.
             var filtered = rows.filter(r => r && r.uk);
             var fn = ExpertPlayer._binarySearchByMs;
             return {
@@ -332,7 +328,7 @@ class TestFinalReviewFixes:
         page.wait_for_timeout(50)
         assert page.evaluate("window._vimeoPlayer._paused") is False
 
-        page.click("#btn-expert-player")  # toggle → hide
+        page.click("#btn-expert-player")
         page.wait_for_timeout(50)
         assert page.evaluate("window._vimeoPlayer._paused") is True
 
@@ -341,13 +337,56 @@ class TestFinalReviewFixes:
         page.click("#btn-expert-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer.play()")
-        page.click("#btn-expert-player")  # hide (this also pauses per fix #4)
+        page.click("#btn-expert-player")
         page.wait_for_timeout(50)
 
-        # Player is hidden + paused. Focus a cell. It should NOT toggle
-        # follow state or change the player state.
         page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
         page.wait_for_timeout(50)
-        # .paused class should NOT have been added by focus because
-        # state.open is false (fix #2).
         assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+
+
+class TestSmartPauseGuards:
+    def test_manual_window_scroll_pauses_follow(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Auto-scroll triggered by _setTime should NOT pause Follow.
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(600)  # let isAutoScrolling guard (500ms) clear
+        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+
+        # A subsequent user-initiated window scroll must pause Follow.
+        page.evaluate("window.dispatchEvent(new Event('scroll'))")
+        page.wait_for_timeout(50)
+        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+
+    def test_space_in_focused_cell_does_not_pause_player(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer.play()")
+        # Focus pauses the player via smart-pause; resume so we can verify Space doesn't re-pause.
+        page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
+        page.wait_for_timeout(50)
+        page.evaluate("window._vimeoPlayer.play()")
+        page.wait_for_timeout(50)
+        assert page.evaluate("window._vimeoPlayer._paused") is False
+
+        page.keyboard.press(" ")
+        page.wait_for_timeout(50)
+        # Space must reach the textarea, not the global shortcut handler.
+        assert page.evaluate("window._vimeoPlayer._paused") is False
+        assert page.evaluate("document.activeElement.classList.contains('cell-text')") is True
+
+    def test_arrow_left_in_focused_cell_does_not_seek(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer._setTime(20)")
+        page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
+        page.wait_for_timeout(50)
+
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(50)
+        assert abs(page.evaluate("window._vimeoPlayer._currentTime") - 20) < 0.01
