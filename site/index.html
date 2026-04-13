@@ -1199,9 +1199,15 @@ var ExpertPlayer = (function() {
     if (btnFollow) btnFollow.classList.add('paused');
   }
 
+  function invalidateHighlight() {
+    if (!state) return;
+    state.currentIdx = null;
+  }
+
   return {
     init: init, destroy: destroy, toggle: toggle,
     show: show, hide: hide, toggleFollow: toggleFollow,
+    invalidateHighlight: invalidateHighlight,
     _binarySearchByMs: binarySearchByMs,
   };
 })();
@@ -2235,6 +2241,9 @@ function renderReview() {
     renderReviewTranscript(grid);
   }
   updateReviewCounter();
+  // Grid DOM was rebuilt — any ExpertPlayer .current marker is now stale;
+  // force the next timeupdate to re-apply it.
+  ExpertPlayer.invalidateHighlight();
 }
 
 function renderReviewSkeleton() {

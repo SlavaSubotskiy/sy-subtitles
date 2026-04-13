@@ -7,8 +7,6 @@ test_preview_spa via direct import. Runs standalone with
 
 from __future__ import annotations
 
-import pytest
-
 from tests.test_preview_spa import (  # noqa: F401  — re-exported fixtures
     SPA_URL,
     browser,
@@ -753,14 +751,6 @@ class TestHighlightCycle:
 # Gap 10: revertAllEdits re-renders grid; .current self-heals on next timeupdate
 # ---------------------------------------------------------------------------
 class TestRevertAllEditsHighlightRecovery:
-    @pytest.mark.xfail(
-        reason=(
-            "Bug: renderReview() rebuilds the grid DOM but does not reset "
-            "state.currentIdx, so the next timeupdate at the SAME block is "
-            "a no-op (idx === state.currentIdx) and .current is never re-applied."
-        ),
-        strict=True,
-    )
     def test_current_recovers_after_revert_all(self, server, page):  # noqa: F811
         """After revertAllEdits rebuilds the grid, .current must self-heal on next timeupdate."""
         _goto_review_srt(page, server)
