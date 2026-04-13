@@ -317,7 +317,8 @@ body.expert-resizing, body.expert-resizing * {
   user-select: none !important;
 }
 .expert-bar[hidden] { display: none; }
-.cell.uk.current { box-shadow: inset 3px 0 0 var(--link); }
+.cell.uk.current,
+.cell.en.current { box-shadow: inset 3px 0 0 var(--link); }
 #view-review.expert-mode .cell.en,
 #view-review.expert-mode .cell-label { cursor: pointer; }
 #view-review.expert-mode .cell.en:hover { background: var(--cell-hover); }
@@ -910,13 +911,14 @@ var ExpertPlayer = (function() {
   function freshState(talkId, videoSlug) {
     return {
       open: false, followPaused: false,
-      lastTime: 0, currentIdx: null,
+      lastTime: 0, currentIdx: null, currentEnIdx: null,
       player: null, isAutoScrolling: false,
       talkId: talkId, videoSlug: videoSlug,
       // null means "use CSS default" (handles desktop 25vh / mobile 22vh).
       // Becomes a number once the user drags the handle.
       barHeightVh: null,
       _ukRowsSrc: null, _ukRowsCache: null,
+      _enRowsSrc: null, _enRowsCache: null,
     };
   }
 
@@ -1148,13 +1150,26 @@ var ExpertPlayer = (function() {
     return state._ukRowsCache;
   }
 
-  function binarySearchByMs(rows, ms) {
+  function enRows() {
+    var src = (reviewState && reviewState.alignedRows) || [];
+    if (state._enRowsSrc !== src) {
+      state._enRowsSrc = src;
+      state._enRowsCache = src.filter(function(r) { return r && r.en; });
+    }
+    return state._enRowsCache;
+  }
+
+  // side defaults to 'uk' to keep the test hook `_binarySearchByMs`
+  // backward-compatible with existing unit fixtures.
+  function binarySearchByMs(rows, ms, side) {
+    side = side || 'uk';
     if (!rows || rows.length === 0) return -1;
-    if (ms < rows[0].uk.startMs) return -1;
+    if (!rows[0][side] || ms < rows[0][side].startMs) return -1;
     var lo = 0, hi = rows.length - 1, ans = -1;
     while (lo <= hi) {
       var mid = (lo + hi) >> 1;
-      if (rows[mid].uk.startMs <= ms) { ans = mid; lo = mid + 1; }
+      var r = rows[mid][side];
+      if (r && r.startMs <= ms) { ans = mid; lo = mid + 1; }
       else hi = mid - 1;
     }
     return ans;
@@ -1164,13 +1179,16 @@ var ExpertPlayer = (function() {
     if (!state) return;
     state.lastTime = Math.round((data && data.seconds || 0) * 1000);
     if (timeEl) timeEl.textContent = fmtTime(Math.floor(state.lastTime / 1000));
-    var rows = ukRows();
-    var idx = binarySearchByMs(rows, state.lastTime);
-    if (idx !== state.currentIdx) highlightRow(idx);
+    var uk = ukRows();
+    var ukIdx = binarySearchByMs(uk, state.lastTime, 'uk');
+    if (ukIdx !== state.currentIdx) highlightUkRow(ukIdx);
+    var en = enRows();
+    var enIdx = binarySearchByMs(en, state.lastTime, 'en');
+    if (enIdx !== state.currentEnIdx) highlightEnRow(enIdx);
     throttledPersist();
   }
 
-  function highlightRow(idx) {
+  function highlightUkRow(idx) {
     var prev = document.querySelector('#review-grid .cell.uk.current');
     if (prev) prev.classList.remove('current');
     state.currentIdx = idx;
@@ -1181,31 +1199,52 @@ var ExpertPlayer = (function() {
     var target = findUkCellByMs(row.uk.startMs);
     if (target) {
       target.classList.add('current');
+      // Scroll is driven by the UK row (primary edit target); EN follows.
       if (!state.followPaused) scrollRowIntoView(target);
     }
   }
 
+  function highlightEnRow(idx) {
+    var prev = document.querySelector('#review-grid .cell.en.current');
+    if (prev) prev.classList.remove('current');
+    state.currentEnIdx = idx;
+    if (idx < 0) return;
+    var rows = enRows();
+    var row = rows[idx];
+    if (!row || !row.en) return;
+    var target = findEnCellByMs(row.en.startMs);
+    if (target) target.classList.add('current');
+  }
+
   function scrollRowIntoView(el) {
-    // Swallow scroll events caused by smooth scrollIntoView so onWindowScroll
+    // Swallow scroll events caused by smooth scrollTo so onWindowScroll
     // doesn't misread auto-scroll as user intent and pause Follow.
     state.isAutoScrolling = true;
-    // Account for the sticky expert-bar: scrollIntoView({block:'center'})
-    // centers relative to the whole viewport, which puts the row BEHIND
-    // the sticky bar. Compute the target manually so the row lands in the
-    // middle of the area visible BELOW the bar.
+    // Account for the sticky expert-bar: native scrollIntoView({block:'center'})
+    // centers relative to the whole viewport and leaves the row behind the
+    // bar. Compute an ABSOLUTE target scroll position (idempotent across
+    // mid-animation re-entries) that puts the row's center in the middle
+    // of the area visible BELOW the bar.
     var barH = (bar && !bar.hasAttribute('hidden')) ? bar.getBoundingClientRect().height : 0;
     var rect = el.getBoundingClientRect();
-    var visibleH = window.innerHeight - barH;
-    var rowCenter = rect.top + rect.height / 2;
-    var targetCenter = barH + visibleH / 2;
-    var delta = rowCenter - targetCenter;
-    try { window.scrollBy({ top: delta, behavior: 'smooth' }); }
-    catch (e) { window.scrollBy(0, delta); }
-    setTimeout(function() { state.isAutoScrolling = false; }, 500);
+    var absRowCenter = rect.top + rect.height / 2 + window.scrollY;
+    var visibleH = Math.max(1, window.innerHeight - barH);
+    var targetViewportCenter = barH + visibleH / 2;
+    var targetScrollY = Math.max(0, absRowCenter - targetViewportCenter);
+    try { window.scrollTo({ top: targetScrollY, behavior: 'smooth' }); }
+    catch (e) { window.scrollTo(0, targetScrollY); }
+    // Smooth scroll animation can take up to ~800ms for large deltas. Keep
+    // the guard generous so trailing scroll events from the animation don't
+    // trip onWindowScroll and pause Follow unexpectedly.
+    setTimeout(function() { state.isAutoScrolling = false; }, 1000);
   }
 
   function findUkCellByMs(ms) {
     return document.querySelector('#review-grid .cell.uk[data-ms-start="' + ms + '"]');
+  }
+
+  function findEnCellByMs(ms) {
+    return document.querySelector('#review-grid .cell.en[data-ms-start="' + ms + '"]');
   }
 
   function seekTo(ms) {
@@ -1303,6 +1342,7 @@ var ExpertPlayer = (function() {
   function invalidateHighlight() {
     if (!state) return;
     state.currentIdx = null;
+    state.currentEnIdx = null;
   }
 
   return {

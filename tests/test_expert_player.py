@@ -30,6 +30,14 @@ def _goto_review_srt(page, server):  # noqa: F811
     page.wait_for_selector("#review-grid", timeout=10000)
     page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
     page.wait_for_selector(".cell.uk", timeout=10000)
+    # Under heavy parallel load, the browser can momentarily lag before
+    # ExpertPlayer.init unhides the button even though switchReviewMode
+    # has returned. Poll until it's visible so subsequent clicks never
+    # race against a stale display:none.
+    page.wait_for_function(
+        "() => { var b = document.getElementById('btn-expert-player'); return b && b.style.display !== 'none'; }",
+        timeout=10000,
+    )
 
 
 class TestExpertButtonVisibility:
@@ -130,6 +138,42 @@ class TestHighlight:
           ).map(c => c.dataset.msStart)
         """)
         assert highlighted == ["6000"]
+
+    def test_timeupdate_highlights_en_row_independently(self, server, page):  # noqa: F811
+        """EN column gets its own .current based on EN start times,
+        independent of the UK column."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # SAMPLE_EN_SRT row 2 starts at 4500 ms, row 3 at 8500 ms.
+        page.evaluate("window._vimeoPlayer._setTime(5)")  # between EN row 2 (4.5s) and EN row 3 (8.5s)
+        page.wait_for_timeout(50)
+
+        en_highlighted = page.evaluate("""
+          () => Array.from(
+            document.querySelectorAll('.cell.en.current')
+          ).map(c => c.dataset.msStart)
+        """)
+        # At t=5s the active EN row is row 2 (startMs 4500).
+        assert en_highlighted == ["4500"]
+
+    def test_en_and_uk_highlight_together(self, server, page):  # noqa: F811
+        """Both columns should have exactly one .current each at any playback time."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(50)
+
+        counts = page.evaluate("""
+          () => ({
+            uk: document.querySelectorAll('.cell.uk.current').length,
+            en: document.querySelectorAll('.cell.en.current').length,
+          })
+        """)
+        assert counts == {"uk": 1, "en": 1}
 
 
 class TestClickToSeek:
@@ -353,7 +397,7 @@ class TestSmartPauseGuards:
 
         # Auto-scroll triggered by _setTime should NOT pause Follow.
         page.evaluate("window._vimeoPlayer._setTime(6)")
-        page.wait_for_timeout(600)  # let isAutoScrolling guard (500ms) clear
+        page.wait_for_timeout(1100)  # let isAutoScrolling guard (1000ms) clear
         assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
 
         # A subsequent user-initiated window scroll must pause Follow.
@@ -969,6 +1013,7 @@ class TestResizeBar:
     def test_drag_is_clamped_to_25vh_min(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
+        page.wait_for_selector("#btn-expert-player", state="visible", timeout=5000)
         page.click("#btn-expert-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         box = page.evaluate("""
@@ -1105,13 +1150,35 @@ class TestPlayerFillsBar:
 # bar once the bar is resized larger.
 # ---------------------------------------------------------------------------
 class TestFollowCenteringBelowBar:
-    def test_current_row_not_hidden_behind_bar_after_resize(self, server, page):  # noqa: F811
-        page.set_viewport_size({"width": 1280, "height": 800})
-        _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
-        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+    @staticmethod
+    def _install_long_srt(page):  # noqa: F811
+        """Override uk.srt with 60 rows so there's real scrolling to do."""
+        lines = []
+        for i in range(1, 61):
+            s_ms = i * 2000
+            e_ms = s_ms + 1800
+            s_tc = f"00:00:{s_ms // 1000:02d},{s_ms % 1000:03d}"
+            e_tc = f"00:00:{e_ms // 1000:02d},{e_ms % 1000:03d}"
+            lines.append(f"{i}\n{s_tc} --> {e_tc}\nUK row {i}\n")
+        long_srt = "\n".join(lines) + "\n"
+        en_lines = []
+        for i in range(1, 61):
+            s_ms = i * 2000
+            e_ms = s_ms + 1800
+            s_tc = f"00:00:{s_ms // 1000:02d},{s_ms % 1000:03d}"
+            e_tc = f"00:00:{e_ms // 1000:02d},{e_ms % 1000:03d}"
+            en_lines.append(f"{i}\n{s_tc} --> {e_tc}\nEN row {i}\n")
+        long_en = "\n".join(en_lines) + "\n"
+        page.route(
+            "**/raw.githubusercontent.com/**/uk.srt",
+            lambda r: r.fulfill(status=200, content_type="text/plain", body=long_srt),
+        )
+        page.route(
+            "**/raw.githubusercontent.com/**/en.srt",
+            lambda r: r.fulfill(status=200, content_type="text/plain", body=long_en),
+        )
 
-        # Drag the handle down so the bar becomes large (~55vh = 440px).
+    def _drag_bar_down(self, page, dy_px):  # noqa: F811
         box = page.evaluate("""
           () => {
             var h = document.getElementById('expert-resize').getBoundingClientRect();
@@ -1120,16 +1187,12 @@ class TestFollowCenteringBelowBar:
         """)
         page.mouse.move(box["x"], box["y"])
         page.mouse.down()
-        page.mouse.move(box["x"], box["y"] + 240, steps=8)
+        page.mouse.move(box["x"], box["y"] + dy_px, steps=8)
         page.mouse.up()
         page.wait_for_timeout(50)
 
-        # Drive timeupdate to the second row (startMs=6000 in SAMPLE_SRT).
-        page.evaluate("window._vimeoPlayer._setTime(6)")
-        # Smooth scroll takes up to 500ms.
-        page.wait_for_timeout(600)
-
-        dims = page.evaluate("""
+    def _dims(self, page):  # noqa: F811
+        return page.evaluate("""
           () => {
             var cur = document.querySelector('.cell.uk.current');
             var bar = document.getElementById('expert-player-bar');
@@ -1138,34 +1201,82 @@ class TestFollowCenteringBelowBar:
             var br = bar.getBoundingClientRect();
             return {
               rowTop: cr.top, rowBottom: cr.bottom,
-              barBottom: br.bottom, viewportH: window.innerHeight,
+              rowHeight: cr.height,
+              barTop: br.top, barBottom: br.bottom, barHeight: br.height,
+              viewportH: window.innerHeight, scrollY: window.scrollY,
             };
           }
         """)
-        assert dims is not None, "no .current cell or no bar"
-        # The row must not overlap the bar: its top must be at or below the
-        # bar's bottom edge.
-        assert dims["rowTop"] >= dims["barBottom"] - 1, f"Current row is hidden behind sticky bar: {dims!r}"
-        # The row should also be visible (not below the viewport).
-        assert dims["rowBottom"] <= dims["viewportH"] + 1, f"Current row is below the viewport: {dims!r}"
 
-    def test_current_row_centered_below_bar_default_height(self, server, page):  # noqa: F811
-        """At default 25vh, the row should still end up in the visible area below the bar."""
+    def test_row_below_bar_default_height(self, server, page):  # noqa: F811
+        self._install_long_srt(page)
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
         page.click("#btn-expert-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
-        page.evaluate("window._vimeoPlayer._setTime(6)")
-        page.wait_for_timeout(600)
+        # Drive to row 10 (startMs = 20000). Far enough that scrolling is
+        # required even at default bar height.
+        page.evaluate("window._vimeoPlayer._setTime(20)")
+        page.wait_for_timeout(1100)
 
-        dims = page.evaluate("""
-          () => {
-            var cur = document.querySelector('.cell.uk.current');
-            var bar = document.getElementById('expert-player-bar');
-            var cr = cur.getBoundingClientRect();
-            var br = bar.getBoundingClientRect();
-            return { rowTop: cr.top, barBottom: br.bottom };
-          }
-        """)
-        assert dims["rowTop"] >= dims["barBottom"] - 1, f"Current row overlaps bar at default height: {dims!r}"
+        d = self._dims(page)
+        assert d is not None
+        assert d["rowTop"] >= d["barBottom"] - 1, f"Row hidden behind bar: {d!r}"
+        assert d["rowBottom"] <= d["viewportH"] + 1, f"Row past bottom of viewport: {d!r}"
+
+    def test_row_below_bar_after_55vh_resize(self, server, page):  # noqa: F811
+        self._install_long_srt(page)
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        self._drag_bar_down(page, 240)  # +30vh -> 55vh bar = 440px
+
+        page.evaluate("window._vimeoPlayer._setTime(20)")  # row 10
+        page.wait_for_timeout(1100)
+
+        d = self._dims(page)
+        assert d is not None
+        assert d["rowTop"] >= d["barBottom"] - 1, f"Row hidden behind 55vh bar: {d!r}"
+        assert d["rowBottom"] <= d["viewportH"] + 1, f"Row past bottom of viewport: {d!r}"
+        # And roughly centered in the below-bar area:
+        visible_center = d["barBottom"] + (d["viewportH"] - d["barBottom"]) / 2
+        row_center = d["rowTop"] + d["rowHeight"] / 2
+        assert abs(row_center - visible_center) < d["rowHeight"] + 5, (
+            f"Row not centered below bar: row_center={row_center}, visible_center={visible_center}, d={d!r}"
+        )
+
+    def test_row_below_bar_at_max_75vh(self, server, page):  # noqa: F811
+        """At the max bar height (75vh = 600px), only 200px remains for rows — the
+        row must still not escape off the bottom."""
+        self._install_long_srt(page)
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        self._drag_bar_down(page, 2000)  # clamp to 75vh = 600px
+
+        page.evaluate("window._vimeoPlayer._setTime(40)")  # row 20
+        page.wait_for_timeout(1100)
+
+        d = self._dims(page)
+        assert d is not None
+        assert d["rowTop"] >= d["barBottom"] - 1, f"Row hidden behind 75vh bar: {d!r}"
+        assert d["rowBottom"] <= d["viewportH"] + 1, f"Row past bottom of viewport: {d!r}"
+
+    def test_row_stable_across_successive_timeupdates(self, server, page):  # noqa: F811
+        """Multiple timeupdate events in sequence should not accumulate scroll drift."""
+        self._install_long_srt(page)
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        for t_sec in [6, 10, 14, 18, 22, 26, 30]:
+            page.evaluate(f"window._vimeoPlayer._setTime({t_sec})")
+            page.wait_for_timeout(1100)
+            d = self._dims(page)
+            assert d is not None, f"no current at t={t_sec}"
+            assert d["rowTop"] >= d["barBottom"] - 1, f"At t={t_sec}s: row hidden behind bar: {d!r}"
+            assert d["rowBottom"] <= d["viewportH"] + 1, f"At t={t_sec}s: row past bottom of viewport: {d!r}"
