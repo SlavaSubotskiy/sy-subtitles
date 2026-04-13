@@ -862,11 +862,6 @@ function translatePage() {
   document.documentElement.lang = currentLang;
 }
 
-/* ============================================================
- * ExpertPlayer — sticky Vimeo player + bidirectional sync with
- * the review grid. Active only in view-review + SRT source mode.
- * Spec: docs/superpowers/specs/2026-04-13-expert-edit-with-video-design.md
- * ============================================================ */
 var ExpertPlayer = (function() {
   var state = null;
   var btnExpert = null;
@@ -883,6 +878,7 @@ var ExpertPlayer = (function() {
       lastTime: 0, currentIdx: null,
       player: null, isAutoScrolling: false,
       talkId: talkId, videoSlug: videoSlug,
+      _ukRowsSrc: null, _ukRowsCache: null,
     };
   }
 
@@ -928,7 +924,10 @@ var ExpertPlayer = (function() {
     cacheDom();
     state = freshState(talkId, videoSlug);
     var saved = loadPersisted(talkId, videoSlug);
-    if (saved) state.lastTime = saved.lastTime || 0;
+    if (saved && typeof saved === 'object'
+        && typeof saved.lastTime === 'number' && saved.lastTime >= 0) {
+      state.lastTime = saved.lastTime;
+    }
     var grid = document.getElementById('review-grid');
     if (grid) {
       gridClickHandler = onGridClick;
@@ -941,8 +940,8 @@ var ExpertPlayer = (function() {
     if (btnExpert) btnExpert.style.display = '';
     var view = document.getElementById('view-review');
     if (view) view.classList.add('expert-mode');
-    // Defer auto-show one tick so the caller finishes populating reviewState.
-    if (saved && saved.open) setTimeout(show, 0);
+    // Defer one tick so the caller finishes populating reviewState before show() reads it.
+    if (saved && saved.open === true) setTimeout(show, 0);
   }
 
   function destroy() {
@@ -971,32 +970,43 @@ var ExpertPlayer = (function() {
   function mountPlayer() {
     var videos = (reviewState && reviewState.talk && reviewState.talk.videos) || [];
     var video = videos.find(function(v) { return v.slug === state.videoSlug; });
-    if (!video || !video.vimeo_url) return;
+    if (!video || !video.vimeo_url) return false;
+    var src = vimeoEmbed(video.vimeo_url);
+    if (!/player\.vimeo\.com\/video\/\d+\?h=/.test(src)) return false;
 
     clearMount();
     var iframe = document.createElement('iframe');
     iframe.allow = 'autoplay; fullscreen';
     iframe.setAttribute('allowfullscreen', '');
-    iframe.src = vimeoEmbed(video.vimeo_url);
+    iframe.src = src;
     mount.appendChild(iframe);
 
     try {
       state.player = new Vimeo.Player(iframe);
       state.player.on('timeupdate', onTimeUpdate);
-      if (state.lastTime > 0) state.player.setCurrentTime(state.lastTime / 1000);
+      if (state.lastTime > 0) {
+        state.player.setCurrentTime(state.lastTime / 1000).catch(function() {});
+      }
+      return true;
     } catch (e) {
       console.warn('[ExpertPlayer] Vimeo init error:', e);
       state.player = null;
+      clearMount();
+      return false;
     }
+  }
+
+  function failOpen() {
+    if (!state) return;
+    state.open = false;
+    persistNow();
+    if (typeof SPA !== 'undefined' && SPA.toast) SPA.toast(t('toast.vimeo_unavailable'));
   }
 
   function show() {
     if (!state) return;
-    if (!window.Vimeo) {
-      if (typeof SPA !== 'undefined' && SPA.toast) SPA.toast(t('toast.vimeo_unavailable'));
-      return;
-    }
-    if (!state.player) mountPlayer();
+    if (!window.Vimeo) { failOpen(); return; }
+    if (!state.player && !mountPlayer()) { failOpen(); return; }
     if (bar) bar.removeAttribute('hidden');
     state.open = true;
     persistNow();
@@ -1024,16 +1034,16 @@ var ExpertPlayer = (function() {
     }
   }
 
-  // Returns alignedRows filtered to only those with a UK block.
-  // All currentIdx values index into this filtered array.
   function ukRows() {
-    var rows = (reviewState && reviewState.alignedRows) || [];
-    return rows.filter(function(r) { return r && r.uk; });
+    var src = (reviewState && reviewState.alignedRows) || [];
+    if (state._ukRowsSrc !== src) {
+      state._ukRowsSrc = src;
+      state._ukRowsCache = src.filter(function(r) { return r && r.uk; });
+    }
+    return state._ukRowsCache;
   }
 
   function binarySearchByMs(rows, ms) {
-    // Returns the largest idx where rows[idx].uk.startMs <= ms.
-    // Returns -1 for empty arrays or when ms is before the first row.
     if (!rows || rows.length === 0) return -1;
     if (ms < rows[0].uk.startMs) return -1;
     var lo = 0, hi = rows.length - 1, ans = -1;
@@ -1090,7 +1100,7 @@ var ExpertPlayer = (function() {
 
   function onGridClick(e) {
     if (!state || !state.player) return;
-    if (e.target.closest('.cell-text')) return;  // editing area — skip
+    if (e.target.closest('.cell-text')) return;
     var isLabel = !!e.target.closest('.cell-label');
     var cell = e.target.closest('.cell');
     if (!cell) return;
@@ -1113,7 +1123,7 @@ var ExpertPlayer = (function() {
     if (!state) return;
     if (!state.open) return;
     if (e.key !== 'Enter') return;
-    if (e.isComposing || e.keyCode === 229) return;  // IME commit
+    if (e.isComposing || e.keyCode === 229) return;
     if (!e.target.matches || !e.target.matches('.cell-text')) return;
     e.preventDefault();
     e.target.blur();
@@ -1124,20 +1134,20 @@ var ExpertPlayer = (function() {
 
   function togglePlayPause() {
     if (!state || !state.player) return;
-    state.player.getPaused().then(function(paused) {
-      if (paused) state.player.play(); else state.player.pause();
+    var p = state.player;
+    p.getPaused().then(function(paused) {
+      if (!state || state.player !== p) return;
+      if (paused) p.play(); else p.pause();
     }).catch(function() {});
   }
 
   function onGlobalKeydown(e) {
     if (!state || !state.open) return;
     var ae = document.activeElement;
-    // For Space/k (play-pause): yield to any native focusable control
-    // (buttons, selects, inputs, contenteditable).
+    // Space/k yield to any focusable control (e.g. mode select); arrows/Esc yield only to text inputs.
     if (e.key === ' ' || e.key === 'k') {
       if (ae && ae.matches && ae.matches('input, select, textarea, button, [contenteditable]')) return;
     } else {
-      // For all other shortcuts (arrows, Escape): only yield to text-entry controls.
       if (ae && ae.matches && ae.matches('input, textarea, [contenteditable]')) return;
     }
     switch (e.key) {
@@ -1173,7 +1183,7 @@ var ExpertPlayer = (function() {
   return {
     init: init, destroy: destroy, toggle: toggle,
     show: show, hide: hide, toggleFollow: toggleFollow,
-    _binarySearchByMs: binarySearchByMs,  // test hook
+    _binarySearchByMs: binarySearchByMs,
   };
 })();
 
@@ -1187,7 +1197,6 @@ var reviewStatus = null;
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
 
-// Destroy ExpertPlayer when navigating away from a review route.
 window.addEventListener('hashchange', function() {
   if (!/^#\/review\//.test(location.hash)) {
     ExpertPlayer.destroy();
