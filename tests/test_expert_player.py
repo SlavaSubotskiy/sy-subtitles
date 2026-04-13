@@ -56,3 +56,12 @@ class TestCellDataMsStart:
         """)
         assert counts["total"] > 0
         assert counts["withAttr"] == counts["total"]
+
+
+class TestButtonVisibilityTransitions:
+    def test_button_hides_when_switching_from_srt_to_transcript(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        assert page.locator("#btn-expert-player").is_visible()
+        page.evaluate("SPA.switchReviewMode('transcript')")
+        page.wait_for_timeout(200)
+        assert not page.locator("#btn-expert-player").is_visible()
