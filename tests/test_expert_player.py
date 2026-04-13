@@ -275,3 +275,25 @@ class TestPersistence:
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         current = page.evaluate("window._vimeoPlayer._currentTime")
         assert abs(current - 7) < 0.1
+
+
+class TestCleanup:
+    def test_switching_videos_does_not_duplicate_player(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
+        page.wait_for_timeout(300)
+
+        assert page.locator("#mock-player").count() <= 1
+        assert page.locator("#btn-expert-player").is_visible()
+
+    def test_leaving_review_destroys_player(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        page.evaluate("location.hash = '#/'")
+        page.wait_for_selector(".talk-item", timeout=5000)
+        assert page.locator("#mock-player").count() == 0

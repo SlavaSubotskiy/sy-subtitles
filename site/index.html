@@ -952,6 +952,9 @@ var ExpertPlayer = (function() {
   function destroy() {
     if (!state) return;
     hide();
+    if (state.player) {
+      try { state.player.destroy(); } catch (_) {}  // no-op on mock, safe on real Vimeo SDK
+    }
     clearMount();
     var grid = document.getElementById('review-grid');
     if (grid && gridClickHandler) grid.removeEventListener('click', gridClickHandler);
