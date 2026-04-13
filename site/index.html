@@ -938,7 +938,9 @@ var ExpertPlayer = (function() {
     if (grid) {
       gridClickHandler = onGridClick;
       grid.addEventListener('click', gridClickHandler);
+      grid.addEventListener('focusin', onGridFocusIn);
     }
+    window.addEventListener('scroll', onWindowScroll, { passive: true });
     if (btnExpert) btnExpert.style.display = '';
     var view = document.getElementById('view-review');
     if (view) view.classList.add('expert-mode');
@@ -951,7 +953,9 @@ var ExpertPlayer = (function() {
     clearMount();
     var grid = document.getElementById('review-grid');
     if (grid && gridClickHandler) grid.removeEventListener('click', gridClickHandler);
+    if (grid) grid.removeEventListener('focusin', onGridFocusIn);
     gridClickHandler = null;
+    window.removeEventListener('scroll', onWindowScroll);
     state = null;
     if (btnExpert) btnExpert.style.display = 'none';
     var view = document.getElementById('view-review');
@@ -1013,6 +1017,16 @@ var ExpertPlayer = (function() {
     if (!state) return;
     state.followPaused = !state.followPaused;
     if (btnFollow) btnFollow.classList.toggle('paused', state.followPaused);
+    if (!state.followPaused && state.currentIdx != null && state.currentIdx >= 0) {
+      var rows = (reviewState && reviewState.alignedRows) || [];
+      var row = rows[state.currentIdx];
+      if (row && row.uk) {
+        var target = document.querySelector(
+          '#review-grid .cell.uk[data-ms-start="' + row.uk.startMs + '"]'
+        );
+        if (target) scrollRowIntoView(target);
+      }
+    }
   }
 
   function binarySearchByMs(rows, ms) {
@@ -1089,6 +1103,21 @@ var ExpertPlayer = (function() {
     var ms = Number(cell.dataset.msStart);
     if (Number.isNaN(ms)) return;
     seekTo(ms);
+  }
+
+  function onGridFocusIn(e) {
+    if (!state) return;
+    if (!e.target.matches || !e.target.matches('.cell-text')) return;
+    state.followPaused = true;
+    if (btnFollow) btnFollow.classList.add('paused');
+    if (state.player) { try { state.player.pause(); } catch (_) {} }
+  }
+
+  function onWindowScroll() {
+    if (!state || !state.open) return;
+    if (state.isAutoScrolling || state.followPaused) return;
+    state.followPaused = true;
+    if (btnFollow) btnFollow.classList.add('paused');
   }
 
   return {

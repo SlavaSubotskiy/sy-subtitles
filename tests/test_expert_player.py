@@ -173,3 +173,33 @@ class TestClickToSeek:
         """)
         after = page.evaluate("window._vimeoPlayer._currentTime")
         assert before == after
+
+
+class TestFollowSmartPause:
+    def test_focus_cell_pauses_follow_and_player(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer.play()")
+
+        page.evaluate("""
+          () => document.querySelector('#review-grid .cell-text').focus()
+        """)
+        page.wait_for_timeout(50)
+
+        paused = page.evaluate("window._vimeoPlayer._paused")
+        btn_state = page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        assert paused is True
+        assert btn_state is True
+
+    def test_toggle_follow_button_resumes(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("""
+          () => document.querySelector('#review-grid .cell-text').focus()
+        """)
+        page.wait_for_timeout(50)
+        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        page.click("#btn-follow")
+        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
