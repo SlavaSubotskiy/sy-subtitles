@@ -390,3 +390,19 @@ class TestSmartPauseGuards:
         page.keyboard.press("ArrowLeft")
         page.wait_for_timeout(50)
         assert abs(page.evaluate("window._vimeoPlayer._currentTime") - 20) < 0.01
+
+
+class TestFailOpen:
+    def test_show_without_vimeo_sdk_surfaces_toast(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        # Simulate SDK missing (adblock, network failure, CSP) right before user click.
+        page.evaluate("delete window.Vimeo")
+        page.click("#btn-expert-player")
+        page.wait_for_timeout(50)
+        # Bar stays hidden.
+        assert page.locator("#expert-player-bar").get_attribute("hidden") is not None
+        # Toast is visible with the localized message.
+        toast = page.locator("#toast")
+        assert toast.evaluate("el => el.classList.contains('show')")
+        text = toast.text_content() or ""
+        assert "Vimeo" in text
