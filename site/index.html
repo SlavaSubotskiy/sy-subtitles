@@ -939,7 +939,9 @@ var ExpertPlayer = (function() {
       gridClickHandler = onGridClick;
       grid.addEventListener('click', gridClickHandler);
       grid.addEventListener('focusin', onGridFocusIn);
+      grid.addEventListener('keydown', onGridKeydown);
     }
+    document.addEventListener('keydown', onGlobalKeydown);
     window.addEventListener('scroll', onWindowScroll, { passive: true });
     if (btnExpert) btnExpert.style.display = '';
     var view = document.getElementById('view-review');
@@ -954,7 +956,9 @@ var ExpertPlayer = (function() {
     var grid = document.getElementById('review-grid');
     if (grid && gridClickHandler) grid.removeEventListener('click', gridClickHandler);
     if (grid) grid.removeEventListener('focusin', onGridFocusIn);
+    if (grid) grid.removeEventListener('keydown', onGridKeydown);
     gridClickHandler = null;
+    document.removeEventListener('keydown', onGlobalKeydown);
     window.removeEventListener('scroll', onWindowScroll);
     state = null;
     if (btnExpert) btnExpert.style.display = 'none';
@@ -1111,6 +1115,52 @@ var ExpertPlayer = (function() {
     state.followPaused = true;
     if (btnFollow) btnFollow.classList.add('paused');
     if (state.player) { try { state.player.pause(); } catch (_) {} }
+  }
+
+  function onGridKeydown(e) {
+    if (!state) return;
+    if (e.key !== 'Enter') return;
+    if (e.isComposing || e.keyCode === 229) return;  // IME commit
+    if (!e.target.matches || !e.target.matches('.cell-text')) return;
+    e.preventDefault();
+    e.target.blur();
+    state.followPaused = false;
+    if (btnFollow) btnFollow.classList.remove('paused');
+    if (state.player) { try { state.player.play(); } catch (_) {} }
+  }
+
+  function togglePlayPause() {
+    if (!state || !state.player) return;
+    state.player.getPaused().then(function(paused) {
+      if (paused) state.player.play(); else state.player.pause();
+    });
+  }
+
+  function onGlobalKeydown(e) {
+    if (!state || !state.open) return;
+    var ae = document.activeElement;
+    if (ae && ae.matches && ae.matches('.cell-text')) return;  // editing — let keys pass
+    switch (e.key) {
+      case ' ':
+      case 'k':
+        e.preventDefault();
+        togglePlayPause();
+        break;
+      case 'ArrowLeft':
+      case 'j':
+        e.preventDefault();
+        seekTo(Math.max(0, state.lastTime - 5000));
+        break;
+      case 'ArrowRight':
+      case 'l':
+        e.preventDefault();
+        seekTo(state.lastTime + 5000);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        hide();
+        break;
+    }
   }
 
   function onWindowScroll() {

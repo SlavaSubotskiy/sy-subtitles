@@ -203,3 +203,54 @@ class TestFollowSmartPause:
         assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
         page.click("#btn-follow")
         assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+
+
+class TestEnterAndShortcuts:
+    def test_enter_in_cell_blurs_and_plays(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("""
+          () => document.querySelector('#review-grid .cell-text').focus()
+        """)
+        page.wait_for_timeout(50)
+        assert page.evaluate("window._vimeoPlayer._paused") is True
+
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(50)
+
+        assert page.evaluate("document.activeElement.classList.contains('cell-text')") is False
+        assert page.evaluate("window._vimeoPlayer._paused") is False
+
+    def test_space_toggles_play_pause(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer.play()")
+        page.wait_for_timeout(50)
+        assert page.evaluate("window._vimeoPlayer._paused") is False
+
+        page.evaluate("document.body.focus()")
+        page.keyboard.press(" ")
+        page.wait_for_timeout(100)
+        assert page.evaluate("window._vimeoPlayer._paused") is True
+
+    def test_escape_closes_player(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("document.body.focus()")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(50)
+        assert page.locator("#expert-player-bar").get_attribute("hidden") is not None
+
+    def test_arrow_left_seeks_minus_five(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer._setTime(20)")
+        page.wait_for_timeout(50)
+        page.evaluate("document.body.focus()")
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(50)
+        assert abs(page.evaluate("window._vimeoPlayer._currentTime") - 15) < 0.01
