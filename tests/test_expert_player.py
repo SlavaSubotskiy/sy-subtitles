@@ -774,21 +774,28 @@ class TestHighlightCycle:
         page.click("#btn-expert-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
-        # Highlight first row.
+        # Highlight first row and wait for the class to actually attach.
         page.evaluate("window._vimeoPlayer._setTime(1)")
-        page.wait_for_timeout(50)
-        count_after_first = page.evaluate("document.querySelectorAll('.cell.uk.current').length")
-        assert count_after_first == 1, f"Expected 1 .current after _setTime(1), got {count_after_first}"
+        page.wait_for_function(
+            "() => document.querySelector('.cell.uk[data-ms-start=\\\"1000\\\"].current') !== null",
+            timeout=5000,
+        )
+        assert page.evaluate("document.querySelectorAll('.cell.uk.current').length") == 1, (
+            "Expected exactly 1 .current after _setTime(1)"
+        )
 
-        # Move to second row.
+        # Move to second row and wait for the switch to take effect.
         page.evaluate("window._vimeoPlayer._setTime(6)")
-        page.wait_for_timeout(50)
-        count_after_second = page.evaluate("document.querySelectorAll('.cell.uk.current').length")
-        first_still_current = page.evaluate("""
-            !! document.querySelector('.cell.uk[data-ms-start="1000"].current')
-        """)
-        assert count_after_second == 1, f"Expected exactly 1 .current after _setTime(6), got {count_after_second}"
-        assert not first_still_current, "The first row must lose .current when the playhead moves to the second row"
+        page.wait_for_function(
+            "() => document.querySelector('.cell.uk[data-ms-start=\\\"6000\\\"].current') !== null",
+            timeout=5000,
+        )
+        assert page.evaluate("document.querySelectorAll('.cell.uk.current').length") == 1, (
+            "Expected exactly 1 .current after _setTime(6)"
+        )
+        assert not page.evaluate("!! document.querySelector('.cell.uk[data-ms-start=\\\"1000\\\"].current')"), (
+            "First row must lose .current when playhead moves to second row"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1092,6 +1099,37 @@ class TestResizeBar:
         h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
         val = float(h[:-2])
         assert 199 < val < 201, f"Test-Video-2 should default to 200px, got {h!r}"
+
+    def test_resize_resumes_follow(self, server, page):  # noqa: F811
+        """After dragging the handle, Follow auto-resumes even if the user
+        had previously paused it (by focusing a cell or manually scrolling)."""
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Pause Follow by focusing a cell.
+        page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
+        page.wait_for_timeout(50)
+        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+
+        # Drag the handle to force a resize.
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] + 120, steps=6)
+        page.mouse.up()
+        page.wait_for_timeout(50)
+
+        # .paused class must be cleared after mouseup.
+        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')"), (
+            "resize should auto-resume Follow"
+        )
 
 
 # ---------------------------------------------------------------------------

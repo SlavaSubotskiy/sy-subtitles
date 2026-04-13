@@ -1058,6 +1058,20 @@ var ExpertPlayer = (function() {
       if (resizeHandle) resizeHandle.classList.remove('dragging');
       document.body.classList.remove('expert-resizing');
       persistNow();
+      // Resize is a deliberate action — re-engage Follow so the grid
+      // snaps back to the current row in the new viewport geometry.
+      if (state) {
+        state.followPaused = false;
+        if (btnFollow) btnFollow.classList.remove('paused');
+        if (state.currentIdx != null && state.currentIdx >= 0) {
+          var rows = ukRows();
+          var row = rows[state.currentIdx];
+          if (row && row.uk) {
+            var target = findUkCellByMs(row.uk.startMs);
+            if (target) scrollRowIntoView(target);
+          }
+        }
+      }
     };
     document.addEventListener('mousemove', resizePointerMove);
     document.addEventListener('mouseup', resizePointerUp);
