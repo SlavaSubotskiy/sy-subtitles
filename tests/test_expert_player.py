@@ -254,3 +254,24 @@ class TestEnterAndShortcuts:
         page.keyboard.press("ArrowLeft")
         page.wait_for_timeout(50)
         assert abs(page.evaluate("window._vimeoPlayer._currentTime") - 15) < 0.01
+
+
+class TestPersistence:
+    def test_open_state_survives_reload(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer._setTime(7)")
+        page.wait_for_timeout(1100)  # allow throttled persist (1s)
+
+        page.reload()
+        # After reload the SPA auto-detects saved SRT mode and calls
+        # switchReviewMode internally — do NOT call it a second time here,
+        # that would destroy() + re-init the player and wipe the state.
+        page.wait_for_selector("#review-grid", timeout=10000)
+        page.wait_for_selector(".cell.uk", timeout=10000)
+
+        page.wait_for_selector("#expert-player-bar:not([hidden])", timeout=3000)
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        current = page.evaluate("window._vimeoPlayer._currentTime")
+        assert abs(current - 7) < 0.1
