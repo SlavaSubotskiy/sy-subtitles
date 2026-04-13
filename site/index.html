@@ -303,12 +303,19 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .expert-resize {
   flex: 0 0 auto;
   height: 8px; width: 100%;
-  cursor: ns-resize;
   background: var(--bg3);
   border-top: 1px solid var(--border);
   touch-action: none;
 }
-.expert-resize:hover, .expert-resize.dragging { background: var(--border3); }
+.expert-resize:hover { background: var(--border3); }
+.expert-resize.dragging { background: var(--border3); cursor: ns-resize; }
+/* Lock cursor and suppress selection only while the user is actively
+   dragging — hover alone doesn't change the cursor, so the mouse
+   doesn't feel "stuck" when passing over the handle. */
+body.expert-resizing, body.expert-resizing * {
+  cursor: ns-resize !important;
+  user-select: none !important;
+}
 .expert-bar[hidden] { display: none; }
 .cell.uk.current { box-shadow: inset 3px 0 0 var(--link); }
 #view-review.expert-mode .cell.en,
@@ -1033,6 +1040,7 @@ var ExpertPlayer = (function() {
       ? state.barHeightVh
       : (bar.getBoundingClientRect().height / vpH) * 100;
     if (resizeHandle) resizeHandle.classList.add('dragging');
+    document.body.classList.add('expert-resizing');
     resizePointerMove = function(ev) {
       if (!state) return;
       var dyVh = ((ev.clientY - startY) / vpH) * 100;
@@ -1046,6 +1054,7 @@ var ExpertPlayer = (function() {
       resizePointerMove = null;
       resizePointerUp = null;
       if (resizeHandle) resizeHandle.classList.remove('dragging');
+      document.body.classList.remove('expert-resizing');
       persistNow();
     };
     document.addEventListener('mousemove', resizePointerMove);
