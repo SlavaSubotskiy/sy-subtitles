@@ -658,7 +658,6 @@ var I18N = {
     'btn.clear_all': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0435',
     'btn.revert_all': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
     'btn.show_video': '\u25B6 \u041F\u043E\u043A\u0430\u0437\u0430\u0442\u0438 \u0432\u0456\u0434\u0435\u043E',
-    'btn.hide_video': '\u2715 \u0421\u0445\u043E\u0432\u0430\u0442\u0438 \u0432\u0456\u0434\u0435\u043E',
     'btn.follow': '\u21C5 \u0421\u043B\u0456\u0434\u0443\u0432\u0430\u0442\u0438',
     'title.show_video': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u043F\u043B\u0435\u0454\u0440 \u0434\u043B\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0456\u0437\u043E\u0432\u0430\u043D\u043E\u0433\u043E \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F',
     'title.follow': '\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E \u043F\u0440\u043E\u043A\u0440\u0443\u0447\u0443\u0432\u0430\u0442\u0438 \u0434\u043E \u043F\u043E\u0442\u043E\u0447\u043D\u043E\u0433\u043E \u0440\u044F\u0434\u043A\u0430',
@@ -750,7 +749,6 @@ var I18N = {
     'btn.clear_all': 'Clear all',
     'btn.revert_all': 'Revert all',
     'btn.show_video': '\u25B6 Show video',
-    'btn.hide_video': '\u2715 Hide video',
     'btn.follow': '\u21C5 Follow',
     'title.show_video': 'Open player for synced editing',
     'title.follow': 'Auto-scroll to current row',
@@ -881,7 +879,7 @@ var ExpertPlayer = (function() {
 
   function freshState(talkId, videoSlug) {
     return {
-      open: false, follow: true, followPaused: false,
+      open: false, followPaused: false,
       lastTime: 0, currentIdx: null,
       player: null, isAutoScrolling: false,
       talkId: talkId, videoSlug: videoSlug,
@@ -903,7 +901,7 @@ var ExpertPlayer = (function() {
     if (!state) return;
     try {
       localStorage.setItem(storageKey(state.talkId, state.videoSlug), JSON.stringify({
-        open: state.open, follow: state.follow, lastTime: state.lastTime,
+        open: state.open, lastTime: state.lastTime,
       }));
     } catch (e) { /* quota / private mode — ignore */ }
   }
@@ -930,10 +928,7 @@ var ExpertPlayer = (function() {
     cacheDom();
     state = freshState(talkId, videoSlug);
     var saved = loadPersisted(talkId, videoSlug);
-    if (saved) {
-      state.follow = saved.follow !== false;
-      state.lastTime = saved.lastTime || 0;
-    }
+    if (saved) state.lastTime = saved.lastTime || 0;
     var grid = document.getElementById('review-grid');
     if (grid) {
       gridClickHandler = onGridClick;
@@ -946,14 +941,16 @@ var ExpertPlayer = (function() {
     if (btnExpert) btnExpert.style.display = '';
     var view = document.getElementById('view-review');
     if (view) view.classList.add('expert-mode');
-    if (saved && saved.open) setTimeout(show, 0);  // Task 10 uses this guard
+    // Defer auto-show one tick so the caller finishes populating reviewState.
+    if (saved && saved.open) setTimeout(show, 0);
   }
 
   function destroy() {
     if (!state) return;
     hide();
+    if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; }
     if (state.player) {
-      try { state.player.destroy(); } catch (_) {}  // no-op on mock, safe on real Vimeo SDK
+      try { state.player.destroy(); } catch (_) {}
     }
     clearMount();
     var grid = document.getElementById('review-grid');
@@ -971,24 +968,16 @@ var ExpertPlayer = (function() {
 
   function toggle() { if (!state) return; state.open ? hide() : show(); }
 
-  function extractVimeoId(url) {
-    // Matches https://vimeo.com/12345/abc OR https://player.vimeo.com/video/12345?h=abc
-    var m = (url || '').match(/vimeo\.com\/(?:video\/)?(\d+)/);
-    return m ? m[1] : null;
-  }
-
   function mountPlayer() {
     var videos = (reviewState && reviewState.talk && reviewState.talk.videos) || [];
     var video = videos.find(function(v) { return v.slug === state.videoSlug; });
     if (!video || !video.vimeo_url) return;
-    var vimeoId = extractVimeoId(video.vimeo_url);
-    if (!vimeoId) return;
 
     clearMount();
     var iframe = document.createElement('iframe');
     iframe.allow = 'autoplay; fullscreen';
     iframe.setAttribute('allowfullscreen', '');
-    iframe.src = 'https://player.vimeo.com/video/' + vimeoId;
+    iframe.src = vimeoEmbed(video.vimeo_url);
     mount.appendChild(iframe);
 
     try {
@@ -1029,9 +1018,7 @@ var ExpertPlayer = (function() {
       var rows = ukRows();
       var row = rows[state.currentIdx];
       if (row && row.uk) {
-        var target = document.querySelector(
-          '#review-grid .cell.uk[data-ms-start="' + row.uk.startMs + '"]'
-        );
+        var target = findUkCellByMs(row.uk.startMs);
         if (target) scrollRowIntoView(target);
       }
     }
@@ -1061,7 +1048,7 @@ var ExpertPlayer = (function() {
   function onTimeUpdate(data) {
     if (!state) return;
     state.lastTime = Math.round((data && data.seconds || 0) * 1000);
-    if (timeEl) timeEl.textContent = formatTime(state.lastTime);
+    if (timeEl) timeEl.textContent = fmtTime(Math.floor(state.lastTime / 1000));
     var rows = ukRows();
     var idx = binarySearchByMs(rows, state.lastTime);
     if (idx !== state.currentIdx) highlightRow(idx);
@@ -1076,12 +1063,10 @@ var ExpertPlayer = (function() {
     var rows = ukRows();
     var row = rows[idx];
     if (!row || !row.uk) return;
-    var target = document.querySelector(
-      '#review-grid .cell.uk[data-ms-start="' + row.uk.startMs + '"]'
-    );
+    var target = findUkCellByMs(row.uk.startMs);
     if (target) {
       target.classList.add('current');
-      if (state.follow && !state.followPaused) scrollRowIntoView(target);
+      if (!state.followPaused) scrollRowIntoView(target);
     }
   }
 
@@ -1092,13 +1077,8 @@ var ExpertPlayer = (function() {
     setTimeout(function() { state.isAutoScrolling = false; }, 500);
   }
 
-  function formatTime(ms) {
-    var s = Math.floor(ms / 1000);
-    var h = Math.floor(s / 3600);
-    var m = Math.floor((s % 3600) / 60);
-    var sec = s % 60;
-    function pad(n) { return n < 10 ? '0' + n : '' + n; }
-    return pad(h) + ':' + pad(m) + ':' + pad(sec);
+  function findUkCellByMs(ms) {
+    return document.querySelector('#review-grid .cell.uk[data-ms-start="' + ms + '"]');
   }
 
   function seekTo(ms) {
@@ -1146,7 +1126,7 @@ var ExpertPlayer = (function() {
     if (!state || !state.player) return;
     state.player.getPaused().then(function(paused) {
       if (paused) state.player.play(); else state.player.pause();
-    });
+    }).catch(function() {});
   }
 
   function onGlobalKeydown(e) {
@@ -2084,7 +2064,6 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   var talkId = reviewState.talkId;
   var statusEl = document.getElementById('review-status');
 
-  // Expert player hook — destroy first (no-op if not initialized).
   ExpertPlayer.destroy();
 
   if (mode === 'transcript') {
@@ -2125,7 +2104,6 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   statusEl.style.display = 'block';
   renderReviewSkeleton();
 
-  // Re-init ExpertPlayer for this video (shows the button synchronously).
   ExpertPlayer.init(talkId, videoSlug);
 
   var talk = reviewState.talk;
