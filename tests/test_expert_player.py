@@ -41,3 +41,18 @@ class TestExpertButtonVisibility:
     def test_button_visible_in_srt_mode(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
         assert page.locator("#btn-expert-player").is_visible()
+
+
+class TestCellDataMsStart:
+    def test_srt_cells_have_data_ms_start(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        counts = page.evaluate("""
+          () => {
+            var cells = document.querySelectorAll('#review-grid .cell');
+            var withAttr = 0;
+            cells.forEach(c => { if (c.dataset.msStart) withAttr++; });
+            return { total: cells.length, withAttr: withAttr };
+          }
+        """)
+        assert counts["total"] > 0
+        assert counts["withAttr"] == counts["total"]

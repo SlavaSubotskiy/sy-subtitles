@@ -1972,12 +1972,14 @@ function renderReviewSrt(grid) {
       enUsed[enKey] = true;
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
+      leftDiv.dataset.msStart = row.en.startMs;
       if (enSpan > 1) leftDiv.style.gridRow = 'span ' + enSpan;
       leftDiv.innerHTML = cellLabel(enTc).html + esc(row.en.text);
       grid.appendChild(leftDiv);
     } else if (!enKey) {
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
+      leftDiv.dataset.msStart = row.uk ? row.uk.startMs : 0;
       leftDiv.innerHTML = cellLabel('').html;
       grid.appendChild(leftDiv);
     }
@@ -1987,6 +1989,7 @@ function renderReviewSrt(grid) {
       ukUsed[ukKey] = true;
       var rightDiv = document.createElement('div');
       rightDiv.className = 'cell uk' + (reviewState.edits[rowIdx] !== undefined ? ' edited' : '') + (reviewState.marks[rowIdx] !== undefined ? ' marked' : '');
+      rightDiv.dataset.msStart = row.uk.startMs;
       if (ukSpan > 1) rightDiv.style.gridRow = 'span ' + ukSpan;
       var displayRight = reviewState.edits[rowIdx] !== undefined ? reviewState.edits[rowIdx] : row.uk.text;
       var ukLbl = cellLabel(ukTc);
@@ -2000,6 +2003,7 @@ function renderReviewSrt(grid) {
     } else if (!ukKey) {
       var rightDiv = document.createElement('div');
       rightDiv.className = 'cell uk';
+      rightDiv.dataset.msStart = row.en ? row.en.startMs : 0;
       rightDiv.innerHTML = cellLabel('').html;
       grid.appendChild(rightDiv);
     }
