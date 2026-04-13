@@ -790,16 +790,17 @@ class TestRevertAllEditsHighlightRecovery:
 # Smoke: A1 — Mobile viewport caps .expert-bar at 22vh
 # ---------------------------------------------------------------------------
 class TestMobileViewport:
-    def test_mobile_caps_expert_bar_at_22vh(self, server, page):  # noqa: F811
+    def test_mobile_defaults_expert_bar_to_22vh(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 375, "height": 812})
         _goto_review_srt(page, server)
         page.click("#btn-expert-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        max_h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).maxHeight")
-        # 22vh of 812px = 178.64px.  Allow 1px rounding tolerance.
-        assert max_h.endswith("px"), f"Expected px value, got {max_h!r}"
-        val = float(max_h[:-2])
-        assert 177 < val < 180, f"Expected ~178.64px (22vh of 812) on mobile viewport, got {max_h!r}"
+        height = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        # 22vh of 812 = 178.64px. The new :root var default applies the mobile
+        # override unless the user has dragged to a custom height.
+        assert height.endswith("px"), f"Expected px value, got {height!r}"
+        val = float(height[:-2])
+        assert 177 < val < 180, f"Expected ~178.64px (22vh of 812) on mobile viewport, got {height!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -904,3 +905,145 @@ class TestThemeToggle:
         assert dark_shadow != light_shadow, (
             f"Expected different shadow colors per theme: dark={dark_shadow!r}, light={light_shadow!r}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Resize: default height, drag to grow, persistence across reload, clamping
+# ---------------------------------------------------------------------------
+class TestResizeBar:
+    def test_desktop_default_is_25vh(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        assert h.endswith("px")
+        val = float(h[:-2])
+        # 25vh of 800 = 200px (+/- rounding)
+        assert 199 < val < 201, f"Expected ~200px default, got {h!r}"
+
+    def test_drag_handle_grows_bar(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        # Simulate a pointer drag of the handle from its current location
+        # downward by 240px — 240 / 800 * 100 = 30vh, so new height = 55vh = 440px.
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] + 240, steps=8)
+        page.mouse.up()
+        page.wait_for_timeout(50)
+        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        val = float(h[:-2])
+        assert 435 < val < 445, f"Expected ~440px after 30vh drag, got {h!r}"
+
+    def test_drag_is_clamped_to_75vh_max(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        # Drag way beyond the viewport — should clamp at 75vh = 600px.
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] + 2000, steps=10)
+        page.mouse.up()
+        page.wait_for_timeout(50)
+        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        val = float(h[:-2])
+        # 75vh of 800 = 600px
+        assert 599 < val < 601, f"Expected clamp to ~600px (75vh), got {h!r}"
+
+    def test_drag_is_clamped_to_25vh_min(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] - 2000, steps=10)
+        page.mouse.up()
+        page.wait_for_timeout(50)
+        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        val = float(h[:-2])
+        # 25vh of 800 = 200px
+        assert 199 < val < 201, f"Expected clamp to ~200px (25vh) min, got {h!r}"
+
+    def test_resize_persists_across_reload(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] + 160, steps=8)  # +20vh -> 45vh = 360px
+        page.mouse.up()
+        page.wait_for_timeout(50)
+
+        # Persisted JSON must contain barHeightVh ~45
+        raw = page.evaluate("localStorage.getItem('sy.expert.2001-01-01_Test-Talk.Test-Video')")
+        assert raw is not None
+        import json as _json
+
+        saved = _json.loads(raw)
+        assert 44 < saved["barHeightVh"] < 46, f"Expected ~45vh, got {saved['barHeightVh']}"
+
+        # Reload and verify height is restored.
+        page.reload()
+        page.wait_for_selector("#review-grid", timeout=10000)
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        val = float(h[:-2])
+        assert 355 < val < 365, f"Expected ~360px restored, got {h!r}"
+
+    def test_resize_persists_per_video(self, server, page):  # noqa: F811
+        """Each video has its own barHeightVh; switching videos does not leak."""
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        # Grow Test-Video to 55vh
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] + 240, steps=8)
+        page.mouse.up()
+        page.wait_for_timeout(50)
+
+        # Switch to Test-Video-2 — should fall back to the default (25vh = 200px).
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
+        page.wait_for_selector(".cell.uk", timeout=10000)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        val = float(h[:-2])
+        assert 199 < val < 201, f"Test-Video-2 should default to 200px, got {h!r}"
