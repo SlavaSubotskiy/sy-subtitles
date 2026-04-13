@@ -1047,3 +1047,52 @@ class TestResizeBar:
         h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
         val = float(h[:-2])
         assert 199 < val < 201, f"Test-Video-2 should default to 200px, got {h!r}"
+
+
+# ---------------------------------------------------------------------------
+# Regression: the mounted player must grow with the bar (not stay at
+# intrinsic iframe height). Catches the "#expert-player has no size,
+# iframe collapses to 150px" bug.
+# ---------------------------------------------------------------------------
+class TestPlayerFillsBar:
+    def test_mount_fills_bar_height(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        # Bar default 25vh of 800 = 200px. The mock replacement must fill
+        # that — not clamp to some intrinsic fallback.
+        dims = page.evaluate("""
+          () => {
+            var m = document.getElementById('mock-player').getBoundingClientRect();
+            var bar = document.getElementById('expert-player-bar').getBoundingClientRect();
+            return { mH: m.height, mW: m.width, barH: bar.height, barW: bar.width };
+          }
+        """)
+        # Mock should be at least ~180px tall (bar minus handle 8px, minus
+        # rounding). If #expert-player has no size, mock falls back to its
+        # 40px min-height and this test fails.
+        assert dims["mH"] > 180, f"Mock player too small: {dims!r}"
+        assert abs(dims["mW"] - dims["barW"]) < 2, f"Mock width must match bar: {dims!r}"
+
+    def test_mount_grows_when_bar_is_dragged(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        before = page.evaluate("document.getElementById('mock-player').getBoundingClientRect().height")
+        # Drag the handle down 240px → +30vh → 55vh bar = 440px.
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] + 240, steps=8)
+        page.mouse.up()
+        page.wait_for_timeout(50)
+        after = page.evaluate("document.getElementById('mock-player').getBoundingClientRect().height")
+        # Mock should grow with the bar. Expected roughly +240px; allow slack.
+        assert after - before > 200, f"Player did not grow with bar drag: before={before}, after={after}"

@@ -5,13 +5,18 @@ window.Vimeo = {
     constructor(element) {
       this._currentTime = 0;
       this._callbacks = {};
-      // Replace iframe with a visible div
+      // Replace the iframe with a visible div that honors the real CSS
+      // layout around it (width/height inherited via 100% from the mount).
+      // A tiny min-height keeps the mock reachable even when the mount
+      // point has collapsed due to a layout bug — but tests that assert
+      // on dimensions can still detect the collapse.
       var div = document.createElement('div');
       div.id = 'mock-player';
-      div.style.cssText = 'width:100%;height:300px;background:#222;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;position:relative;';
+      div.style.cssText = 'width:100%;height:100%;min-height:40px;background:#222;display:flex;align-items:center;justify-content:center;color:#666;font-size:14px;';
       div.textContent = 'Mock Vimeo Player';
       if (element && element.parentNode) {
-        element.parentNode.style.cssText = 'position:relative;height:300px;';
+        // Do NOT override the parent's inline style — let CSS decide the
+        // box so regressions in layout surface through the mock.
         element.parentNode.replaceChild(div, element);
       } else {
         document.body.appendChild(div);

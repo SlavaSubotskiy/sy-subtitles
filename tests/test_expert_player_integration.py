@@ -218,3 +218,20 @@ class TestRealVimeoIntegration:
         """)
         assert isinstance(result, int | float), f"Expected numeric time, got {result!r}"
         assert abs(result - 5) < 1.0, f"Expected ~5s after setCurrentTime(5), got {result}"
+
+    def test_real_vimeo_iframe_fills_bar(self, server, real_vimeo_page):  # noqa: F811
+        """Real Vimeo iframe must fill the sticky bar, not collapse to 150px."""
+        real_vimeo_page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt_real(real_vimeo_page, server)
+        real_vimeo_page.click("#btn-expert-player")
+        real_vimeo_page.wait_for_selector("#expert-player iframe", state="attached", timeout=15000)
+        dims = real_vimeo_page.evaluate(
+            """() => {
+              var ifr = document.querySelector('#expert-player iframe').getBoundingClientRect();
+              var bar = document.getElementById('expert-player-bar').getBoundingClientRect();
+              return { ifrH: ifr.height, ifrW: ifr.width, barH: bar.height, barW: bar.width };
+            }"""
+        )
+        # Default 25vh of 800 = 200px. Minus 8px handle → ~192px content.
+        assert dims["ifrH"] > 180, f"Real iframe collapsed (layout bug): {dims!r}"
+        assert abs(dims["ifrW"] - dims["barW"]) < 2, f"Iframe width must match bar: {dims!r}"
