@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Keep third-party GitHub Actions up to date via weekly PRs.
+  # SHA pins in workflows are authoritative; Dependabot bumps the commented
+  # tag AND the SHA together so we never silently drift off a pinned action.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Kyiv
+    groups:
+      actions-minor-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: chore(actions)
+
+  # Python deps. Grouped by severity so the PR volume stays manageable.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Kyiv
+    groups:
+      python-minor-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+      - python
+    commit-message:
+      prefix: chore(pip)

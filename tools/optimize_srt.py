@@ -1163,6 +1163,15 @@ def optimize(srt_path, json_path, output_path, report_path=None, config=None, uk
     blocks = fix_structural(blocks, config, report)
     blocks = optimize_readability(blocks, whisper_segments, config, report)
     blocks = apply_chaining(blocks, config, report)
+
+    # Idempotency guard: apply_chaining extends block ends to close small
+    # gaps, which can push a block's CPS across the sparse threshold. Run
+    # merge_short_blocks one more time so the output is a fixed point of
+    # optimize() — re-running on its own output yields the same blocks.
+    blocks, late_merged = merge_short_blocks(blocks, config)
+    if late_merged:
+        report.append(f"  Post-chain short-block merge (idempotency): {late_merged}")
+
     final_validation(original_blocks, blocks, config, report)
 
     write_srt(blocks, output_path)

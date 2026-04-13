@@ -70,18 +70,16 @@ KNOWN_BROKEN_VALIDATION: dict[str, str] = {
 }
 
 KNOWN_NON_IDEMPOTENT: dict[str, str] = {
-    # Talks where optimize_srt drifts on the second pass. A subset of
-    # KNOWN_BROKEN_VALIDATION may also be here — list them explicitly so that
-    # fixing validation on one of them without fixing idempotency still fails loudly.
-    "1979-02-25_Puja-In-Pune-Marathi/Mahashivaratri-Puja": "text preservation drift",
+    # Talks where optimize_srt is NOT idempotent due to shipped text drift —
+    # the first pass tries to fix text that can't round-trip, and the second
+    # pass drifts differently. These overlap with KNOWN_BROKEN_VALIDATION
+    # entries where the drift is in text preservation, not duration (the
+    # duration-only talks now pass because the test uses skip_duration_check).
     "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ": "text preservation drift",
-    "1980-03-23_Birthday-Puja/Birthday-Puja": "duration > 21s",
+    "1980-03-23_Birthday-Puja/Birthday-Puja": "text preservation drift",
     "1981-03-21_Birthday-Puja-1981-Sydney/Birthday-Puja-Talk": "text preservation drift",
     "1982-07-11_From-Heart-To-Sahastrar-Derby/From-Heart-to-Sahasrara": "text preservation drift",
     "1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-English-Talk": "text preservation drift",
-    "1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet": "duration > 21s",
-    "1992-07-19_Guru-Puja/Guru-Puja": "optimize not idempotent",
-    "1992-07-19_Guru-Puja/Guru-Puja-Talk-Gravity": "optimize not idempotent",
 }
 
 
@@ -137,7 +135,10 @@ def test_optimize_idempotent_on_shipped(
     second = tmp_path / "second.srt"
 
     optimize(str(srt_path), None, str(first))
-    passed, report = validate(str(first), str(transcript_path))
+    # Mirror the real pipeline's validate flags — duration splits are
+    # skipped in the shipped flow, so the idempotency test shouldn't be
+    # stricter than production.
+    passed, report = validate(str(first), str(transcript_path), skip_duration_check=True)
     assert passed, f"{talk_id}: first-pass optimize broke validation:\n" + "\n".join(report[-40:])
 
     optimize(str(first), None, str(second))
