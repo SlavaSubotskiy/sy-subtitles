@@ -165,25 +165,25 @@ class TestRealVimeoIntegration:
     def test_real_vimeo_iframe_mounts_on_show(self, server, real_vimeo_page):  # noqa: F811
         """Clicking Show video must create a real iframe pointing at player.vimeo.com."""
         _goto_review_srt_real(real_vimeo_page, server)
-        real_vimeo_page.click("#btn-expert-player")
+        real_vimeo_page.click("#btn-sync-player")
         # Wait for the real iframe to be appended (no #mock-player in real mode).
-        real_vimeo_page.wait_for_selector("#expert-player iframe", state="attached", timeout=15000)
-        src = real_vimeo_page.evaluate("document.querySelector('#expert-player iframe').src")
+        real_vimeo_page.wait_for_selector("#sync-player-mount iframe", state="attached", timeout=15000)
+        src = real_vimeo_page.evaluate("document.querySelector('#sync-player-mount iframe').src")
         assert "player.vimeo.com/video/" in src, f"Expected player.vimeo.com URL, got {src!r}"
         assert "916194756" in src, f"Expected video ID in iframe src, got {src!r}"
 
     def test_real_vimeo_player_becomes_ready(self, server, real_vimeo_page):  # noqa: F811
         """Vimeo.Player.ready() must resolve on a real embed (SDK handshake)."""
         _goto_review_srt_real(real_vimeo_page, server)
-        real_vimeo_page.click("#btn-expert-player")
-        real_vimeo_page.wait_for_selector("#expert-player iframe", state="attached", timeout=15000)
+        real_vimeo_page.click("#btn-sync-player")
+        real_vimeo_page.wait_for_selector("#sync-player-mount iframe", state="attached", timeout=15000)
         # Create a second Vimeo.Player handle against the same iframe and await ready().
         # The production code's own player instance is separate; both work against the
         # same iframe and the Vimeo SDK handles the multiplexing.
         # Wrap the async promise in a JS-level timeout to avoid hanging indefinitely.
         ready = real_vimeo_page.evaluate("""
           async () => {
-            var iframe = document.querySelector('#expert-player iframe');
+            var iframe = document.querySelector('#sync-player-mount iframe');
             if (!iframe) return 'no-iframe';
             var player = new Vimeo.Player(iframe);
             var timeout = new Promise(function(_, rej) {
@@ -202,11 +202,11 @@ class TestRealVimeoIntegration:
     def test_real_vimeo_setCurrentTime_moves_playhead(self, server, real_vimeo_page):  # noqa: F811
         """setCurrentTime on a ready real player must move the playhead."""
         _goto_review_srt_real(real_vimeo_page, server)
-        real_vimeo_page.click("#btn-expert-player")
-        real_vimeo_page.wait_for_selector("#expert-player iframe", state="attached", timeout=15000)
+        real_vimeo_page.click("#btn-sync-player")
+        real_vimeo_page.wait_for_selector("#sync-player-mount iframe", state="attached", timeout=15000)
         result = real_vimeo_page.evaluate("""
           async () => {
-            var iframe = document.querySelector('#expert-player iframe');
+            var iframe = document.querySelector('#sync-player-mount iframe');
             var player = new Vimeo.Player(iframe);
             var timeout = new Promise(function(_, rej) {
               setTimeout(function() { rej(new Error('timeout')); }, 28000);
@@ -223,12 +223,12 @@ class TestRealVimeoIntegration:
         """Real Vimeo iframe must fill the sticky bar, not collapse to 150px."""
         real_vimeo_page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt_real(real_vimeo_page, server)
-        real_vimeo_page.click("#btn-expert-player")
-        real_vimeo_page.wait_for_selector("#expert-player iframe", state="attached", timeout=15000)
+        real_vimeo_page.click("#btn-sync-player")
+        real_vimeo_page.wait_for_selector("#sync-player-mount iframe", state="attached", timeout=15000)
         dims = real_vimeo_page.evaluate(
             """() => {
-              var ifr = document.querySelector('#expert-player iframe').getBoundingClientRect();
-              var bar = document.getElementById('expert-player-bar').getBoundingClientRect();
+              var ifr = document.querySelector('#sync-player-mount iframe').getBoundingClientRect();
+              var bar = document.getElementById('sync-player-bar').getBoundingClientRect();
               return { ifrH: ifr.height, ifrW: ifr.width, barH: bar.height, barW: bar.width };
             }"""
         )

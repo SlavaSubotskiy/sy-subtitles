@@ -269,54 +269,54 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
   .controls button { min-height: 44px; min-width: 44px; }
 }
 
-/* --- Expert player (sticky, view-review only) --- */
+/* --- Sync player (sticky, view-review only) --- */
 .chip {
   background: var(--bg4); color: var(--fg);
   border: 1px solid var(--border3); border-radius: 6px;
   padding: 4px 10px; font-size: 12px; cursor: pointer;
 }
 .chip:hover { border-color: var(--fg4); }
-:root { --expert-h: 25vh; }
-@media (max-width: 768px) { :root { --expert-h: 22vh; } }
-.expert-bar {
+:root { --sync-player-h: 25vh; }
+@media (max-width: 768px) { :root { --sync-player-h: 22vh; } }
+.sync-player-bar {
   position: sticky; top: 0; z-index: 20;
   background: var(--bg2); border-bottom: 1px solid var(--border);
-  height: var(--expert-h);
+  height: var(--sync-player-h);
   min-height: 120px;
   display: flex; flex-direction: column;
 }
-.expert-video-wrap {
+.sync-player-video {
   flex: 1 1 auto;
   background: #000;
   position: relative;
   min-height: 0;
   overflow: hidden;
 }
-#expert-player { width: 100%; height: 100%; display: block; }
-.expert-video-wrap iframe { width: 100%; height: 100%; border: 0; display: block; }
-.expert-controls {
+#sync-player-mount { width: 100%; height: 100%; display: block; }
+.sync-player-video iframe { width: 100%; height: 100%; border: 0; display: block; }
+.sync-player-controls {
   position: absolute; top: 6px; right: 8px;
   display: flex; gap: 6px; align-items: center;
   font-family: monospace; font-size: 12px; color: var(--fg5);
   z-index: 2;
 }
-.expert-resize {
+.sync-player-resize {
   flex: 0 0 auto;
   height: 8px; width: 100%;
   background: var(--bg3);
   border-top: 1px solid var(--border);
   touch-action: none;
 }
-.expert-resize:hover { background: var(--border3); }
-.expert-resize.dragging { background: var(--border3); cursor: ns-resize; }
+.sync-player-resize:hover { background: var(--border3); }
+.sync-player-resize.dragging { background: var(--border3); cursor: ns-resize; }
 /* Lock cursor and suppress selection only while the user is actively
    dragging — hover alone doesn't change the cursor, so the mouse
    doesn't feel "stuck" when passing over the handle. */
-body.expert-resizing, body.expert-resizing * {
+body.sync-player-resizing, body.sync-player-resizing * {
   cursor: ns-resize !important;
   user-select: none !important;
 }
-.expert-bar[hidden] { display: none; }
+.sync-player-bar[hidden] { display: none; }
 .cell.uk.current,
 .cell.en.current { box-shadow: inset 3px 0 0 var(--link); }
 #review-grid .cell.en[data-ms-start],
@@ -400,8 +400,8 @@ body.expert-resizing, body.expert-resizing * {
       </select>
     </h1>
     <div class="header-actions">
-      <button id="btn-expert-player" class="chip" style="display:none"
-              onclick="ExpertPlayer.toggle()"
+      <button id="btn-sync-player" class="chip" style="display:none"
+              onclick="SyncPlayer.toggle()"
               data-i18n-title="title.show_video"
               data-i18n="btn.show_video">&#x25B6; Show video</button>
       <button onclick="SPA.revertAllEdits()" id="btn-revert-all" style="display:none" data-i18n="btn.revert_all">Revert all</button>
@@ -409,19 +409,19 @@ body.expert-resizing, body.expert-resizing * {
       <button class="primary" onclick="SPA.openEditor()" data-i18n="btn.open_editor">Open in GitHub Editor</button>
     </div>
   </div>
-  <div id="expert-player-bar" class="expert-bar" hidden>
-    <div class="expert-video-wrap">
-      <div id="expert-player"></div>
-      <div class="expert-controls">
-        <span id="expert-time">00:00:00</span>
+  <div id="sync-player-bar" class="sync-player-bar" hidden>
+    <div class="sync-player-video">
+      <div id="sync-player-mount"></div>
+      <div class="sync-player-controls">
+        <span id="sync-player-time">00:00:00</span>
         <button id="btn-follow" class="chip"
-                onclick="ExpertPlayer.toggleFollow()"
+                onclick="SyncPlayer.toggleFollow()"
                 data-i18n-title="title.follow"
                 data-i18n="btn.follow">&#x21C5; Follow</button>
-        <button class="chip" onclick="ExpertPlayer.hide()" data-i18n-aria-label="title.close_video" aria-label="Close video">&#x2715;</button>
+        <button class="chip" onclick="SyncPlayer.hide()" data-i18n-aria-label="title.close_video" aria-label="Close video">&#x2715;</button>
       </div>
     </div>
-    <div id="expert-resize" class="expert-resize" role="separator" aria-orientation="horizontal" data-i18n-aria-label="title.resize_bar" aria-label="Resize video"></div>
+    <div id="sync-player-resize" class="sync-player-resize" role="separator" aria-orientation="horizontal" data-i18n-aria-label="title.resize_bar" aria-label="Resize video"></div>
   </div>
   <div id="review-status" class="status" data-i18n="review.loading">Loading transcripts...</div>
   <div class="grid" id="review-grid">
@@ -887,9 +887,9 @@ function translatePage() {
   document.documentElement.lang = currentLang;
 }
 
-var ExpertPlayer = (function() {
+var SyncPlayer = (function() {
   var state = null;
-  var btnExpert = null;
+  var btnSync = null;
   var btnFollow = null;
   var bar = null;
   var mount = null;
@@ -928,11 +928,11 @@ var ExpertPlayer = (function() {
   }
 
   function applyBarHeight(vh) {
-    document.documentElement.style.setProperty('--expert-h', vh + 'vh');
+    document.documentElement.style.setProperty('--sync-player-h', vh + 'vh');
   }
 
   function storageKey(talkId, videoSlug) {
-    return 'sy.expert.' + talkId + '.' + videoSlug;
+    return 'sy.sync_player.' + talkId + '.' + videoSlug;
   }
 
   function loadPersisted(talkId, videoSlug) {
@@ -957,12 +957,12 @@ var ExpertPlayer = (function() {
   }
 
   function cacheDom() {
-    btnExpert    = document.getElementById('btn-expert-player');
+    btnSync    = document.getElementById('btn-sync-player');
     btnFollow    = document.getElementById('btn-follow');
-    bar          = document.getElementById('expert-player-bar');
-    mount        = document.getElementById('expert-player');
-    timeEl       = document.getElementById('expert-time');
-    resizeHandle = document.getElementById('expert-resize');
+    bar          = document.getElementById('sync-player-bar');
+    mount        = document.getElementById('sync-player-mount');
+    timeEl       = document.getElementById('sync-player-time');
+    resizeHandle = document.getElementById('sync-player-resize');
   }
 
   function clearMount() {
@@ -993,7 +993,7 @@ var ExpertPlayer = (function() {
     if (resizeHandle) resizeHandle.addEventListener('mousedown', onResizeStart);
     document.addEventListener('keydown', onGlobalKeydown);
     window.addEventListener('scroll', onWindowScroll, { passive: true });
-    if (btnExpert) btnExpert.style.display = '';
+    if (btnSync) btnSync.style.display = '';
     // Defer one tick so the caller finishes populating reviewState before show() reads it.
     if (saved && saved.open === true) setTimeout(show, 0);
   }
@@ -1020,9 +1020,9 @@ var ExpertPlayer = (function() {
     window.removeEventListener('scroll', onWindowScroll);
     // Reset the CSS var so the next talk/viewport falls back to the
     // media-query default instead of inheriting this talk's custom height.
-    document.documentElement.style.removeProperty('--expert-h');
+    document.documentElement.style.removeProperty('--sync-player-h');
     state = null;
-    if (btnExpert) btnExpert.style.display = 'none';
+    if (btnSync) btnSync.style.display = 'none';
   }
 
   function onResizeStart(e) {
@@ -1036,7 +1036,7 @@ var ExpertPlayer = (function() {
       ? state.barHeightVh
       : (bar.getBoundingClientRect().height / vpH) * 100;
     if (resizeHandle) resizeHandle.classList.add('dragging');
-    document.body.classList.add('expert-resizing');
+    document.body.classList.add('sync-player-resizing');
     resizePointerMove = function(ev) {
       if (!state) return;
       var dyVh = ((ev.clientY - startY) / vpH) * 100;
@@ -1050,7 +1050,7 @@ var ExpertPlayer = (function() {
       resizePointerMove = null;
       resizePointerUp = null;
       if (resizeHandle) resizeHandle.classList.remove('dragging');
-      document.body.classList.remove('expert-resizing');
+      document.body.classList.remove('sync-player-resizing');
       persistNow();
       // Resize is a deliberate action — re-engage Follow so the grid
       // snaps back to the current row in the new viewport geometry.
@@ -1098,12 +1098,12 @@ var ExpertPlayer = (function() {
       });
       if (state.lastTime > 0) {
         p.setCurrentTime(state.lastTime / 1000).catch(function(e) {
-          console.warn('[ExpertPlayer] resume setCurrentTime failed:', e);
+          console.warn('[SyncPlayer] resume setCurrentTime failed:', e);
         });
       }
       return true;
     } catch (e) {
-      console.warn('[ExpertPlayer] Vimeo init error:', e);
+      console.warn('[SyncPlayer] Vimeo init error:', e);
       if (p) { try { p.destroy(); } catch (_) {} }
       state.player = null;
       clearMount();
@@ -1228,7 +1228,7 @@ var ExpertPlayer = (function() {
     // Swallow scroll events caused by smooth scrollTo so onWindowScroll
     // doesn't misread auto-scroll as user intent and pause Follow.
     state.isAutoScrolling = true;
-    // Account for the sticky expert-bar: native scrollIntoView({block:'center'})
+    // Account for the sticky sync-player-bar: native scrollIntoView({block:'center'})
     // centers relative to the whole viewport and leaves the row behind the
     // bar. Compute an ABSOLUTE target scroll position (idempotent across
     // mid-animation re-entries) that puts the row's center in the middle
@@ -1262,7 +1262,7 @@ var ExpertPlayer = (function() {
       if (!state || state.player !== p) return;
       state.followPaused = false;
       if (btnFollow) btnFollow.classList.remove('paused');
-    }).catch(function(e) { console.warn('[ExpertPlayer] seekTo failed:', ms, e); });
+    }).catch(function(e) { console.warn('[SyncPlayer] seekTo failed:', ms, e); });
   }
 
   function onGridClick(e) {
@@ -1373,7 +1373,7 @@ window.addEventListener('load', route);
 
 window.addEventListener('hashchange', function() {
   if (!/^#\/review\//.test(location.hash)) {
-    ExpertPlayer.destroy();
+    SyncPlayer.destroy();
   }
 });
 
@@ -2166,7 +2166,7 @@ function updateColHeaders() {
 
 function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
-  ExpertPlayer.destroy();
+  SyncPlayer.destroy();
   // Reset all state for new talk
   reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightParsed: null, mode: 'transcript', videoSlug: '', alignedRows: null, srtLeftLang: 'en', srtRightLang: 'uk' };
 
@@ -2247,7 +2247,7 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   var talkId = reviewState.talkId;
   var statusEl = document.getElementById('review-status');
 
-  ExpertPlayer.destroy();
+  SyncPlayer.destroy();
 
   if (mode === 'transcript') {
     reviewState.mode = 'transcript';
@@ -2287,7 +2287,7 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   statusEl.style.display = 'block';
   renderReviewSkeleton();
 
-  ExpertPlayer.init(talkId, videoSlug);
+  SyncPlayer.init(talkId, videoSlug);
 
   var talk = reviewState.talk;
   var enSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/en']) || '';
@@ -2390,9 +2390,9 @@ function renderReview() {
     renderReviewTranscript(grid);
   }
   updateReviewCounter();
-  // Grid DOM was rebuilt — any ExpertPlayer .current marker is now stale;
+  // Grid DOM was rebuilt — any SyncPlayer .current marker is now stale;
   // force the next timeupdate to re-apply it.
-  ExpertPlayer.invalidateHighlight();
+  SyncPlayer.invalidateHighlight();
 }
 
 function renderReviewSkeleton() {

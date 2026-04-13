@@ -1,8 +1,8 @@
-"""E2E tests for Expert Mode (edit subtitles while watching video).
+"""E2E tests for the synced video player in the review view.
 
 Re-uses the server/mock_player_js/browser/page fixtures from
 test_preview_spa via direct import. Runs standalone with
-``pytest tests/test_expert_player.py``.
+``pytest tests/test_sync_player.py``.
 """
 
 from __future__ import annotations
@@ -31,24 +31,24 @@ def _goto_review_srt(page, server):  # noqa: F811
     page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
     page.wait_for_selector(".cell.uk", timeout=10000)
     # Under heavy parallel load, the browser can momentarily lag before
-    # ExpertPlayer.init unhides the button even though switchReviewMode
+    # SyncPlayer.init unhides the button even though switchReviewMode
     # has returned. Poll until it's visible so subsequent clicks never
     # race against a stale display:none.
     page.wait_for_function(
-        "() => { var b = document.getElementById('btn-expert-player'); return b && b.style.display !== 'none'; }",
+        "() => { var b = document.getElementById('btn-sync-player'); return b && b.style.display !== 'none'; }",
         timeout=10000,
     )
 
 
-class TestExpertButtonVisibility:
+class TestSyncPlayerButtonVisibility:
     def test_button_hidden_in_transcript_mode(self, server, page):  # noqa: F811
         goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
         page.wait_for_selector("#review-grid", timeout=10000)
-        assert not page.locator("#btn-expert-player").is_visible()
+        assert not page.locator("#btn-sync-player").is_visible()
 
     def test_button_visible_in_srt_mode(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        assert page.locator("#btn-expert-player").is_visible()
+        assert page.locator("#btn-sync-player").is_visible()
 
 
 class TestCellDataMsStart:
@@ -69,25 +69,25 @@ class TestCellDataMsStart:
 class TestButtonVisibilityTransitions:
     def test_button_hides_when_switching_from_srt_to_transcript(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        assert page.locator("#btn-expert-player").is_visible()
+        assert page.locator("#btn-sync-player").is_visible()
         page.evaluate("SPA.switchReviewMode('transcript')")
         page.wait_for_timeout(200)
-        assert not page.locator("#btn-expert-player").is_visible()
+        assert not page.locator("#btn-sync-player").is_visible()
 
 
 class TestPlayerMount:
     def test_clicking_show_mounts_vimeo_iframe(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        assert page.locator("#expert-player-bar").is_visible()
+        assert page.locator("#sync-player-bar").is_visible()
 
     def test_clicking_toggle_twice_does_not_duplicate(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        page.click("#btn-expert-player")  # hide
-        page.click("#btn-expert-player")  # show again
+        page.click("#btn-sync-player")  # hide
+        page.click("#btn-sync-player")  # show again
         assert page.locator("#mock-player").count() == 1
 
 
@@ -102,7 +102,7 @@ class TestBinarySearch:
               { uk: { startMs: 9000 } },
               { uk: { startMs: 13000 } },
             ];
-            var fn = ExpertPlayer._binarySearchByMs;
+            var fn = SyncPlayer._binarySearchByMs;
             return {
               before:  fn(rows, 0),
               atFirst: fn(rows, 1000),
@@ -126,7 +126,7 @@ class TestBinarySearch:
 class TestHighlight:
     def test_timeupdate_highlights_current_row(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         page.evaluate("window._vimeoPlayer._setTime(6)")
@@ -143,7 +143,7 @@ class TestHighlight:
         """EN column gets its own .current based on EN start times,
         independent of the UK column."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # SAMPLE_EN_SRT row 2 starts at 4500 ms, row 3 at 8500 ms.
@@ -161,7 +161,7 @@ class TestHighlight:
     def test_en_and_uk_highlight_together(self, server, page):  # noqa: F811
         """Both columns should have exactly one .current each at any playback time."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         page.evaluate("window._vimeoPlayer._setTime(6)")
@@ -179,7 +179,7 @@ class TestHighlight:
 class TestClickToSeek:
     def test_click_en_cell_seeks_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         page.evaluate("""
@@ -193,7 +193,7 @@ class TestClickToSeek:
 
     def test_click_cell_label_seeks_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         page.evaluate("""
@@ -206,7 +206,7 @@ class TestClickToSeek:
 
     def test_click_uk_text_does_not_seek(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         before = page.evaluate("window._vimeoPlayer._currentTime")
@@ -220,7 +220,7 @@ class TestClickToSeek:
 class TestFollowSmartPause:
     def test_focus_cell_pauses_follow_and_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer.play()")
 
@@ -236,7 +236,7 @@ class TestFollowSmartPause:
 
     def test_toggle_follow_button_resumes(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("""
           () => document.querySelector('#review-grid .cell-text').focus()
@@ -250,7 +250,7 @@ class TestFollowSmartPause:
 class TestEnterAndShortcuts:
     def test_enter_in_cell_blurs_and_plays(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("""
           () => document.querySelector('#review-grid .cell-text').focus()
@@ -266,7 +266,7 @@ class TestEnterAndShortcuts:
 
     def test_space_toggles_play_pause(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer.play()")
         page.wait_for_timeout(50)
@@ -279,16 +279,16 @@ class TestEnterAndShortcuts:
 
     def test_escape_closes_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("document.body.focus()")
         page.keyboard.press("Escape")
         page.wait_for_timeout(50)
-        assert page.locator("#expert-player-bar").get_attribute("hidden") is not None
+        assert page.locator("#sync-player-bar").get_attribute("hidden") is not None
 
     def test_arrow_left_seeks_minus_five(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer._setTime(20)")
         page.wait_for_timeout(50)
@@ -301,7 +301,7 @@ class TestEnterAndShortcuts:
 class TestPersistence:
     def test_open_state_survives_reload(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer._setTime(7)")
         page.wait_for_timeout(1100)  # allow throttled persist (1s)
@@ -313,7 +313,7 @@ class TestPersistence:
         page.wait_for_selector("#review-grid", timeout=10000)
         page.wait_for_selector(".cell.uk", timeout=10000)
 
-        page.wait_for_selector("#expert-player-bar:not([hidden])", timeout=3000)
+        page.wait_for_selector("#sync-player-bar:not([hidden])", timeout=3000)
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         current = page.evaluate("window._vimeoPlayer._currentTime")
         assert abs(current - 7) < 0.1
@@ -322,18 +322,18 @@ class TestPersistence:
 class TestCleanup:
     def test_switching_videos_does_not_duplicate_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
         page.wait_for_timeout(300)
 
         assert page.locator("#mock-player").count() <= 1
-        assert page.locator("#btn-expert-player").is_visible()
+        assert page.locator("#btn-sync-player").is_visible()
 
     def test_leaving_review_destroys_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         page.evaluate("location.hash = '#/'")
@@ -354,7 +354,7 @@ class TestFinalReviewFixes:
               { uk: { startMs: 5000 } },
             ];
             var filtered = rows.filter(r => r && r.uk);
-            var fn = ExpertPlayer._binarySearchByMs;
+            var fn = SyncPlayer._binarySearchByMs;
             return {
               filteredLen: filtered.length,
               atFirst: fn(filtered, 1000),
@@ -366,22 +366,22 @@ class TestFinalReviewFixes:
 
     def test_hide_pauses_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer.play()")
         page.wait_for_timeout(50)
         assert page.evaluate("window._vimeoPlayer._paused") is False
 
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_timeout(50)
         assert page.evaluate("window._vimeoPlayer._paused") is True
 
     def test_focus_after_hide_does_not_touch_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer.play()")
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_timeout(50)
 
         page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
@@ -392,7 +392,7 @@ class TestFinalReviewFixes:
 class TestSmartPauseGuards:
     def test_manual_window_scroll_pauses_follow(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Auto-scroll triggered by _setTime should NOT pause Follow.
@@ -407,7 +407,7 @@ class TestSmartPauseGuards:
 
     def test_space_in_focused_cell_does_not_pause_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer.play()")
         # Focus pauses the player via smart-pause; resume so we can verify Space doesn't re-pause.
@@ -425,7 +425,7 @@ class TestSmartPauseGuards:
 
     def test_arrow_left_in_focused_cell_does_not_seek(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer._setTime(20)")
         page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
@@ -441,10 +441,10 @@ class TestFailOpen:
         _goto_review_srt(page, server)
         # Simulate SDK missing (adblock, network failure, CSP) right before user click.
         page.evaluate("delete window.Vimeo")
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_timeout(50)
         # Bar stays hidden.
-        assert page.locator("#expert-player-bar").get_attribute("hidden") is not None
+        assert page.locator("#sync-player-bar").get_attribute("hidden") is not None
         # Toast is visible with the localized message.
         toast = page.locator("#toast")
         assert toast.evaluate("el => el.classList.contains('show')")
@@ -459,7 +459,7 @@ class TestResumeFollow:
     def test_toggle_follow_resume_calls_scroll_into_view(self, server, page):  # noqa: F811
         """Resuming Follow (un-pausing) must call scrollIntoView on the current row."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Drive to a known row so currentIdx is set.
@@ -490,18 +490,18 @@ class TestVideoSwitchHighlight:
     def test_video_switch_creates_new_player_instance(self, server, page):  # noqa: F811
         """Switching to a different video slug must destroy and re-create the player."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Remember the old player instance.
         page.evaluate("window._oldPlayer = window._vimeoPlayer")
 
-        # Switch to Test-Video-2 (destroys ExpertPlayer, inits with new slug).
+        # Switch to Test-Video-2 (destroys SyncPlayer, inits with new slug).
         page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
         page.wait_for_selector(".cell.uk", timeout=10000)
 
         # Open the player on the new video.
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # A new player instance must have been created.
@@ -511,13 +511,13 @@ class TestVideoSwitchHighlight:
     def test_highlight_works_after_video_switch(self, server, page):  # noqa: F811
         """After switching video, timeupdate on the new player must highlight a row."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Switch to Test-Video-2.
         page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
         page.wait_for_selector(".cell.uk", timeout=10000)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Drive the new player's timeupdate.
@@ -547,7 +547,7 @@ class TestAriaLabelI18n:
         page.wait_for_timeout(50)
 
         label = page.evaluate(
-            "document.querySelector('.expert-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
+            "document.querySelector('.sync-player-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
         )
         assert label == "Закрити плеєр", f"Expected Ukrainian label, got: {label!r}"
 
@@ -564,7 +564,7 @@ class TestAriaLabelI18n:
         page.wait_for_timeout(50)
 
         label = page.evaluate(
-            "document.querySelector('.expert-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
+            "document.querySelector('.sync-player-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
         )
         assert label == "Close player", f"Expected English label, got: {label!r}"
 
@@ -574,12 +574,12 @@ class TestAriaLabelI18n:
 
         # Record initial state, then toggle and verify it changes.
         before = page.evaluate(
-            "document.querySelector('.expert-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
+            "document.querySelector('.sync-player-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
         )
         page.evaluate("SPA.toggleLang()")
         page.wait_for_timeout(50)
         after = page.evaluate(
-            "document.querySelector('.expert-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
+            "document.querySelector('.sync-player-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
         )
         assert before != after, "aria-label must change when language is toggled"
         assert after in ("Закрити плеєр", "Close player")
@@ -592,7 +592,7 @@ class TestReopenPreservesPlayhead:
     def test_reopen_after_hide_preserves_current_time(self, server, page):  # noqa: F811
         """Hiding then re-showing the bar must reuse the existing player without reset."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Seek to 8 seconds.
@@ -600,13 +600,13 @@ class TestReopenPreservesPlayhead:
         page.wait_for_timeout(50)
 
         # Hide (toggle off).
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         # Wait until bar gets the hidden attribute (element is in DOM but display:none via attr).
-        page.wait_for_function("() => document.getElementById('expert-player-bar').hasAttribute('hidden')")
+        page.wait_for_function("() => document.getElementById('sync-player-bar').hasAttribute('hidden')")
 
         # Show again (toggle on).
-        page.click("#btn-expert-player")
-        page.wait_for_selector("#expert-player-bar:not([hidden])", timeout=2000)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#sync-player-bar:not([hidden])", timeout=2000)
 
         # The mock player was not remounted — _currentTime must still be 8.
         current = page.evaluate("window._vimeoPlayer._currentTime")
@@ -620,20 +620,20 @@ class TestPersistClosed:
     def test_closed_state_survives_reload(self, server, page):  # noqa: F811
         """After closing the player and reloading, the bar must remain hidden."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Close the player — persistNow() is called synchronously inside hide().
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         # Wait until bar gets the hidden attribute.
-        page.wait_for_function("() => document.getElementById('expert-player-bar').hasAttribute('hidden')")
+        page.wait_for_function("() => document.getElementById('sync-player-bar').hasAttribute('hidden')")
 
         # Wait for localStorage to be written (hide() calls persistNow() directly).
-        page.wait_for_function("() => localStorage.getItem('sy.expert.2001-01-01_Test-Talk.Test-Video') !== null")
+        page.wait_for_function("() => localStorage.getItem('sy.sync_player.2001-01-01_Test-Talk.Test-Video') !== null")
 
         # Verify the persisted value has open: false.
         saved_open = page.evaluate("""
-            JSON.parse(localStorage.getItem('sy.expert.2001-01-01_Test-Talk.Test-Video')).open
+            JSON.parse(localStorage.getItem('sy.sync_player.2001-01-01_Test-Talk.Test-Video')).open
         """)
         assert saved_open is False, f"Expected open:false in localStorage, got {saved_open!r}"
 
@@ -642,7 +642,7 @@ class TestPersistClosed:
         page.wait_for_selector(".cell.uk", timeout=10000)
 
         # Bar must remain hidden after reload.
-        assert page.locator("#expert-player-bar").get_attribute("hidden") is not None, (
+        assert page.locator("#sync-player-bar").get_attribute("hidden") is not None, (
             "Player bar must stay hidden when saved state has open:false"
         )
         # Mock player must NOT have been mounted.
@@ -656,7 +656,7 @@ class TestSpaceOnSelectNoToggle:
     def test_space_on_review_mode_select_does_not_pause(self, server, page):  # noqa: F811
         """Space key while a <select> is focused must not reach the global shortcut handler."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Start playing.
@@ -681,7 +681,7 @@ class TestPlaceholderCellNoSeek:
     def test_cell_without_ms_start_does_not_seek(self, server, page):  # noqa: F811
         """Clicking a synthetic .cell.en without data-ms-start must not trigger seekTo."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Check whether the real grid already has placeholder cells.
@@ -734,7 +734,7 @@ class TestEscapeFocusExemption:
     def test_escape_with_cell_focused_does_not_close(self, server, page):  # noqa: F811
         """Pressing Escape while a .cell-text is focused must NOT hide the player."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Focus a cell-text (this also pauses follow, but that's expected).
@@ -745,21 +745,21 @@ class TestEscapeFocusExemption:
         page.wait_for_timeout(50)
 
         # Bar must still be visible (Escape yields to [contenteditable] focus).
-        assert page.locator("#expert-player-bar").get_attribute("hidden") is None, (
+        assert page.locator("#sync-player-bar").get_attribute("hidden") is None, (
             "Escape while .cell-text is focused must not close the player"
         )
 
     def test_escape_without_cell_focused_closes_player(self, server, page):  # noqa: F811
         """Pressing Escape with focus on body must hide the player."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         page.evaluate("document.body.focus()")
         page.keyboard.press("Escape")
         page.wait_for_timeout(50)
 
-        assert page.locator("#expert-player-bar").get_attribute("hidden") is not None, (
+        assert page.locator("#sync-player-bar").get_attribute("hidden") is not None, (
             "Escape with body focus must close the player"
         )
 
@@ -771,7 +771,7 @@ class TestHighlightCycle:
     def test_exactly_one_current_after_time_change(self, server, page):  # noqa: F811
         """After two distinct _setTime calls, exactly one .cell.uk.current must exist."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Highlight first row and wait for the class to actually attach.
@@ -805,7 +805,7 @@ class TestRevertAllEditsHighlightRecovery:
     def test_current_recovers_after_revert_all(self, server, page):  # noqa: F811
         """After revertAllEdits rebuilds the grid, .current must self-heal on next timeupdate."""
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Highlight the second row.
@@ -838,15 +838,15 @@ class TestRevertAllEditsHighlightRecovery:
 
 
 # ---------------------------------------------------------------------------
-# Smoke: A1 — Mobile viewport caps .expert-bar at 22vh
+# Smoke: A1 — Mobile viewport caps .sync-player-bar at 22vh
 # ---------------------------------------------------------------------------
 class TestMobileViewport:
-    def test_mobile_defaults_expert_bar_to_22vh(self, server, page):  # noqa: F811
+    def test_mobile_defaults_sync_player_bar_to_22vh(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 375, "height": 812})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        height = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        height = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         # 22vh of 812 = 178.64px. The new :root var default applies the mobile
         # override unless the user has dragged to a custom height.
         assert height.endswith("px"), f"Expected px value, got {height!r}"
@@ -860,7 +860,7 @@ class TestMobileViewport:
 class TestCurrentBoxShadow:
     def test_current_row_has_inset_box_shadow(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer._setTime(6)")
         page.wait_for_timeout(50)
@@ -881,7 +881,7 @@ class TestCurrentBoxShadow:
 class TestHighlightComposition:
     def test_current_marked_edited_compose(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Drive timeupdate to row 0 (startMs=1000) so it gets .current.
@@ -926,7 +926,7 @@ class TestHighlightComposition:
 class TestThemeToggle:
     def test_current_box_shadow_persists_through_theme_toggle(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         page.evaluate("window._vimeoPlayer._setTime(6)")
         page.wait_for_timeout(50)
@@ -965,9 +965,9 @@ class TestResizeBar:
     def test_desktop_default_is_25vh(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        h = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         assert h.endswith("px")
         val = float(h[:-2])
         # 25vh of 800 = 200px (+/- rounding)
@@ -976,13 +976,13 @@ class TestResizeBar:
     def test_drag_handle_grows_bar(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         # Simulate a pointer drag of the handle from its current location
         # downward by 240px — 240 / 800 * 100 = 30vh, so new height = 55vh = 440px.
         box = page.evaluate("""
           () => {
-            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
             return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
           }
         """)
@@ -991,19 +991,19 @@ class TestResizeBar:
         page.mouse.move(box["x"], box["y"] + 240, steps=8)
         page.mouse.up()
         page.wait_for_timeout(50)
-        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        h = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         val = float(h[:-2])
         assert 435 < val < 445, f"Expected ~440px after 30vh drag, got {h!r}"
 
     def test_drag_is_clamped_to_75vh_max(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         # Drag way beyond the viewport — should clamp at 75vh = 600px.
         box = page.evaluate("""
           () => {
-            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
             return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
           }
         """)
@@ -1012,7 +1012,7 @@ class TestResizeBar:
         page.mouse.move(box["x"], box["y"] + 2000, steps=10)
         page.mouse.up()
         page.wait_for_timeout(50)
-        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        h = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         val = float(h[:-2])
         # 75vh of 800 = 600px
         assert 599 < val < 601, f"Expected clamp to ~600px (75vh), got {h!r}"
@@ -1020,12 +1020,12 @@ class TestResizeBar:
     def test_drag_is_clamped_to_25vh_min(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.wait_for_selector("#btn-expert-player", state="visible", timeout=5000)
-        page.click("#btn-expert-player")
+        page.wait_for_selector("#btn-sync-player", state="visible", timeout=5000)
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         box = page.evaluate("""
           () => {
-            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
             return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
           }
         """)
@@ -1034,7 +1034,7 @@ class TestResizeBar:
         page.mouse.move(box["x"], box["y"] - 2000, steps=10)
         page.mouse.up()
         page.wait_for_timeout(50)
-        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        h = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         val = float(h[:-2])
         # 25vh of 800 = 200px
         assert 199 < val < 201, f"Expected clamp to ~200px (25vh) min, got {h!r}"
@@ -1042,11 +1042,11 @@ class TestResizeBar:
     def test_resize_persists_across_reload(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         box = page.evaluate("""
           () => {
-            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
             return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
           }
         """)
@@ -1057,7 +1057,7 @@ class TestResizeBar:
         page.wait_for_timeout(50)
 
         # Persisted JSON must contain barHeightVh ~45
-        raw = page.evaluate("localStorage.getItem('sy.expert.2001-01-01_Test-Talk.Test-Video')")
+        raw = page.evaluate("localStorage.getItem('sy.sync_player.2001-01-01_Test-Talk.Test-Video')")
         assert raw is not None
         import json as _json
 
@@ -1068,7 +1068,7 @@ class TestResizeBar:
         page.reload()
         page.wait_for_selector("#review-grid", timeout=10000)
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        h = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         val = float(h[:-2])
         assert 355 < val < 365, f"Expected ~360px restored, got {h!r}"
 
@@ -1076,12 +1076,12 @@ class TestResizeBar:
         """Each video has its own barHeightVh; switching videos does not leak."""
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         # Grow Test-Video to 55vh
         box = page.evaluate("""
           () => {
-            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
             return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
           }
         """)
@@ -1094,9 +1094,9 @@ class TestResizeBar:
         # Switch to Test-Video-2 — should fall back to the default (25vh = 200px).
         page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
         page.wait_for_selector(".cell.uk", timeout=10000)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        h = page.evaluate("getComputedStyle(document.getElementById('expert-player-bar')).height")
+        h = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         val = float(h[:-2])
         assert 199 < val < 201, f"Test-Video-2 should default to 200px, got {h!r}"
 
@@ -1105,7 +1105,7 @@ class TestResizeBar:
         had previously paused it (by focusing a cell or manually scrolling)."""
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Pause Follow by focusing a cell.
@@ -1116,7 +1116,7 @@ class TestResizeBar:
         # Drag the handle to force a resize.
         box = page.evaluate("""
           () => {
-            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
             return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
           }
         """)
@@ -1134,26 +1134,26 @@ class TestResizeBar:
 
 # ---------------------------------------------------------------------------
 # Regression: the mounted player must grow with the bar (not stay at
-# intrinsic iframe height). Catches the "#expert-player has no size,
+# intrinsic iframe height). Catches the "#sync-player-mount has no size,
 # iframe collapses to 150px" bug.
 # ---------------------------------------------------------------------------
 class TestPlayerFillsBar:
     def test_mount_fills_bar_height(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         # Bar default 25vh of 800 = 200px. The mock replacement must fill
         # that — not clamp to some intrinsic fallback.
         dims = page.evaluate("""
           () => {
             var m = document.getElementById('mock-player').getBoundingClientRect();
-            var bar = document.getElementById('expert-player-bar').getBoundingClientRect();
+            var bar = document.getElementById('sync-player-bar').getBoundingClientRect();
             return { mH: m.height, mW: m.width, barH: bar.height, barW: bar.width };
           }
         """)
         # Mock should be at least ~180px tall (bar minus handle 8px, minus
-        # rounding). If #expert-player has no size, mock falls back to its
+        # rounding). If #sync-player-mount has no size, mock falls back to its
         # 40px min-height and this test fails.
         assert dims["mH"] > 180, f"Mock player too small: {dims!r}"
         assert abs(dims["mW"] - dims["barW"]) < 2, f"Mock width must match bar: {dims!r}"
@@ -1161,13 +1161,13 @@ class TestPlayerFillsBar:
     def test_mount_grows_when_bar_is_dragged(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         before = page.evaluate("document.getElementById('mock-player').getBoundingClientRect().height")
         # Drag the handle down 240px → +30vh → 55vh bar = 440px.
         box = page.evaluate("""
           () => {
-            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
             return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
           }
         """)
@@ -1219,7 +1219,7 @@ class TestFollowCenteringBelowBar:
     def _drag_bar_down(self, page, dy_px):  # noqa: F811
         box = page.evaluate("""
           () => {
-            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
             return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
           }
         """)
@@ -1233,7 +1233,7 @@ class TestFollowCenteringBelowBar:
         return page.evaluate("""
           () => {
             var cur = document.querySelector('.cell.uk.current');
-            var bar = document.getElementById('expert-player-bar');
+            var bar = document.getElementById('sync-player-bar');
             if (!cur || !bar) return null;
             var cr = cur.getBoundingClientRect();
             var br = bar.getBoundingClientRect();
@@ -1250,7 +1250,7 @@ class TestFollowCenteringBelowBar:
         self._install_long_srt(page)
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         # Drive to row 10 (startMs = 20000). Far enough that scrolling is
@@ -1267,7 +1267,7 @@ class TestFollowCenteringBelowBar:
         self._install_long_srt(page)
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         self._drag_bar_down(page, 240)  # +30vh -> 55vh bar = 440px
 
@@ -1291,7 +1291,7 @@ class TestFollowCenteringBelowBar:
         self._install_long_srt(page)
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         self._drag_bar_down(page, 2000)  # clamp to 75vh = 600px
 
@@ -1308,7 +1308,7 @@ class TestFollowCenteringBelowBar:
         self._install_long_srt(page)
         page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt(page, server)
-        page.click("#btn-expert-player")
+        page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
         for t_sec in [6, 10, 14, 18, 22, 26, 30]:
