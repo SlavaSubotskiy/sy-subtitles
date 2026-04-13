@@ -7,6 +7,8 @@ test_preview_spa via direct import. Runs standalone with
 
 from __future__ import annotations
 
+import pytest
+
 from tests.test_preview_spa import (  # noqa: F401  — re-exported fixtures
     SPA_URL,
     browser,
@@ -406,3 +408,389 @@ class TestFailOpen:
         assert toast.evaluate("el => el.classList.contains('show')")
         text = toast.text_content() or ""
         assert "Vimeo" in text
+
+
+# ---------------------------------------------------------------------------
+# Gap 1: Toggle Follow resume scrolls current row into view
+# ---------------------------------------------------------------------------
+class TestResumeFollow:
+    def test_toggle_follow_resume_calls_scroll_into_view(self, server, page):  # noqa: F811
+        """Resuming Follow (un-pausing) must call scrollIntoView on the current row."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Drive to a known row so currentIdx is set.
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(50)
+
+        # Install a spy on scrollIntoView AFTER the initial scroll (triggered by _setTime above).
+        page.evaluate(
+            "window._sivCalled = false; Element.prototype.scrollIntoView = function(opts) { window._sivCalled = true; }"
+        )
+
+        # Pause Follow (first click).
+        page.click("#btn-follow")
+        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+
+        # Resume Follow (second click) — should scroll current row into view.
+        page.click("#btn-follow")
+        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        assert page.evaluate("window._sivCalled === true"), (
+            "toggleFollow resume must call scrollIntoView on the current row"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Gap 2: Video switch rebuilds ukRows cache; highlighting works on new video
+# ---------------------------------------------------------------------------
+class TestVideoSwitchHighlight:
+    def test_video_switch_creates_new_player_instance(self, server, page):  # noqa: F811
+        """Switching to a different video slug must destroy and re-create the player."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Remember the old player instance.
+        page.evaluate("window._oldPlayer = window._vimeoPlayer")
+
+        # Switch to Test-Video-2 (destroys ExpertPlayer, inits with new slug).
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
+        page.wait_for_selector(".cell.uk", timeout=10000)
+
+        # Open the player on the new video.
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # A new player instance must have been created.
+        is_new = page.evaluate("window._vimeoPlayer !== window._oldPlayer")
+        assert is_new, "switchReviewMode must produce a new Vimeo Player instance"
+
+    def test_highlight_works_after_video_switch(self, server, page):  # noqa: F811
+        """After switching video, timeupdate on the new player must highlight a row."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Switch to Test-Video-2.
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
+        page.wait_for_selector(".cell.uk", timeout=10000)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Drive the new player's timeupdate.
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(50)
+
+        highlighted = page.evaluate(
+            "Array.from(document.querySelectorAll('.cell.uk.current')).map(c => c.dataset.msStart)"
+        )
+        assert highlighted == ["6000"], "Highlight must work on new video after video switch"
+
+
+# ---------------------------------------------------------------------------
+# Gap 3: aria-label on the close button is localized
+# ---------------------------------------------------------------------------
+class TestAriaLabelI18n:
+    def test_aria_label_uk(self, server, page):  # noqa: F811
+        """In UK language mode the close button aria-label must be Ukrainian."""
+        _goto_review_srt(page, server)
+
+        # Force UK language (headless Chrome default is 'en').
+        page.evaluate("""
+            if (window.currentLang !== 'uk') {
+                SPA.toggleLang();
+            }
+        """)
+        page.wait_for_timeout(50)
+
+        label = page.evaluate(
+            "document.querySelector('.expert-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
+        )
+        assert label == "Закрити плеєр", f"Expected Ukrainian label, got: {label!r}"
+
+    def test_aria_label_en(self, server, page):  # noqa: F811
+        """In EN language mode the close button aria-label must be English."""
+        _goto_review_srt(page, server)
+
+        # Force EN language.
+        page.evaluate("""
+            if (window.currentLang !== 'en') {
+                SPA.toggleLang();
+            }
+        """)
+        page.wait_for_timeout(50)
+
+        label = page.evaluate(
+            "document.querySelector('.expert-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
+        )
+        assert label == "Close player", f"Expected English label, got: {label!r}"
+
+    def test_aria_label_toggles_with_lang_switch(self, server, page):  # noqa: F811
+        """Toggling language must flip the aria-label on the close button."""
+        _goto_review_srt(page, server)
+
+        # Record initial state, then toggle and verify it changes.
+        before = page.evaluate(
+            "document.querySelector('.expert-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
+        )
+        page.evaluate("SPA.toggleLang()")
+        page.wait_for_timeout(50)
+        after = page.evaluate(
+            "document.querySelector('.expert-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
+        )
+        assert before != after, "aria-label must change when language is toggled"
+        assert after in ("Закрити плеєр", "Close player")
+
+
+# ---------------------------------------------------------------------------
+# Gap 4: Re-open after hide preserves playhead (mount-once, reuse optimization)
+# ---------------------------------------------------------------------------
+class TestReopenPreservesPlayhead:
+    def test_reopen_after_hide_preserves_current_time(self, server, page):  # noqa: F811
+        """Hiding then re-showing the bar must reuse the existing player without reset."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Seek to 8 seconds.
+        page.evaluate("window._vimeoPlayer._setTime(8)")
+        page.wait_for_timeout(50)
+
+        # Hide (toggle off).
+        page.click("#btn-expert-player")
+        # Wait until bar gets the hidden attribute (element is in DOM but display:none via attr).
+        page.wait_for_function("() => document.getElementById('expert-player-bar').hasAttribute('hidden')")
+
+        # Show again (toggle on).
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#expert-player-bar:not([hidden])", timeout=2000)
+
+        # The mock player was not remounted — _currentTime must still be 8.
+        current = page.evaluate("window._vimeoPlayer._currentTime")
+        assert abs(current - 8) < 0.1, f"Player currentTime must be preserved after hide/show cycle, got {current}"
+
+
+# ---------------------------------------------------------------------------
+# Gap 5: Persist closed — saved open:false must not auto-mount on reload
+# ---------------------------------------------------------------------------
+class TestPersistClosed:
+    def test_closed_state_survives_reload(self, server, page):  # noqa: F811
+        """After closing the player and reloading, the bar must remain hidden."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Close the player — persistNow() is called synchronously inside hide().
+        page.click("#btn-expert-player")
+        # Wait until bar gets the hidden attribute.
+        page.wait_for_function("() => document.getElementById('expert-player-bar').hasAttribute('hidden')")
+
+        # Wait for localStorage to be written (hide() calls persistNow() directly).
+        page.wait_for_function("() => localStorage.getItem('sy.expert.2001-01-01_Test-Talk.Test-Video') !== null")
+
+        # Verify the persisted value has open: false.
+        saved_open = page.evaluate("""
+            JSON.parse(localStorage.getItem('sy.expert.2001-01-01_Test-Talk.Test-Video')).open
+        """)
+        assert saved_open is False, f"Expected open:false in localStorage, got {saved_open!r}"
+
+        page.reload()
+        page.wait_for_selector("#review-grid", timeout=10000)
+        page.wait_for_selector(".cell.uk", timeout=10000)
+
+        # Bar must remain hidden after reload.
+        assert page.locator("#expert-player-bar").get_attribute("hidden") is not None, (
+            "Player bar must stay hidden when saved state has open:false"
+        )
+        # Mock player must NOT have been mounted.
+        assert page.locator("#mock-player").count() == 0, "Mock player must not mount when saved state has open:false"
+
+
+# ---------------------------------------------------------------------------
+# Gap 6: Space on <select> does NOT toggle play/pause
+# ---------------------------------------------------------------------------
+class TestSpaceOnSelectNoToggle:
+    def test_space_on_review_mode_select_does_not_pause(self, server, page):  # noqa: F811
+        """Space key while a <select> is focused must not reach the global shortcut handler."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Start playing.
+        page.evaluate("window._vimeoPlayer.play()")
+        page.wait_for_timeout(50)
+        assert page.evaluate("window._vimeoPlayer._paused") is False
+
+        # Focus the mode select (it is visible in SRT mode).
+        page.evaluate("document.getElementById('review-mode-select').focus()")
+        page.wait_for_timeout(50)
+
+        # Press Space — must be consumed by the select, not the global handler.
+        page.keyboard.press(" ")
+        page.wait_for_timeout(100)
+        assert page.evaluate("window._vimeoPlayer._paused") is False, "Space on <select> must not toggle play/pause"
+
+
+# ---------------------------------------------------------------------------
+# Gap 7: Clicking a cell without data-ms-start does NOT seek
+# ---------------------------------------------------------------------------
+class TestPlaceholderCellNoSeek:
+    def test_cell_without_ms_start_does_not_seek(self, server, page):  # noqa: F811
+        """Clicking a synthetic .cell.en without data-ms-start must not trigger seekTo."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Check whether the real grid already has placeholder cells.
+        has_en_placeholder = page.evaluate("""
+            () => {
+                var ens = document.querySelectorAll('#review-grid .cell.en');
+                for (var i = 0; i < ens.length; i++) {
+                    if (!ens[i].dataset.msStart) return true;
+                }
+                return false;
+            }
+        """)
+
+        if has_en_placeholder:
+            # Real placeholder exists; click it and assert no seek.
+            before = page.evaluate("window._vimeoPlayer._currentTime")
+            page.evaluate("""
+                () => {
+                    var placeholder = Array.from(
+                        document.querySelectorAll('#review-grid .cell.en')
+                    ).find(c => !c.dataset.msStart);
+                    if (placeholder) placeholder.click();
+                }
+            """)
+            after = page.evaluate("window._vimeoPlayer._currentTime")
+            assert before == after
+        else:
+            # No real placeholders: insert a synthetic one without data-ms-start
+            # to exercise the guard in onGridClick (Number.isNaN(ms) → return).
+            before = page.evaluate("window._vimeoPlayer._currentTime")
+            page.evaluate("""
+                () => {
+                    var grid = document.getElementById('review-grid');
+                    var fake = document.createElement('div');
+                    fake.className = 'cell en';
+                    // Deliberately NO data-ms-start attribute
+                    grid.appendChild(fake);
+                    fake.click();
+                    fake.remove();
+                }
+            """)
+            after = page.evaluate("window._vimeoPlayer._currentTime")
+            assert before == after, "Clicking a .cell.en without data-ms-start must not seek the player"
+
+
+# ---------------------------------------------------------------------------
+# Gap 8: Escape closes player only when focus is NOT in .cell-text
+# ---------------------------------------------------------------------------
+class TestEscapeFocusExemption:
+    def test_escape_with_cell_focused_does_not_close(self, server, page):  # noqa: F811
+        """Pressing Escape while a .cell-text is focused must NOT hide the player."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Focus a cell-text (this also pauses follow, but that's expected).
+        page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
+        page.wait_for_timeout(50)
+
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(50)
+
+        # Bar must still be visible (Escape yields to [contenteditable] focus).
+        assert page.locator("#expert-player-bar").get_attribute("hidden") is None, (
+            "Escape while .cell-text is focused must not close the player"
+        )
+
+    def test_escape_without_cell_focused_closes_player(self, server, page):  # noqa: F811
+        """Pressing Escape with focus on body must hide the player."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        page.evaluate("document.body.focus()")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(50)
+
+        assert page.locator("#expert-player-bar").get_attribute("hidden") is not None, (
+            "Escape with body focus must close the player"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Gap 9: .current class persists across a re-highlight cycle (never 0 or 2)
+# ---------------------------------------------------------------------------
+class TestHighlightCycle:
+    def test_exactly_one_current_after_time_change(self, server, page):  # noqa: F811
+        """After two distinct _setTime calls, exactly one .cell.uk.current must exist."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Highlight first row.
+        page.evaluate("window._vimeoPlayer._setTime(1)")
+        page.wait_for_timeout(50)
+        count_after_first = page.evaluate("document.querySelectorAll('.cell.uk.current').length")
+        assert count_after_first == 1, f"Expected 1 .current after _setTime(1), got {count_after_first}"
+
+        # Move to second row.
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(50)
+        count_after_second = page.evaluate("document.querySelectorAll('.cell.uk.current').length")
+        first_still_current = page.evaluate("""
+            !! document.querySelector('.cell.uk[data-ms-start="1000"].current')
+        """)
+        assert count_after_second == 1, f"Expected exactly 1 .current after _setTime(6), got {count_after_second}"
+        assert not first_still_current, "The first row must lose .current when the playhead moves to the second row"
+
+
+# ---------------------------------------------------------------------------
+# Gap 10: revertAllEdits re-renders grid; .current self-heals on next timeupdate
+# ---------------------------------------------------------------------------
+class TestRevertAllEditsHighlightRecovery:
+    @pytest.mark.xfail(
+        reason=(
+            "Bug: renderReview() rebuilds the grid DOM but does not reset "
+            "state.currentIdx, so the next timeupdate at the SAME block is "
+            "a no-op (idx === state.currentIdx) and .current is never re-applied."
+        ),
+        strict=True,
+    )
+    def test_current_recovers_after_revert_all(self, server, page):  # noqa: F811
+        """After revertAllEdits rebuilds the grid, .current must self-heal on next timeupdate."""
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Highlight the second row.
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(50)
+        assert page.evaluate("document.querySelectorAll('.cell.uk.current').length") == 1
+
+        # Make a trivial edit so revertAllEdits has something to revert.
+        page.evaluate("""
+            () => {
+                var ct = document.querySelector('#review-grid .cell-text');
+                if (ct) {
+                    ct.textContent = ct.textContent + ' x';
+                    ct.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        """)
+        page.wait_for_timeout(50)
+
+        # Revert all edits — this calls renderReview() which rebuilds the DOM.
+        page.click("#btn-revert-all")
+        page.wait_for_timeout(100)
+
+        # After the rebuild, drive another timeupdate at nearly the same position.
+        page.evaluate("window._vimeoPlayer._setTime(6.01)")
+        page.wait_for_timeout(50)
+
+        count = page.evaluate("document.querySelectorAll('.cell.uk.current').length")
+        assert count == 1, f".current must self-heal after revertAllEdits + timeupdate, got {count}"
