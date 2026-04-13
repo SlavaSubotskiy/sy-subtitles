@@ -1189,8 +1189,18 @@ var ExpertPlayer = (function() {
     // Swallow scroll events caused by smooth scrollIntoView so onWindowScroll
     // doesn't misread auto-scroll as user intent and pause Follow.
     state.isAutoScrolling = true;
-    try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-    catch (e) { el.scrollIntoView(); }
+    // Account for the sticky expert-bar: scrollIntoView({block:'center'})
+    // centers relative to the whole viewport, which puts the row BEHIND
+    // the sticky bar. Compute the target manually so the row lands in the
+    // middle of the area visible BELOW the bar.
+    var barH = (bar && !bar.hasAttribute('hidden')) ? bar.getBoundingClientRect().height : 0;
+    var rect = el.getBoundingClientRect();
+    var visibleH = window.innerHeight - barH;
+    var rowCenter = rect.top + rect.height / 2;
+    var targetCenter = barH + visibleH / 2;
+    var delta = rowCenter - targetCenter;
+    try { window.scrollBy({ top: delta, behavior: 'smooth' }); }
+    catch (e) { window.scrollBy(0, delta); }
     setTimeout(function() { state.isAutoScrolling = false; }, 500);
   }
 

@@ -1096,3 +1096,76 @@ class TestPlayerFillsBar:
         after = page.evaluate("document.getElementById('mock-player').getBoundingClientRect().height")
         # Mock should grow with the bar. Expected roughly +240px; allow slack.
         assert after - before > 200, f"Player did not grow with bar drag: before={before}, after={after}"
+
+
+# ---------------------------------------------------------------------------
+# Regression: Follow auto-scroll must place the current row BELOW the
+# sticky player bar, not behind it. scrollIntoView({block: 'center'})
+# alone centers relative to the viewport, which hides the row under the
+# bar once the bar is resized larger.
+# ---------------------------------------------------------------------------
+class TestFollowCenteringBelowBar:
+    def test_current_row_not_hidden_behind_bar_after_resize(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Drag the handle down so the bar becomes large (~55vh = 440px).
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('expert-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] + 240, steps=8)
+        page.mouse.up()
+        page.wait_for_timeout(50)
+
+        # Drive timeupdate to the second row (startMs=6000 in SAMPLE_SRT).
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        # Smooth scroll takes up to 500ms.
+        page.wait_for_timeout(600)
+
+        dims = page.evaluate("""
+          () => {
+            var cur = document.querySelector('.cell.uk.current');
+            var bar = document.getElementById('expert-player-bar');
+            if (!cur || !bar) return null;
+            var cr = cur.getBoundingClientRect();
+            var br = bar.getBoundingClientRect();
+            return {
+              rowTop: cr.top, rowBottom: cr.bottom,
+              barBottom: br.bottom, viewportH: window.innerHeight,
+            };
+          }
+        """)
+        assert dims is not None, "no .current cell or no bar"
+        # The row must not overlap the bar: its top must be at or below the
+        # bar's bottom edge.
+        assert dims["rowTop"] >= dims["barBottom"] - 1, f"Current row is hidden behind sticky bar: {dims!r}"
+        # The row should also be visible (not below the viewport).
+        assert dims["rowBottom"] <= dims["viewportH"] + 1, f"Current row is below the viewport: {dims!r}"
+
+    def test_current_row_centered_below_bar_default_height(self, server, page):  # noqa: F811
+        """At default 25vh, the row should still end up in the visible area below the bar."""
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(600)
+
+        dims = page.evaluate("""
+          () => {
+            var cur = document.querySelector('.cell.uk.current');
+            var bar = document.getElementById('expert-player-bar');
+            var cr = cur.getBoundingClientRect();
+            var br = bar.getBoundingClientRect();
+            return { rowTop: cr.top, barBottom: br.bottom };
+          }
+        """)
+        assert dims["rowTop"] >= dims["barBottom"] - 1, f"Current row overlaps bar at default height: {dims!r}"
