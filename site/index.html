@@ -951,9 +951,42 @@ var ExpertPlayer = (function() {
 
   function toggle() { if (!state) return; state.open ? hide() : show(); }
 
+  function extractVimeoId(url) {
+    // Matches https://vimeo.com/12345/abc OR https://player.vimeo.com/video/12345?h=abc
+    var m = (url || '').match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  function mountPlayer() {
+    var videos = (reviewState && reviewState.talk && reviewState.talk.videos) || [];
+    var video = videos.find(function(v) { return v.slug === state.videoSlug; });
+    if (!video || !video.vimeo_url) return;
+    var vimeoId = extractVimeoId(video.vimeo_url);
+    if (!vimeoId) return;
+
+    clearMount();
+    var iframe = document.createElement('iframe');
+    iframe.allow = 'autoplay; fullscreen';
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.src = 'https://player.vimeo.com/video/' + vimeoId;
+    mount.appendChild(iframe);
+
+    try {
+      state.player = new Vimeo.Player(iframe);
+      if (state.lastTime > 0) state.player.setCurrentTime(state.lastTime / 1000);
+    } catch (e) {
+      console.warn('[ExpertPlayer] Vimeo init error:', e);
+      state.player = null;
+    }
+  }
+
   function show() {
     if (!state) return;
-    // Mount Vimeo in Task 5 — Task 4 only reveals the bar.
+    if (!window.Vimeo) {
+      if (typeof SPA !== 'undefined' && SPA.toast) SPA.toast(t('toast.vimeo_unavailable'));
+      return;
+    }
+    if (!state.player) mountPlayer();
     if (bar) bar.removeAttribute('hidden');
     state.open = true;
     persistNow();

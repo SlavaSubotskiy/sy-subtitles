@@ -65,3 +65,19 @@ class TestButtonVisibilityTransitions:
         page.evaluate("SPA.switchReviewMode('transcript')")
         page.wait_for_timeout(200)
         assert not page.locator("#btn-expert-player").is_visible()
+
+
+class TestPlayerMount:
+    def test_clicking_show_mounts_vimeo_iframe(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        assert page.locator("#expert-player-bar").is_visible()
+
+    def test_clicking_toggle_twice_does_not_duplicate(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.click("#btn-expert-player")  # hide
+        page.click("#btn-expert-player")  # show again
+        assert page.locator("#mock-player").count() == 1
