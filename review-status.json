@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-12T09:20:02.023660+00:00",
+  "updated_at": "2026-04-13T18:27:06.608875+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -36,7 +36,7 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 7,
-      "updated_at": "2026-04-02T18:17:21Z"
+      "updated_at": "2026-04-12T14:40:06Z"
     },
     "1983-07-24_Guru-Puja-Awakening-The-Principle-Of-Guru": {
       "status": "approved",
@@ -87,10 +87,10 @@
       "updated_at": "2026-04-10T06:10:20Z"
     },
     "1988-05-08_Sahasrara-Puja-How-it-was-decided": {
-      "status": "pending",
-      "reviewer": null,
+      "status": "in-progress",
+      "reviewer": "IrynaFilSY",
       "issue_number": 21,
-      "updated_at": "2026-04-10T08:58:31Z"
+      "updated_at": "2026-04-13T18:27:05Z"
     },
     "1987-01-02_Talk-on-Innocence-Musical-Program-Morning": {
       "status": "approved",
