@@ -35,6 +35,17 @@ Source language: English. Target language: Ukrainian.
 - **`deploy-pages.yml`** — deploys `site/` to GitHub Pages
 - **`glossary-release.yml`** — glossary releases
 - **`sync-review-status.yml`** — syncs issue labels to `review-status.json`
+- **`new-talk.yml`** — PR-triggered setup for newly added talks
+- **`canary.yml`** — canary run for pipeline health checks
+- **`pipeline-matrix-dryrun.yml`** — matrix dry-run validation of the subtitle pipeline
+
+## Local Setup
+
+```bash
+pip install -r requirements.txt
+python -m pytest tests/                              # run Python tests
+python -m pytest tests/test_offset_srt.py -k detect  # run a single test
+```
 
 
 ## Language Rules
@@ -57,10 +68,12 @@ Source language: English. Target language: Ukrainian.
 - UTF-8 encoding with BOM is acceptable
 - Block numbering must be sequential starting from 1
 
-## Writing Large SRT Files
+## Writing Large SRT Files (manual edits only)
 
-SRT files typically have 300-500+ blocks and don't fit in a single output.
-Write them in chunks using bash `cat` with heredoc and append:
+The build pipeline generates `final/uk.srt` automatically. This guidance applies
+only to ad-hoc manual fixes where Claude needs to rewrite a full SRT in one
+session. SRT files typically have 300-500+ blocks and don't fit in a single
+output. Write them in chunks using bash `cat` with heredoc and append:
 
 ```bash
 # First chunk – create file
