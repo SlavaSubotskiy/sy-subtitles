@@ -1017,6 +1017,7 @@ var ExpertPlayer = (function() {
     if (!state) return;
     if (bar) bar.setAttribute('hidden', '');
     state.open = false;
+    if (state.player) { try { state.player.pause(); } catch (_) {} }
     persistNow();
   }
 
@@ -1025,7 +1026,7 @@ var ExpertPlayer = (function() {
     state.followPaused = !state.followPaused;
     if (btnFollow) btnFollow.classList.toggle('paused', state.followPaused);
     if (!state.followPaused && state.currentIdx != null && state.currentIdx >= 0) {
-      var rows = (reviewState && reviewState.alignedRows) || [];
+      var rows = ukRows();
       var row = rows[state.currentIdx];
       if (row && row.uk) {
         var target = document.querySelector(
@@ -1034,6 +1035,13 @@ var ExpertPlayer = (function() {
         if (target) scrollRowIntoView(target);
       }
     }
+  }
+
+  // Returns alignedRows filtered to only those with a UK block.
+  // All currentIdx values index into this filtered array.
+  function ukRows() {
+    var rows = (reviewState && reviewState.alignedRows) || [];
+    return rows.filter(function(r) { return r && r.uk; });
   }
 
   function binarySearchByMs(rows, ms) {
@@ -1054,7 +1062,7 @@ var ExpertPlayer = (function() {
     if (!state) return;
     state.lastTime = Math.round((data && data.seconds || 0) * 1000);
     if (timeEl) timeEl.textContent = formatTime(state.lastTime);
-    var rows = (reviewState && reviewState.alignedRows) || [];
+    var rows = ukRows();
     var idx = binarySearchByMs(rows, state.lastTime);
     if (idx !== state.currentIdx) highlightRow(idx);
     throttledPersist();
@@ -1065,7 +1073,7 @@ var ExpertPlayer = (function() {
     if (prev) prev.classList.remove('current');
     state.currentIdx = idx;
     if (idx < 0) return;
-    var rows = (reviewState && reviewState.alignedRows) || [];
+    var rows = ukRows();
     var row = rows[idx];
     if (!row || !row.uk) return;
     var target = document.querySelector(
@@ -1114,6 +1122,7 @@ var ExpertPlayer = (function() {
 
   function onGridFocusIn(e) {
     if (!state) return;
+    if (!state.open) return;
     if (!e.target.matches || !e.target.matches('.cell-text')) return;
     state.followPaused = true;
     if (btnFollow) btnFollow.classList.add('paused');
@@ -1122,6 +1131,7 @@ var ExpertPlayer = (function() {
 
   function onGridKeydown(e) {
     if (!state) return;
+    if (!state.open) return;
     if (e.key !== 'Enter') return;
     if (e.isComposing || e.keyCode === 229) return;  // IME commit
     if (!e.target.matches || !e.target.matches('.cell-text')) return;
@@ -1142,7 +1152,14 @@ var ExpertPlayer = (function() {
   function onGlobalKeydown(e) {
     if (!state || !state.open) return;
     var ae = document.activeElement;
-    if (ae && ae.matches && ae.matches('.cell-text')) return;  // editing — let keys pass
+    // For Space/k (play-pause): yield to any native focusable control
+    // (buttons, selects, inputs, contenteditable).
+    if (e.key === ' ' || e.key === 'k') {
+      if (ae && ae.matches && ae.matches('input, select, textarea, button, [contenteditable]')) return;
+    } else {
+      // For all other shortcuts (arrows, Escape): only yield to text-entry controls.
+      if (ae && ae.matches && ae.matches('input, textarea, [contenteditable]')) return;
+    }
     switch (e.key) {
       case ' ':
       case 'k':
@@ -1986,6 +2003,7 @@ function updateColHeaders() {
 
 function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
+  ExpertPlayer.destroy();
   // Reset all state for new talk
   reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightParsed: null, mode: 'transcript', videoSlug: '', alignedRows: null, srtLeftLang: 'en', srtRightLang: 'uk' };
 

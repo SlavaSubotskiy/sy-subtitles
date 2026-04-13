@@ -297,3 +297,57 @@ class TestCleanup:
         page.evaluate("location.hash = '#/'")
         page.wait_for_selector(".talk-item", timeout=5000)
         assert page.locator("#mock-player").count() == 0
+
+
+class TestFinalReviewFixes:
+    def test_binary_search_skips_null_uk_rows(self, server, page):  # noqa: F811
+        """Critical: alignedRows can contain rows with uk=null (EN-only)."""
+        _goto_review_srt(page, server)
+        result = page.evaluate("""
+          () => {
+            var rows = [
+              { uk: null, en: { startMs: 500 } },
+              { uk: { startMs: 1000 } },
+              { uk: null, en: { startMs: 3000 } },
+              { uk: { startMs: 5000 } },
+            ];
+            // Caller is expected to filter; this confirms the raw helper
+            // still works on a pre-filtered array.
+            var filtered = rows.filter(r => r && r.uk);
+            var fn = ExpertPlayer._binarySearchByMs;
+            return {
+              filteredLen: filtered.length,
+              atFirst: fn(filtered, 1000),
+              past:    fn(filtered, 10000),
+            };
+          }
+        """)
+        assert result == {"filteredLen": 2, "atFirst": 0, "past": 1}
+
+    def test_hide_pauses_player(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer.play()")
+        page.wait_for_timeout(50)
+        assert page.evaluate("window._vimeoPlayer._paused") is False
+
+        page.click("#btn-expert-player")  # toggle → hide
+        page.wait_for_timeout(50)
+        assert page.evaluate("window._vimeoPlayer._paused") is True
+
+    def test_focus_after_hide_does_not_touch_player(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer.play()")
+        page.click("#btn-expert-player")  # hide (this also pauses per fix #4)
+        page.wait_for_timeout(50)
+
+        # Player is hidden + paused. Focus a cell. It should NOT toggle
+        # follow state or change the player state.
+        page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
+        page.wait_for_timeout(50)
+        # .paused class should NOT have been added by focus because
+        # state.open is false (fix #2).
+        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
