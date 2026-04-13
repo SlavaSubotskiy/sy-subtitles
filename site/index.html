@@ -319,9 +319,9 @@ body.expert-resizing, body.expert-resizing * {
 .expert-bar[hidden] { display: none; }
 .cell.uk.current,
 .cell.en.current { box-shadow: inset 3px 0 0 var(--link); }
-#view-review.expert-mode .cell.en,
-#view-review.expert-mode .cell-label { cursor: pointer; }
-#view-review.expert-mode .cell.en:hover { background: var(--cell-hover); }
+#review-grid .cell.en[data-ms-start],
+#review-grid .cell[data-ms-start] .cell-label { cursor: pointer; }
+#review-grid .cell.en[data-ms-start]:hover { background: var(--cell-hover); }
 #btn-follow.paused { opacity: 0.5; }
 
 /* --- Fullscreen preview mode --- */
@@ -683,7 +683,6 @@ var I18N = {
     'title.close_video': '\u0417\u0430\u043A\u0440\u0438\u0442\u0438 \u043F\u043B\u0435\u0454\u0440',
     'title.resize_bar': '\u041F\u043E\u0442\u044F\u0433\u043D\u0456\u0442\u044C, \u0449\u043E\u0431 \u0437\u043C\u0456\u043D\u0438\u0442\u0438 \u0432\u0438\u0441\u043E\u0442\u0443 \u043F\u043B\u0435\u0454\u0440\u0430',
     'title.follow': '\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E \u043F\u0440\u043E\u043A\u0440\u0443\u0447\u0443\u0432\u0430\u0442\u0438 \u0434\u043E \u043F\u043E\u0442\u043E\u0447\u043D\u043E\u0433\u043E \u0440\u044F\u0434\u043A\u0430',
-    'title.expert_seek': '\u041A\u043B\u0456\u043A \u043F\u043E \u0442\u0430\u0439\u043C\u043A\u043E\u0434\u0443 \u0430\u0431\u043E \u0430\u043D\u0433\u043B. \u0440\u044F\u0434\u043A\u0443 \u2014 \u043F\u0435\u0440\u0435\u043C\u043E\u0442\u0430\u0442\u0438 \u0432\u0456\u0434\u0435\u043E',
     'toast.vimeo_unavailable': '\u041F\u043B\u0435\u0454\u0440 Vimeo \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0438\u0439',
     'btn.revert_cell': 'Скасувати правку цього блоку',
     'btn.create_review_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 Issue',
@@ -776,7 +775,6 @@ var I18N = {
     'title.close_video': 'Close player',
     'title.resize_bar': 'Drag to resize player',
     'title.follow': 'Auto-scroll to current row',
-    'title.expert_seek': 'Click timecode or English row to seek',
     'toast.vimeo_unavailable': 'Vimeo player unavailable',
     'btn.revert_cell': 'Revert this block edit',
     'btn.create_review_issue': 'Create Issue',
@@ -996,8 +994,6 @@ var ExpertPlayer = (function() {
     document.addEventListener('keydown', onGlobalKeydown);
     window.addEventListener('scroll', onWindowScroll, { passive: true });
     if (btnExpert) btnExpert.style.display = '';
-    var view = document.getElementById('view-review');
-    if (view) view.classList.add('expert-mode');
     // Defer one tick so the caller finishes populating reviewState before show() reads it.
     if (saved && saved.open === true) setTimeout(show, 0);
   }
@@ -1027,8 +1023,6 @@ var ExpertPlayer = (function() {
     document.documentElement.style.removeProperty('--expert-h');
     state = null;
     if (btnExpert) btnExpert.style.display = 'none';
-    var view = document.getElementById('view-review');
-    if (view) view.classList.remove('expert-mode');
   }
 
   function onResizeStart(e) {
