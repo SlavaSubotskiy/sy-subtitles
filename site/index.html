@@ -973,6 +973,7 @@ var ExpertPlayer = (function() {
 
     try {
       state.player = new Vimeo.Player(iframe);
+      state.player.on('timeupdate', onTimeUpdate);
       if (state.lastTime > 0) state.player.setCurrentTime(state.lastTime / 1000);
     } catch (e) {
       console.warn('[ExpertPlayer] Vimeo init error:', e);
@@ -1005,9 +1006,67 @@ var ExpertPlayer = (function() {
     if (btnFollow) btnFollow.classList.toggle('paused', state.followPaused);
   }
 
+  function binarySearchByMs(rows, ms) {
+    // Returns the largest idx where rows[idx].uk.startMs <= ms.
+    // Returns -1 for empty arrays or when ms is before the first row.
+    if (!rows || rows.length === 0) return -1;
+    if (ms < rows[0].uk.startMs) return -1;
+    var lo = 0, hi = rows.length - 1, ans = -1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      if (rows[mid].uk.startMs <= ms) { ans = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    return ans;
+  }
+
+  function onTimeUpdate(data) {
+    if (!state) return;
+    state.lastTime = Math.round((data && data.seconds || 0) * 1000);
+    if (timeEl) timeEl.textContent = formatTime(state.lastTime);
+    var rows = (reviewState && reviewState.alignedRows) || [];
+    var idx = binarySearchByMs(rows, state.lastTime);
+    if (idx !== state.currentIdx) highlightRow(idx);
+    throttledPersist();
+  }
+
+  function highlightRow(idx) {
+    var prev = document.querySelector('#review-grid .cell.uk.current');
+    if (prev) prev.classList.remove('current');
+    state.currentIdx = idx;
+    if (idx < 0) return;
+    var rows = (reviewState && reviewState.alignedRows) || [];
+    var row = rows[idx];
+    if (!row || !row.uk) return;
+    var target = document.querySelector(
+      '#review-grid .cell.uk[data-ms-start="' + row.uk.startMs + '"]'
+    );
+    if (target) {
+      target.classList.add('current');
+      if (state.follow && !state.followPaused) scrollRowIntoView(target);
+    }
+  }
+
+  function scrollRowIntoView(el) {
+    state.isAutoScrolling = true;
+    try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    catch (e) { el.scrollIntoView(); }
+    setTimeout(function() { state.isAutoScrolling = false; }, 500);
+  }
+
+  function formatTime(ms) {
+    var s = Math.floor(ms / 1000);
+    var h = Math.floor(s / 3600);
+    var m = Math.floor((s % 3600) / 60);
+    var sec = s % 60;
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    return pad(h) + ':' + pad(m) + ':' + pad(sec);
+  }
+
   return {
     init: init, destroy: destroy, toggle: toggle,
     show: show, hide: hide, toggleFollow: toggleFollow,
+    _binarySearchByMs: binarySearchByMs,  // test hook
   };
 })();
 

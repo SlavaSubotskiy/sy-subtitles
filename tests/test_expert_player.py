@@ -81,3 +81,53 @@ class TestPlayerMount:
         page.click("#btn-expert-player")  # hide
         page.click("#btn-expert-player")  # show again
         assert page.locator("#mock-player").count() == 1
+
+
+class TestBinarySearch:
+    def test_binary_search_cases(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        result = page.evaluate("""
+          () => {
+            var rows = [
+              { uk: { startMs: 1000 } },
+              { uk: { startMs: 5000 } },
+              { uk: { startMs: 9000 } },
+              { uk: { startMs: 13000 } },
+            ];
+            var fn = ExpertPlayer._binarySearchByMs;
+            return {
+              before:  fn(rows, 0),
+              atFirst: fn(rows, 1000),
+              between: fn(rows, 6000),
+              atExact: fn(rows, 9000),
+              past:    fn(rows, 20000),
+              empty:   fn([], 100),
+            };
+          }
+        """)
+        assert result == {
+            "before": -1,
+            "atFirst": 0,
+            "between": 1,
+            "atExact": 2,
+            "past": 3,
+            "empty": -1,
+        }
+
+
+class TestHighlight:
+    def test_timeupdate_highlights_current_row(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-expert-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # SAMPLE_SRT (from tests/test_preview_spa.py): UK row 2 starts at 6000 ms.
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(50)
+
+        highlighted = page.evaluate("""
+          () => Array.from(
+            document.querySelectorAll('.cell.uk.current')
+          ).map(c => c.dataset.msStart)
+        """)
+        assert highlighted == ["6000"]
