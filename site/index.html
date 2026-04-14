@@ -170,8 +170,8 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
   padding: 8px 16px; font-size: 14px; cursor: pointer; touch-action: manipulation; }
 .controls button:active { background: var(--border3); }
 #time-display { color: var(--fg6); font-size: 13px; font-family: monospace; }
-.markers, .preview-list { max-width: 960px; margin: 0 auto; padding: 0 8px; }
-.markers summary, .preview-list summary { color: var(--fg5); cursor: pointer; padding: 8px; font-size: 14px; }
+.preview-list { max-width: 960px; margin: 0 auto; padding: 0 8px; }
+.preview-list summary { color: var(--fg5); cursor: pointer; padding: 8px; font-size: 14px; }
 #btn-clear-all { background: var(--danger-bg); color: var(--danger-fg); border-color: var(--danger-border); }
 .preview-mode-toggle { display: inline-flex; border: 1px solid var(--border3); border-radius: 6px; overflow: hidden; }
 .preview-mode-toggle button { background: var(--bg4); color: var(--fg5); border: 0; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 0; }
@@ -342,7 +342,6 @@ body.sync-player-resizing, body.sync-player-resizing * {
 /* --- Fullscreen preview mode --- */
 #view-preview.fs-mode { position: fixed; inset: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; overflow: hidden; }
 #view-preview.fs-mode .header { display: none !important; }
-#view-preview.fs-mode .markers,
 #view-preview.fs-mode .preview-list { display: none !important; }
 #view-preview.fs-mode #btn-mark { display: none !important; }
 #view-preview.fs-mode .player-container { flex: 1; max-width: 100%; margin: 0; width: 100%; display: flex; flex-direction: column; overflow: hidden; }
@@ -685,14 +684,6 @@ function loadPreviewStateFromStorage(talkId, videoSlug) {
     return migrated;
   }
   return defaultPreviewStateShape();
-}
-function msToSrtTime(ms) {
-  var h = Math.floor(ms / 3600000);
-  var m = Math.floor((ms % 3600000) / 60000);
-  var s = Math.floor((ms % 60000) / 1000);
-  var mmm = ms % 1000;
-  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' +
-    String(s).padStart(2, '0') + ',' + String(mmm).padStart(3, '0');
 }
 function applyEditsToSrt(blocks, edits) {
   if (!blocks || !blocks.length) return '';
@@ -2204,13 +2195,26 @@ function showPreview(talkId, videoSlug) {
   renderEditList();
   updateClearBtn();
 
-  // Load SRT — once it arrives, re-render the edit list so rows that
-  // depend on parsed blocks (original text, timecodes) actually show.
+  // Capture the entry {talkId, videoSlug} so fetch-settled callbacks
+  // from a stale entry don't mutate state for the next one if the user
+  // navigates away before the network resolves.
+  var entryTalkId = talkId;
+  var entryVideoSlug = videoSlug;
+  function stillOnSameVideo() {
+    return previewState
+      && previewState.talkId === entryTalkId
+      && previewState.videoSlug === entryVideoSlug;
+  }
+
   var srtLoaded = loadSubtitleLang(defaultLang).then(function() {
-    if (previewState && previewState.mode === 'edit') renderEditList();
+    if (stillOnSameVideo() && previewState.mode === 'edit') renderEditList();
   });
 
-  // Setup player events — wait for both player ready and SRT
+  // Cache the two hot-path DOM nodes written from timeupdate so the
+  // ~4Hz tick doesn't re-query the tree on every frame.
+  var overlayEl = document.getElementById('subtitle-overlay');
+  var timeEl = document.getElementById('time-display');
+
   if (embedUrl) {
     try {
       var player = new Vimeo.Player(iframe);
@@ -2218,6 +2222,7 @@ function showPreview(talkId, videoSlug) {
       player.ready().then(function() {
         console.log('[SPA] Vimeo player ready');
         player.on('timeupdate', function(data) {
+          if (!stillOnSameVideo()) return;
           previewState.currentTime = data.seconds;
           var ms = Math.round(data.seconds * 1000);
           var idx = findActiveSubtitleIdx(previewState.subtitles, ms);
@@ -2230,12 +2235,15 @@ function showPreview(talkId, videoSlug) {
               : previewState.subtitles[idx].text;
           }
           if (text !== previewState.lastText) {
-            document.getElementById('subtitle-overlay').textContent = text;
+            overlayEl.textContent = text;
             previewState.lastText = text;
           }
           var s = Math.floor(data.seconds);
-          document.getElementById('time-display').textContent =
-            String(Math.floor(s/3600)).padStart(2,'0') + ':' + String(Math.floor((s%3600)/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+          if (s !== previewState.lastSec) {
+            timeEl.textContent =
+              String(Math.floor(s/3600)).padStart(2,'0') + ':' + String(Math.floor((s%3600)/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+            previewState.lastSec = s;
+          }
         });
       }).catch(function(err) {
         console.warn('[SPA] Vimeo player error:', err);
@@ -2253,7 +2261,6 @@ function vimeoEmbed(url) {
   return m ? 'https://player.vimeo.com/video/' + m[1] + '?h=' + m[2] : url;
 }
 
-// --- Preview state persistence ---
 function savePreviewState() {
   if (!previewState || !previewState.talkId) return;
   var key = 'preview_' + previewState.talkId + '_' + previewState.videoSlug;
@@ -2265,27 +2272,21 @@ function savePreviewState() {
   localStorage.setItem(key, JSON.stringify(payload));
 }
 
-// --- Mode switching ---
 function applyPreviewMode() {
   var mode = previewState.mode || 'marker';
-  // Segmented control active state
   document.querySelectorAll('.preview-mode-toggle button').forEach(function(b) {
     if (b.dataset.mode === mode) b.classList.add('active');
     else b.classList.remove('active');
   });
-  // Mark/Edit button label + title
   var markBtn = document.getElementById('btn-mark');
   if (markBtn) {
     markBtn.textContent = mode === 'edit' ? t('btn.edit') : t('btn.mark');
     markBtn.title = mode === 'edit' ? t('btn.edit_title') : t('btn.mark_title');
   }
-  // Header action buttons: copy visible only in marker mode,
-  // editor visible only in edit mode.
   var copyBtn = document.getElementById('btn-copy-all');
   if (copyBtn) copyBtn.style.display = mode === 'marker' ? 'inline-block' : 'none';
   var editorBtn = document.getElementById('btn-preview-editor');
   if (editorBtn) editorBtn.style.display = mode === 'edit' ? 'inline-block' : 'none';
-  // List summary label + list visibility
   var label = document.getElementById('preview-list-label');
   if (label) label.textContent = mode === 'edit' ? t('edits.summary') : t('markers.summary');
   var markerList = document.getElementById('marker-list');
@@ -2311,13 +2312,11 @@ SPA.switchPreviewVideo = function(newSlug) {
   location.hash = '#/preview/' + previewState.talkId + '/' + newSlug;
 };
 
-// --- Dispatch for the Mark/Edit button under the player ---
 SPA.addMarkOrEdit = function() {
   if (previewState.mode === 'edit') SPA.addEdit();
   else SPA.addMarker();
 };
 
-// --- Markers ---
 SPA.addMarker = function() {
   var tSec = previewState.currentTime;
   var text = previewState.lastText || '(no subtitle)';
@@ -2419,7 +2418,6 @@ function renderMarkers() {
   });
 }
 
-// --- Edit list rendering ---
 function renderEditList() {
   var list = document.getElementById('edit-list');
   var count = document.getElementById('marker-count');
@@ -2563,9 +2561,6 @@ SPA.clearAll = function() {
     showToast(t('toast.markers_cleared'));
   }
 };
-
-// Backwards-compat alias — some tests and keybindings still call clearMarkers.
-SPA.clearMarkers = function() { SPA.clearAll(); };
 
 SPA.copyMarkers = function() {
   var lines = ['# ' + document.title, ''];
