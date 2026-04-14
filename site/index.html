@@ -294,12 +294,6 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 }
 #sync-player-mount { width: 100%; height: 100%; display: block; }
 .sync-player-video iframe { width: 100%; height: 100%; border: 0; display: block; }
-.sync-player-controls {
-  position: absolute; top: 6px; right: 8px;
-  display: flex; gap: 6px; align-items: center;
-  font-family: monospace; font-size: 12px; color: var(--fg5);
-  z-index: 2;
-}
 .sync-player-resize {
   flex: 0 0 auto;
   height: 8px; width: 100%;
@@ -322,7 +316,6 @@ body.sync-player-resizing, body.sync-player-resizing * {
 #review-grid .cell.en[data-ms-start],
 #review-grid .cell[data-ms-start] .cell-label { cursor: pointer; }
 #review-grid .cell.en[data-ms-start]:hover { background: var(--cell-hover); }
-#btn-follow.paused { opacity: 0.5; }
 
 /* --- Fullscreen preview mode --- */
 #view-preview.fs-mode { position: fixed; inset: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; overflow: hidden; }
@@ -412,14 +405,6 @@ body.sync-player-resizing, body.sync-player-resizing * {
   <div id="sync-player-bar" class="sync-player-bar" hidden>
     <div class="sync-player-video">
       <div id="sync-player-mount"></div>
-      <div class="sync-player-controls">
-        <span id="sync-player-time">00:00:00</span>
-        <button id="btn-follow" class="chip"
-                onclick="SyncPlayer.toggleFollow()"
-                data-i18n-title="title.follow"
-                data-i18n="btn.follow">&#x21C5; Follow</button>
-        <button class="chip" onclick="SyncPlayer.hide()" data-i18n-aria-label="title.close_video" aria-label="Close video">&#x2715;</button>
-      </div>
     </div>
     <div id="sync-player-resize" class="sync-player-resize" role="separator" aria-orientation="horizontal" data-i18n-aria-label="title.resize_bar" aria-label="Resize video"></div>
   </div>
@@ -678,11 +663,10 @@ var I18N = {
     'btn.clear_all': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0435',
     'btn.revert_all': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
     'btn.show_video': '\u25B6 \u041F\u043E\u043A\u0430\u0437\u0430\u0442\u0438 \u0432\u0456\u0434\u0435\u043E',
-    'btn.follow': '\u21C5 \u0421\u043B\u0456\u0434\u0443\u0432\u0430\u0442\u0438',
+    'btn.hide_video': '\u2715 \u0421\u0445\u043E\u0432\u0430\u0442\u0438 \u0432\u0456\u0434\u0435\u043E',
     'title.show_video': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u043F\u043B\u0435\u0454\u0440 \u0434\u043B\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0456\u0437\u043E\u0432\u0430\u043D\u043E\u0433\u043E \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F',
-    'title.close_video': '\u0417\u0430\u043A\u0440\u0438\u0442\u0438 \u043F\u043B\u0435\u0454\u0440',
+    'title.hide_video': '\u0421\u0445\u043E\u0432\u0430\u0442\u0438 \u043F\u043B\u0435\u0454\u0440',
     'title.resize_bar': '\u041F\u043E\u0442\u044F\u0433\u043D\u0456\u0442\u044C, \u0449\u043E\u0431 \u0437\u043C\u0456\u043D\u0438\u0442\u0438 \u0432\u0438\u0441\u043E\u0442\u0443 \u043F\u043B\u0435\u0454\u0440\u0430',
-    'title.follow': '\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E \u043F\u0440\u043E\u043A\u0440\u0443\u0447\u0443\u0432\u0430\u0442\u0438 \u0434\u043E \u043F\u043E\u0442\u043E\u0447\u043D\u043E\u0433\u043E \u0440\u044F\u0434\u043A\u0430',
     'toast.vimeo_unavailable': '\u041F\u043B\u0435\u0454\u0440 Vimeo \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0438\u0439',
     'btn.revert_cell': 'Скасувати правку цього блоку',
     'btn.create_review_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 Issue',
@@ -770,11 +754,10 @@ var I18N = {
     'btn.clear_all': 'Clear all',
     'btn.revert_all': 'Revert all',
     'btn.show_video': '\u25B6 Show video',
-    'btn.follow': '\u21C5 Follow',
+    'btn.hide_video': '\u2715 Hide video',
     'title.show_video': 'Open player for synced editing',
-    'title.close_video': 'Close player',
+    'title.hide_video': 'Hide player',
     'title.resize_bar': 'Drag to resize player',
-    'title.follow': 'Auto-scroll to current row',
     'toast.vimeo_unavailable': 'Vimeo player unavailable',
     'btn.revert_cell': 'Revert this block edit',
     'btn.create_review_issue': 'Create Issue',
@@ -890,10 +873,8 @@ function translatePage() {
 var SyncPlayer = (function() {
   var state = null;
   var btnSync = null;
-  var btnFollow = null;
   var bar = null;
   var mount = null;
-  var timeEl = null;
   var resizeHandle = null;
   var persistTimer = null;
   var gridClickHandler = null;
@@ -964,11 +945,9 @@ var SyncPlayer = (function() {
   }
 
   function cacheDom() {
-    btnSync    = document.getElementById('btn-sync-player');
-    btnFollow    = document.getElementById('btn-follow');
+    btnSync      = document.getElementById('btn-sync-player');
     bar          = document.getElementById('sync-player-bar');
     mount        = document.getElementById('sync-player-mount');
-    timeEl       = document.getElementById('sync-player-time');
     resizeHandle = document.getElementById('sync-player-resize');
   }
 
@@ -1148,6 +1127,14 @@ var SyncPlayer = (function() {
         if (!state || state.player !== p) return;
         onTimeUpdate(data);
       });
+      p.on('play', function() {
+        if (!state || state.player !== p || !state.open) return;
+        resumeFollow();
+      });
+      p.on('pause', function() {
+        if (!state || state.player !== p || !state.open) return;
+        pauseFollow();
+      });
       if (state.lastTime > 0) {
         p.setCurrentTime(state.lastTime / 1000).catch(function(e) {
           console.warn('[SyncPlayer] resume setCurrentTime failed:', e);
@@ -1170,12 +1157,23 @@ var SyncPlayer = (function() {
     if (typeof showToast === 'function') showToast(t('toast.vimeo_unavailable'));
   }
 
+  function updateToggleBtn() {
+    if (!btnSync || !state) return;
+    var key = state.open ? 'btn.hide_video' : 'btn.show_video';
+    var titleKey = state.open ? 'title.hide_video' : 'title.show_video';
+    btnSync.textContent = t(key);
+    btnSync.title = t(titleKey);
+    btnSync.setAttribute('data-i18n', key);
+    btnSync.setAttribute('data-i18n-title', titleKey);
+  }
+
   function show() {
     if (!state) return;
     if (!window.Vimeo) { failOpen(); return; }
     if (!state.player && !mountPlayer()) { failOpen(); return; }
     if (bar) bar.removeAttribute('hidden');
     state.open = true;
+    updateToggleBtn();
     persistNow();
   }
 
@@ -1184,25 +1182,18 @@ var SyncPlayer = (function() {
     if (bar) bar.setAttribute('hidden', '');
     state.open = false;
     if (state.player) { try { state.player.pause(); } catch (_) {} }
+    updateToggleBtn();
     persistNow();
-  }
-
-  function toggleFollow() {
-    if (!state) return;
-    if (state.followPaused) resumeFollow();
-    else pauseFollow();
   }
 
   function pauseFollow() {
     if (!state || state.followPaused) return;
     state.followPaused = true;
-    if (btnFollow) btnFollow.classList.add('paused');
   }
 
   function resumeFollow() {
     if (!state) return;
     state.followPaused = false;
-    if (btnFollow) btnFollow.classList.remove('paused');
     if (state.currentIdx != null && state.currentIdx >= 0) {
       var row = filteredRows('uk')[state.currentIdx];
       if (row && row.uk) {
@@ -1241,7 +1232,6 @@ var SyncPlayer = (function() {
   function onTimeUpdate(data) {
     if (!state) return;
     state.lastTime = Math.round((data && data.seconds || 0) * 1000);
-    if (timeEl) timeEl.textContent = fmtTime(Math.floor(state.lastTime / 1000));
     var ukIdx = binarySearchByMs(filteredRows('uk'), state.lastTime, 'uk');
     if (ukIdx !== state.currentIdx) highlightUkRow(ukIdx);
     var enIdx = binarySearchByMs(filteredRows('en'), state.lastTime, 'en');
@@ -1313,14 +1303,10 @@ var SyncPlayer = (function() {
 
   function seekTo(ms) {
     if (!state || !state.player) return;
-    // Clear pause state synchronously so a rejected seek doesn't strand the
-    // user on .paused. The next timeupdate after the (successful) seek will
-    // call highlightUkRow → scrollRowIntoView with the new row, so we
+    // Clear pause state synchronously: the next timeupdate after the seek
+    // will call highlightUkRow → scrollRowIntoView with the new row, so we
     // intentionally do NOT scroll the OLD row here (avoids a brief flash).
-    if (state.followPaused) {
-      state.followPaused = false;
-      if (btnFollow) btnFollow.classList.remove('paused');
-    }
+    state.followPaused = false;
     var p = state.player;
     p.setCurrentTime(ms / 1000).catch(function(e) {
       console.warn('[SyncPlayer] seekTo failed:', ms, e);
@@ -1420,9 +1406,10 @@ var SyncPlayer = (function() {
 
   return {
     init: init, destroy: destroy, toggle: toggle,
-    show: show, hide: hide, toggleFollow: toggleFollow,
+    show: show, hide: hide,
     invalidateHighlight: invalidateHighlight,
     _binarySearchByMs: binarySearchByMs,
+    _isFollowPaused: function() { return state ? state.followPaused : false; },
   };
 })();
 

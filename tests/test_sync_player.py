@@ -23,14 +23,15 @@ from tests.test_preview_spa import (  # noqa: F401  — re-exported fixtures
 def _goto_review_srt(page, server):  # noqa: F811
     """Navigate to review view and switch to SRT source."""
     goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
-    page.wait_for_selector("#review-grid", timeout=10000)
+    page.wait_for_selector("#review-grid", timeout=20000)
     page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
-    page.wait_for_selector(".cell.uk", timeout=10000)
+    page.wait_for_selector(".cell.uk", timeout=20000)
     # Poll: under parallel load SyncPlayer.init may unhide the button
-    # after switchReviewMode has already returned.
+    # after switchReviewMode has already returned. CI runners sometimes
+    # stall on page init, so use a generous timeout here.
     page.wait_for_function(
         "() => { var b = document.getElementById('btn-sync-player'); return b && b.style.display !== 'none'; }",
-        timeout=10000,
+        timeout=20000,
     )
 
 
@@ -239,11 +240,12 @@ class TestFollowSmartPause:
         page.wait_for_timeout(50)
 
         paused = page.evaluate("window._vimeoPlayer._paused")
-        btn_state = page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        btn_state = page.evaluate("SyncPlayer._isFollowPaused()")
         assert paused is True
         assert btn_state is True
 
-    def test_toggle_follow_button_resumes(self, server, page):  # noqa: F811
+    def test_player_play_resumes_follow(self, server, page):  # noqa: F811
+        """Follow is tied to the player's play state: playing the video resumes follow."""
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
@@ -251,9 +253,10 @@ class TestFollowSmartPause:
           () => document.querySelector('#review-grid .cell-text').focus()
         """)
         page.wait_for_timeout(50)
-        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
-        page.click("#btn-follow")
-        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        assert page.evaluate("SyncPlayer._isFollowPaused()")
+        page.evaluate("window._vimeoPlayer.play()")
+        page.wait_for_timeout(50)
+        assert not page.evaluate("SyncPlayer._isFollowPaused()")
 
 
 class TestEnterAndShortcuts:
@@ -395,7 +398,7 @@ class TestFinalReviewFixes:
 
         page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
         page.wait_for_timeout(50)
-        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        assert not page.evaluate("SyncPlayer._isFollowPaused()")
 
 
 class TestSmartPauseGuards:
@@ -407,12 +410,12 @@ class TestSmartPauseGuards:
         # Auto-scroll triggered by _setTime should NOT pause Follow.
         page.evaluate("window._vimeoPlayer._setTime(6)")
         page.wait_for_timeout(1100)  # let isAutoScrolling guard (1000ms) clear
-        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        assert not page.evaluate("SyncPlayer._isFollowPaused()")
 
         # A subsequent user-initiated window scroll must pause Follow.
         page.evaluate("window.dispatchEvent(new Event('scroll'))")
         page.wait_for_timeout(50)
-        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        assert page.evaluate("SyncPlayer._isFollowPaused()")
 
     def test_space_in_focused_cell_does_not_pause_player(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
@@ -462,15 +465,16 @@ class TestFailOpen:
 
 
 class TestResumeFollow:
-    def test_toggle_follow_resume_calls_scroll_into_view(self, server, page):  # noqa: F811
-        """Resuming Follow (un-pausing) must scroll the current row into view."""
+    def test_player_play_resume_calls_scroll_into_view(self, server, page):  # noqa: F811
+        """Resuming Follow via player.play() must scroll the current row into view."""
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
 
-        # Drive to a known row so currentIdx is set.
+        # Drive to a known row so currentIdx is set, then wait out the
+        # auto-scroll guard before installing the spy.
         page.evaluate("window._vimeoPlayer._setTime(6)")
-        page.wait_for_timeout(50)
+        page.wait_for_timeout(1100)
 
         # Spy on the scroll method actually used by scrollRowIntoView
         # (window.scrollTo, not Element.scrollIntoView). Install AFTER the
@@ -483,14 +487,16 @@ class TestResumeFollow:
           }
         """)
 
-        # Pause Follow (first click).
-        page.click("#btn-follow")
-        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        # Pause Follow by focusing a cell-text (smart-pause path).
+        page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
+        page.wait_for_timeout(50)
+        assert page.evaluate("SyncPlayer._isFollowPaused()")
 
-        # Resume Follow (second click) — should call window.scrollTo.
-        page.click("#btn-follow")
-        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
-        assert page.evaluate("window._stCalls > 0"), "toggleFollow resume must scroll the current row into view"
+        # Resume Follow by playing the video — pause→play event resumes follow.
+        page.evaluate("window._vimeoPlayer.play()")
+        page.wait_for_timeout(50)
+        assert not page.evaluate("SyncPlayer._isFollowPaused()")
+        assert page.evaluate("window._stCalls > 0"), "play event must scroll current row into view on resume"
 
 
 class TestVideoSwitchHighlight:
@@ -537,56 +543,37 @@ class TestVideoSwitchHighlight:
         assert highlighted == ["6000"], "Highlight must work on new video after video switch"
 
 
-class TestAriaLabelI18n:
-    def test_aria_label_uk(self, server, page):  # noqa: F811
-        """In UK language mode the close button aria-label must be Ukrainian."""
+class TestToggleButtonTextSwap:
+    def test_button_text_swaps_between_show_and_hide(self, server, page):  # noqa: F811
+        """The single toggle button shows 'Show video' when closed and 'Hide video' when open."""
         _goto_review_srt(page, server)
-
-        # Force UK language (headless Chrome default is 'en').
-        page.evaluate("""
-            if (window.currentLang !== 'uk') {
-                SPA.toggleLang();
-            }
-        """)
-        page.wait_for_timeout(50)
-
-        label = page.evaluate(
-            "document.querySelector('.sync-player-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
+        # Closed → "Show video".
+        text_closed = page.evaluate("document.getElementById('btn-sync-player').textContent")
+        assert "Show" in text_closed or "\u041f\u043e\u043a\u0430\u0437" in text_closed, (
+            f"Expected show-text initially, got: {text_closed!r}"
         )
-        assert label == "Закрити плеєр", f"Expected Ukrainian label, got: {label!r}"
 
-    def test_aria_label_en(self, server, page):  # noqa: F811
-        """In EN language mode the close button aria-label must be English."""
+        # Open the player.
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        text_open = page.evaluate("document.getElementById('btn-sync-player').textContent")
+        assert "Hide" in text_open or "\u0421\u0445\u043e\u0432\u0430\u0442\u0438" in text_open, (
+            f"Expected hide-text after open, got: {text_open!r}"
+        )
+
+        # Close again → back to "Show video".
+        page.click("#btn-sync-player")
+        page.wait_for_function("() => document.getElementById('sync-player-bar').hasAttribute('hidden')")
+        text_closed_again = page.evaluate("document.getElementById('btn-sync-player').textContent")
+        assert text_closed_again == text_closed, f"Expected text to revert on close, got: {text_closed_again!r}"
+
+    def test_button_title_swaps_between_show_and_hide(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
-
-        # Force EN language.
-        page.evaluate("""
-            if (window.currentLang !== 'en') {
-                SPA.toggleLang();
-            }
-        """)
-        page.wait_for_timeout(50)
-
-        label = page.evaluate(
-            "document.querySelector('.sync-player-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
-        )
-        assert label == "Close player", f"Expected English label, got: {label!r}"
-
-    def test_aria_label_toggles_with_lang_switch(self, server, page):  # noqa: F811
-        """Toggling language must flip the aria-label on the close button."""
-        _goto_review_srt(page, server)
-
-        # Record initial state, then toggle and verify it changes.
-        before = page.evaluate(
-            "document.querySelector('.sync-player-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
-        )
-        page.evaluate("SPA.toggleLang()")
-        page.wait_for_timeout(50)
-        after = page.evaluate(
-            "document.querySelector('.sync-player-controls button[data-i18n-aria-label]').getAttribute('aria-label')"
-        )
-        assert before != after, "aria-label must change when language is toggled"
-        assert after in ("Закрити плеєр", "Close player")
+        title_closed = page.evaluate("document.getElementById('btn-sync-player').title")
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        title_open = page.evaluate("document.getElementById('btn-sync-player').title")
+        assert title_closed != title_open, f"title must swap on toggle: closed={title_closed!r} open={title_open!r}"
 
 
 class TestReopenPreservesPlayhead:
@@ -862,14 +849,14 @@ class TestSeekToClearsPausedEagerly:
 
         result = page.evaluate("""
           () => {
-            // 1. Pause Follow.
-            document.getElementById('btn-follow').click();
-            var paused1 = document.getElementById('btn-follow').classList.contains('paused');
+            // 1. Pause Follow via a manual scroll event.
+            window.dispatchEvent(new Event('scroll'));
+            var paused1 = SyncPlayer._isFollowPaused();
             // 2. Override setCurrentTime so seek will never resolve.
             window._vimeoPlayer.setCurrentTime = function() { return new Promise(function() {}); };
-            // 3. Click an EN cell → seekTo. Must clear .paused immediately.
+            // 3. Click an EN cell → seekTo. Must clear followPaused immediately.
             document.querySelectorAll('#review-grid .cell.en')[1].click();
-            var paused2 = document.getElementById('btn-follow').classList.contains('paused');
+            var paused2 = SyncPlayer._isFollowPaused();
             return { afterPause: paused1, afterSeek: paused2 };
           }
         """)
@@ -890,14 +877,12 @@ class TestSeekToClearsPausedEagerly:
         page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
         page.wait_for_timeout(50)
         page.evaluate("document.activeElement.blur(); document.body.focus();")
-        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        assert page.evaluate("SyncPlayer._isFollowPaused()")
 
         # ArrowLeft → seekTo(-5s).
         page.keyboard.press("ArrowLeft")
         page.wait_for_timeout(50)
-        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')"), (
-            "ArrowLeft (seekTo) must clear .paused"
-        )
+        assert not page.evaluate("SyncPlayer._isFollowPaused()"), "ArrowLeft (seekTo) must clear .paused"
 
 
 class TestMobileViewport:
@@ -1103,15 +1088,13 @@ class TestResizeBar:
         # Pause Follow by focusing a cell.
         page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
         page.wait_for_timeout(50)
-        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+        assert page.evaluate("SyncPlayer._isFollowPaused()")
 
         # Drag the handle to force a resize.
         _drag_resize_handle(page, 120)
 
         # .paused class must be cleared after pointerup.
-        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')"), (
-            "resize should auto-resume Follow"
-        )
+        assert not page.evaluate("SyncPlayer._isFollowPaused()"), "resize should auto-resume Follow"
 
 
 class TestResizeDragLifecycle:
