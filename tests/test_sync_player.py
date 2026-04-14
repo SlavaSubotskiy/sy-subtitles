@@ -23,14 +23,15 @@ from tests.test_preview_spa import (  # noqa: F401  — re-exported fixtures
 def _goto_review_srt(page, server):  # noqa: F811
     """Navigate to review view and switch to SRT source."""
     goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
-    page.wait_for_selector("#review-grid", timeout=10000)
+    page.wait_for_selector("#review-grid", timeout=20000)
     page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
-    page.wait_for_selector(".cell.uk", timeout=10000)
+    page.wait_for_selector(".cell.uk", timeout=20000)
     # Poll: under parallel load SyncPlayer.init may unhide the button
-    # after switchReviewMode has already returned.
+    # after switchReviewMode has already returned. CI runners sometimes
+    # stall on page init, so use a generous timeout here.
     page.wait_for_function(
         "() => { var b = document.getElementById('btn-sync-player'); return b && b.style.display !== 'none'; }",
-        timeout=10000,
+        timeout=20000,
     )
 
 
