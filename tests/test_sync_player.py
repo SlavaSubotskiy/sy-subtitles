@@ -474,7 +474,7 @@ class TestFailOpen:
 # ---------------------------------------------------------------------------
 class TestResumeFollow:
     def test_toggle_follow_resume_calls_scroll_into_view(self, server, page):  # noqa: F811
-        """Resuming Follow (un-pausing) must call scrollIntoView on the current row."""
+        """Resuming Follow (un-pausing) must scroll the current row into view."""
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
@@ -483,21 +483,25 @@ class TestResumeFollow:
         page.evaluate("window._vimeoPlayer._setTime(6)")
         page.wait_for_timeout(50)
 
-        # Install a spy on scrollIntoView AFTER the initial scroll (triggered by _setTime above).
-        page.evaluate(
-            "window._sivCalled = false; Element.prototype.scrollIntoView = function(opts) { window._sivCalled = true; }"
-        )
+        # Spy on the scroll method actually used by scrollRowIntoView
+        # (window.scrollTo, not Element.scrollIntoView). Install AFTER the
+        # initial auto-scroll so we only count the resume-driven call.
+        page.evaluate("""
+          () => {
+            window._stCalls = 0;
+            var orig = window.scrollTo.bind(window);
+            window.scrollTo = function() { window._stCalls++; return orig.apply(window, arguments); };
+          }
+        """)
 
         # Pause Follow (first click).
         page.click("#btn-follow")
         assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
 
-        # Resume Follow (second click) — should scroll current row into view.
+        # Resume Follow (second click) — should call window.scrollTo.
         page.click("#btn-follow")
         assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
-        assert page.evaluate("window._sivCalled === true"), (
-            "toggleFollow resume must call scrollIntoView on the current row"
-        )
+        assert page.evaluate("window._stCalls > 0"), "toggleFollow resume must scroll the current row into view"
 
 
 # ---------------------------------------------------------------------------
@@ -852,6 +856,91 @@ class TestRevertAllEditsHighlightRecovery:
 
         count = page.evaluate("document.querySelectorAll('.cell.uk.current').length")
         assert count == 1, f".current must self-heal after revertAllEdits + timeupdate, got {count}"
+
+    def test_en_current_recovers_after_revert_all(self, server, page):  # noqa: F811
+        """Parallel of the UK self-heal test for the EN column."""
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        page.evaluate("window._vimeoPlayer._setTime(6)")
+        page.wait_for_timeout(50)
+        assert page.evaluate("document.querySelectorAll('.cell.en.current').length") == 1
+
+        page.evaluate("""
+          () => {
+            var ct = document.querySelector('#review-grid .cell-text');
+            if (ct) {
+              ct.textContent = ct.textContent + ' x';
+              ct.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }
+        """)
+        page.click("#btn-revert-all")
+        page.wait_for_timeout(100)
+
+        page.evaluate("window._vimeoPlayer._setTime(6.01)")
+        page.wait_for_timeout(50)
+
+        count = page.evaluate("document.querySelectorAll('.cell.en.current').length")
+        assert count == 1, f"EN .current must self-heal after revertAllEdits, got {count}"
+
+
+# ---------------------------------------------------------------------------
+# Regression: seekTo must clear .paused synchronously even if the underlying
+# Vimeo setCurrentTime promise rejects (otherwise a flaky SDK / out-of-range
+# seek leaves the user permanently stuck on .paused).
+# ---------------------------------------------------------------------------
+class TestSeekToClearsPausedEagerly:
+    def test_paused_cleared_synchronously_without_awaiting_seek(self, server, page):  # noqa: F811
+        """seekTo must clear .paused before/regardless of setCurrentTime resolving.
+
+        Verified by replacing setCurrentTime with a never-resolving promise:
+        if seekTo deferred its class update to .then(), .paused would stay
+        set indefinitely.
+        """
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        result = page.evaluate("""
+          () => {
+            // 1. Pause Follow.
+            document.getElementById('btn-follow').click();
+            var paused1 = document.getElementById('btn-follow').classList.contains('paused');
+            // 2. Override setCurrentTime so seek will never resolve.
+            window._vimeoPlayer.setCurrentTime = function() { return new Promise(function() {}); };
+            // 3. Click an EN cell → seekTo. Must clear .paused immediately.
+            document.querySelectorAll('#review-grid .cell.en')[1].click();
+            var paused2 = document.getElementById('btn-follow').classList.contains('paused');
+            return { afterPause: paused1, afterSeek: paused2 };
+          }
+        """)
+        assert result["afterPause"] is True, "Follow should be paused after first click"
+        assert result["afterSeek"] is False, (
+            "seekTo must clear .paused synchronously even when the seek promise never resolves"
+        )
+
+    def test_paused_cleared_on_arrow_key_seek(self, server, page):  # noqa: F811
+        """ArrowLeft/Right global shortcut routes through seekTo and must resume Follow."""
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer._setTime(20)")
+        page.wait_for_timeout(50)
+
+        # Pause Follow.
+        page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
+        page.wait_for_timeout(50)
+        page.evaluate("document.activeElement.blur(); document.body.focus();")
+        assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
+
+        # ArrowLeft → seekTo(-5s).
+        page.keyboard.press("ArrowLeft")
+        page.wait_for_timeout(50)
+        assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')"), (
+            "ArrowLeft (seekTo) must clear .paused"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1247,3 +1336,19 @@ class TestFollowCenteringBelowBar:
             assert d is not None, f"no current at t={t_sec}"
             assert d["rowTop"] >= d["barBottom"] - 1, f"At t={t_sec}s: row hidden behind bar: {d!r}"
             assert d["rowBottom"] <= d["viewportH"] + 1, f"At t={t_sec}s: row past bottom of viewport: {d!r}"
+
+    def test_row_below_bar_at_mobile_22vh(self, server, page):  # noqa: F811
+        """Centering math must work at mobile viewport (22vh ≈ 179px bar)."""
+        self._install_long_srt(page)
+        page.set_viewport_size({"width": 375, "height": 812})
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        page.evaluate("window._vimeoPlayer._setTime(20)")
+        page.wait_for_timeout(1100)
+
+        d = self._dims(page)
+        assert d is not None
+        assert d["rowTop"] >= d["barBottom"] - 1, f"Row hidden behind 22vh mobile bar: {d!r}"
+        assert d["rowBottom"] <= d["viewportH"] + 1, f"Row past bottom of viewport: {d!r}"

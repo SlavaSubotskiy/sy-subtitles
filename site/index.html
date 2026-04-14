@@ -900,9 +900,15 @@ var SyncPlayer = (function() {
   var resizePointerMove = null;
   var resizePointerUp = null;
 
-  // Bar height in vh; user can grow up to 3x the minimum.
-  var BAR_MIN_VH = 25;
+  // Bar height in vh. The minimum mirrors the CSS media-query default
+  // (desktop 25vh / mobile 22vh) so dragging never snaps the bar above
+  // the rendered initial size on first interaction.
   var BAR_MAX_VH = 75;
+  var BAR_MIN_DESKTOP_VH = 25;
+  var BAR_MIN_MOBILE_VH = 22;
+  function barMinVh() {
+    return window.innerWidth <= 768 ? BAR_MIN_MOBILE_VH : BAR_MIN_DESKTOP_VH;
+  }
   // > max smooth-scroll animation duration so trailing scroll events don't
   // fool onWindowScroll into pausing Follow on its own auto-scroll.
   var SCROLL_GUARD_MS = 1000;
@@ -924,8 +930,9 @@ var SyncPlayer = (function() {
   }
 
   function clampBarHeight(vh) {
-    if (typeof vh !== 'number' || !isFinite(vh)) return BAR_MIN_VH;
-    if (vh < BAR_MIN_VH) return BAR_MIN_VH;
+    var min = barMinVh();
+    if (typeof vh !== 'number' || !isFinite(vh)) return min;
+    if (vh < min) return min;
     if (vh > BAR_MAX_VH) return BAR_MAX_VH;
     return vh;
   }
@@ -1019,6 +1026,11 @@ var SyncPlayer = (function() {
     if (resizePointerUp) document.removeEventListener('mouseup', resizePointerUp);
     resizePointerMove = null;
     resizePointerUp = null;
+    // Tear down any in-flight drag styles so a destroy mid-drag (e.g. user
+    // navigates away while resizing) doesn't leave the global ns-resize
+    // cursor + user-select:none stuck on body for the rest of the session.
+    if (resizeHandle) resizeHandle.classList.remove('dragging');
+    document.body.classList.remove('sync-player-resizing');
     document.removeEventListener('keydown', onGlobalKeydown);
     window.removeEventListener('scroll', onWindowScroll);
     // Reset the CSS var so the next talk/viewport falls back to the
@@ -1031,12 +1043,15 @@ var SyncPlayer = (function() {
   function onResizeStart(e) {
     if (!state) return;
     // Defensive: if a previous drag is still in flight (e.g. browser lost
-    // mouseup), tear it down before starting a new one.
+    // mouseup over devtools), tear it down — listeners and global drag
+    // styles — before starting a new one.
     if (resizePointerMove) {
       document.removeEventListener('mousemove', resizePointerMove);
       document.removeEventListener('mouseup', resizePointerUp);
       resizePointerMove = null;
       resizePointerUp = null;
+      if (resizeHandle) resizeHandle.classList.remove('dragging');
+      document.body.classList.remove('sync-player-resizing');
     }
     e.preventDefault();
     var startY = e.clientY;
@@ -1082,10 +1097,24 @@ var SyncPlayer = (function() {
 
   function mountPlayer() {
     var videos = (reviewState && reviewState.talk && reviewState.talk.videos) || [];
+    if (videos.length === 0) {
+      console.warn('[SyncPlayer] mountPlayer: reviewState.talk.videos missing or empty');
+      return false;
+    }
     var video = videos.find(function(v) { return v.slug === state.videoSlug; });
-    if (!video || !video.vimeo_url) return false;
+    if (!video) {
+      console.warn('[SyncPlayer] mountPlayer: no video matches slug', state.videoSlug);
+      return false;
+    }
+    if (!video.vimeo_url) {
+      console.warn('[SyncPlayer] mountPlayer: video has no vimeo_url', state.videoSlug);
+      return false;
+    }
     var src = vimeoEmbed(video.vimeo_url);
-    if (!/player\.vimeo\.com\/video\/\d+\?h=/.test(src)) return false;
+    if (!/player\.vimeo\.com\/video\/\d+\?h=/.test(src)) {
+      console.warn('[SyncPlayer] mountPlayer: vimeoEmbed produced non-hashed URL', video.vimeo_url, '->', src);
+      return false;
+    }
 
     clearMount();
     var iframe = document.createElement('iframe');
@@ -1255,7 +1284,16 @@ var SyncPlayer = (function() {
     var targetScrollY = Math.max(0, absRowCenter - targetViewportCenter);
     try { window.scrollTo({ top: targetScrollY, behavior: 'smooth' }); }
     catch (e) { window.scrollTo(0, targetScrollY); }
-    setTimeout(function() { if (state) state.isAutoScrolling = false; }, SCROLL_GUARD_MS);
+    // Prefer the scrollend event (Chrome 114+, Firefox 109+, Safari 17+)
+    // so the guard releases exactly when the smooth animation finishes;
+    // fall back to a generous timeout for older browsers / cases where
+    // the animation is interrupted before scrollend fires.
+    var clearGuard = function() {
+      window.removeEventListener('scrollend', clearGuard);
+      if (state) state.isAutoScrolling = false;
+    };
+    window.addEventListener('scrollend', clearGuard, { once: true });
+    setTimeout(clearGuard, SCROLL_GUARD_MS);
   }
 
   function findCellByMs(side, ms) {
@@ -1264,10 +1302,15 @@ var SyncPlayer = (function() {
 
   function seekTo(ms) {
     if (!state || !state.player) return;
+    // Clear pause state synchronously so a rejected seek doesn't strand the
+    // user on .paused. The next timeupdate after the (successful) seek will
+    // call highlightUkRow → scrollRowIntoView with the new row, so we
+    // intentionally do NOT scroll the OLD row here (avoids a brief flash).
+    if (state.followPaused) {
+      state.followPaused = false;
+      if (btnFollow) btnFollow.classList.remove('paused');
+    }
     var p = state.player;
-    // Optimistic resume — Follow should be on by the time the seek completes
-    // anyway, and on rejection we don't want to leave the user stuck on .paused.
-    resumeFollow();
     p.setCurrentTime(ms / 1000).catch(function(e) {
       console.warn('[SyncPlayer] seekTo failed:', ms, e);
     });
@@ -1308,8 +1351,12 @@ var SyncPlayer = (function() {
     var p = state.player;
     p.getPaused().then(function(paused) {
       if (!state || state.player !== p) return;
-      if (paused) p.play(); else p.pause();
-    }).catch(function() {});
+      return paused ? p.play() : p.pause();
+    }).catch(function(e) {
+      // Most often a browser autoplay-policy NotAllowedError on play().
+      // Log so it's visible in devtools; don't toast (Space is hit often).
+      console.warn('[SyncPlayer] togglePlayPause:', e);
+    });
   }
 
   function onGlobalKeydown(e) {
