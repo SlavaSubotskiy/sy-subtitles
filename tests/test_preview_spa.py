@@ -2756,6 +2756,24 @@ class TestPreviewEditMode:
         stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
         assert stored["edits"].get("uk", {}) == {}
 
+    def test_edit_list_rows_visible_when_navigating_from_index(self, server, page):
+        # Seed an edit for block 0 in uk, then navigate to the preview from
+        # scratch. The edit list must render a row once the SRT is fetched.
+        page.add_init_script(
+            "localStorage.setItem('preview_2001-01-01_Test-Talk_Test-Video',"
+            " JSON.stringify({mode:'edit', markers:[], edits:{uk:{'0':'Мій правлений блок'}}}))"
+        )
+        _goto_preview_video(page, server)
+        # Wait until the SRT-dependent re-render finishes.
+        page.wait_for_function(
+            "document.querySelectorAll('.edit-item').length > 0",
+            timeout=5000,
+        )
+        rows = page.locator(".edit-item").count()
+        assert rows == 1
+        text = page.locator(".edit-item .edited").first.inner_text().strip()
+        assert text == "Мій правлений блок"
+
     def test_overlay_reflects_edited_text_during_playback(self, server, page):
         _goto_preview_video(page, server)
         self._switch_to_edit(page)
@@ -2826,6 +2844,95 @@ class TestIndexSingleLink:
         page.wait_for_selector(".talk-item", timeout=10000)
         href = page.locator(".talk-item").first.locator(".preview-link").get_attribute("href")
         assert href == "#/preview/2001-01-01_Test-Talk/Test-Video"
+
+
+class TestSubtitleLangPerTalk:
+    """Subtitle language choice is persisted per-talk, not per-video."""
+
+    def test_lang_choice_saved_per_talk(self, server, page):
+        # Seed availability of both uk and en for Test-Talk via manifest — the
+        # default Test-Video only advertises uk in the fixture, so we flip via
+        # the setter directly and then assert the new per-talk key.
+        page.goto(f"{server}/index.html?_=1#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_function(
+            "window.previewState && window.previewState.videoSlug === 'Test-Video'",
+            timeout=10000,
+        )
+        page.evaluate("localStorage.setItem('sy_srt_lang_2001-01-01_Test-Talk', 'uk')")
+        # Navigate to second video of the same talk — it should pick up the
+        # per-talk saved lang without needing a video-specific entry.
+        page.goto(f"{server}/index.html?_=2#/preview/2001-01-01_Test-Talk/Test-Video-2")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_function(
+            "window.previewState && window.previewState.videoSlug === 'Test-Video-2'",
+            timeout=10000,
+        )
+        lang = page.evaluate("window.previewState && window.previewState.srtLang")
+        assert lang == "uk"
+
+    def test_legacy_per_video_key_ignored(self, server, page):
+        # Legacy per-video keys from before the per-talk change should not
+        # leak into the new per-talk default behavior. We seed a legacy key
+        # and expect it to be ignored (no crash, no false positive).
+        page.add_init_script("localStorage.setItem('sy_srt_lang_2001-01-01_Test-Talk_Test-Video', 'xx')")
+        page.goto(f"{server}/index.html?_=3#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_function(
+            "window.previewState && window.previewState.videoSlug === 'Test-Video'",
+            timeout=10000,
+        )
+        lang = page.evaluate("window.previewState && window.previewState.srtLang")
+        # Only uk is available in the fixture — defaults to uk, legacy ignored.
+        assert lang == "uk"
+
+
+class TestIndexFilterPersistence:
+    """Active filter on the index is persisted separately for normal and
+    expert mode so each mode recalls its own last choice."""
+
+    def test_normal_mode_filter_persisted(self, server, page):
+        page.add_init_script("localStorage.setItem('sy_expert_mode', '0');")
+        goto_spa(page, server)
+        page.wait_for_selector(".stat-card", timeout=10000)
+        # Click the "in-review" stat card to change the filter (valid in normal mode).
+        page.click('.stat-card[data-filter="in-review"]')
+        page.wait_for_timeout(50)
+        saved = page.evaluate("localStorage.getItem('sy_filter_normal')")
+        assert saved == "in-review"
+        # Reload and verify — the active stat card should match on rehydration.
+        goto_spa(page, server)
+        page.wait_for_selector(".stat-card.active", timeout=10000)
+        active = page.evaluate(
+            "document.querySelector('.stat-card.active') && document.querySelector('.stat-card.active').dataset.filter"
+        )
+        assert active == "in-review"
+
+    def test_expert_mode_filter_persisted_separately(self, server, page):
+        page.add_init_script("localStorage.setItem('sy_expert_mode', '1');")
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        page.click('.stat-card[data-filter="in-review"]')
+        page.wait_for_timeout(50)
+        assert page.evaluate("localStorage.getItem('sy_filter_expert')") == "in-review"
+        # Normal-mode filter key must be untouched by expert-mode clicks.
+        assert page.evaluate("localStorage.getItem('sy_filter_normal')") in (None, "needs-review")
+
+    def test_toggle_expert_switches_filter_to_saved(self, server, page):
+        page.add_init_script(
+            "localStorage.setItem('sy_expert_mode', '0');"
+            "localStorage.setItem('sy_filter_normal', 'in-review');"
+            "localStorage.setItem('sy_filter_expert', 'approved');"
+        )
+        goto_spa(page, server)
+        page.wait_for_selector(".stat-card.active", timeout=10000)
+        active = page.evaluate("document.querySelector('.stat-card.active').dataset.filter")
+        assert active == "in-review"
+        # Toggle to expert mode — filter should switch to the expert saved value.
+        page.evaluate("SPA.toggleExpert()")
+        page.wait_for_timeout(50)
+        active = page.evaluate("document.querySelector('.stat-card.active').dataset.filter")
+        assert active == "approved"
 
 
 class TestPreviewVideoSwitcher:

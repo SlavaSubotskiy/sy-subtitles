@@ -177,6 +177,13 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .preview-mode-toggle button { background: var(--bg4); color: var(--fg5); border: 0; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 0; }
 .preview-mode-toggle button + button { border-left: 1px solid var(--border3); }
 .preview-mode-toggle button.active { background: var(--primary-bg); color: var(--primary-fg); }
+/* Preview header layout: h1 left, mode toggle centered, actions right.
+   The 1fr/auto/1fr grid keeps the toggle visually centered when there's
+   enough breathing room, and lets each side push in when content grows. */
+.header.preview-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 12px; }
+.header.preview-header > h1 { justify-self: start; margin: 0; }
+.header.preview-header > .preview-mode-toggle { justify-self: center; }
+.header.preview-header > .header-actions { justify-self: end; }
 .marker-list, .edit-list { list-style: none; }
 .marker-item { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .marker-item .tc { color: var(--link); cursor: pointer; font-family: monospace; }
@@ -262,6 +269,10 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
   .header h1 { font-size: 16px; flex: 1 1 100%; }
   .header-actions { flex-wrap: wrap; gap: 6px; width: 100%; }
   .header-actions button { min-height: 44px; padding: 8px 12px; flex: 1 1 auto; font-size: 13px; }
+  /* Preview header collapses to a single-column stack on narrow screens:
+     title, then the centered mode toggle, then the action row. */
+  .header.preview-header { display: flex; flex-direction: column; align-items: stretch; }
+  .header.preview-header > .preview-mode-toggle { align-self: center; }
   .grid { grid-template-columns: 1fr; }
   .col-header.en { display: none; }
   /* Stack EN above its UK partner instead of hiding EN: a translation
@@ -371,14 +382,14 @@ body.sync-player-resizing, body.sync-player-resizing * {
 
 <!-- === PREVIEW VIEW === -->
 <div id="view-preview" class="view">
-  <div class="header">
+  <div class="header preview-header">
     <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="p-title"></span>
       <select id="preview-video-select" class="select-chip" style="display:none;margin-left:8px;vertical-align:middle" onchange="SPA.switchPreviewVideo(this.value)"></select>
     </h1>
+    <div class="preview-mode-toggle" role="group">
+      <button type="button" data-mode="marker" class="chip active" onclick="SPA.setPreviewMode('marker')" data-i18n="preview.mode_marker">&#x1F4CC; Marker</button><button type="button" data-mode="edit" class="chip" onclick="SPA.setPreviewMode('edit')" data-i18n="preview.mode_edit">&#x270E; Edit</button>
+    </div>
     <div class="header-actions">
-      <div class="preview-mode-toggle" role="group">
-        <button type="button" data-mode="marker" class="chip active" onclick="SPA.setPreviewMode('marker')" data-i18n="preview.mode_marker">&#x1F4CC; Marker</button><button type="button" data-mode="edit" class="chip" onclick="SPA.setPreviewMode('edit')" data-i18n="preview.mode_edit">&#x270E; Edit</button>
-      </div>
       <button id="btn-copy-all" onclick="SPA.copyMarkers()" data-i18n="btn.copy_all">Copy all</button>
       <button id="btn-preview-issue" class="issue" onclick="SPA.createPreviewIssue()" data-i18n="btn.create_issue">Create issue</button>
       <button id="btn-preview-editor" class="primary" style="display:none" onclick="SPA.openPreviewEditor()" data-i18n="btn.open_editor">Open in GitHub Editor</button>
@@ -1560,7 +1571,7 @@ SPA.switchSubLang = function(lang) {
   loadSubtitleLang(lang).then(function() {
     document.getElementById('subtitle-overlay').textContent = '';
     // Save per-video language choice
-    if (previewState) localStorage.setItem('sy_srt_lang_' + previewState.talkId + '_' + previewState.videoSlug, lang);
+    if (previewState) localStorage.setItem('sy_srt_lang_' + previewState.talkId, lang);
     // Edit list is lang-scoped — re-render when lang changes.
     if (previewState && previewState.mode === 'edit') {
       renderEditList();
@@ -1849,7 +1860,12 @@ function showIndex() {
 }
 
 var expertMode = localStorage.getItem('sy_expert_mode') === '1';
-var activeFilter = expertMode ? 'pending' : 'needs-review';
+function filterKey(isExpert) { return isExpert ? 'sy_filter_expert' : 'sy_filter_normal'; }
+function loadSavedFilter(isExpert) {
+  var saved = localStorage.getItem(filterKey(isExpert));
+  return saved || (isExpert ? 'pending' : 'needs-review');
+}
+var activeFilter = loadSavedFilter(expertMode);
 var expandedTalkId = null;
 
 function renderIndex(el) {
@@ -1952,6 +1968,7 @@ function renderIndex(el) {
 
 SPA.filterTalks = function(filter) {
   activeFilter = (activeFilter === filter && filter !== 'all') ? 'all' : filter;
+  localStorage.setItem(filterKey(expertMode), activeFilter);
   document.querySelectorAll('.stat-card').forEach(function(c) {
     c.classList.toggle('active', c.dataset.filter === activeFilter);
   });
@@ -2090,7 +2107,7 @@ function showPreview(talkId, videoSlug) {
 
   // Determine available subtitle languages (restore saved per-video choice)
   var availLangs = (talk && talk._srtLangs && talk._srtLangs[videoSlug]) || ['uk'];
-  var savedSrtLang = localStorage.getItem('sy_srt_lang_' + talkId + '_' + videoSlug);
+  var savedSrtLang = localStorage.getItem('sy_srt_lang_' + talkId);
   var defaultLang = (savedSrtLang && availLangs.indexOf(savedSrtLang) !== -1) ? savedSrtLang
     : availLangs.indexOf('uk') !== -1 ? 'uk' : availLangs[0];
 
@@ -2147,8 +2164,11 @@ function showPreview(talkId, videoSlug) {
   renderEditList();
   updateClearBtn();
 
-  // Load SRT
-  var srtLoaded = loadSubtitleLang(defaultLang);
+  // Load SRT — once it arrives, re-render the edit list so rows that
+  // depend on parsed blocks (original text, timecodes) actually show.
+  var srtLoaded = loadSubtitleLang(defaultLang).then(function() {
+    if (previewState && previewState.mode === 'edit') renderEditList();
+  });
 
   // Setup player events — wait for both player ready and SRT
   if (embedUrl) {
@@ -3643,7 +3663,7 @@ updateFooter();
 SPA.toggleExpert = function() {
   expertMode = !expertMode;
   localStorage.setItem('sy_expert_mode', expertMode ? '1' : '0');
-  activeFilter = expertMode ? 'pending' : 'needs-review';
+  activeFilter = loadSavedFilter(expertMode);
   applyExpertMode();
   if (manifest) { renderStats(); renderIndex(document.getElementById('index-content')); }
 };
