@@ -1104,9 +1104,15 @@ var SyncPlayer = (function() {
 
   function destroy() {
     if (!state) return;
-    hide();
+    // Flush any in-flight throttled persist before we tear down, so the
+    // most recent lastTime / barHeightVh isn't lost on route leave.
     if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; }
+    persistNow();
+    // DOM-level hide: remove the bar visually without touching state.open,
+    // so the saved "open" flag survives the navigation away from review.
+    if (bar) bar.setAttribute('hidden', '');
     if (state.player) {
+      try { state.player.pause(); } catch (_) {}
       try { state.player.destroy(); } catch (_) {}
     }
     clearMount();

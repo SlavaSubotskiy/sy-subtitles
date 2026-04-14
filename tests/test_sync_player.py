@@ -601,6 +601,36 @@ class TestReopenPreservesPlayhead:
         assert abs(current - 8) < 0.1, f"Player currentTime must be preserved after hide/show cycle, got {current}"
 
 
+class TestPersistAcrossNavigation:
+    """State (open flag + playback position + bar height) must survive
+    leaving the review view and coming back. Before the fix, destroy()
+    called hide() which rewrote localStorage with open:false on every
+    route leave, stranding the user at a closed player on return."""
+
+    def test_open_and_playhead_survive_navigation_to_index(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        page.evaluate("window._vimeoPlayer._setTime(9)")
+        page.wait_for_timeout(1100)  # allow throttled persist
+        # Leave to index — this triggers route-level SyncPlayer.destroy().
+        page.evaluate("location.hash = '#/'")
+        page.wait_for_selector(".talk-item", timeout=5000)
+        # localStorage should still report open:true and a lastTime near 9s.
+        saved = page.evaluate("JSON.parse(localStorage.getItem('sy.sync_player.2001-01-01_Test-Talk.Test-Video'))")
+        assert saved is not None
+        assert saved["open"] is True, f"expected open:true after navigating away, got {saved}"
+        assert saved["lastTime"] >= 8500, f"expected lastTime near 9000ms, got {saved}"
+
+        # Come back — the bar must auto-open and the mock player must
+        # seek back to the saved position.
+        _goto_review_srt(page, server)
+        page.wait_for_selector("#sync-player-bar:not([hidden])", timeout=3000)
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        current = page.evaluate("window._vimeoPlayer._currentTime")
+        assert abs(current - 9) < 0.5, f"expected playhead near 9s, got {current}"
+
+
 class TestPersistClosed:
     def test_closed_state_survives_reload(self, server, page):  # noqa: F811
         """After closing the player and reloading, the bar must remain hidden."""
