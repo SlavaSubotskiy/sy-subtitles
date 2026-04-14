@@ -1074,6 +1074,17 @@ var SyncPlayer = (function() {
     while (mount.firstChild) mount.removeChild(mount.firstChild);
   }
 
+  function videoHasPlayer(talkId, videoSlug) {
+    var talk = (typeof reviewState !== 'undefined' && reviewState && reviewState.talk && reviewState.talk.id === talkId)
+      ? reviewState.talk
+      : (typeof manifest !== 'undefined' && manifest
+          ? manifest.talks.find(function(t) { return t.id === talkId; })
+          : null);
+    if (!talk || !talk.videos) return false;
+    var v = talk.videos.find(function(x) { return x.slug === videoSlug; });
+    return !!(v && v.vimeo_url);
+  }
+
   function init(talkId, videoSlug) {
     cacheDom();
     state = freshState(talkId, videoSlug);
@@ -1097,9 +1108,18 @@ var SyncPlayer = (function() {
     if (resizeHandle) resizeHandle.addEventListener('pointerdown', onResizeStart);
     document.addEventListener('keydown', onGlobalKeydown);
     window.addEventListener('scroll', onWindowScroll, { passive: true });
-    if (btnSync) btnSync.style.display = '';
+    // Only expose the sync-player toggle when the current video actually
+    // has a playable source. Without this check the button lingered with
+    // stale "Hide video" text after switching to a video that has no
+    // vimeo_url at all.
+    var playable = videoHasPlayer(talkId, videoSlug);
+    if (btnSync) btnSync.style.display = playable ? '' : 'none';
+    // Refresh the button label off the fresh state so stale text from a
+    // previous video (e.g. "Hide video" after we tore down an open bar)
+    // doesn't carry over.
+    updateToggleBtn();
     // Defer one tick so the caller finishes populating reviewState before show() reads it.
-    if (saved && saved.open === true) setTimeout(show, 0);
+    if (playable && saved && saved.open === true) setTimeout(show, 0);
   }
 
   function destroy() {

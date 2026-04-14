@@ -601,6 +601,61 @@ class TestReopenPreservesPlayhead:
         assert abs(current - 8) < 0.1, f"Player currentTime must be preserved after hide/show cycle, got {current}"
 
 
+class TestButtonResetOnVideoSwitch:
+    """Switching to another video must not leave the toggle button with
+    stale 'Hide video' text from the previous video, and the button must
+    be hidden outright when the new video has no playable source."""
+
+    def test_button_text_resets_to_show_on_video_switch(self, server, page):  # noqa: F811
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+        # Sanity: we're in "Hide video" state.
+        text_open = page.evaluate("document.getElementById('btn-sync-player').textContent")
+        assert "Hide" in text_open or "\u0421\u0445\u043e\u0432\u0430\u0442\u0438" in text_open
+
+        # Switch to second video — we have no saved state for Test-Video-2.
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
+        page.wait_for_timeout(300)
+
+        text_after = page.evaluate("document.getElementById('btn-sync-player').textContent")
+        assert "Show" in text_after or "\u041f\u043e\u043a\u0430\u0437" in text_after, (
+            f"expected show-text after video switch, got: {text_after!r}"
+        )
+
+    def test_button_hidden_when_target_video_has_no_vimeo_url(self, server, page, server_fixtures=None):  # noqa: F811
+        # Swap in a meta.yaml where Test-Video-2 has an empty vimeo_url so
+        # that init() must hide the button even in SRT mode.
+        page.route(
+            "**/raw.githubusercontent.com/**/meta.yaml",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="text/plain",
+                body=(
+                    "title: 'Test Talk: Subtitle Preview'\n"
+                    "date: '2001-01-01'\n"
+                    "location: Test Location\n"
+                    "videos:\n"
+                    "- slug: Test-Video\n"
+                    "  title: Test Video\n"
+                    "  vimeo_url: https://vimeo.com/12345/abc\n"
+                    "- slug: Test-Video-2\n"
+                    "  title: Test Video 2\n"
+                    "  vimeo_url: ''\n"
+                ),
+            ),
+        )
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
+        page.wait_for_timeout(300)
+        assert not page.locator("#btn-sync-player").is_visible(), (
+            "button must hide when switching to a video without a playable source"
+        )
+
+
 class TestPersistAcrossNavigation:
     """State (open flag + playback position + bar height) must survive
     leaving the review view and coming back. Before the fix, destroy()
