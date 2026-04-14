@@ -2935,6 +2935,27 @@ class TestIndexFilterPersistence:
         assert active == "approved"
 
 
+class TestIndexRemembersLastVideo:
+    def test_last_viewed_video_saved_on_preview(self, server, page):
+        _goto_preview_video(page, server, "Test-Video-2")
+        saved = page.evaluate("localStorage.getItem('sy_last_video_2001-01-01_Test-Talk')")
+        assert saved == "Test-Video-2"
+
+    def test_index_link_targets_last_viewed_video(self, server, page):
+        page.add_init_script("localStorage.setItem('sy_last_video_2001-01-01_Test-Talk', 'Test-Video-2')")
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        href = page.locator(".talk-item").first.locator(".preview-link").get_attribute("href")
+        assert href == "#/preview/2001-01-01_Test-Talk/Test-Video-2"
+
+    def test_index_link_falls_back_to_first_video_when_last_invalid(self, server, page):
+        page.add_init_script("localStorage.setItem('sy_last_video_2001-01-01_Test-Talk', 'Nope-Does-Not-Exist')")
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        href = page.locator(".talk-item").first.locator(".preview-link").get_attribute("href")
+        assert href == "#/preview/2001-01-01_Test-Talk/Test-Video"
+
+
 class TestPreviewVideoSwitcher:
     def test_switcher_visible_for_multi_video(self, server, page):
         _goto_preview_video(page, server)

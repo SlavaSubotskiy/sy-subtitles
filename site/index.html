@@ -1568,10 +1568,12 @@ function loadSubtitleLang(lang) {
 }
 
 SPA.switchSubLang = function(lang) {
+  // Persist the choice synchronously so a fast reload or fetch failure
+  // doesn't drop it. Fetch races have historically lost the save when
+  // write happened inside the .then() callback.
+  if (previewState) localStorage.setItem('sy_srt_lang_' + previewState.talkId, lang);
   loadSubtitleLang(lang).then(function() {
     document.getElementById('subtitle-overlay').textContent = '';
-    // Save per-video language choice
-    if (previewState) localStorage.setItem('sy_srt_lang_' + previewState.talkId, lang);
     // Edit list is lang-scoped — re-render when lang changes.
     if (previewState && previewState.mode === 'edit') {
       renderEditList();
@@ -1905,10 +1907,18 @@ function renderIndex(el) {
       var href = st.issue_number ? 'https://github.com/' + REPO + '/issues/' + st.issue_number : '#';
       badge = '<a href="' + href + '" target="_blank" class="review-badge ' + bc + '">' + bt + '</a>';
     }
-    var firstVideo = (tk.videos || []).find(function(v) { return v.hasSrt && v.vimeo_url; });
+    // Prefer the last-viewed video for this talk; fall back to the first
+    // valid one. Both must have an SRT and vimeo_url to be linkable.
+    var validVideos = (tk.videos || []).filter(function(v) { return v.hasSrt && v.vimeo_url; });
+    var lastSlug = localStorage.getItem('sy_last_video_' + tk.id);
+    var targetVideo = null;
+    if (lastSlug) {
+      targetVideo = validVideos.find(function(v) { return v.slug === lastSlug; }) || null;
+    }
+    if (!targetVideo) targetVideo = validVideos[0] || null;
     var videoLinks = '';
-    if (firstVideo) {
-      videoLinks = '<a href="#/preview/' + tk.id + '/' + firstVideo.slug + '" class="preview-link">' + esc(t('link.preview')) + '</a>';
+    if (targetVideo) {
+      videoLinks = '<a href="#/preview/' + tk.id + '/' + targetVideo.slug + '" class="preview-link">' + esc(t('link.preview')) + '</a>';
     }
     var reviewLink = '';
     if (tk.hasEn && tk.hasUk) {
@@ -2090,6 +2100,10 @@ function showPreview(talkId, videoSlug) {
   // Find talk info
   var talk = manifest ? manifest.talks.find(function(t) { return t.id === talkId; }) : null;
   var video = talk ? (talk.videos || []).find(function(v) { return v.slug === videoSlug; }) : null;
+
+  // Remember this as the last-viewed video for the talk so the index
+  // link points here next time.
+  if (video) localStorage.setItem('sy_last_video_' + talkId, videoSlug);
 
   document.getElementById('p-title').textContent = (talk ? talk.title : talkId) + ' — ' + (video ? video.title : videoSlug);
   document.title = (video ? video.title : videoSlug) + ' – Preview';
