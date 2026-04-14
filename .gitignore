@@ -41,6 +41,7 @@ glossary/corpus/
 # Claude Code local config
 .claude/
 .superpowers/
+.playwright-mcp/
 
 # OS
 .DS_Store

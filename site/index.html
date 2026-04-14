@@ -269,6 +269,61 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
   .controls button { min-height: 44px; min-width: 44px; }
 }
 
+/* --- Sync player (sticky, view-review only) --- */
+.chip {
+  background: var(--bg4); color: var(--fg);
+  border: 1px solid var(--border3); border-radius: 6px;
+  padding: 4px 10px; font-size: 12px; cursor: pointer;
+}
+.chip:hover { border-color: var(--fg4); }
+:root { --sync-player-h: 25vh; }
+@media (max-width: 768px) { :root { --sync-player-h: 22vh; } }
+.sync-player-bar {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  height: var(--sync-player-h);
+  min-height: 120px;
+  display: flex; flex-direction: column;
+}
+.sync-player-video {
+  flex: 1 1 auto;
+  background: #000;
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+#sync-player-mount { width: 100%; height: 100%; display: block; }
+.sync-player-video iframe { width: 100%; height: 100%; border: 0; display: block; }
+.sync-player-controls {
+  position: absolute; top: 6px; right: 8px;
+  display: flex; gap: 6px; align-items: center;
+  font-family: monospace; font-size: 12px; color: var(--fg5);
+  z-index: 2;
+}
+.sync-player-resize {
+  flex: 0 0 auto;
+  height: 8px; width: 100%;
+  background: var(--bg3);
+  border-top: 1px solid var(--border);
+  touch-action: none;
+}
+.sync-player-resize:hover { background: var(--border3); }
+.sync-player-resize.dragging { background: var(--border3); cursor: ns-resize; }
+/* Lock cursor and suppress selection only while the user is actively
+   dragging — hover alone doesn't change the cursor, so the mouse
+   doesn't feel "stuck" when passing over the handle. */
+body.sync-player-resizing, body.sync-player-resizing * {
+  cursor: ns-resize !important;
+  user-select: none !important;
+}
+.sync-player-bar[hidden] { display: none; }
+.cell.uk.current,
+.cell.en.current { box-shadow: inset 3px 0 0 var(--link); }
+#review-grid .cell.en[data-ms-start],
+#review-grid .cell[data-ms-start] .cell-label { cursor: pointer; }
+#review-grid .cell.en[data-ms-start]:hover { background: var(--cell-hover); }
+#btn-follow.paused { opacity: 0.5; }
+
 /* --- Fullscreen preview mode --- */
 #view-preview.fs-mode { position: fixed; inset: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; overflow: hidden; }
 #view-preview.fs-mode .header { display: none !important; }
@@ -345,10 +400,28 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
       </select>
     </h1>
     <div class="header-actions">
+      <button id="btn-sync-player" class="chip" style="display:none"
+              onclick="SyncPlayer.toggle()"
+              data-i18n-title="title.show_video"
+              data-i18n="btn.show_video">&#x25B6; Show video</button>
       <button onclick="SPA.revertAllEdits()" id="btn-revert-all" style="display:none" data-i18n="btn.revert_all">Revert all</button>
       <button class="issue" onclick="SPA.createReviewIssue()" data-i18n="btn.create_review_issue">Create Issue</button>
       <button class="primary" onclick="SPA.openEditor()" data-i18n="btn.open_editor">Open in GitHub Editor</button>
     </div>
+  </div>
+  <div id="sync-player-bar" class="sync-player-bar" hidden>
+    <div class="sync-player-video">
+      <div id="sync-player-mount"></div>
+      <div class="sync-player-controls">
+        <span id="sync-player-time">00:00:00</span>
+        <button id="btn-follow" class="chip"
+                onclick="SyncPlayer.toggleFollow()"
+                data-i18n-title="title.follow"
+                data-i18n="btn.follow">&#x21C5; Follow</button>
+        <button class="chip" onclick="SyncPlayer.hide()" data-i18n-aria-label="title.close_video" aria-label="Close video">&#x2715;</button>
+      </div>
+    </div>
+    <div id="sync-player-resize" class="sync-player-resize" role="separator" aria-orientation="horizontal" data-i18n-aria-label="title.resize_bar" aria-label="Resize video"></div>
   </div>
   <div id="review-status" class="status" data-i18n="review.loading">Loading transcripts...</div>
   <div class="grid" id="review-grid">
@@ -604,6 +677,13 @@ var I18N = {
     'btn.create_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 issue',
     'btn.clear_all': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0435',
     'btn.revert_all': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
+    'btn.show_video': '\u25B6 \u041F\u043E\u043A\u0430\u0437\u0430\u0442\u0438 \u0432\u0456\u0434\u0435\u043E',
+    'btn.follow': '\u21C5 \u0421\u043B\u0456\u0434\u0443\u0432\u0430\u0442\u0438',
+    'title.show_video': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u043F\u043B\u0435\u0454\u0440 \u0434\u043B\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0456\u0437\u043E\u0432\u0430\u043D\u043E\u0433\u043E \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F',
+    'title.close_video': '\u0417\u0430\u043A\u0440\u0438\u0442\u0438 \u043F\u043B\u0435\u0454\u0440',
+    'title.resize_bar': '\u041F\u043E\u0442\u044F\u0433\u043D\u0456\u0442\u044C, \u0449\u043E\u0431 \u0437\u043C\u0456\u043D\u0438\u0442\u0438 \u0432\u0438\u0441\u043E\u0442\u0443 \u043F\u043B\u0435\u0454\u0440\u0430',
+    'title.follow': '\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E \u043F\u0440\u043E\u043A\u0440\u0443\u0447\u0443\u0432\u0430\u0442\u0438 \u0434\u043E \u043F\u043E\u0442\u043E\u0447\u043D\u043E\u0433\u043E \u0440\u044F\u0434\u043A\u0430',
+    'toast.vimeo_unavailable': '\u041F\u043B\u0435\u0454\u0440 Vimeo \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0438\u0439',
     'btn.revert_cell': 'Скасувати правку цього блоку',
     'btn.create_review_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 Issue',
     'btn.open_editor': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u0432 GitHub Editor',
@@ -689,6 +769,13 @@ var I18N = {
     'btn.create_issue': 'Create issue',
     'btn.clear_all': 'Clear all',
     'btn.revert_all': 'Revert all',
+    'btn.show_video': '\u25B6 Show video',
+    'btn.follow': '\u21C5 Follow',
+    'title.show_video': 'Open player for synced editing',
+    'title.close_video': 'Close player',
+    'title.resize_bar': 'Drag to resize player',
+    'title.follow': 'Auto-scroll to current row',
+    'toast.vimeo_unavailable': 'Vimeo player unavailable',
     'btn.revert_cell': 'Revert this block edit',
     'btn.create_review_issue': 'Create Issue',
     'btn.open_editor': 'Open in GitHub Editor',
@@ -793,9 +880,551 @@ function translatePage() {
   document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
     el.title = t(el.getAttribute('data-i18n-title'));
   });
+  document.querySelectorAll('[data-i18n-aria-label]').forEach(function(el) {
+    el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria-label')));
+  });
   // Update html lang attribute
   document.documentElement.lang = currentLang;
 }
+
+var SyncPlayer = (function() {
+  var state = null;
+  var btnSync = null;
+  var btnFollow = null;
+  var bar = null;
+  var mount = null;
+  var timeEl = null;
+  var resizeHandle = null;
+  var persistTimer = null;
+  var gridClickHandler = null;
+  var resizePointerMove = null;
+  var resizePointerUp = null;
+
+  // Bar height in vh. The minimum mirrors the CSS media-query default
+  // (desktop 25vh / mobile 22vh) so dragging never snaps the bar above
+  // the rendered initial size on first interaction.
+  var BAR_MAX_VH = 75;
+  var BAR_MIN_DESKTOP_VH = 25;
+  var BAR_MIN_MOBILE_VH = 22;
+  function barMinVh() {
+    return window.innerWidth <= 768 ? BAR_MIN_MOBILE_VH : BAR_MIN_DESKTOP_VH;
+  }
+  // > max smooth-scroll animation duration so trailing scroll events don't
+  // fool onWindowScroll into pausing Follow on its own auto-scroll.
+  var SCROLL_GUARD_MS = 1000;
+  var SEEK_STEP_MS = 5000;
+
+  function freshState(talkId, videoSlug) {
+    return {
+      open: false, followPaused: false,
+      lastTime: 0, currentIdx: null, currentEnIdx: null,
+      player: null, isAutoScrolling: false,
+      talkId: talkId, videoSlug: videoSlug,
+      // null = "use CSS default" (desktop 25vh / mobile 22vh) until first drag.
+      barHeightVh: null,
+      _rowsCacheSrc: null, _rowsCache: { uk: [], en: [] },
+    };
+  }
+
+  function clampBarHeight(vh) {
+    var min = barMinVh();
+    if (typeof vh !== 'number' || !isFinite(vh)) return min;
+    if (vh < min) return min;
+    if (vh > BAR_MAX_VH) return BAR_MAX_VH;
+    return vh;
+  }
+
+  function applyBarHeight(vh) {
+    document.documentElement.style.setProperty('--sync-player-h', vh + 'vh');
+  }
+
+  function storageKey(talkId, videoSlug) {
+    return 'sy.sync_player.' + talkId + '.' + videoSlug;
+  }
+
+  function loadPersisted(talkId, videoSlug) {
+    try {
+      var raw = localStorage.getItem(storageKey(talkId, videoSlug));
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function persistNow() {
+    if (!state) return;
+    try {
+      var data = { open: state.open, lastTime: state.lastTime };
+      if (state.barHeightVh != null) data.barHeightVh = state.barHeightVh;
+      localStorage.setItem(storageKey(state.talkId, state.videoSlug), JSON.stringify(data));
+    } catch (e) { /* quota / private mode — ignore */ }
+  }
+
+  function throttledPersist() {
+    if (persistTimer) return;
+    persistTimer = setTimeout(function() { persistTimer = null; persistNow(); }, 1000);
+  }
+
+  function cacheDom() {
+    btnSync    = document.getElementById('btn-sync-player');
+    btnFollow    = document.getElementById('btn-follow');
+    bar          = document.getElementById('sync-player-bar');
+    mount        = document.getElementById('sync-player-mount');
+    timeEl       = document.getElementById('sync-player-time');
+    resizeHandle = document.getElementById('sync-player-resize');
+  }
+
+  function clearMount() {
+    if (!mount) return;
+    while (mount.firstChild) mount.removeChild(mount.firstChild);
+  }
+
+  function init(talkId, videoSlug) {
+    cacheDom();
+    state = freshState(talkId, videoSlug);
+    var saved = loadPersisted(talkId, videoSlug);
+    if (saved && typeof saved === 'object') {
+      if (typeof saved.lastTime === 'number' && saved.lastTime >= 0) {
+        state.lastTime = saved.lastTime;
+      }
+      if (typeof saved.barHeightVh === 'number') {
+        state.barHeightVh = clampBarHeight(saved.barHeightVh);
+        applyBarHeight(state.barHeightVh);
+      }
+    }
+    var grid = document.getElementById('review-grid');
+    if (grid) {
+      gridClickHandler = onGridClick;
+      grid.addEventListener('click', gridClickHandler);
+      grid.addEventListener('focusin', onGridFocusIn);
+      grid.addEventListener('keydown', onGridKeydown);
+    }
+    if (resizeHandle) resizeHandle.addEventListener('pointerdown', onResizeStart);
+    document.addEventListener('keydown', onGlobalKeydown);
+    window.addEventListener('scroll', onWindowScroll, { passive: true });
+    if (btnSync) btnSync.style.display = '';
+    // Defer one tick so the caller finishes populating reviewState before show() reads it.
+    if (saved && saved.open === true) setTimeout(show, 0);
+  }
+
+  function destroy() {
+    if (!state) return;
+    hide();
+    if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; }
+    if (state.player) {
+      try { state.player.destroy(); } catch (_) {}
+    }
+    clearMount();
+    var grid = document.getElementById('review-grid');
+    if (grid && gridClickHandler) grid.removeEventListener('click', gridClickHandler);
+    if (grid) grid.removeEventListener('focusin', onGridFocusIn);
+    if (grid) grid.removeEventListener('keydown', onGridKeydown);
+    gridClickHandler = null;
+    if (resizeHandle) resizeHandle.removeEventListener('pointerdown', onResizeStart);
+    if (resizePointerMove) document.removeEventListener('pointermove', resizePointerMove);
+    if (resizePointerUp) {
+      document.removeEventListener('pointerup', resizePointerUp);
+      document.removeEventListener('pointercancel', resizePointerUp);
+    }
+    resizePointerMove = null;
+    resizePointerUp = null;
+    // Tear down any in-flight drag styles so a destroy mid-drag (e.g. user
+    // navigates away while resizing) doesn't leave the global ns-resize
+    // cursor + user-select:none stuck on body for the rest of the session.
+    if (resizeHandle) resizeHandle.classList.remove('dragging');
+    document.body.classList.remove('sync-player-resizing');
+    document.removeEventListener('keydown', onGlobalKeydown);
+    window.removeEventListener('scroll', onWindowScroll);
+    // Reset the CSS var so the next talk/viewport falls back to the
+    // media-query default instead of inheriting this talk's custom height.
+    document.documentElement.style.removeProperty('--sync-player-h');
+    state = null;
+    if (btnSync) btnSync.style.display = 'none';
+  }
+
+  function onResizeStart(e) {
+    if (!state) return;
+    // Primary button only: secondary/middle clicks would otherwise start a
+    // drag and then lose the release to the native context menu, stranding
+    // body.sync-player-resizing globally.
+    if (e.button !== 0) return;
+    // Defensive: if a previous drag is still in flight (e.g. browser lost
+    // pointerup because the window lost focus), tear it down before starting a new one.
+    if (resizePointerMove) {
+      document.removeEventListener('pointermove', resizePointerMove);
+      document.removeEventListener('pointerup', resizePointerUp);
+      document.removeEventListener('pointercancel', resizePointerUp);
+      resizePointerMove = null;
+      resizePointerUp = null;
+      if (resizeHandle) resizeHandle.classList.remove('dragging');
+      document.body.classList.remove('sync-player-resizing');
+    }
+    e.preventDefault();
+    var pointerId = e.pointerId;
+    // Pointer capture routes pointerup to the handle even if released off-screen.
+    if (resizeHandle && resizeHandle.setPointerCapture) {
+      try { resizeHandle.setPointerCapture(pointerId); } catch (_) {}
+    }
+    var startY = e.clientY;
+    var vpH = window.innerHeight;
+    // Start from the actual rendered height rather than state.barHeightVh,
+    // because the initial state is null (CSS default) until the first drag.
+    var startVh = state.barHeightVh != null
+      ? state.barHeightVh
+      : (bar.getBoundingClientRect().height / vpH) * 100;
+    if (resizeHandle) resizeHandle.classList.add('dragging');
+    document.body.classList.add('sync-player-resizing');
+    var rafPending = false;
+    resizePointerMove = function(ev) {
+      if (!state) return;
+      if (ev.pointerId !== pointerId) return;
+      var dyVh = ((ev.clientY - startY) / vpH) * 100;
+      state.barHeightVh = clampBarHeight(startVh + dyVh);
+      // Coalesce DOM writes to one per animation frame regardless of
+      // pointer event rate (~60–120 Hz on modern browsers).
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(function() {
+        rafPending = false;
+        if (state) applyBarHeight(state.barHeightVh);
+      });
+    };
+    resizePointerUp = function(ev) {
+      if (ev && ev.pointerId !== pointerId) return;
+      document.removeEventListener('pointermove', resizePointerMove);
+      document.removeEventListener('pointerup', resizePointerUp);
+      document.removeEventListener('pointercancel', resizePointerUp);
+      resizePointerMove = null;
+      resizePointerUp = null;
+      if (resizeHandle) resizeHandle.classList.remove('dragging');
+      document.body.classList.remove('sync-player-resizing');
+      if (resizeHandle && resizeHandle.releasePointerCapture) {
+        try { resizeHandle.releasePointerCapture(pointerId); } catch (_) {}
+      }
+      persistNow();
+      // Resize is a deliberate action — re-engage Follow so the grid
+      // snaps back to the current row in the new viewport geometry.
+      resumeFollow();
+    };
+    document.addEventListener('pointermove', resizePointerMove);
+    document.addEventListener('pointerup', resizePointerUp);
+    document.addEventListener('pointercancel', resizePointerUp);
+  }
+
+  function toggle() { if (!state) return; state.open ? hide() : show(); }
+
+  function mountPlayer() {
+    var videos = (reviewState && reviewState.talk && reviewState.talk.videos) || [];
+    if (videos.length === 0) {
+      console.warn('[SyncPlayer] mountPlayer: reviewState.talk.videos missing or empty');
+      return false;
+    }
+    var video = videos.find(function(v) { return v.slug === state.videoSlug; });
+    if (!video) {
+      console.warn('[SyncPlayer] mountPlayer: no video matches slug', state.videoSlug);
+      return false;
+    }
+    if (!video.vimeo_url) {
+      console.warn('[SyncPlayer] mountPlayer: video has no vimeo_url', state.videoSlug);
+      return false;
+    }
+    var src = vimeoEmbed(video.vimeo_url);
+    if (!/player\.vimeo\.com\/video\/\d+\?h=/.test(src)) {
+      console.warn('[SyncPlayer] mountPlayer: vimeoEmbed produced non-hashed URL', video.vimeo_url, '->', src);
+      return false;
+    }
+
+    clearMount();
+    var iframe = document.createElement('iframe');
+    iframe.allow = 'autoplay; fullscreen';
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.src = src;
+    mount.appendChild(iframe);
+
+    var p;
+    try {
+      p = new Vimeo.Player(iframe);
+      state.player = p;
+      // Capture player identity so late events (after destroy+reinit) are ignored.
+      p.on('timeupdate', function(data) {
+        if (!state || state.player !== p) return;
+        onTimeUpdate(data);
+      });
+      if (state.lastTime > 0) {
+        p.setCurrentTime(state.lastTime / 1000).catch(function(e) {
+          console.warn('[SyncPlayer] resume setCurrentTime failed:', e);
+        });
+      }
+      return true;
+    } catch (e) {
+      console.warn('[SyncPlayer] Vimeo init error:', e);
+      if (p) { try { p.destroy(); } catch (_) {} }
+      state.player = null;
+      clearMount();
+      return false;
+    }
+  }
+
+  function failOpen() {
+    if (!state) return;
+    state.open = false;
+    persistNow();
+    if (typeof showToast === 'function') showToast(t('toast.vimeo_unavailable'));
+  }
+
+  function show() {
+    if (!state) return;
+    if (!window.Vimeo) { failOpen(); return; }
+    if (!state.player && !mountPlayer()) { failOpen(); return; }
+    if (bar) bar.removeAttribute('hidden');
+    state.open = true;
+    persistNow();
+  }
+
+  function hide() {
+    if (!state) return;
+    if (bar) bar.setAttribute('hidden', '');
+    state.open = false;
+    if (state.player) { try { state.player.pause(); } catch (_) {} }
+    persistNow();
+  }
+
+  function toggleFollow() {
+    if (!state) return;
+    if (state.followPaused) resumeFollow();
+    else pauseFollow();
+  }
+
+  function pauseFollow() {
+    if (!state || state.followPaused) return;
+    state.followPaused = true;
+    if (btnFollow) btnFollow.classList.add('paused');
+  }
+
+  function resumeFollow() {
+    if (!state) return;
+    state.followPaused = false;
+    if (btnFollow) btnFollow.classList.remove('paused');
+    if (state.currentIdx != null && state.currentIdx >= 0) {
+      var row = filteredRows('uk')[state.currentIdx];
+      if (row && row.uk) {
+        var target = findCellByMs('uk', row.uk.startMs);
+        if (target) scrollRowIntoView(target);
+      }
+    }
+  }
+
+  function filteredRows(side) {
+    var src = (reviewState && reviewState.alignedRows) || [];
+    if (state._rowsCacheSrc !== src) {
+      state._rowsCacheSrc = src;
+      state._rowsCache = {
+        uk: src.filter(function(r) { return r && r.uk; }),
+        en: src.filter(function(r) { return r && r.en; }),
+      };
+    }
+    return state._rowsCache[side];
+  }
+
+  function binarySearchByMs(rows, ms, side) {
+    side = side || 'uk';
+    if (!rows || rows.length === 0) return -1;
+    if (!rows[0][side] || ms < rows[0][side].startMs) return -1;
+    var lo = 0, hi = rows.length - 1, ans = -1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      var r = rows[mid][side];
+      if (r && r.startMs <= ms) { ans = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    return ans;
+  }
+
+  function onTimeUpdate(data) {
+    if (!state) return;
+    state.lastTime = Math.round((data && data.seconds || 0) * 1000);
+    if (timeEl) timeEl.textContent = fmtTime(Math.floor(state.lastTime / 1000));
+    var ukIdx = binarySearchByMs(filteredRows('uk'), state.lastTime, 'uk');
+    if (ukIdx !== state.currentIdx) highlightUkRow(ukIdx);
+    var enIdx = binarySearchByMs(filteredRows('en'), state.lastTime, 'en');
+    if (enIdx !== state.currentEnIdx) highlightEnRow(enIdx);
+    throttledPersist();
+  }
+
+  function highlightUkRow(idx) {
+    clearCurrentCell('uk');
+    state.currentIdx = idx;
+    if (idx < 0) return;
+    var row = filteredRows('uk')[idx];
+    if (!row || !row.uk) return;
+    var target = findCellByMs('uk', row.uk.startMs);
+    if (target) {
+      target.classList.add('current');
+      // Scroll is driven by the UK row (primary edit target); EN follows.
+      if (!state.followPaused) scrollRowIntoView(target);
+    }
+  }
+
+  function highlightEnRow(idx) {
+    clearCurrentCell('en');
+    state.currentEnIdx = idx;
+    if (idx < 0) return;
+    var row = filteredRows('en')[idx];
+    if (!row || !row.en) return;
+    var target = findCellByMs('en', row.en.startMs);
+    if (target) target.classList.add('current');
+  }
+
+  function clearCurrentCell(side) {
+    var prev = document.querySelector('#review-grid .cell.' + side + '.current');
+    if (prev) prev.classList.remove('current');
+  }
+
+  function scrollRowIntoView(el) {
+    // Swallow scroll events caused by smooth scrollTo so onWindowScroll
+    // doesn't misread auto-scroll as user intent and pause Follow.
+    state.isAutoScrolling = true;
+    // Account for the sticky sync-player-bar: native scrollIntoView({block:'center'})
+    // centers relative to the whole viewport and leaves the row behind the
+    // bar. Compute an ABSOLUTE target scroll position (idempotent across
+    // mid-animation re-entries) that puts the row's center in the middle
+    // of the area visible BELOW the bar.
+    var barH = (bar && !bar.hasAttribute('hidden')) ? bar.getBoundingClientRect().height : 0;
+    var rect = el.getBoundingClientRect();
+    var absRowCenter = rect.top + rect.height / 2 + window.scrollY;
+    var visibleH = Math.max(1, window.innerHeight - barH);
+    var targetViewportCenter = barH + visibleH / 2;
+    var targetScrollY = Math.max(0, absRowCenter - targetViewportCenter);
+    try { window.scrollTo({ top: targetScrollY, behavior: 'smooth' }); }
+    catch (e) { window.scrollTo(0, targetScrollY); }
+    // Prefer the scrollend event (Chrome 114+, Firefox 109+, Safari 17+)
+    // so the guard releases exactly when the smooth animation finishes;
+    // fall back to a generous timeout for older browsers / cases where
+    // the animation is interrupted before scrollend fires.
+    var clearGuard = function() {
+      window.removeEventListener('scrollend', clearGuard);
+      if (state) state.isAutoScrolling = false;
+    };
+    window.addEventListener('scrollend', clearGuard, { once: true });
+    setTimeout(clearGuard, SCROLL_GUARD_MS);
+  }
+
+  function findCellByMs(side, ms) {
+    return document.querySelector('#review-grid .cell.' + side + '[data-ms-start="' + ms + '"]');
+  }
+
+  function seekTo(ms) {
+    if (!state || !state.player) return;
+    // Clear pause state synchronously so a rejected seek doesn't strand the
+    // user on .paused. The next timeupdate after the (successful) seek will
+    // call highlightUkRow → scrollRowIntoView with the new row, so we
+    // intentionally do NOT scroll the OLD row here (avoids a brief flash).
+    if (state.followPaused) {
+      state.followPaused = false;
+      if (btnFollow) btnFollow.classList.remove('paused');
+    }
+    var p = state.player;
+    p.setCurrentTime(ms / 1000).catch(function(e) {
+      console.warn('[SyncPlayer] seekTo failed:', ms, e);
+    });
+  }
+
+  function onGridClick(e) {
+    if (!state || !state.player) return;
+    if (e.target.closest('.cell-text')) return;
+    var isLabel = !!e.target.closest('.cell-label');
+    var cell = e.target.closest('.cell');
+    if (!cell) return;
+    if (!isLabel && !cell.classList.contains('en')) return;
+    var ms = Number(cell.dataset.msStart);
+    if (Number.isNaN(ms)) return;
+    seekTo(ms);
+  }
+
+  function onGridFocusIn(e) {
+    if (!state || !state.open) return;
+    if (!e.target.matches || !e.target.matches('.cell-text')) return;
+    pauseFollow();
+    if (state.player) { try { state.player.pause(); } catch (_) {} }
+  }
+
+  function onGridKeydown(e) {
+    if (!state || !state.open) return;
+    if (e.key !== 'Enter') return;
+    if (e.isComposing || e.keyCode === 229) return;
+    if (!e.target.matches || !e.target.matches('.cell-text')) return;
+    e.preventDefault();
+    e.target.blur();
+    resumeFollow();
+    if (state.player) { try { state.player.play(); } catch (_) {} }
+  }
+
+  function togglePlayPause() {
+    if (!state || !state.player) return;
+    var p = state.player;
+    p.getPaused().then(function(paused) {
+      if (!state || state.player !== p) return;
+      return paused ? p.play() : p.pause();
+    }).catch(function(e) {
+      // Most often a browser autoplay-policy NotAllowedError on play().
+      // Log so it's visible in devtools; don't toast (Space is hit often).
+      console.warn('[SyncPlayer] togglePlayPause:', e);
+    });
+  }
+
+  function onGlobalKeydown(e) {
+    if (!state || !state.open) return;
+    var ae = document.activeElement;
+    // Space/k yield to any focusable control (e.g. mode select); arrows/Esc yield only to text inputs.
+    if (e.key === ' ' || e.key === 'k') {
+      if (ae && ae.matches && ae.matches('input, select, textarea, button, [contenteditable]')) return;
+    } else {
+      if (ae && ae.matches && ae.matches('input, textarea, [contenteditable]')) return;
+    }
+    switch (e.key) {
+      case ' ':
+      case 'k':
+        e.preventDefault();
+        togglePlayPause();
+        break;
+      case 'ArrowLeft':
+      case 'j':
+        e.preventDefault();
+        seekTo(Math.max(0, state.lastTime - SEEK_STEP_MS));
+        break;
+      case 'ArrowRight':
+      case 'l':
+        e.preventDefault();
+        seekTo(state.lastTime + SEEK_STEP_MS);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        hide();
+        break;
+    }
+  }
+
+  function onWindowScroll() {
+    if (!state || !state.open) return;
+    if (state.isAutoScrolling || state.followPaused) return;
+    pauseFollow();
+  }
+
+  function invalidateHighlight() {
+    if (!state) return;
+    // Clear live DOM markers as well — callers can rely on a clean slate
+    // even without a full grid rebuild.
+    clearCurrentCell('uk');
+    clearCurrentCell('en');
+    state.currentIdx = null;
+    state.currentEnIdx = null;
+  }
+
+  return {
+    init: init, destroy: destroy, toggle: toggle,
+    show: show, hide: hide, toggleFollow: toggleFollow,
+    invalidateHighlight: invalidateHighlight,
+    _binarySearchByMs: binarySearchByMs,
+  };
+})();
 
 // ============================================================
 // SPA Router
@@ -806,6 +1435,12 @@ var reviewStatus = null;
 
 window.addEventListener('hashchange', route);
 window.addEventListener('load', route);
+
+window.addEventListener('hashchange', function() {
+  if (!/^#\/review\//.test(location.hash)) {
+    SyncPlayer.destroy();
+  }
+});
 
 // --- Subtitle language switching ---
 function loadSubtitleLang(lang) {
@@ -1596,6 +2231,7 @@ function updateColHeaders() {
 
 function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
+  SyncPlayer.destroy();
   // Reset all state for new talk
   reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightParsed: null, mode: 'transcript', videoSlug: '', alignedRows: null, srtLeftLang: 'en', srtRightLang: 'uk' };
 
@@ -1676,6 +2312,8 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   var talkId = reviewState.talkId;
   var statusEl = document.getElementById('review-status');
 
+  SyncPlayer.destroy();
+
   if (mode === 'transcript') {
     reviewState.mode = 'transcript';
     reviewState.videoSlug = '';
@@ -1713,6 +2351,8 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
   renderReviewSkeleton();
+
+  SyncPlayer.init(talkId, videoSlug);
 
   var talk = reviewState.talk;
   var enSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/en']) || '';
@@ -1815,6 +2455,9 @@ function renderReview() {
     renderReviewTranscript(grid);
   }
   updateReviewCounter();
+  // Grid DOM was rebuilt — any SyncPlayer .current marker is now stale;
+  // force the next timeupdate to re-apply it.
+  SyncPlayer.invalidateHighlight();
 }
 
 function renderReviewSkeleton() {
@@ -1905,6 +2548,7 @@ function renderReviewSrt(grid) {
       enUsed[enKey] = true;
       var leftDiv = document.createElement('div');
       leftDiv.className = 'cell en';
+      leftDiv.dataset.msStart = row.en.startMs;
       if (enSpan > 1) leftDiv.style.gridRow = 'span ' + enSpan;
       leftDiv.innerHTML = cellLabel(enTc).html + esc(row.en.text);
       grid.appendChild(leftDiv);
@@ -1920,6 +2564,7 @@ function renderReviewSrt(grid) {
       ukUsed[ukKey] = true;
       var rightDiv = document.createElement('div');
       rightDiv.className = 'cell uk' + (reviewState.edits[rowIdx] !== undefined ? ' edited' : '') + (reviewState.marks[rowIdx] !== undefined ? ' marked' : '');
+      rightDiv.dataset.msStart = row.uk.startMs;
       if (ukSpan > 1) rightDiv.style.gridRow = 'span ' + ukSpan;
       var displayRight = reviewState.edits[rowIdx] !== undefined ? reviewState.edits[rowIdx] : row.uk.text;
       var ukLbl = cellLabel(ukTc);
