@@ -912,7 +912,6 @@ var SyncPlayer = (function() {
   // > max smooth-scroll animation duration so trailing scroll events don't
   // fool onWindowScroll into pausing Follow on its own auto-scroll.
   var SCROLL_GUARD_MS = 1000;
-  // ←/→/J/L seek delta.
   var SEEK_STEP_MS = 5000;
 
   function freshState(talkId, videoSlug) {
@@ -921,10 +920,8 @@ var SyncPlayer = (function() {
       lastTime: 0, currentIdx: null, currentEnIdx: null,
       player: null, isAutoScrolling: false,
       talkId: talkId, videoSlug: videoSlug,
-      // null means "use CSS default" (handles desktop 25vh / mobile 22vh).
-      // Becomes a number once the user drags the handle.
+      // null = "use CSS default" (desktop 25vh / mobile 22vh) until first drag.
       barHeightVh: null,
-      // Per-side filtered/cached views of reviewState.alignedRows.
       _rowsCacheSrc: null, _rowsCache: { uk: [], en: [] },
     };
   }
@@ -1000,7 +997,7 @@ var SyncPlayer = (function() {
       grid.addEventListener('focusin', onGridFocusIn);
       grid.addEventListener('keydown', onGridKeydown);
     }
-    if (resizeHandle) resizeHandle.addEventListener('mousedown', onResizeStart);
+    if (resizeHandle) resizeHandle.addEventListener('pointerdown', onResizeStart);
     document.addEventListener('keydown', onGlobalKeydown);
     window.addEventListener('scroll', onWindowScroll, { passive: true });
     if (btnSync) btnSync.style.display = '';
@@ -1021,9 +1018,12 @@ var SyncPlayer = (function() {
     if (grid) grid.removeEventListener('focusin', onGridFocusIn);
     if (grid) grid.removeEventListener('keydown', onGridKeydown);
     gridClickHandler = null;
-    if (resizeHandle) resizeHandle.removeEventListener('mousedown', onResizeStart);
-    if (resizePointerMove) document.removeEventListener('mousemove', resizePointerMove);
-    if (resizePointerUp) document.removeEventListener('mouseup', resizePointerUp);
+    if (resizeHandle) resizeHandle.removeEventListener('pointerdown', onResizeStart);
+    if (resizePointerMove) document.removeEventListener('pointermove', resizePointerMove);
+    if (resizePointerUp) {
+      document.removeEventListener('pointerup', resizePointerUp);
+      document.removeEventListener('pointercancel', resizePointerUp);
+    }
     resizePointerMove = null;
     resizePointerUp = null;
     // Tear down any in-flight drag styles so a destroy mid-drag (e.g. user
@@ -1042,18 +1042,27 @@ var SyncPlayer = (function() {
 
   function onResizeStart(e) {
     if (!state) return;
+    // Primary button only: secondary/middle clicks would otherwise start a
+    // drag and then lose the release to the native context menu, stranding
+    // body.sync-player-resizing globally.
+    if (e.button !== 0) return;
     // Defensive: if a previous drag is still in flight (e.g. browser lost
-    // mouseup over devtools), tear it down — listeners and global drag
-    // styles — before starting a new one.
+    // pointerup because the window lost focus), tear it down before starting a new one.
     if (resizePointerMove) {
-      document.removeEventListener('mousemove', resizePointerMove);
-      document.removeEventListener('mouseup', resizePointerUp);
+      document.removeEventListener('pointermove', resizePointerMove);
+      document.removeEventListener('pointerup', resizePointerUp);
+      document.removeEventListener('pointercancel', resizePointerUp);
       resizePointerMove = null;
       resizePointerUp = null;
       if (resizeHandle) resizeHandle.classList.remove('dragging');
       document.body.classList.remove('sync-player-resizing');
     }
     e.preventDefault();
+    var pointerId = e.pointerId;
+    // Pointer capture routes pointerup to the handle even if released off-screen.
+    if (resizeHandle && resizeHandle.setPointerCapture) {
+      try { resizeHandle.setPointerCapture(pointerId); } catch (_) {}
+    }
     var startY = e.clientY;
     var vpH = window.innerHeight;
     // Start from the actual rendered height rather than state.barHeightVh,
@@ -1066,10 +1075,11 @@ var SyncPlayer = (function() {
     var rafPending = false;
     resizePointerMove = function(ev) {
       if (!state) return;
+      if (ev.pointerId !== pointerId) return;
       var dyVh = ((ev.clientY - startY) / vpH) * 100;
       state.barHeightVh = clampBarHeight(startVh + dyVh);
       // Coalesce DOM writes to one per animation frame regardless of
-      // mouse event rate (~60–120 Hz on modern browsers).
+      // pointer event rate (~60–120 Hz on modern browsers).
       if (rafPending) return;
       rafPending = true;
       requestAnimationFrame(function() {
@@ -1077,20 +1087,26 @@ var SyncPlayer = (function() {
         if (state) applyBarHeight(state.barHeightVh);
       });
     };
-    resizePointerUp = function() {
-      document.removeEventListener('mousemove', resizePointerMove);
-      document.removeEventListener('mouseup', resizePointerUp);
+    resizePointerUp = function(ev) {
+      if (ev && ev.pointerId !== pointerId) return;
+      document.removeEventListener('pointermove', resizePointerMove);
+      document.removeEventListener('pointerup', resizePointerUp);
+      document.removeEventListener('pointercancel', resizePointerUp);
       resizePointerMove = null;
       resizePointerUp = null;
       if (resizeHandle) resizeHandle.classList.remove('dragging');
       document.body.classList.remove('sync-player-resizing');
+      if (resizeHandle && resizeHandle.releasePointerCapture) {
+        try { resizeHandle.releasePointerCapture(pointerId); } catch (_) {}
+      }
       persistNow();
       // Resize is a deliberate action — re-engage Follow so the grid
       // snaps back to the current row in the new viewport geometry.
       resumeFollow();
     };
-    document.addEventListener('mousemove', resizePointerMove);
-    document.addEventListener('mouseup', resizePointerUp);
+    document.addEventListener('pointermove', resizePointerMove);
+    document.addEventListener('pointerup', resizePointerUp);
+    document.addEventListener('pointercancel', resizePointerUp);
   }
 
   function toggle() { if (!state) return; state.open ? hide() : show(); }
@@ -1196,9 +1212,6 @@ var SyncPlayer = (function() {
     }
   }
 
-  // Per-side filtered view of reviewState.alignedRows. Both 'uk' and 'en'
-  // are rebuilt together when the source array reference changes, so a
-  // single pass covers both sides.
   function filteredRows(side) {
     var src = (reviewState && reviewState.alignedRows) || [];
     if (state._rowsCacheSrc !== src) {
@@ -1211,8 +1224,6 @@ var SyncPlayer = (function() {
     return state._rowsCache[side];
   }
 
-  // side defaults to 'uk' to keep the test hook `_binarySearchByMs`
-  // backward-compatible with existing unit fixtures.
   function binarySearchByMs(rows, ms, side) {
     side = side || 'uk';
     if (!rows || rows.length === 0) return -1;
