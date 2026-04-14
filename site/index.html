@@ -900,11 +900,14 @@ var SyncPlayer = (function() {
   var resizePointerMove = null;
   var resizePointerUp = null;
 
-  // Height range (in vh units). Default matches the CSS :root var; max is 3x the
-  // desktop default so users can stretch the player to dominate the viewport.
+  // Bar height in vh; user can grow up to 3x the minimum.
   var BAR_MIN_VH = 25;
-  var BAR_DEFAULT_VH = 25;
   var BAR_MAX_VH = 75;
+  // > max smooth-scroll animation duration so trailing scroll events don't
+  // fool onWindowScroll into pausing Follow on its own auto-scroll.
+  var SCROLL_GUARD_MS = 1000;
+  // ←/→/J/L seek delta.
+  var SEEK_STEP_MS = 5000;
 
   function freshState(talkId, videoSlug) {
     return {
@@ -915,13 +918,13 @@ var SyncPlayer = (function() {
       // null means "use CSS default" (handles desktop 25vh / mobile 22vh).
       // Becomes a number once the user drags the handle.
       barHeightVh: null,
-      _ukRowsSrc: null, _ukRowsCache: null,
-      _enRowsSrc: null, _enRowsCache: null,
+      // Per-side filtered/cached views of reviewState.alignedRows.
+      _rowsCacheSrc: null, _rowsCache: { uk: [], en: [] },
     };
   }
 
   function clampBarHeight(vh) {
-    if (typeof vh !== 'number' || !isFinite(vh)) return BAR_DEFAULT_VH;
+    if (typeof vh !== 'number' || !isFinite(vh)) return BAR_MIN_VH;
     if (vh < BAR_MIN_VH) return BAR_MIN_VH;
     if (vh > BAR_MAX_VH) return BAR_MAX_VH;
     return vh;
@@ -1027,6 +1030,14 @@ var SyncPlayer = (function() {
 
   function onResizeStart(e) {
     if (!state) return;
+    // Defensive: if a previous drag is still in flight (e.g. browser lost
+    // mouseup), tear it down before starting a new one.
+    if (resizePointerMove) {
+      document.removeEventListener('mousemove', resizePointerMove);
+      document.removeEventListener('mouseup', resizePointerUp);
+      resizePointerMove = null;
+      resizePointerUp = null;
+    }
     e.preventDefault();
     var startY = e.clientY;
     var vpH = window.innerHeight;
@@ -1037,12 +1048,19 @@ var SyncPlayer = (function() {
       : (bar.getBoundingClientRect().height / vpH) * 100;
     if (resizeHandle) resizeHandle.classList.add('dragging');
     document.body.classList.add('sync-player-resizing');
+    var rafPending = false;
     resizePointerMove = function(ev) {
       if (!state) return;
       var dyVh = ((ev.clientY - startY) / vpH) * 100;
-      var next = clampBarHeight(startVh + dyVh);
-      state.barHeightVh = next;
-      applyBarHeight(next);
+      state.barHeightVh = clampBarHeight(startVh + dyVh);
+      // Coalesce DOM writes to one per animation frame regardless of
+      // mouse event rate (~60–120 Hz on modern browsers).
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(function() {
+        rafPending = false;
+        if (state) applyBarHeight(state.barHeightVh);
+      });
     };
     resizePointerUp = function() {
       document.removeEventListener('mousemove', resizePointerMove);
@@ -1054,18 +1072,7 @@ var SyncPlayer = (function() {
       persistNow();
       // Resize is a deliberate action — re-engage Follow so the grid
       // snaps back to the current row in the new viewport geometry.
-      if (state) {
-        state.followPaused = false;
-        if (btnFollow) btnFollow.classList.remove('paused');
-        if (state.currentIdx != null && state.currentIdx >= 0) {
-          var rows = ukRows();
-          var row = rows[state.currentIdx];
-          if (row && row.uk) {
-            var target = findUkCellByMs(row.uk.startMs);
-            if (target) scrollRowIntoView(target);
-          }
-        }
-      }
+      resumeFollow();
     };
     document.addEventListener('mousemove', resizePointerMove);
     document.addEventListener('mouseup', resizePointerUp);
@@ -1137,34 +1144,42 @@ var SyncPlayer = (function() {
 
   function toggleFollow() {
     if (!state) return;
-    state.followPaused = !state.followPaused;
-    if (btnFollow) btnFollow.classList.toggle('paused', state.followPaused);
-    if (!state.followPaused && state.currentIdx != null && state.currentIdx >= 0) {
-      var rows = ukRows();
-      var row = rows[state.currentIdx];
+    if (state.followPaused) resumeFollow();
+    else pauseFollow();
+  }
+
+  function pauseFollow() {
+    if (!state || state.followPaused) return;
+    state.followPaused = true;
+    if (btnFollow) btnFollow.classList.add('paused');
+  }
+
+  function resumeFollow() {
+    if (!state) return;
+    state.followPaused = false;
+    if (btnFollow) btnFollow.classList.remove('paused');
+    if (state.currentIdx != null && state.currentIdx >= 0) {
+      var row = filteredRows('uk')[state.currentIdx];
       if (row && row.uk) {
-        var target = findUkCellByMs(row.uk.startMs);
+        var target = findCellByMs('uk', row.uk.startMs);
         if (target) scrollRowIntoView(target);
       }
     }
   }
 
-  function ukRows() {
+  // Per-side filtered view of reviewState.alignedRows. Both 'uk' and 'en'
+  // are rebuilt together when the source array reference changes, so a
+  // single pass covers both sides.
+  function filteredRows(side) {
     var src = (reviewState && reviewState.alignedRows) || [];
-    if (state._ukRowsSrc !== src) {
-      state._ukRowsSrc = src;
-      state._ukRowsCache = src.filter(function(r) { return r && r.uk; });
+    if (state._rowsCacheSrc !== src) {
+      state._rowsCacheSrc = src;
+      state._rowsCache = {
+        uk: src.filter(function(r) { return r && r.uk; }),
+        en: src.filter(function(r) { return r && r.en; }),
+      };
     }
-    return state._ukRowsCache;
-  }
-
-  function enRows() {
-    var src = (reviewState && reviewState.alignedRows) || [];
-    if (state._enRowsSrc !== src) {
-      state._enRowsSrc = src;
-      state._enRowsCache = src.filter(function(r) { return r && r.en; });
-    }
-    return state._enRowsCache;
+    return state._rowsCache[side];
   }
 
   // side defaults to 'uk' to keep the test hook `_binarySearchByMs`
@@ -1187,24 +1202,20 @@ var SyncPlayer = (function() {
     if (!state) return;
     state.lastTime = Math.round((data && data.seconds || 0) * 1000);
     if (timeEl) timeEl.textContent = fmtTime(Math.floor(state.lastTime / 1000));
-    var uk = ukRows();
-    var ukIdx = binarySearchByMs(uk, state.lastTime, 'uk');
+    var ukIdx = binarySearchByMs(filteredRows('uk'), state.lastTime, 'uk');
     if (ukIdx !== state.currentIdx) highlightUkRow(ukIdx);
-    var en = enRows();
-    var enIdx = binarySearchByMs(en, state.lastTime, 'en');
+    var enIdx = binarySearchByMs(filteredRows('en'), state.lastTime, 'en');
     if (enIdx !== state.currentEnIdx) highlightEnRow(enIdx);
     throttledPersist();
   }
 
   function highlightUkRow(idx) {
-    var prev = document.querySelector('#review-grid .cell.uk.current');
-    if (prev) prev.classList.remove('current');
+    clearCurrentCell('uk');
     state.currentIdx = idx;
     if (idx < 0) return;
-    var rows = ukRows();
-    var row = rows[idx];
+    var row = filteredRows('uk')[idx];
     if (!row || !row.uk) return;
-    var target = findUkCellByMs(row.uk.startMs);
+    var target = findCellByMs('uk', row.uk.startMs);
     if (target) {
       target.classList.add('current');
       // Scroll is driven by the UK row (primary edit target); EN follows.
@@ -1213,15 +1224,18 @@ var SyncPlayer = (function() {
   }
 
   function highlightEnRow(idx) {
-    var prev = document.querySelector('#review-grid .cell.en.current');
-    if (prev) prev.classList.remove('current');
+    clearCurrentCell('en');
     state.currentEnIdx = idx;
     if (idx < 0) return;
-    var rows = enRows();
-    var row = rows[idx];
+    var row = filteredRows('en')[idx];
     if (!row || !row.en) return;
-    var target = findEnCellByMs(row.en.startMs);
+    var target = findCellByMs('en', row.en.startMs);
     if (target) target.classList.add('current');
+  }
+
+  function clearCurrentCell(side) {
+    var prev = document.querySelector('#review-grid .cell.' + side + '.current');
+    if (prev) prev.classList.remove('current');
   }
 
   function scrollRowIntoView(el) {
@@ -1241,28 +1255,22 @@ var SyncPlayer = (function() {
     var targetScrollY = Math.max(0, absRowCenter - targetViewportCenter);
     try { window.scrollTo({ top: targetScrollY, behavior: 'smooth' }); }
     catch (e) { window.scrollTo(0, targetScrollY); }
-    // Smooth scroll animation can take up to ~800ms for large deltas. Keep
-    // the guard generous so trailing scroll events from the animation don't
-    // trip onWindowScroll and pause Follow unexpectedly.
-    setTimeout(function() { state.isAutoScrolling = false; }, 1000);
+    setTimeout(function() { if (state) state.isAutoScrolling = false; }, SCROLL_GUARD_MS);
   }
 
-  function findUkCellByMs(ms) {
-    return document.querySelector('#review-grid .cell.uk[data-ms-start="' + ms + '"]');
-  }
-
-  function findEnCellByMs(ms) {
-    return document.querySelector('#review-grid .cell.en[data-ms-start="' + ms + '"]');
+  function findCellByMs(side, ms) {
+    return document.querySelector('#review-grid .cell.' + side + '[data-ms-start="' + ms + '"]');
   }
 
   function seekTo(ms) {
     if (!state || !state.player) return;
     var p = state.player;
-    p.setCurrentTime(ms / 1000).then(function() {
-      if (!state || state.player !== p) return;
-      state.followPaused = false;
-      if (btnFollow) btnFollow.classList.remove('paused');
-    }).catch(function(e) { console.warn('[SyncPlayer] seekTo failed:', ms, e); });
+    // Optimistic resume — Follow should be on by the time the seek completes
+    // anyway, and on rejection we don't want to leave the user stuck on .paused.
+    resumeFollow();
+    p.setCurrentTime(ms / 1000).catch(function(e) {
+      console.warn('[SyncPlayer] seekTo failed:', ms, e);
+    });
   }
 
   function onGridClick(e) {
@@ -1278,24 +1286,20 @@ var SyncPlayer = (function() {
   }
 
   function onGridFocusIn(e) {
-    if (!state) return;
-    if (!state.open) return;
+    if (!state || !state.open) return;
     if (!e.target.matches || !e.target.matches('.cell-text')) return;
-    state.followPaused = true;
-    if (btnFollow) btnFollow.classList.add('paused');
+    pauseFollow();
     if (state.player) { try { state.player.pause(); } catch (_) {} }
   }
 
   function onGridKeydown(e) {
-    if (!state) return;
-    if (!state.open) return;
+    if (!state || !state.open) return;
     if (e.key !== 'Enter') return;
     if (e.isComposing || e.keyCode === 229) return;
     if (!e.target.matches || !e.target.matches('.cell-text')) return;
     e.preventDefault();
     e.target.blur();
-    state.followPaused = false;
-    if (btnFollow) btnFollow.classList.remove('paused');
+    resumeFollow();
     if (state.player) { try { state.player.play(); } catch (_) {} }
   }
 
@@ -1326,12 +1330,12 @@ var SyncPlayer = (function() {
       case 'ArrowLeft':
       case 'j':
         e.preventDefault();
-        seekTo(Math.max(0, state.lastTime - 5000));
+        seekTo(Math.max(0, state.lastTime - SEEK_STEP_MS));
         break;
       case 'ArrowRight':
       case 'l':
         e.preventDefault();
-        seekTo(state.lastTime + 5000);
+        seekTo(state.lastTime + SEEK_STEP_MS);
         break;
       case 'Escape':
         e.preventDefault();
@@ -1343,12 +1347,15 @@ var SyncPlayer = (function() {
   function onWindowScroll() {
     if (!state || !state.open) return;
     if (state.isAutoScrolling || state.followPaused) return;
-    state.followPaused = true;
-    if (btnFollow) btnFollow.classList.add('paused');
+    pauseFollow();
   }
 
   function invalidateHighlight() {
     if (!state) return;
+    // Clear live DOM markers as well — callers can rely on a clean slate
+    // even without a full grid rebuild.
+    clearCurrentCell('uk');
+    clearCurrentCell('en');
     state.currentIdx = null;
     state.currentEnIdx = null;
   }

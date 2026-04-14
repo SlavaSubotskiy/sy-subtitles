@@ -7,6 +7,8 @@ test_preview_spa via direct import. Runs standalone with
 
 from __future__ import annotations
 
+import json
+
 from tests.test_preview_spa import (  # noqa: F401  — re-exported fixtures
     SPA_URL,
     browser,
@@ -38,6 +40,21 @@ def _goto_review_srt(page, server):  # noqa: F811
         "() => { var b = document.getElementById('btn-sync-player'); return b && b.style.display !== 'none'; }",
         timeout=10000,
     )
+
+
+def _drag_resize_handle(page, dy_px):  # noqa: F811
+    """Mouse-drag the sync-player resize handle by dy_px (positive = down)."""
+    box = page.evaluate("""
+      () => {
+        var h = document.getElementById('sync-player-resize').getBoundingClientRect();
+        return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+      }
+    """)
+    page.mouse.move(box["x"], box["y"])
+    page.mouse.down()
+    page.mouse.move(box["x"], box["y"] + dy_px, steps=8)
+    page.mouse.up()
+    page.wait_for_timeout(50)
 
 
 class TestSyncPlayerButtonVisibility:
@@ -978,19 +995,8 @@ class TestResizeBar:
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        # Simulate a pointer drag of the handle from its current location
-        # downward by 240px — 240 / 800 * 100 = 30vh, so new height = 55vh = 440px.
-        box = page.evaluate("""
-          () => {
-            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
-            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
-          }
-        """)
-        page.mouse.move(box["x"], box["y"])
-        page.mouse.down()
-        page.mouse.move(box["x"], box["y"] + 240, steps=8)
-        page.mouse.up()
-        page.wait_for_timeout(50)
+        # 240 / 800 * 100 = 30vh, so 25 + 30 = 55vh of 800 = 440px.
+        _drag_resize_handle(page, 240)
         h = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         val = float(h[:-2])
         assert 435 < val < 445, f"Expected ~440px after 30vh drag, got {h!r}"
@@ -1000,18 +1006,7 @@ class TestResizeBar:
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        # Drag way beyond the viewport — should clamp at 75vh = 600px.
-        box = page.evaluate("""
-          () => {
-            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
-            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
-          }
-        """)
-        page.mouse.move(box["x"], box["y"])
-        page.mouse.down()
-        page.mouse.move(box["x"], box["y"] + 2000, steps=10)
-        page.mouse.up()
-        page.wait_for_timeout(50)
+        _drag_resize_handle(page, 2000)
         h = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         val = float(h[:-2])
         # 75vh of 800 = 600px
@@ -1023,17 +1018,7 @@ class TestResizeBar:
         page.wait_for_selector("#btn-sync-player", state="visible", timeout=5000)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        box = page.evaluate("""
-          () => {
-            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
-            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
-          }
-        """)
-        page.mouse.move(box["x"], box["y"])
-        page.mouse.down()
-        page.mouse.move(box["x"], box["y"] - 2000, steps=10)
-        page.mouse.up()
-        page.wait_for_timeout(50)
+        _drag_resize_handle(page, -2000)
         h = page.evaluate("getComputedStyle(document.getElementById('sync-player-bar')).height")
         val = float(h[:-2])
         # 25vh of 800 = 200px
@@ -1044,24 +1029,11 @@ class TestResizeBar:
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        box = page.evaluate("""
-          () => {
-            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
-            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
-          }
-        """)
-        page.mouse.move(box["x"], box["y"])
-        page.mouse.down()
-        page.mouse.move(box["x"], box["y"] + 160, steps=8)  # +20vh -> 45vh = 360px
-        page.mouse.up()
-        page.wait_for_timeout(50)
+        _drag_resize_handle(page, 160)  # +20vh -> 45vh = 360px
 
-        # Persisted JSON must contain barHeightVh ~45
         raw = page.evaluate("localStorage.getItem('sy.sync_player.2001-01-01_Test-Talk.Test-Video')")
         assert raw is not None
-        import json as _json
-
-        saved = _json.loads(raw)
+        saved = json.loads(raw)
         assert 44 < saved["barHeightVh"] < 46, f"Expected ~45vh, got {saved['barHeightVh']}"
 
         # Reload and verify height is restored.
@@ -1079,17 +1051,7 @@ class TestResizeBar:
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         # Grow Test-Video to 55vh
-        box = page.evaluate("""
-          () => {
-            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
-            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
-          }
-        """)
-        page.mouse.move(box["x"], box["y"])
-        page.mouse.down()
-        page.mouse.move(box["x"], box["y"] + 240, steps=8)
-        page.mouse.up()
-        page.wait_for_timeout(50)
+        _drag_resize_handle(page, 240)
 
         # Switch to Test-Video-2 — should fall back to the default (25vh = 200px).
         page.evaluate("SPA.switchReviewMode('srt', 'Test-Video-2')")
@@ -1114,17 +1076,7 @@ class TestResizeBar:
         assert page.evaluate("document.getElementById('btn-follow').classList.contains('paused')")
 
         # Drag the handle to force a resize.
-        box = page.evaluate("""
-          () => {
-            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
-            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
-          }
-        """)
-        page.mouse.move(box["x"], box["y"])
-        page.mouse.down()
-        page.mouse.move(box["x"], box["y"] + 120, steps=6)
-        page.mouse.up()
-        page.wait_for_timeout(50)
+        _drag_resize_handle(page, 120)
 
         # .paused class must be cleared after mouseup.
         assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')"), (
@@ -1165,17 +1117,7 @@ class TestPlayerFillsBar:
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
         before = page.evaluate("document.getElementById('mock-player').getBoundingClientRect().height")
         # Drag the handle down 240px → +30vh → 55vh bar = 440px.
-        box = page.evaluate("""
-          () => {
-            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
-            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
-          }
-        """)
-        page.mouse.move(box["x"], box["y"])
-        page.mouse.down()
-        page.mouse.move(box["x"], box["y"] + 240, steps=8)
-        page.mouse.up()
-        page.wait_for_timeout(50)
+        _drag_resize_handle(page, 240)
         after = page.evaluate("document.getElementById('mock-player').getBoundingClientRect().height")
         # Mock should grow with the bar. Expected roughly +240px; allow slack.
         assert after - before > 200, f"Player did not grow with bar drag: before={before}, after={after}"
@@ -1215,19 +1157,6 @@ class TestFollowCenteringBelowBar:
             "**/raw.githubusercontent.com/**/en.srt",
             lambda r: r.fulfill(status=200, content_type="text/plain", body=long_en),
         )
-
-    def _drag_bar_down(self, page, dy_px):  # noqa: F811
-        box = page.evaluate("""
-          () => {
-            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
-            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
-          }
-        """)
-        page.mouse.move(box["x"], box["y"])
-        page.mouse.down()
-        page.mouse.move(box["x"], box["y"] + dy_px, steps=8)
-        page.mouse.up()
-        page.wait_for_timeout(50)
 
     def _dims(self, page):  # noqa: F811
         return page.evaluate("""
@@ -1269,7 +1198,7 @@ class TestFollowCenteringBelowBar:
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        self._drag_bar_down(page, 240)  # +30vh -> 55vh bar = 440px
+        _drag_resize_handle(page, 240)  # +30vh -> 55vh bar = 440px
 
         page.evaluate("window._vimeoPlayer._setTime(20)")  # row 10
         page.wait_for_timeout(1100)
@@ -1293,7 +1222,7 @@ class TestFollowCenteringBelowBar:
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        self._drag_bar_down(page, 2000)  # clamp to 75vh = 600px
+        _drag_resize_handle(page, 2000)  # clamp to 75vh = 600px
 
         page.evaluate("window._vimeoPlayer._setTime(40)")  # row 20
         page.wait_for_timeout(1100)
