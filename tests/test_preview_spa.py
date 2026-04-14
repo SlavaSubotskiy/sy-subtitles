@@ -250,14 +250,13 @@ class TestIndexView:
         preview_links = page.locator("a[href*='preview']").count()
         assert preview_links >= 1
 
-    def test_both_videos_have_preview(self, server, page):
-        """Both videos have uk.srt — both should have preview links."""
+    def test_single_preview_link_for_multi_video(self, server, page):
+        """Multi-video talks get a single consolidated preview link — users switch
+        videos from within the preview page via the video selector."""
         goto_spa(page, server)
         page.wait_for_selector(".talk-item", timeout=10000)
-        links = page.locator("a[href*='preview']").all()
-        link_texts = [el.text_content().strip() for el in links]
-        assert any("Test Video" in t for t in link_texts), f"'Test Video' not found in {link_texts}"
-        assert any("Test Video 2" in t for t in link_texts), f"'Test Video 2' not found in {link_texts}"
+        links = page.locator(".talk-item").first.locator("a.preview-link").count()
+        assert links == 1
 
     def test_talk_without_uk_no_review(self, server, page):
         """Talk without UK transcript should NOT have review link."""
@@ -476,9 +475,10 @@ class TestMarkers:
         page.evaluate("window._vimeoPlayer._setTime(2)")
         page.wait_for_timeout(200)
         page.click("#btn-mark")
-        data = page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')")
-        assert data is not None
-        markers = json.loads(data)
+        markers = page.evaluate(
+            "JSON.parse(localStorage.getItem('preview_2001-01-01_Test-Talk_Test-Video') || '{}').markers || null"
+        )
+        assert markers is not None
         assert len(markers) == 1
         assert markers[0]["text"] == "Перший субтитр"
 
@@ -533,11 +533,15 @@ class TestMarkers:
         page.evaluate("window._vimeoPlayer._setTime(2)")
         page.wait_for_timeout(200)
         page.click("#btn-mark")
-        data = json.loads(page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')"))
+        data = page.evaluate(
+            "JSON.parse(localStorage.getItem('preview_2001-01-01_Test-Talk_Test-Video') || '{}').markers || []"
+        )
         assert len(data) == 1
         page.once("dialog", lambda dialog: dialog.accept())
         page.click("button.danger")
-        data = json.loads(page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')"))
+        data = page.evaluate(
+            "JSON.parse(localStorage.getItem('preview_2001-01-01_Test-Talk_Test-Video') || '{}').markers || []"
+        )
         assert len(data) == 0
 
     def test_marker_comment_input(self, server, page):
@@ -555,7 +559,9 @@ class TestMarkers:
         page.evaluate("window._vimeoPlayer._setTime(0.5)")
         page.wait_for_timeout(200)
         page.click("#btn-mark")
-        data = json.loads(page.evaluate("localStorage.getItem('markers_preview_2001-01-01_Test-Talk_Test-Video')"))
+        data = page.evaluate(
+            "JSON.parse(localStorage.getItem('preview_2001-01-01_Test-Talk_Test-Video') || '{}').markers || []"
+        )
         assert data[0]["text"] == "(no subtitle)"
 
     def test_comment_enter_blurs_input(self, server, page):
@@ -688,7 +694,7 @@ class TestFullscreenMode:
         self._goto_preview(server, page)
         self._enter_fs(page)
         display = page.evaluate("""
-            getComputedStyle(document.querySelector('#view-preview .markers')).display
+            getComputedStyle(document.querySelector('#view-preview .preview-list')).display
         """)
         assert display == "none"
 
@@ -2472,3 +2478,560 @@ class TestRealTranscriptRoundTrip:
         assert para_count == expected, (
             f"[{fixture}] paragraph count mismatch: SPA reports {para_count}, expected {expected}"
         )
+
+
+# ============================================================
+# Preview: marker ↔ edit mode toggle
+# ============================================================
+
+PREVIEW_KEY = "preview_2001-01-01_Test-Talk_Test-Video"
+LEGACY_KEY = "markers_preview_2001-01-01_Test-Talk_Test-Video"
+
+
+def _goto_preview_video(page, server, video_slug="Test-Video"):
+    # Always do a full navigation so route() runs against a clean previewState.
+    # page.goto with only a hash change would not reload when already on the
+    # same path in Playwright, and hashchange alone can race with manifest load.
+    page.goto(f"{server}{SPA_URL}?_r={video_slug}#/preview/2001-01-01_Test-Talk/{video_slug}")
+    page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+    page.wait_for_function(
+        f"window.previewState && window.previewState.videoSlug === {video_slug!r}",
+        timeout=10000,
+    )
+    page.wait_for_timeout(300)
+
+
+class TestPreviewModeDefaults:
+    def test_default_mode_is_marker(self, server, page):
+        _goto_preview_video(page, server)
+        mode = page.evaluate(
+            "document.querySelector('.preview-mode-toggle [data-mode=\"marker\"]').classList.contains('active')"
+        )
+        assert mode is True
+
+    def test_default_new_key_shape_on_first_mutation(self, server, page):
+        _goto_preview_video(page, server)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
+        assert stored is not None
+        assert stored["mode"] == "marker"
+        assert isinstance(stored["markers"], list)
+        assert isinstance(stored["edits"], dict)
+        assert len(stored["markers"]) == 1
+
+    def test_mode_persisted_across_reload(self, server, page):
+        _goto_preview_video(page, server)
+        page.click('.preview-mode-toggle [data-mode="edit"]')
+        page.wait_for_timeout(100)
+        _goto_preview_video(page, server)
+        mode = page.evaluate(
+            "document.querySelector('.preview-mode-toggle [data-mode=\"edit\"]').classList.contains('active')"
+        )
+        assert mode is True
+
+    def test_mode_independent_per_video(self, server, page):
+        _goto_preview_video(page, server, "Test-Video")
+        page.click('.preview-mode-toggle [data-mode="edit"]')
+        page.wait_for_timeout(100)
+        _goto_preview_video(page, server, "Test-Video-2")
+        debug = page.evaluate("""
+          ({
+            state_mode: (window.previewState || {}).mode,
+            btn_marker_classes: document.querySelector('.preview-mode-toggle [data-mode=\"marker\"]').className,
+            btn_edit_classes: document.querySelector('.preview-mode-toggle [data-mode=\"edit\"]').className,
+            v2_key: localStorage.getItem('preview_2001-01-01_Test-Talk_Test-Video-2'),
+            v1_key: localStorage.getItem('preview_2001-01-01_Test-Talk_Test-Video'),
+          })
+        """)
+        mode2 = page.evaluate(
+            "document.querySelector('.preview-mode-toggle [data-mode=\"marker\"]').classList.contains('active')"
+        )
+        assert mode2 is True, f"debug: {debug}"
+        _goto_preview_video(page, server, "Test-Video")
+        mode1 = page.evaluate(
+            "document.querySelector('.preview-mode-toggle [data-mode=\"edit\"]').classList.contains('active')"
+        )
+        assert mode1 is True
+
+
+class TestPreviewLegacyMigration:
+    def test_legacy_markers_migrated_to_new_key(self, server, page):
+        # Seed legacy key before navigation — use init script so it runs
+        # before any SPA code sees localStorage.
+        legacy = json.dumps([{"time": 2.0, "tc": "00:00:02", "text": "legacy one", "comment": ""}])
+        page.add_init_script(f"localStorage.setItem({LEGACY_KEY!r}, {legacy!r});")
+        _goto_preview_video(page, server)
+        new = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
+        assert new is not None
+        assert new["mode"] == "marker"
+        assert len(new["markers"]) == 1
+        assert new["markers"][0]["text"] == "legacy one"
+        legacy_after = page.evaluate(f"localStorage.getItem('{LEGACY_KEY}')")
+        assert legacy_after is None
+
+    def test_legacy_ignored_when_new_key_exists(self, server, page):
+        new_payload = json.dumps({"mode": "edit", "markers": [], "edits": {"uk": {"0": "нове"}}})
+        legacy_payload = json.dumps([{"time": 1, "tc": "00:00:01", "text": "stale", "comment": ""}])
+        page.add_init_script(
+            f"localStorage.setItem({PREVIEW_KEY!r}, {new_payload!r});"
+            f"localStorage.setItem({LEGACY_KEY!r}, {legacy_payload!r});"
+        )
+        _goto_preview_video(page, server)
+        stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
+        assert stored["mode"] == "edit"
+        legacy_after = page.evaluate(f"localStorage.getItem('{LEGACY_KEY}')")
+        assert legacy_after is None
+
+    def test_corrupt_legacy_json_falls_back_to_default(self, server, page):
+        page.add_init_script(f"localStorage.setItem({LEGACY_KEY!r}, '{{not-json');")
+        _goto_preview_video(page, server)
+        stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
+        assert stored is not None
+        assert stored["mode"] == "marker"
+        assert stored["markers"] == []
+        assert stored["edits"] == {}
+        # Legacy key is wiped regardless of parse outcome.
+        assert page.evaluate(f"localStorage.getItem({LEGACY_KEY!r})") is None
+
+
+class TestPreviewLayoutButtons:
+    def test_action_buttons_live_in_header(self, server, page):
+        _goto_preview_video(page, server)
+        # Buttons that should be in the preview header.
+        for sel in ["#btn-preview-issue", "#btn-clear-all"]:
+            count = page.locator(f"#view-preview .header .header-actions {sel}").count()
+            assert count == 1, f"{sel} not found in preview header-actions"
+
+    def test_mark_button_stays_in_player_controls(self, server, page):
+        _goto_preview_video(page, server)
+        count = page.locator("#view-preview .player-container .controls #btn-mark").count()
+        assert count == 1
+
+    def test_segmented_control_in_header(self, server, page):
+        _goto_preview_video(page, server)
+        count = page.locator("#view-preview .header .preview-mode-toggle").count()
+        assert count == 1
+        btns = page.locator(".preview-mode-toggle button").count()
+        assert btns == 2
+
+    def test_clear_btn_hidden_when_empty(self, server, page):
+        _goto_preview_video(page, server)
+        visible = page.locator("#btn-clear-all").is_visible()
+        assert visible is False
+
+    def test_clear_btn_shown_after_adding_marker(self, server, page):
+        _goto_preview_video(page, server)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        visible = page.locator("#btn-clear-all").is_visible()
+        assert visible is True
+
+    def test_copy_btn_only_visible_in_marker_mode(self, server, page):
+        _goto_preview_video(page, server)
+        assert page.locator("#btn-copy-all").is_visible() is True
+        page.click('.preview-mode-toggle [data-mode="edit"]')
+        assert page.locator("#btn-copy-all").is_visible() is False
+
+    def test_open_editor_btn_only_visible_in_edit_mode(self, server, page):
+        _goto_preview_video(page, server)
+        assert page.locator("#btn-preview-editor").is_visible() is False
+        page.click('.preview-mode-toggle [data-mode="edit"]')
+        assert page.locator("#btn-preview-editor").is_visible() is True
+
+
+class TestPreviewEditMode:
+    def _switch_to_edit(self, page):
+        page.click('.preview-mode-toggle [data-mode="edit"]')
+        page.wait_for_timeout(50)
+
+    def test_add_edit_creates_item_and_pauses(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")  # same button, label now "Edit"
+        count = page.locator(".edit-item").count()
+        assert count == 1
+        paused = page.evaluate("window._vimeoPlayer._paused")
+        assert paused is True
+
+    def test_add_edit_initial_text_equals_original(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        text = page.locator(".edit-item .edited").first.inner_text().strip()
+        assert text == "Перший субтитр"
+
+    def test_add_edit_focuses_contenteditable(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        focused = page.evaluate("document.activeElement.classList.contains('edited')")
+        assert focused is True
+
+    def test_add_edit_existing_block_does_not_duplicate(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.keyboard.press("Escape")  # blur
+        page.evaluate("window._vimeoPlayer._setTime(3)")  # still inside block 0 (1000-5000)
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        count = page.locator(".edit-item").count()
+        assert count == 1
+
+    def test_add_edit_no_active_subtitle_does_nothing(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(5.5)")  # gap between blocks
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        count = page.locator(".edit-item").count()
+        assert count == 0
+
+    def test_edit_text_persists_to_storage(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        # Type new text into focused contenteditable.
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'Змінений текст';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
+        assert stored["edits"]["uk"]["0"] == "Змінений текст"
+
+    def test_edit_equal_to_original_removes_entry(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'Інакший';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'Перший субтитр';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
+        uk_edits = stored["edits"].get("uk", {})
+        assert "0" not in uk_edits and 0 not in uk_edits
+
+    def test_edit_enter_resumes_video(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        assert page.evaluate("window._vimeoPlayer._paused") is True
+        # Send Enter to the focused contenteditable.
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(100)
+        assert page.evaluate("window._vimeoPlayer._paused") is False
+
+    def test_delete_edit_row_removes_from_storage(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'Змінений';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.click(".edit-item .del")
+        stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
+        assert stored["edits"].get("uk", {}) == {}
+
+    def test_edit_list_rows_visible_when_navigating_from_index(self, server, page):
+        # Seed an edit for block 0 in uk, then navigate to the preview from
+        # scratch. The edit list must render a row once the SRT is fetched.
+        page.add_init_script(
+            "localStorage.setItem('preview_2001-01-01_Test-Talk_Test-Video',"
+            " JSON.stringify({mode:'edit', markers:[], edits:{uk:{'0':'Мій правлений блок'}}}))"
+        )
+        _goto_preview_video(page, server)
+        # Wait until the SRT-dependent re-render finishes.
+        page.wait_for_function(
+            "document.querySelectorAll('.edit-item').length > 0",
+            timeout=5000,
+        )
+        rows = page.locator(".edit-item").count()
+        assert rows == 1
+        text = page.locator(".edit-item .edited").first.inner_text().strip()
+        assert text == "Мій правлений блок"
+
+    def test_create_issue_edit_mode_body_has_before_after(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'НОВА ВЕРСІЯ';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(
+            "window._openedUrl = null;"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " navigator.clipboard.writeText = function() { return Promise.resolve(); };"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.createPreviewIssue()")
+        page.wait_for_timeout(200)
+        body = page.evaluate("decodeURIComponent(window._openedUrl || '')")
+        assert "Suggested edits" in body, body[:400]
+        assert "НОВА ВЕРСІЯ" in body, body[:400]
+        assert "Перший субтитр" in body, body[:400]
+
+    def test_open_preview_editor_clipboards_rebuilt_srt(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'ЗМІНА';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(
+            "window._clipText = '';"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.alert = function() {};"
+            " window._openedUrl = null;"
+            " window.open = function(u) { window._openedUrl = u; };"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        clip = page.evaluate("window._clipText || ''")
+        opened = page.evaluate("window._openedUrl || ''")
+        assert "ЗМІНА" in clip, clip[:400]
+        assert "00:00:01,000 --> 00:00:05,000" in clip, clip[:400]
+        assert "Другий субтитр" in clip, clip[:400]
+        assert opened.startswith("https://github.com/") and "final/uk.srt" in opened
+
+    def test_overlay_reflects_edited_text_during_playback(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        # Overwrite the edit text.
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'Відредагований субтитр';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        # Drive the player timeupdate to re-render overlay.
+        page.evaluate("window._vimeoPlayer._setTime(3)")
+        page.wait_for_timeout(200)
+        overlay = page.evaluate("document.getElementById('subtitle-overlay').textContent")
+        assert overlay == "Відредагований субтитр"
+
+    def test_overlay_falls_back_to_original_when_edit_reverted(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'Перший субтитр';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate("window._vimeoPlayer._setTime(3)")
+        page.wait_for_timeout(200)
+        overlay = page.evaluate("document.getElementById('subtitle-overlay').textContent")
+        assert overlay == "Перший субтитр"
+
+    def test_clear_all_edit_mode(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'X';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.once("dialog", lambda dialog: dialog.accept())
+        page.click("#btn-clear-all")
+        count = page.locator(".edit-item").count()
+        assert count == 0
+        stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
+        assert stored["edits"].get("uk", {}) == {}
+
+
+class TestIndexSingleLink:
+    def test_single_preview_link_per_talk(self, server, page):
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        # Test-Talk has 2 videos but we want a single preview entry.
+        links = page.locator(".talk-item").first.locator(".preview-link").count()
+        assert links == 1, f"expected 1 preview link, got {links}"
+
+    def test_preview_link_points_to_first_video(self, server, page):
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        href = page.locator(".talk-item").first.locator(".preview-link").get_attribute("href")
+        assert href == "#/preview/2001-01-01_Test-Talk/Test-Video"
+
+
+class TestSubtitleLangPerTalk:
+    """Subtitle language choice is persisted per-talk, not per-video."""
+
+    def test_lang_choice_saved_per_talk(self, server, page):
+        # Seed availability of both uk and en for Test-Talk via manifest — the
+        # default Test-Video only advertises uk in the fixture, so we flip via
+        # the setter directly and then assert the new per-talk key.
+        page.goto(f"{server}/index.html?_=1#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_function(
+            "window.previewState && window.previewState.videoSlug === 'Test-Video'",
+            timeout=10000,
+        )
+        page.evaluate("localStorage.setItem('sy_srt_lang_2001-01-01_Test-Talk', 'uk')")
+        # Navigate to second video of the same talk — it should pick up the
+        # per-talk saved lang without needing a video-specific entry.
+        page.goto(f"{server}/index.html?_=2#/preview/2001-01-01_Test-Talk/Test-Video-2")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_function(
+            "window.previewState && window.previewState.videoSlug === 'Test-Video-2'",
+            timeout=10000,
+        )
+        lang = page.evaluate("window.previewState && window.previewState.srtLang")
+        assert lang == "uk"
+
+    def test_legacy_per_video_key_ignored(self, server, page):
+        # Legacy per-video keys from before the per-talk change should not
+        # leak into the new per-talk default behavior. We seed a legacy key
+        # and expect it to be ignored (no crash, no false positive).
+        page.add_init_script("localStorage.setItem('sy_srt_lang_2001-01-01_Test-Talk_Test-Video', 'xx')")
+        page.goto(f"{server}/index.html?_=3#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_function(
+            "window.previewState && window.previewState.videoSlug === 'Test-Video'",
+            timeout=10000,
+        )
+        lang = page.evaluate("window.previewState && window.previewState.srtLang")
+        # Only uk is available in the fixture — defaults to uk, legacy ignored.
+        assert lang == "uk"
+
+
+class TestIndexFilterPersistence:
+    """Active filter on the index is persisted separately for normal and
+    expert mode so each mode recalls its own last choice."""
+
+    def test_normal_mode_filter_persisted(self, server, page):
+        page.add_init_script("localStorage.setItem('sy_expert_mode', '0');")
+        goto_spa(page, server)
+        page.wait_for_selector(".stat-card", timeout=10000)
+        # Click the "in-review" stat card to change the filter (valid in normal mode).
+        page.click('.stat-card[data-filter="in-review"]')
+        page.wait_for_timeout(50)
+        saved = page.evaluate("localStorage.getItem('sy_filter_normal')")
+        assert saved == "in-review"
+        # Reload and verify — the active stat card should match on rehydration.
+        goto_spa(page, server)
+        page.wait_for_selector(".stat-card.active", timeout=10000)
+        active = page.evaluate(
+            "document.querySelector('.stat-card.active') && document.querySelector('.stat-card.active').dataset.filter"
+        )
+        assert active == "in-review"
+
+    def test_expert_mode_filter_persisted_separately(self, server, page):
+        page.add_init_script("localStorage.setItem('sy_expert_mode', '1');")
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        page.click('.stat-card[data-filter="in-review"]')
+        page.wait_for_timeout(50)
+        assert page.evaluate("localStorage.getItem('sy_filter_expert')") == "in-review"
+        # Normal-mode filter key must be untouched by expert-mode clicks.
+        assert page.evaluate("localStorage.getItem('sy_filter_normal')") in (None, "needs-review")
+
+    def test_toggle_expert_switches_filter_to_saved(self, server, page):
+        page.add_init_script(
+            "localStorage.setItem('sy_expert_mode', '0');"
+            "localStorage.setItem('sy_filter_normal', 'in-review');"
+            "localStorage.setItem('sy_filter_expert', 'approved');"
+        )
+        goto_spa(page, server)
+        page.wait_for_selector(".stat-card.active", timeout=10000)
+        active = page.evaluate("document.querySelector('.stat-card.active').dataset.filter")
+        assert active == "in-review"
+        # Toggle to expert mode — filter should switch to the expert saved value.
+        page.evaluate("SPA.toggleExpert()")
+        page.wait_for_timeout(50)
+        active = page.evaluate("document.querySelector('.stat-card.active').dataset.filter")
+        assert active == "approved"
+
+
+class TestIndexRemembersLastVideo:
+    def test_last_viewed_video_saved_on_preview(self, server, page):
+        _goto_preview_video(page, server, "Test-Video-2")
+        saved = page.evaluate("localStorage.getItem('sy_last_video_2001-01-01_Test-Talk')")
+        assert saved == "Test-Video-2"
+
+    def test_index_link_targets_last_viewed_video(self, server, page):
+        page.add_init_script("localStorage.setItem('sy_last_video_2001-01-01_Test-Talk', 'Test-Video-2')")
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        href = page.locator(".talk-item").first.locator(".preview-link").get_attribute("href")
+        assert href == "#/preview/2001-01-01_Test-Talk/Test-Video-2"
+
+    def test_index_link_falls_back_to_first_video_when_last_invalid(self, server, page):
+        page.add_init_script("localStorage.setItem('sy_last_video_2001-01-01_Test-Talk', 'Nope-Does-Not-Exist')")
+        goto_spa(page, server)
+        page.wait_for_selector(".talk-item", timeout=10000)
+        href = page.locator(".talk-item").first.locator(".preview-link").get_attribute("href")
+        assert href == "#/preview/2001-01-01_Test-Talk/Test-Video"
+
+
+class TestPreviewVideoSwitcher:
+    def test_switcher_visible_for_multi_video(self, server, page):
+        _goto_preview_video(page, server)
+        visible = page.locator("#preview-video-select").is_visible()
+        assert visible is True
+
+    def test_switcher_changes_route(self, server, page):
+        _goto_preview_video(page, server)
+        page.select_option("#preview-video-select", "Test-Video-2")
+        page.wait_for_timeout(500)
+        assert "Test-Video-2" in page.url
