@@ -9,7 +9,7 @@ on:
       - 'site/**'
       - 'requirements*.txt'
       - 'ruff.toml'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'tools/**'
@@ -17,7 +17,7 @@ on:
       - 'site/**'
       - 'requirements*.txt'
       - 'ruff.toml'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/**'
 
 jobs:
   lint:
@@ -30,6 +30,17 @@ jobs:
       - run: pip install ruff==0.15.4
       - run: ruff check tools/ tests/
       - run: ruff format --check tools/ tests/
+
+      - name: Install actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+        run: |
+          curl -sSL "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin actionlint
+          actionlint -version
+
+      - name: Lint workflows (actionlint)
+        run: actionlint -ignore 'shellcheck reported issue.*:info:' .github/workflows/*.yml
 
   test:
     runs-on: ubuntu-latest
