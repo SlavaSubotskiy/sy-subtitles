@@ -2756,6 +2756,43 @@ class TestPreviewEditMode:
         stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
         assert stored["edits"].get("uk", {}) == {}
 
+    def test_overlay_reflects_edited_text_during_playback(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        # Overwrite the edit text.
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'Відредагований субтитр';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        # Drive the player timeupdate to re-render overlay.
+        page.evaluate("window._vimeoPlayer._setTime(3)")
+        page.wait_for_timeout(200)
+        overlay = page.evaluate("document.getElementById('subtitle-overlay').textContent")
+        assert overlay == "Відредагований субтитр"
+
+    def test_overlay_falls_back_to_original_when_edit_reverted(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'Перший субтитр';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate("window._vimeoPlayer._setTime(3)")
+        page.wait_for_timeout(200)
+        overlay = page.evaluate("document.getElementById('subtitle-overlay').textContent")
+        assert overlay == "Перший субтитр"
+
     def test_clear_all_edit_mode(self, server, page):
         _goto_preview_video(page, server)
         self._switch_to_edit(page)

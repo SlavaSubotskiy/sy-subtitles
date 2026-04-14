@@ -2160,8 +2160,15 @@ function showPreview(talkId, videoSlug) {
         player.on('timeupdate', function(data) {
           previewState.currentTime = data.seconds;
           var ms = Math.round(data.seconds * 1000);
-          var active = findActiveSubtitle(previewState.subtitles, ms);
-          var text = active ? active.text : '';
+          var idx = findActiveSubtitleIdx(previewState.subtitles, ms);
+          var text = '';
+          if (idx !== -1) {
+            var lang = previewState.srtLang || 'uk';
+            var langEdits = (previewState.edits && previewState.edits[lang]) || {};
+            text = Object.prototype.hasOwnProperty.call(langEdits, idx)
+              ? langEdits[idx]
+              : previewState.subtitles[idx].text;
+          }
           if (text !== previewState.lastText) {
             document.getElementById('subtitle-overlay').textContent = text;
             previewState.lastText = text;
