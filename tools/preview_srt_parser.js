@@ -43,6 +43,20 @@ function findActiveSubtitle(subtitles, currentTimeMs) {
   return null;
 }
 
+function findActiveSubtitleIdx(subtitles, currentTimeMs) {
+  for (var i = 0; i < subtitles.length; i++) {
+    if (currentTimeMs >= subtitles[i].startMs && currentTimeMs < subtitles[i].endMs) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { timeToMs: timeToMs, parseSRT: parseSRT, findActiveSubtitle: findActiveSubtitle };
+  module.exports = {
+    timeToMs: timeToMs,
+    parseSRT: parseSRT,
+    findActiveSubtitle: findActiveSubtitle,
+    findActiveSubtitleIdx: findActiveSubtitleIdx,
+  };
 }
