@@ -840,6 +840,35 @@ jobs:
           merge-multiple: true
           path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
+      - name: Download translation artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v6
+        with:
+          name: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
+          path: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
+
+      - name: Place translation artifacts
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+        run: |
+          placed=0
+          for dir in translation__*/; do
+            [ -d "$dir" ] || continue
+            for f in transcript_uk.txt review_report.md glossary.json; do
+              if [ -f "$dir/$f" ]; then
+                cp "$dir/$f" "talks/${TALK_ID}/$f"
+                echo "Placed: talks/${TALK_ID}/$f"
+                placed=$((placed + 1))
+              fi
+            done
+          done
+          if [ "$placed" -eq 0 ] && [ -f "transcript_uk.txt" ]; then
+            echo "WARN: flat extraction detected"
+            for f in transcript_uk.txt review_report.md glossary.json; do
+              [ -f "$f" ] && cp "$f" "talks/${TALK_ID}/$f" && echo "Placed (flat): talks/${TALK_ID}/$f"
+            done
+          fi
+
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
