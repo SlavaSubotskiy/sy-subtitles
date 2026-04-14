@@ -631,12 +631,6 @@ function alignSubtitlesByTime(enBlocks, ukBlocks) {
 }
 // ALIGN_END
 
-function findActiveSubtitle(subs, ms) {
-  for (var i = 0; i < subs.length; i++) {
-    if (ms >= subs[i].startMs && ms < subs[i].endMs) return subs[i];
-  }
-  return null;
-}
 function findActiveSubtitleIdx(subs, ms) {
   for (var i = 0; i < subs.length; i++) {
     if (ms >= subs[i].startMs && ms < subs[i].endMs) return i;
@@ -644,9 +638,8 @@ function findActiveSubtitleIdx(subs, ms) {
   return -1;
 }
 
-// Preview state helpers — mirrors tools/preview_state.js so the Node
-// unit tests and the live SPA share the same shape and migration
-// logic. Keep the two in sync when editing.
+// Mirror of tools/preview_state.js — the Node test suite exercises
+// the module; the browser uses this inlined copy.
 function defaultPreviewStateShape() {
   return { mode: 'marker', markers: [], edits: {} };
 }
@@ -1567,31 +1560,38 @@ window.addEventListener('hashchange', function() {
 // --- Subtitle language switching ---
 function loadSubtitleLang(lang) {
   var s = previewState;
-  if (!s) return Promise.resolve();
+  if (!s) return Promise.resolve(false);
   var shaKey = s.videoSlug + '/' + lang;
   var sha = (s.talk && s.talk._srtSha && s.talk._srtSha[shaKey]) || '';
   var url = RAW + '/talks/' + s.talkId + '/' + s.videoSlug + '/final/' + lang + '.srt' + (sha ? '?v=' + sha.substring(0, 8) : '');
-  s.srtLang = lang;
   return fetch(url)
-    .then(function(r) { return r.ok ? r.text() : Promise.reject('SRT fetch failed: HTTP ' + r.status); })
+    .then(function(r) {
+      if (!r.ok) throw new Error('SRT fetch failed: HTTP ' + r.status);
+      return r.text();
+    })
     .then(function(text) {
+      // Only mutate previewState on success so a failed switch leaves
+      // the previous lang/subtitles intact — otherwise the edit list
+      // and overlay would silently mix the new srtLang with stale blocks.
       s.subtitles = parseSRT(text);
+      s.srtLang = lang;
       console.log('[SPA] SRT loaded (' + lang + '):', s.subtitles.length, 'blocks');
+      return true;
     })
     .catch(function(err) {
       console.warn('[SPA] SRT error:', err);
       document.getElementById('subtitle-overlay').textContent = t('error.srt');
+      return false;
     });
 }
 
 SPA.switchSubLang = function(lang) {
-  // Persist the choice synchronously so a fast reload or fetch failure
-  // doesn't drop it. Fetch races have historically lost the save when
-  // write happened inside the .then() callback.
-  if (previewState) localStorage.setItem('sy_srt_lang_' + previewState.talkId, lang);
-  loadSubtitleLang(lang).then(function() {
+  loadSubtitleLang(lang).then(function(ok) {
+    if (!ok) return;
     document.getElementById('subtitle-overlay').textContent = '';
-    // Edit list is lang-scoped — re-render when lang changes.
+    // Persist only on confirmed success so a broken lang doesn't get
+    // stuck as the default on next load.
+    if (previewState) localStorage.setItem('sy_srt_lang_' + previewState.talkId, lang);
     if (previewState && previewState.mode === 'edit') {
       renderEditList();
       updateClearBtn();
@@ -2136,7 +2136,6 @@ function showPreview(talkId, videoSlug) {
   if (embedUrl) iframe.src = embedUrl + '&texttrack=false';
   oldIframe.parentNode.replaceChild(iframe, oldIframe);
 
-  // Determine available subtitle languages (restore saved per-video choice)
   var availLangs = (talk && talk._srtLangs && talk._srtLangs[videoSlug]) || ['uk'];
   var savedSrtLang = localStorage.getItem('sy_srt_lang_' + talkId);
   var defaultLang = (savedSrtLang && availLangs.indexOf(savedSrtLang) !== -1) ? savedSrtLang
@@ -2171,7 +2170,6 @@ function showPreview(talkId, videoSlug) {
     }
   }
 
-  // Render preview video switcher (talks with 2+ videos)
   var videoSel = document.getElementById('preview-video-select');
   if (videoSel) {
     var videos = (talk && talk.videos) || [];
@@ -2206,8 +2204,8 @@ function showPreview(talkId, videoSlug) {
       && previewState.videoSlug === entryVideoSlug;
   }
 
-  var srtLoaded = loadSubtitleLang(defaultLang).then(function() {
-    if (stillOnSameVideo() && previewState.mode === 'edit') renderEditList();
+  var srtLoaded = loadSubtitleLang(defaultLang).then(function(ok) {
+    if (ok && stillOnSameVideo() && previewState.mode === 'edit') renderEditList();
   });
 
   // Cache the two hot-path DOM nodes written from timeupdate so the
@@ -2483,7 +2481,6 @@ SPA.addEdit = function() {
     renderEditList();
     updateClearBtn();
   }
-  // Focus the row for that idx and place cursor at the end.
   var row = document.querySelector('.edit-item[data-idx="' + idx + '"] .edited');
   if (row) {
     row.focus();

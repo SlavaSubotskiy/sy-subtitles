@@ -2584,6 +2584,17 @@ class TestPreviewLegacyMigration:
         legacy_after = page.evaluate(f"localStorage.getItem('{LEGACY_KEY}')")
         assert legacy_after is None
 
+    def test_corrupt_legacy_json_falls_back_to_default(self, server, page):
+        page.add_init_script(f"localStorage.setItem({LEGACY_KEY!r}, '{{not-json');")
+        _goto_preview_video(page, server)
+        stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
+        assert stored is not None
+        assert stored["mode"] == "marker"
+        assert stored["markers"] == []
+        assert stored["edits"] == {}
+        # Legacy key is wiped regardless of parse outcome.
+        assert page.evaluate(f"localStorage.getItem({LEGACY_KEY!r})") is None
+
 
 class TestPreviewLayoutButtons:
     def test_action_buttons_live_in_header(self, server, page):
@@ -2773,6 +2784,63 @@ class TestPreviewEditMode:
         assert rows == 1
         text = page.locator(".edit-item .edited").first.inner_text().strip()
         assert text == "Мій правлений блок"
+
+    def test_create_issue_edit_mode_body_has_before_after(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'НОВА ВЕРСІЯ';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(
+            "window._openedUrl = null;"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " navigator.clipboard.writeText = function() { return Promise.resolve(); };"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.createPreviewIssue()")
+        page.wait_for_timeout(200)
+        body = page.evaluate("decodeURIComponent(window._openedUrl || '')")
+        assert "Suggested edits" in body, body[:400]
+        assert "НОВА ВЕРСІЯ" in body, body[:400]
+        assert "Перший субтитр" in body, body[:400]
+
+    def test_open_preview_editor_clipboards_rebuilt_srt(self, server, page):
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'ЗМІНА';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(
+            "window._clipText = '';"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.alert = function() {};"
+            " window._openedUrl = null;"
+            " window.open = function(u) { window._openedUrl = u; };"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        clip = page.evaluate("window._clipText || ''")
+        opened = page.evaluate("window._openedUrl || ''")
+        assert "ЗМІНА" in clip, clip[:400]
+        assert "00:00:01,000 --> 00:00:05,000" in clip, clip[:400]
+        assert "Другий субтитр" in clip, clip[:400]
+        assert opened.startswith("https://github.com/") and "final/uk.srt" in opened
 
     def test_overlay_reflects_edited_text_during_playback(self, server, page):
         _goto_preview_video(page, server)

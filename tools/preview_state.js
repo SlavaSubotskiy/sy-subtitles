@@ -1,10 +1,5 @@
-// Preview page state: marker mode / edit mode persistence,
-// legacy migration, and SRT rebuild from edits.
-//
-// Keep this file pure (no DOM, no localStorage references) and mirror
-// its logic inline in site/index.html where the SPA actually runs. The
-// Node test suite (tests/test_preview_state.js) exercises this file
-// directly.
+// Pure helpers for preview-page marker/edit state. Mirrored inline
+// into site/index.html; the browser runs the copy there.
 
 function defaultPreviewState() {
   return { mode: 'marker', markers: [], edits: {} };
@@ -18,9 +13,6 @@ function legacyKeyFor(talkId, videoSlug) {
   return 'markers_preview_' + talkId + '_' + videoSlug;
 }
 
-// Normalize an arbitrary parsed payload into the canonical preview
-// state shape. Missing fields fall back to defaults; invalid types are
-// discarded to prevent a corrupt entry from poisoning the UI.
 function coerceState(raw) {
   var out = defaultPreviewState();
   if (!raw || typeof raw !== 'object') return out;
@@ -32,10 +24,8 @@ function coerceState(raw) {
   return out;
 }
 
-// Load preview state for a video from a storage adapter that matches
-// the localStorage surface (getItem/setItem/removeItem). Migrates the
-// legacy markers_preview_* key if only the legacy key is present, and
-// always drops the legacy key once a new key is in place.
+// Legacy markers_preview_* key is migrated on first read and then
+// removed unconditionally once the new key exists.
 function loadPreviewState(talkId, videoSlug, storage) {
   var newKey = newKeyFor(talkId, videoSlug);
   var legacyKey = legacyKeyFor(talkId, videoSlug);
@@ -72,7 +62,6 @@ function loadPreviewState(talkId, videoSlug, storage) {
   return defaultPreviewState();
 }
 
-// Format an ms integer into an SRT "HH:MM:SS,mmm" timestamp.
 function msToSrtTime(ms) {
   var h = Math.floor(ms / 3600000);
   var m = Math.floor((ms % 3600000) / 60000);
@@ -89,9 +78,6 @@ function msToSrtTime(ms) {
   );
 }
 
-// Rebuild a valid SRT from parsed blocks, substituting text from
-// `edits` (keyed by 0-based block index) where present. Returns the
-// empty string for empty block input.
 function applyEditsToSrt(blocks, edits) {
   if (!blocks || !blocks.length) return '';
   var e = edits || {};
