@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1987-08-09_Shri-Vishnumaya-Puja-She-has-created-a-big-maya/Vishnumaya-Puja/final/uk.srt
+  Transcript: talks/1987-08-09_Shri-Vishnumaya-Puja-She-has-created-a-big-maya/transcript_uk.txt
+  Whisper: talks/1987-08-09_Shri-Vishnumaya-Puja-She-has-created-a-big-maya/Vishnumaya-Puja/source/whisper.json
+  SRT blocks: 534
+  Whisper segments: 897
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 28620
+  SRT chars: 28620
+  Exact normalized match: OK
+  Transcript words: 4732
+  SRT words: 4732
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs whisper)
+============================================================
+  Whisper range: 00:00:03,660 — 01:32:37,240
+  SRT range:     00:05:55,490 — 00:52:04,010
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 534
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 534
+  CPS: avg=11.4, median=11.5, max=29.2
+  CPS > target: 12 (2.2%)
+  CPS > hard max: 1 (0.2%)
+  CPL: avg=52.6, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #507: CPS=29.2 (69ch/2.4s) "Йоґ: Чи маємо ми спершу зробити імена Шрі Вішну, а потім ман..."
+    #213: CPS=15.1 (22ch/1.5s) "Вона сказала: «Чому?»."
+    #217: CPS=15.0 (22ch/1.5s) "Якщо ви брат і сестра,"
+    #216: CPS=15.0 (64ch/4.3s) "ви не можете залишатися разом, ви не залишаєтесь разом, навп..."
+    #496: CPS=15.0 (67ch/4.5s) "і забирати всі ваші гроші, якщо ви думаєте, що гроші такі ва..."
+    #352: CPS=15.0 (35ch/2.3s) "Він сказав: «Чому ти посміхаєшся?»."
+    #476: CPS=15.0 (35ch/2.3s) "І ось що Я маю сказати вам сьогодні"
+    #214: CPS=15.0 (82ch/5.5s) "Я маю на увазі, в Індії, якщо ви брат і сестра, ви завжди мо..."
+    #350: CPS=15.0 (41ch/2.7s) "судячи з того, як він віддавав йому шану."
+    #504: CPS=15.0 (80ch/5.3s) "Перш ніж ми почнемо Пуджу, Я справді захоплююся тим, як ви с..."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [FAIL] CPS ≤ 20.0
+
+  Avg CPS: 11.4 (target ≤15.0)
+  CPS > 15.0: 12 blocks
+  CPS > 20.0: 1 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: FAILED
