@@ -170,14 +170,14 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
   padding: 8px 16px; font-size: 14px; cursor: pointer; touch-action: manipulation; }
 .controls button:active { background: var(--border3); }
 #time-display { color: var(--fg6); font-size: 13px; font-family: monospace; }
-.markers { max-width: 960px; margin: 0 auto; padding: 0 8px; }
-.markers summary { color: var(--fg5); cursor: pointer; padding: 8px; font-size: 14px; }
-.marker-actions { display: flex; gap: 8px; padding: 8px 0; }
-.marker-actions button { background: var(--primary-bg); color: var(--primary-fg); border: 1px solid var(--primary-border); border-radius: 6px;
-  padding: 6px 14px; font-size: 13px; cursor: pointer; }
-.marker-actions button.issue { background: var(--issue-bg); color: var(--issue-fg); border-color: var(--issue-border); }
-.marker-actions button.danger { background: var(--danger-bg); color: var(--danger-fg); border-color: var(--danger-border); }
-.marker-list { list-style: none; }
+.markers, .preview-list { max-width: 960px; margin: 0 auto; padding: 0 8px; }
+.markers summary, .preview-list summary { color: var(--fg5); cursor: pointer; padding: 8px; font-size: 14px; }
+#btn-clear-all { background: var(--danger-bg); color: var(--danger-fg); border-color: var(--danger-border); }
+.preview-mode-toggle { display: inline-flex; border: 1px solid var(--border3); border-radius: 6px; overflow: hidden; }
+.preview-mode-toggle button { background: var(--bg4); color: var(--fg5); border: 0; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 0; }
+.preview-mode-toggle button + button { border-left: 1px solid var(--border3); }
+.preview-mode-toggle button.active { background: var(--primary-bg); color: var(--primary-fg); }
+.marker-list, .edit-list { list-style: none; }
 .marker-item { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .marker-item .tc { color: var(--link); cursor: pointer; font-family: monospace; }
 .marker-item .tc:hover { text-decoration: underline; }
@@ -187,6 +187,17 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .marker-item .comment { width: 100%; background: var(--bg5); color: var(--fg2); border: 1px solid var(--border2);
   border-radius: 4px; padding: 4px 8px; font-size: 13px; margin-top: 4px; }
 .marker-item .comment:focus { border-color: var(--link); outline: none; }
+.edit-item { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+  display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: start; }
+.edit-item .tc { color: var(--link); cursor: pointer; font-family: monospace; grid-row: 1 / span 2; align-self: center; }
+.edit-item .tc:hover { text-decoration: underline; }
+.edit-item .orig { color: var(--fg6); font-size: 12px; font-style: italic; }
+.edit-item .edited { color: var(--fg2); background: var(--bg5); border: 1px solid var(--border2);
+  border-radius: 4px; padding: 4px 8px; min-height: 1.4em; outline: none; white-space: pre-wrap; }
+.edit-item .edited:focus { border-color: var(--link); }
+.edit-item .edited.edited-dirty { border-color: var(--primary-border); background: var(--primary-bg); color: var(--primary-fg); }
+.edit-item .del { color: var(--fg6); cursor: pointer; padding: 0 4px; grid-row: 1 / span 2; align-self: center; }
+.edit-item .del:hover { color: var(--accent-red); }
 
 /* --- Review --- */
 .grid { display: grid; grid-template-columns: 1fr 1fr; max-width: 1400px; margin: 0 auto; }
@@ -320,7 +331,8 @@ body.sync-player-resizing, body.sync-player-resizing * {
 /* --- Fullscreen preview mode --- */
 #view-preview.fs-mode { position: fixed; inset: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; overflow: hidden; }
 #view-preview.fs-mode .header { display: none !important; }
-#view-preview.fs-mode .markers { display: none !important; }
+#view-preview.fs-mode .markers,
+#view-preview.fs-mode .preview-list { display: none !important; }
 #view-preview.fs-mode #btn-mark { display: none !important; }
 #view-preview.fs-mode .player-container { flex: 1; max-width: 100%; margin: 0; width: 100%; display: flex; flex-direction: column; overflow: hidden; }
 #view-preview.fs-mode .video-wrap { flex: 1; padding-bottom: 0; height: 100%; }
@@ -360,7 +372,18 @@ body.sync-player-resizing, body.sync-player-resizing * {
 <!-- === PREVIEW VIEW === -->
 <div id="view-preview" class="view">
   <div class="header">
-    <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="p-title"></span></h1>
+    <h1><a href="#/" data-i18n="nav.back">&larr; Index</a> &middot; <span id="p-title"></span>
+      <select id="preview-video-select" class="select-chip" style="display:none;margin-left:8px;vertical-align:middle" onchange="SPA.switchPreviewVideo(this.value)"></select>
+    </h1>
+    <div class="header-actions">
+      <div class="preview-mode-toggle" role="group">
+        <button type="button" data-mode="marker" class="chip active" onclick="SPA.setPreviewMode('marker')" data-i18n="preview.mode_marker">&#x1F4CC; Marker</button><button type="button" data-mode="edit" class="chip" onclick="SPA.setPreviewMode('edit')" data-i18n="preview.mode_edit">&#x270E; Edit</button>
+      </div>
+      <button id="btn-copy-all" onclick="SPA.copyMarkers()" data-i18n="btn.copy_all">Copy all</button>
+      <button id="btn-preview-issue" class="issue" onclick="SPA.createPreviewIssue()" data-i18n="btn.create_issue">Create issue</button>
+      <button id="btn-preview-editor" class="primary" style="display:none" onclick="SPA.openPreviewEditor()" data-i18n="btn.open_editor">Open in GitHub Editor</button>
+      <button id="btn-clear-all" class="danger" style="display:none" onclick="SPA.clearAll()" data-i18n="btn.clear_all">Clear all</button>
+    </div>
   </div>
   <div class="player-container">
     <div class="video-wrap"><iframe id="vimeo-player" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
@@ -368,19 +391,15 @@ body.sync-player-resizing, body.sync-player-resizing * {
     <div class="controls">
       <span id="time-display">00:00:00</span>
       <select id="srt-lang-select" class="select-chip" style="display:none" data-i18n-title="title.srt_lang"></select>
-      <button id="btn-mark" onclick="SPA.addMarker()" data-i18n-title="btn.mark_title" data-i18n="btn.mark">&#x1F4CC; Mark</button>
+      <button id="btn-mark" onclick="SPA.addMarkOrEdit()" data-i18n-title="btn.mark_title" data-i18n="btn.mark">&#x1F4CC; Mark</button>
       <button id="btn-fullscreen" onclick="SPA.toggleFullscreen()" title="F = fullscreen" style="padding:4px 10px;font-size:16px;">&#x2922;</button>
     </div>
   </div>
-  <div class="markers">
+  <div class="preview-list">
     <details open>
-      <summary><span data-i18n="markers.summary">Markers</span> (<span id="marker-count">0</span>)</summary>
-      <div class="marker-actions">
-        <button onclick="SPA.copyMarkers()" data-i18n="btn.copy_all">Copy all</button>
-        <button class="issue" onclick="SPA.createPreviewIssue()" data-i18n="btn.create_issue">Create issue</button>
-        <button class="danger" onclick="SPA.clearMarkers()" data-i18n="btn.clear_all">Clear all</button>
-      </div>
+      <summary><span id="preview-list-label" data-i18n="markers.summary">Markers</span> (<span id="marker-count">0</span>)</summary>
       <ul class="marker-list" id="marker-list"></ul>
+      <ul class="edit-list" id="edit-list" style="display:none"></ul>
     </details>
   </div>
 </div>
@@ -608,6 +627,76 @@ function findActiveSubtitle(subs, ms) {
   }
   return null;
 }
+function findActiveSubtitleIdx(subs, ms) {
+  for (var i = 0; i < subs.length; i++) {
+    if (ms >= subs[i].startMs && ms < subs[i].endMs) return i;
+  }
+  return -1;
+}
+
+// Preview state helpers — mirrors tools/preview_state.js so the Node
+// unit tests and the live SPA share the same shape and migration
+// logic. Keep the two in sync when editing.
+function defaultPreviewStateShape() {
+  return { mode: 'marker', markers: [], edits: {} };
+}
+function coercePreviewStateShape(raw) {
+  var out = defaultPreviewStateShape();
+  if (!raw || typeof raw !== 'object') return out;
+  if (raw.mode === 'edit' || raw.mode === 'marker') out.mode = raw.mode;
+  if (Array.isArray(raw.markers)) out.markers = raw.markers;
+  if (raw.edits && typeof raw.edits === 'object' && !Array.isArray(raw.edits)) {
+    out.edits = raw.edits;
+  }
+  return out;
+}
+function loadPreviewStateFromStorage(talkId, videoSlug) {
+  var newKey = 'preview_' + talkId + '_' + videoSlug;
+  var legacyKey = 'markers_preview_' + talkId + '_' + videoSlug;
+  var rawNew = localStorage.getItem(newKey);
+  if (rawNew != null) {
+    var parsed = null;
+    try { parsed = JSON.parse(rawNew); } catch(_) {}
+    if (localStorage.getItem(legacyKey) != null) localStorage.removeItem(legacyKey);
+    return coercePreviewStateShape(parsed);
+  }
+  var rawLegacy = localStorage.getItem(legacyKey);
+  if (rawLegacy != null) {
+    var legacyMarkers = [];
+    try {
+      var p = JSON.parse(rawLegacy);
+      if (Array.isArray(p)) legacyMarkers = p;
+    } catch(_) {}
+    var migrated = defaultPreviewStateShape();
+    migrated.markers = legacyMarkers;
+    localStorage.setItem(newKey, JSON.stringify(migrated));
+    localStorage.removeItem(legacyKey);
+    return migrated;
+  }
+  return defaultPreviewStateShape();
+}
+function msToSrtTime(ms) {
+  var h = Math.floor(ms / 3600000);
+  var m = Math.floor((ms % 3600000) / 60000);
+  var s = Math.floor((ms % 60000) / 1000);
+  var mmm = ms % 1000;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' +
+    String(s).padStart(2, '0') + ',' + String(mmm).padStart(3, '0');
+}
+function applyEditsToSrt(blocks, edits) {
+  if (!blocks || !blocks.length) return '';
+  var e = edits || {};
+  var lines = [];
+  for (var i = 0; i < blocks.length; i++) {
+    var b = blocks[i];
+    var text = Object.prototype.hasOwnProperty.call(e, i) ? e[i] : b.text;
+    lines.push(String(i + 1));
+    lines.push(msToSrtTime(b.startMs) + ' --> ' + msToSrtTime(b.endMs));
+    lines.push(text);
+    lines.push('');
+  }
+  return lines.join('\n');
+}
 
 // ============================================================
 // Config
@@ -657,6 +746,15 @@ var I18N = {
     'index.loading': '\u0417\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043D\u044F...',
     'nav.back': '\u2190 \u0413\u043E\u043B\u043E\u0432\u043D\u0430',
     'btn.mark': '\u{1F4CC} \u041C\u0430\u0440\u043A\u0435\u0440',
+    'btn.edit': '\u270E \u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u0442\u0438',
+    'btn.edit_title': 'M = \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u0442\u0438 \u0431\u043B\u043E\u043A, Enter = \u0437\u0431\u0435\u0440\u0435\u0433\u0442\u0438, Space = \u043F\u043B\u0435\u0439/\u043F\u0430\u0443\u0437\u0430, \u2190\u2192 = 5\u0441',
+    'preview.mode_marker': '\u{1F4CC} \u041C\u0430\u0440\u043A\u0435\u0440\u0438',
+    'preview.mode_edit': '\u270E \u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F',
+    'edits.summary': '\u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F',
+    'toast.edits_cleared': '\u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F \u043E\u0447\u0438\u0449\u0435\u043D\u043E',
+    'toast.no_active_subtitle': '\u041D\u0435\u043C\u0430\u0454 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0443',
+    'confirm.clear_edits': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0456 {n} \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u044C ({lang})?',
+    'link.preview': '\u25B6 \u041F\u0435\u0440\u0435\u0433\u043B\u044F\u043D\u0443\u0442\u0438 \u043F\u0435\u0440\u0435\u043A\u043B\u0430\u0434',
     'markers.summary': '\u041C\u0430\u0440\u043A\u0435\u0440\u0438',
     'btn.copy_all': '\u041A\u043E\u043F\u0456\u044E\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
     'btn.create_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 issue',
@@ -748,6 +846,15 @@ var I18N = {
     'index.loading': 'Loading...',
     'nav.back': '\u2190 Home',
     'btn.mark': '\u{1F4CC} Mark',
+    'btn.edit': '\u270E Edit',
+    'btn.edit_title': 'M = edit block, Enter = save, Space = play/pause, \u2190\u2192 = seek 5s',
+    'preview.mode_marker': '\u{1F4CC} Markers',
+    'preview.mode_edit': '\u270E Edit',
+    'edits.summary': 'Edits',
+    'toast.edits_cleared': 'Edits cleared',
+    'toast.no_active_subtitle': 'No active subtitle at this time',
+    'confirm.clear_edits': 'Clear all {n} edits ({lang})?',
+    'link.preview': '\u25B6 View translation',
     'markers.summary': 'Markers',
     'btn.copy_all': 'Copy all',
     'btn.create_issue': 'Create issue',
@@ -1454,6 +1561,11 @@ SPA.switchSubLang = function(lang) {
     document.getElementById('subtitle-overlay').textContent = '';
     // Save per-video language choice
     if (previewState) localStorage.setItem('sy_srt_lang_' + previewState.talkId + '_' + previewState.videoSlug, lang);
+    // Edit list is lang-scoped — re-render when lang changes.
+    if (previewState && previewState.mode === 'edit') {
+      renderEditList();
+      updateClearBtn();
+    }
   });
 };
 
@@ -1777,12 +1889,11 @@ function renderIndex(el) {
       var href = st.issue_number ? 'https://github.com/' + REPO + '/issues/' + st.issue_number : '#';
       badge = '<a href="' + href + '" target="_blank" class="review-badge ' + bc + '">' + bt + '</a>';
     }
+    var firstVideo = (tk.videos || []).find(function(v) { return v.hasSrt && v.vimeo_url; });
     var videoLinks = '';
-    (tk.videos || []).forEach(function(v) {
-      if (v.hasSrt && v.vimeo_url) {
-        videoLinks += '<a href="#/preview/' + tk.id + '/' + v.slug + '" class="preview-link">&#x25B6; ' + esc(v.title) + '</a>';
-      }
-    });
+    if (firstVideo) {
+      videoLinks = '<a href="#/preview/' + tk.id + '/' + firstVideo.slug + '" class="preview-link">' + esc(t('link.preview')) + '</a>';
+    }
     var reviewLink = '';
     if (tk.hasEn && tk.hasUk) {
       reviewLink = '<a href="#/review/' + tk.id + '" class="review-link">&#x270E; ' + t('link.review') + '</a>';
@@ -1983,7 +2094,20 @@ function showPreview(talkId, videoSlug) {
   var defaultLang = (savedSrtLang && availLangs.indexOf(savedSrtLang) !== -1) ? savedSrtLang
     : availLangs.indexOf('uk') !== -1 ? 'uk' : availLangs[0];
 
-  previewState = { talkId: talkId, videoSlug: videoSlug, talk: talk, video: video, subtitles: [], markers: [], currentTime: 0, lastText: '', srtLang: defaultLang };
+  var persisted = loadPreviewStateFromStorage(talkId, videoSlug);
+  previewState = {
+    talkId: talkId,
+    videoSlug: videoSlug,
+    talk: talk,
+    video: video,
+    subtitles: [],
+    mode: persisted.mode,
+    markers: persisted.markers,
+    edits: persisted.edits,
+    currentTime: 0,
+    lastText: '',
+    srtLang: defaultLang,
+  };
 
   // Render subtitle language selector
   var langSel = document.getElementById('srt-lang-select');
@@ -1999,10 +2123,29 @@ function showPreview(talkId, videoSlug) {
     }
   }
 
-  // Load markers from localStorage
-  var mkey = 'markers_preview_' + talkId + '_' + videoSlug;
-  try { previewState.markers = JSON.parse(localStorage.getItem(mkey) || '[]'); } catch(e) {}
+  // Render preview video switcher (talks with 2+ videos)
+  var videoSel = document.getElementById('preview-video-select');
+  if (videoSel) {
+    var videos = (talk && talk.videos) || [];
+    while (videoSel.firstChild) videoSel.removeChild(videoSel.firstChild);
+    if (videos.length > 1) {
+      videos.forEach(function(v) {
+        var opt = document.createElement('option');
+        opt.value = v.slug;
+        opt.textContent = v.title || v.slug;
+        if (v.slug === videoSlug) opt.selected = true;
+        videoSel.appendChild(opt);
+      });
+      videoSel.style.display = 'inline-block';
+    } else {
+      videoSel.style.display = 'none';
+    }
+  }
+
+  applyPreviewMode();
   renderMarkers();
+  renderEditList();
+  updateClearBtn();
 
   // Load SRT
   var srtLoaded = loadSubtitleLang(defaultLang);
@@ -2043,20 +2186,93 @@ function vimeoEmbed(url) {
   return m ? 'https://player.vimeo.com/video/' + m[1] + '?h=' + m[2] : url;
 }
 
+// --- Preview state persistence ---
+function savePreviewState() {
+  if (!previewState || !previewState.talkId) return;
+  var key = 'preview_' + previewState.talkId + '_' + previewState.videoSlug;
+  var payload = {
+    mode: previewState.mode || 'marker',
+    markers: previewState.markers || [],
+    edits: previewState.edits || {},
+  };
+  localStorage.setItem(key, JSON.stringify(payload));
+}
+
+// --- Mode switching ---
+function applyPreviewMode() {
+  var mode = previewState.mode || 'marker';
+  // Segmented control active state
+  document.querySelectorAll('.preview-mode-toggle button').forEach(function(b) {
+    if (b.dataset.mode === mode) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+  // Mark/Edit button label + title
+  var markBtn = document.getElementById('btn-mark');
+  if (markBtn) {
+    markBtn.textContent = mode === 'edit' ? t('btn.edit') : t('btn.mark');
+    markBtn.title = mode === 'edit' ? t('btn.edit_title') : t('btn.mark_title');
+  }
+  // Header action buttons: copy visible only in marker mode,
+  // editor visible only in edit mode.
+  var copyBtn = document.getElementById('btn-copy-all');
+  if (copyBtn) copyBtn.style.display = mode === 'marker' ? 'inline-block' : 'none';
+  var editorBtn = document.getElementById('btn-preview-editor');
+  if (editorBtn) editorBtn.style.display = mode === 'edit' ? 'inline-block' : 'none';
+  // List summary label + list visibility
+  var label = document.getElementById('preview-list-label');
+  if (label) label.textContent = mode === 'edit' ? t('edits.summary') : t('markers.summary');
+  var markerList = document.getElementById('marker-list');
+  var editList = document.getElementById('edit-list');
+  if (markerList) markerList.style.display = mode === 'marker' ? '' : 'none';
+  if (editList) editList.style.display = mode === 'edit' ? '' : 'none';
+}
+
+SPA.setPreviewMode = function(mode) {
+  if (mode !== 'marker' && mode !== 'edit') return;
+  if (previewState.mode === mode) return;
+  previewState.mode = mode;
+  savePreviewState();
+  applyPreviewMode();
+  renderMarkers();
+  renderEditList();
+  updateClearBtn();
+};
+
+SPA.switchPreviewVideo = function(newSlug) {
+  if (!previewState || !previewState.talkId || !newSlug) return;
+  if (newSlug === previewState.videoSlug) return;
+  location.hash = '#/preview/' + previewState.talkId + '/' + newSlug;
+};
+
+// --- Dispatch for the Mark/Edit button under the player ---
+SPA.addMarkOrEdit = function() {
+  if (previewState.mode === 'edit') SPA.addEdit();
+  else SPA.addMarker();
+};
+
 // --- Markers ---
 SPA.addMarker = function() {
-  var t = previewState.currentTime;
+  var tSec = previewState.currentTime;
   var text = previewState.lastText || '(no subtitle)';
-  previewState.markers.push({ time: t, tc: fmtTime(t), text: text, comment: '' });
+  previewState.markers.push({ time: tSec, tc: fmtTime(tSec), text: text, comment: '' });
   if (previewState.player) previewState.player.pause();
-  saveMarkers();
+  savePreviewState();
   renderMarkers();
+  updateClearBtn();
   var inputs = document.querySelectorAll('.marker-item .comment');
   if (inputs.length) inputs[inputs.length - 1].focus();
 };
 
-SPA.removeMarker = function(i) { previewState.markers.splice(i, 1); saveMarkers(); renderMarkers(); };
-SPA.updateMarkerComment = function(i, val) { previewState.markers[i].comment = val; saveMarkers(); };
+SPA.removeMarker = function(i) {
+  previewState.markers.splice(i, 1);
+  savePreviewState();
+  renderMarkers();
+  updateClearBtn();
+};
+SPA.updateMarkerComment = function(i, val) {
+  previewState.markers[i].comment = val;
+  savePreviewState();
+};
 SPA.seekTo = function(sec) { if (previewState.player) previewState.player.setCurrentTime(sec); };
 SPA.seek = function(delta) {
   if (!previewState.player) return;
@@ -2093,63 +2309,241 @@ document.addEventListener('fullscreenchange', function() {
   }
 });
 
-function saveMarkers() {
-  var key = 'markers_preview_' + previewState.talkId + '_' + previewState.videoSlug;
-  localStorage.setItem(key, JSON.stringify(previewState.markers));
-}
-
 function renderMarkers() {
   var list = document.getElementById('marker-list');
   var count = document.getElementById('marker-count');
-  count.textContent = previewState.markers.length;
-  list.innerHTML = '';
+  if (previewState.mode === 'marker') count.textContent = previewState.markers.length;
+  if (!list) return;
+  while (list.firstChild) list.removeChild(list.firstChild);
   previewState.markers.forEach(function(m, i) {
     var li = document.createElement('li');
     li.className = 'marker-item';
-    var c = (m.comment || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    li.innerHTML = '<div style="display:flex;align-items:center;gap:8px;width:100%">' +
-      '<span class="tc" onclick="SPA.seekTo(' + m.time + ')">' + m.tc + '</span>' +
-      '<span class="text">' + esc(m.text) + '</span></div>' +
-      '<div style="display:flex;align-items:center;gap:4px">' +
-      '<input class="comment" type="text" placeholder="comment..." value="' + c + '" ' +
-      'onchange="SPA.updateMarkerComment(' + i + ', this.value)" ' +
-      'onkeydown="if(event.key==\'Enter\'){this.blur();SPA.resumePlayer();}">' +
-      '<span class="del" onclick="SPA.removeMarker(' + i + ')">&#x2715;</span></div>';
+    var rowTop = document.createElement('div');
+    rowTop.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%';
+    var tcSpan = document.createElement('span');
+    tcSpan.className = 'tc';
+    tcSpan.textContent = m.tc;
+    tcSpan.addEventListener('click', function() { SPA.seekTo(m.time); });
+    var textSpan = document.createElement('span');
+    textSpan.className = 'text';
+    textSpan.textContent = m.text;
+    rowTop.appendChild(tcSpan);
+    rowTop.appendChild(textSpan);
+    var rowBottom = document.createElement('div');
+    rowBottom.style.cssText = 'display:flex;align-items:center;gap:4px';
+    var input = document.createElement('input');
+    input.className = 'comment';
+    input.type = 'text';
+    input.placeholder = 'comment...';
+    input.value = m.comment || '';
+    input.addEventListener('change', function() { SPA.updateMarkerComment(i, input.value); });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { input.blur(); SPA.resumePlayer(); }
+    });
+    var del = document.createElement('span');
+    del.className = 'del';
+    del.textContent = '\u2715';
+    del.addEventListener('click', function() { SPA.removeMarker(i); });
+    rowBottom.appendChild(input);
+    rowBottom.appendChild(del);
+    li.appendChild(rowTop);
+    li.appendChild(rowBottom);
     list.appendChild(li);
   });
 }
 
-SPA.clearMarkers = function() {
-  if (!previewState.markers.length) return;
-  if (!confirm(t('confirm.clear_markers').replace('{n}', previewState.markers.length))) return;
-  previewState.markers = [];
-  saveMarkers();
-  renderMarkers();
-  showToast(t('toast.markers_cleared'));
+// --- Edit list rendering ---
+function renderEditList() {
+  var list = document.getElementById('edit-list');
+  var count = document.getElementById('marker-count');
+  if (!list) return;
+  var lang = previewState.srtLang || 'uk';
+  var langEdits = (previewState.edits && previewState.edits[lang]) || {};
+  var idxs = Object.keys(langEdits).map(Number).sort(function(a, b) { return a - b; });
+  if (previewState.mode === 'edit') count.textContent = idxs.length;
+  while (list.firstChild) list.removeChild(list.firstChild);
+  var blocks = previewState.subtitles || [];
+  idxs.forEach(function(idx) {
+    var block = blocks[idx];
+    if (!block) return;
+    var li = document.createElement('li');
+    li.className = 'edit-item';
+    li.dataset.idx = String(idx);
+    var tc = document.createElement('span');
+    tc.className = 'tc';
+    tc.textContent = msToSrtTime(block.startMs).slice(0, 8);
+    tc.addEventListener('click', function() { SPA.seekTo(block.startMs / 1000); });
+    var orig = document.createElement('div');
+    orig.className = 'orig';
+    orig.textContent = block.text;
+    var edited = document.createElement('div');
+    edited.className = 'edited';
+    edited.setAttribute('contenteditable', 'true');
+    edited.dataset.idx = String(idx);
+    edited.textContent = langEdits[idx];
+    if (langEdits[idx] !== block.text) edited.classList.add('edited-dirty');
+    edited.addEventListener('input', function() { SPA.onEditInput(idx, edited); });
+    edited.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        edited.blur();
+        SPA.resumePlayer();
+      }
+    });
+    var del = document.createElement('span');
+    del.className = 'del';
+    del.textContent = '\u2715';
+    del.addEventListener('click', function() { SPA.deleteEdit(idx); });
+    li.appendChild(tc);
+    li.appendChild(orig);
+    li.appendChild(edited);
+    li.appendChild(del);
+    list.appendChild(li);
+  });
+}
+
+SPA.addEdit = function() {
+  var blocks = previewState.subtitles || [];
+  if (!blocks.length) { showToast(t('error.srt')); return; }
+  var ms = Math.round((previewState.currentTime || 0) * 1000);
+  var idx = findActiveSubtitleIdx(blocks, ms);
+  if (idx === -1) { showToast(t('toast.no_active_subtitle')); return; }
+  var lang = previewState.srtLang || 'uk';
+  if (!previewState.edits) previewState.edits = {};
+  if (!previewState.edits[lang]) previewState.edits[lang] = {};
+  if (previewState.player) previewState.player.pause();
+  if (previewState.edits[lang][idx] === undefined) {
+    previewState.edits[lang][idx] = blocks[idx].text;
+    savePreviewState();
+    renderEditList();
+    updateClearBtn();
+  }
+  // Focus the row for that idx and place cursor at the end.
+  var row = document.querySelector('.edit-item[data-idx="' + idx + '"] .edited');
+  if (row) {
+    row.focus();
+    try {
+      var sel = window.getSelection();
+      var range = document.createRange();
+      range.selectNodeContents(row);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (_) {}
+  }
 };
+
+SPA.onEditInput = function(idx, el) {
+  var lang = previewState.srtLang || 'uk';
+  if (!previewState.edits[lang]) previewState.edits[lang] = {};
+  var blocks = previewState.subtitles || [];
+  var orig = blocks[idx] ? blocks[idx].text : '';
+  var text = el.innerText;
+  if (text === orig) {
+    delete previewState.edits[lang][idx];
+    el.classList.remove('edited-dirty');
+  } else {
+    previewState.edits[lang][idx] = text;
+    el.classList.add('edited-dirty');
+  }
+  savePreviewState();
+  updateClearBtn();
+};
+
+SPA.deleteEdit = function(idx) {
+  var lang = previewState.srtLang || 'uk';
+  if (previewState.edits && previewState.edits[lang]) {
+    delete previewState.edits[lang][idx];
+    savePreviewState();
+    renderEditList();
+    updateClearBtn();
+  }
+};
+
+function updateClearBtn() {
+  var btn = document.getElementById('btn-clear-all');
+  if (!btn) return;
+  var show = false;
+  if (previewState.mode === 'edit') {
+    var lang = previewState.srtLang || 'uk';
+    var langEdits = (previewState.edits && previewState.edits[lang]) || {};
+    show = Object.keys(langEdits).length > 0;
+  } else {
+    show = (previewState.markers || []).length > 0;
+  }
+  btn.style.display = show ? 'inline-block' : 'none';
+}
+
+SPA.clearAll = function() {
+  if (previewState.mode === 'edit') {
+    var lang = previewState.srtLang || 'uk';
+    var langEdits = (previewState.edits && previewState.edits[lang]) || {};
+    var n = Object.keys(langEdits).length;
+    if (!n) return;
+    if (!confirm(t('confirm.clear_edits').replace('{n}', n).replace('{lang}', lang.toUpperCase()))) return;
+    previewState.edits[lang] = {};
+    savePreviewState();
+    renderEditList();
+    updateClearBtn();
+    showToast(t('toast.edits_cleared'));
+  } else {
+    if (!previewState.markers.length) return;
+    if (!confirm(t('confirm.clear_markers').replace('{n}', previewState.markers.length))) return;
+    previewState.markers = [];
+    savePreviewState();
+    renderMarkers();
+    updateClearBtn();
+    showToast(t('toast.markers_cleared'));
+  }
+};
+
+// Backwards-compat alias — some tests and keybindings still call clearMarkers.
+SPA.clearMarkers = function() { SPA.clearAll(); };
 
 SPA.copyMarkers = function() {
   var lines = ['# ' + document.title, ''];
   previewState.markers.forEach(function(m) {
     var line = '- **' + m.tc + '** ' + m.text;
-    if (m.comment) line += ' — _' + m.comment + '_';
+    if (m.comment) line += ' \u2014 _' + m.comment + '_';
     lines.push(line);
   });
-  navigator.clipboard.writeText(lines.join('\n')).then(function() { showToast(t('toast.copied_markers').replace('{n}', previewState.markers.length)); });
+  navigator.clipboard.writeText(lines.join('\n')).then(function() {
+    showToast(t('toast.copied_markers').replace('{n}', previewState.markers.length));
+  });
 };
 
 SPA.createPreviewIssue = function() {
   var s = previewState;
   var gh = 'https://github.com/' + REPO;
+  var lang = s.srtLang || 'uk';
+  var title = (s.talk ? s.talk.title : s.talkId) + ' \u2014 ' + (s.video ? s.video.title : s.videoSlug);
+  var srtPath = 'talks/' + s.talkId + '/' + s.videoSlug + '/final/' + lang + '.srt';
   var lines = [
-    '## ' + (s.talk ? s.talk.title : s.talkId) + ' — ' + (s.video ? s.video.title : s.videoSlug),
+    '## ' + title,
     '', '| | |', '|---|---|',
-    '| SRT | [`talks/' + s.talkId + '/' + s.videoSlug + '/final/uk.srt`](' + gh + '/blob/main/talks/' + s.talkId + '/' + s.videoSlug + '/final/uk.srt) |',
+    '| SRT | [`' + srtPath + '`](' + gh + '/blob/main/' + srtPath + ') |',
     '| Transcript | [`talks/' + s.talkId + '/transcript_uk.txt`](' + gh + '/blob/main/talks/' + s.talkId + '/transcript_uk.txt) |',
-    '', '### Markers', '', '| Time | Subtitle | Comment |', '|------|----------|---------|'
+    ''
   ];
-  previewState.markers.forEach(function(m) { lines.push('| ' + m.tc + ' | ' + m.text + ' | ' + (m.comment || '') + ' |'); });
-  var issueTitle = 'Subtitle review: ' + (s.video ? s.video.title : s.videoSlug);
+  if (s.mode === 'edit') {
+    var langEdits = (s.edits && s.edits[lang]) || {};
+    var idxs = Object.keys(langEdits).map(Number).sort(function(a, b) { return a - b; });
+    var blocks = s.subtitles || [];
+    lines.push('### Suggested edits (' + lang + ')', '');
+    idxs.forEach(function(idx) {
+      var blk = blocks[idx];
+      var tc = blk ? msToSrtTime(blk.startMs).slice(0, 8) : '';
+      var orig = blk ? blk.text : '';
+      var next = langEdits[idx];
+      lines.push('<details><summary><b>' + tc + '</b></summary>', '', '**Before:**', '> ' + orig, '', '**After:**', '> ' + next, '', '</details>', '');
+    });
+  } else {
+    lines.push('### Markers', '', '| Time | Subtitle | Comment |', '|------|----------|---------|');
+    s.markers.forEach(function(m) {
+      lines.push('| ' + m.tc + ' | ' + m.text + ' | ' + (m.comment || '') + ' |');
+    });
+  }
+  var issueTitle = (s.mode === 'edit' ? 'Subtitle edits: ' : 'Subtitle review: ') + (s.video ? s.video.title : s.videoSlug);
   var issueBody = lines.join('\n');
   var url = gh + '/issues/new?title=' + encodeURIComponent(issueTitle) + '&labels=review:pending&body=' + encodeURIComponent(issueBody);
   var shortUrl = gh + '/issues/new?title=' + encodeURIComponent(issueTitle) + '&labels=review:pending';
@@ -2165,11 +2559,31 @@ SPA.createPreviewIssue = function() {
   }
 };
 
+SPA.openPreviewEditor = function() {
+  var s = previewState;
+  var lang = s.srtLang || 'uk';
+  var filePath = 'talks/' + s.talkId + '/' + s.videoSlug + '/final/' + lang + '.srt';
+  var url = 'https://github.com/' + REPO + '/edit/main/' + filePath;
+  var langEdits = (s.edits && s.edits[lang]) || {};
+  if (Object.keys(langEdits).length > 0) {
+    var full = applyEditsToSrt(s.subtitles || [], langEdits);
+    navigator.clipboard.writeText(full).then(function() {
+      alert(t('editor.clipboard_alert'));
+      window.open(url);
+    }).catch(function() {
+      window.open(url);
+    });
+  } else {
+    window.open(url);
+  }
+};
+
 document.addEventListener('keydown', function(e) {
   if (!document.getElementById('view-preview').classList.contains('active')) return;
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.target && e.target.isContentEditable) return;
   if (e.key === 'f' || e.key === 'F') { SPA.toggleFullscreen(); return; }
-  if (e.key === 'm' || e.key === 'M') { SPA.addMarker(); return; }
+  if (e.key === 'm' || e.key === 'M') { SPA.addMarkOrEdit(); return; }
   if (e.key === 'ArrowLeft') { e.preventDefault(); SPA.seek(-5); return; }
   if (e.key === 'ArrowRight') { e.preventDefault(); SPA.seek(5); return; }
   if (e.key === ' ') { e.preventDefault(); SPA.togglePlay(); return; }
