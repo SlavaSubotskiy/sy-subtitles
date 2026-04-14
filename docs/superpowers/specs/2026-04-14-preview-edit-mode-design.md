@@ -153,8 +153,9 @@ Unchanged from current behavior. The current `SPA.addMarker`,
 ### Edit mode — add
 
 `SPA.addEdit()`:
-1. `lang = previewState.srtLang` (current `srt-lang-select`).
-2. `blocks = SPA.srtByLang[lang]`. If absent → toast `no_srt`, return.
+1. `lang = previewState.srtLang` (current `srt-lang-select` value).
+2. `blocks = previewState.subtitles` (already parsed for the current
+   language by `loadSubtitleLang`). If empty → toast `no_srt`, return.
 3. `idx = findActiveSubtitleIdx(blocks, currentTimeMs)`.
    If `-1` → toast `no_active_subtitle`, return.
 4. `previewState.player.pause()`.
@@ -164,6 +165,17 @@ Unchanged from current behavior. The current `SPA.addMarker`,
 6. Else → `edits[lang][idx] = blocks[idx].text` (initial text = original),
    `renderEditList()`, focus the new row.
 7. `savePreviewState()`, `updateClearBtn()`.
+
+New helper (added next to the existing `findActiveSubtitle`):
+
+```js
+function findActiveSubtitleIdx(subs, ms) {
+  for (var i = 0; i < subs.length; i++) {
+    if (ms >= subs[i].startMs && ms < subs[i].endMs) return i;
+  }
+  return -1;
+}
+```
 
 ### Edit row DOM
 
@@ -213,9 +225,11 @@ The `.tc` click seeks the player to the block start (reuses marker
 
 ### Language switch
 
-`srt-lang-select` onchange already updates overlay state. Extend it: if
-`previewState.mode === 'edit'`, re-render the edit list with
-`edits[newLang]`.
+`SPA.switchSubLang(lang)` already loads the new SRT into
+`previewState.subtitles` and updates the overlay. Extend it: if
+`previewState.mode === 'edit'`, re-render the edit list so rows reflect
+`edits[newLang]` with original texts from the newly-loaded
+`previewState.subtitles`.
 
 ### Clear all
 
@@ -236,16 +250,20 @@ The `.tc` click seeks the player to the block start (reuses marker
 
 ### `Open in GitHub Editor` (edit mode)
 
-`SPA.openPreviewEditor()`:
-1. `blocks = SPA.srtByLang[currentLang]`
-2. Rebuild an SRT string: for each block, substitute
-   `edits[currentLang][idx]` where present, keep block numbering and
-   original timecodes.
-3. Target path:
-   `talks/<talkId>/<videoSlug>/final/<currentLang>.srt`
-4. Open `https://github.com/<REPO>/edit/main/<path>?value=<encoded>`.
-   This is the same mechanism the review page uses
-   (`SPA.openEditor` at `site/index.html:2690`).
+`SPA.openPreviewEditor()` mirrors the review-page `SPA.openEditor`
+exactly (`site/index.html:2690-2739`):
+
+1. `lang = previewState.srtLang`
+2. `filePath = talks/<talkId>/<videoSlug>/final/<lang>.srt`
+3. `url = https://github.com/<REPO>/edit/main/<filePath>` — bare URL,
+   **no `?value=` query param** (GitHub's edit endpoint does not accept
+   one).
+4. If `edits[lang]` is non-empty:
+   - Rebuild the SRT from `previewState.subtitles`: keep block numbering
+     and timecodes, substitute `edits[lang][idx]` where present.
+   - `navigator.clipboard.writeText(rebuilt)` → alert the user that the
+     SRT is on the clipboard → `window.open(url)`.
+5. Else → open the editor URL directly.
 
 ## Tests (TDD)
 
