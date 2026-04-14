@@ -21,21 +21,13 @@ from tests.test_preview_spa import (  # noqa: F401  — re-exported fixtures
 
 
 def _goto_review_srt(page, server):  # noqa: F811
-    """Navigate to review view and switch to SRT source.
-
-    Uses SPA.switchReviewMode() directly because the current option value
-    format is 'srt' + data-video attribute, not 'srt:Test-Video'.
-    (The plan assumed a format change not yet implemented; this matches
-    all existing tests in test_preview_spa.py.)
-    """
+    """Navigate to review view and switch to SRT source."""
     goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
     page.wait_for_selector("#review-grid", timeout=10000)
     page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
     page.wait_for_selector(".cell.uk", timeout=10000)
-    # Under heavy parallel load, the browser can momentarily lag before
-    # SyncPlayer.init unhides the button even though switchReviewMode
-    # has returned. Poll until it's visible so subsequent clicks never
-    # race against a stale display:none.
+    # Poll: under parallel load SyncPlayer.init may unhide the button
+    # after switchReviewMode has already returned.
     page.wait_for_function(
         "() => { var b = document.getElementById('btn-sync-player'); return b && b.style.display !== 'none'; }",
         timeout=10000,
@@ -469,9 +461,6 @@ class TestFailOpen:
         assert "Vimeo" in text
 
 
-# ---------------------------------------------------------------------------
-# Gap 1: Toggle Follow resume scrolls current row into view
-# ---------------------------------------------------------------------------
 class TestResumeFollow:
     def test_toggle_follow_resume_calls_scroll_into_view(self, server, page):  # noqa: F811
         """Resuming Follow (un-pausing) must scroll the current row into view."""
@@ -504,9 +493,6 @@ class TestResumeFollow:
         assert page.evaluate("window._stCalls > 0"), "toggleFollow resume must scroll the current row into view"
 
 
-# ---------------------------------------------------------------------------
-# Gap 2: Video switch rebuilds ukRows cache; highlighting works on new video
-# ---------------------------------------------------------------------------
 class TestVideoSwitchHighlight:
     def test_video_switch_creates_new_player_instance(self, server, page):  # noqa: F811
         """Switching to a different video slug must destroy and re-create the player."""
@@ -551,9 +537,6 @@ class TestVideoSwitchHighlight:
         assert highlighted == ["6000"], "Highlight must work on new video after video switch"
 
 
-# ---------------------------------------------------------------------------
-# Gap 3: aria-label on the close button is localized
-# ---------------------------------------------------------------------------
 class TestAriaLabelI18n:
     def test_aria_label_uk(self, server, page):  # noqa: F811
         """In UK language mode the close button aria-label must be Ukrainian."""
@@ -606,9 +589,6 @@ class TestAriaLabelI18n:
         assert after in ("Закрити плеєр", "Close player")
 
 
-# ---------------------------------------------------------------------------
-# Gap 4: Re-open after hide preserves playhead (mount-once, reuse optimization)
-# ---------------------------------------------------------------------------
 class TestReopenPreservesPlayhead:
     def test_reopen_after_hide_preserves_current_time(self, server, page):  # noqa: F811
         """Hiding then re-showing the bar must reuse the existing player without reset."""
@@ -634,9 +614,6 @@ class TestReopenPreservesPlayhead:
         assert abs(current - 8) < 0.1, f"Player currentTime must be preserved after hide/show cycle, got {current}"
 
 
-# ---------------------------------------------------------------------------
-# Gap 5: Persist closed — saved open:false must not auto-mount on reload
-# ---------------------------------------------------------------------------
 class TestPersistClosed:
     def test_closed_state_survives_reload(self, server, page):  # noqa: F811
         """After closing the player and reloading, the bar must remain hidden."""
@@ -670,9 +647,6 @@ class TestPersistClosed:
         assert page.locator("#mock-player").count() == 0, "Mock player must not mount when saved state has open:false"
 
 
-# ---------------------------------------------------------------------------
-# Gap 6: Space on <select> does NOT toggle play/pause
-# ---------------------------------------------------------------------------
 class TestSpaceOnSelectNoToggle:
     def test_space_on_review_mode_select_does_not_pause(self, server, page):  # noqa: F811
         """Space key while a <select> is focused must not reach the global shortcut handler."""
@@ -695,9 +669,6 @@ class TestSpaceOnSelectNoToggle:
         assert page.evaluate("window._vimeoPlayer._paused") is False, "Space on <select> must not toggle play/pause"
 
 
-# ---------------------------------------------------------------------------
-# Gap 7: Clicking a cell without data-ms-start does NOT seek
-# ---------------------------------------------------------------------------
 class TestPlaceholderCellNoSeek:
     def test_cell_without_ms_start_does_not_seek(self, server, page):  # noqa: F811
         """Clicking a synthetic .cell.en without data-ms-start must not trigger seekTo."""
@@ -748,9 +719,6 @@ class TestPlaceholderCellNoSeek:
             assert before == after, "Clicking a .cell.en without data-ms-start must not seek the player"
 
 
-# ---------------------------------------------------------------------------
-# Gap 8: Escape closes player only when focus is NOT in .cell-text
-# ---------------------------------------------------------------------------
 class TestEscapeFocusExemption:
     def test_escape_with_cell_focused_does_not_close(self, server, page):  # noqa: F811
         """Pressing Escape while a .cell-text is focused must NOT hide the player."""
@@ -785,9 +753,6 @@ class TestEscapeFocusExemption:
         )
 
 
-# ---------------------------------------------------------------------------
-# Gap 9: .current class persists across a re-highlight cycle (never 0 or 2)
-# ---------------------------------------------------------------------------
 class TestHighlightCycle:
     def test_exactly_one_current_after_time_change(self, server, page):  # noqa: F811
         """After two distinct _setTime calls, exactly one .cell.uk.current must exist."""
@@ -819,9 +784,6 @@ class TestHighlightCycle:
         )
 
 
-# ---------------------------------------------------------------------------
-# Gap 10: revertAllEdits re-renders grid; .current self-heals on next timeupdate
-# ---------------------------------------------------------------------------
 class TestRevertAllEditsHighlightRecovery:
     def test_current_recovers_after_revert_all(self, server, page):  # noqa: F811
         """After revertAllEdits rebuilds the grid, .current must self-heal on next timeupdate."""
@@ -886,11 +848,6 @@ class TestRevertAllEditsHighlightRecovery:
         assert count == 1, f"EN .current must self-heal after revertAllEdits, got {count}"
 
 
-# ---------------------------------------------------------------------------
-# Regression: seekTo must clear .paused synchronously even if the underlying
-# Vimeo setCurrentTime promise rejects (otherwise a flaky SDK / out-of-range
-# seek leaves the user permanently stuck on .paused).
-# ---------------------------------------------------------------------------
 class TestSeekToClearsPausedEagerly:
     def test_paused_cleared_synchronously_without_awaiting_seek(self, server, page):  # noqa: F811
         """seekTo must clear .paused before/regardless of setCurrentTime resolving.
@@ -943,9 +900,6 @@ class TestSeekToClearsPausedEagerly:
         )
 
 
-# ---------------------------------------------------------------------------
-# Smoke: A1 — Mobile viewport caps .sync-player-bar at 22vh
-# ---------------------------------------------------------------------------
 class TestMobileViewport:
     def test_mobile_defaults_sync_player_bar_to_22vh(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 375, "height": 812})
@@ -960,9 +914,6 @@ class TestMobileViewport:
         assert 177 < val < 180, f"Expected ~178.64px (22vh of 812) on mobile viewport, got {height!r}"
 
 
-# ---------------------------------------------------------------------------
-# Smoke: A2 — .current cell has inset box-shadow at runtime
-# ---------------------------------------------------------------------------
 class TestCurrentBoxShadow:
     def test_current_row_has_inset_box_shadow(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
@@ -981,9 +932,6 @@ class TestCurrentBoxShadow:
         assert "inset" in shadow, f"Expected inset box-shadow on .current cell, got {shadow!r}"
 
 
-# ---------------------------------------------------------------------------
-# Smoke: A3 — .current + .marked + .edited compose on the same cell
-# ---------------------------------------------------------------------------
 class TestHighlightComposition:
     def test_current_marked_edited_compose(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
@@ -1026,9 +974,6 @@ class TestHighlightComposition:
         )
 
 
-# ---------------------------------------------------------------------------
-# Smoke: A4 — .current indicator survives a theme toggle (dark → light)
-# ---------------------------------------------------------------------------
 class TestThemeToggle:
     def test_current_box_shadow_persists_through_theme_toggle(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
@@ -1058,15 +1003,11 @@ class TestThemeToggle:
         light_shadow = page.evaluate("getComputedStyle(document.querySelector('.cell.uk.current')).boxShadow")
         assert "inset" in light_shadow, f"Expected inset box-shadow in light theme, got {light_shadow!r}"
 
-        # The --link token differs: dark=#6af light=#0066cc, so shadows should differ.
         assert dark_shadow != light_shadow, (
             f"Expected different shadow colors per theme: dark={dark_shadow!r}, light={light_shadow!r}"
         )
 
 
-# ---------------------------------------------------------------------------
-# Resize: default height, drag to grow, persistence across reload, clamping
-# ---------------------------------------------------------------------------
 class TestResizeBar:
     def test_desktop_default_is_25vh(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
@@ -1167,17 +1108,88 @@ class TestResizeBar:
         # Drag the handle to force a resize.
         _drag_resize_handle(page, 120)
 
-        # .paused class must be cleared after mouseup.
+        # .paused class must be cleared after pointerup.
         assert not page.evaluate("document.getElementById('btn-follow').classList.contains('paused')"), (
             "resize should auto-resume Follow"
         )
 
 
-# ---------------------------------------------------------------------------
-# Regression: the mounted player must grow with the bar (not stay at
-# intrinsic iframe height). Catches the "#sync-player-mount has no size,
-# iframe collapses to 150px" bug.
-# ---------------------------------------------------------------------------
+class TestResizeDragLifecycle:
+    def test_drag_classes_active_only_during_drag(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        def state():
+            return page.evaluate("""
+              () => ({
+                body: document.body.classList.contains('sync-player-resizing'),
+                handle: document.getElementById('sync-player-resize').classList.contains('dragging'),
+              })
+            """)
+
+        assert state() == {"body": False, "handle": False}
+
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] + 80, steps=4)
+        assert state() == {"body": True, "handle": True}
+        page.mouse.up()
+        assert state() == {"body": False, "handle": False}
+
+    def test_right_click_does_not_start_drag(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        # Simulate a right-click pointerdown (button=2) on the handle.
+        page.evaluate("""
+          () => {
+            var h = document.getElementById('sync-player-resize');
+            var r = h.getBoundingClientRect();
+            h.dispatchEvent(new PointerEvent('pointerdown', {
+              button: 2, buttons: 2, pointerId: 1, pointerType: 'mouse',
+              clientX: r.left + r.width / 2, clientY: r.top + r.height / 2,
+              bubbles: true, cancelable: true,
+            }));
+          }
+        """)
+        assert not page.evaluate("document.body.classList.contains('sync-player-resizing')")
+        assert not page.evaluate("document.getElementById('sync-player-resize').classList.contains('dragging')")
+
+    def test_destroy_mid_drag_clears_global_styles(self, server, page):  # noqa: F811
+        page.set_viewport_size({"width": 1280, "height": 800})
+        _goto_review_srt(page, server)
+        page.click("#btn-sync-player")
+        page.wait_for_selector("#mock-player", state="visible", timeout=3000)
+
+        box = page.evaluate("""
+          () => {
+            var h = document.getElementById('sync-player-resize').getBoundingClientRect();
+            return { x: h.left + h.width / 2, y: h.top + h.height / 2 };
+          }
+        """)
+        page.mouse.move(box["x"], box["y"])
+        page.mouse.down()
+        page.mouse.move(box["x"], box["y"] + 60, steps=3)
+        assert page.evaluate("document.body.classList.contains('sync-player-resizing')")
+
+        # Navigate away mid-drag. destroy() must clean up global drag styles.
+        page.evaluate("location.hash = '#/'")
+        page.wait_for_selector(".talk-item", timeout=5000)
+        page.mouse.up()
+
+        assert not page.evaluate("document.body.classList.contains('sync-player-resizing')")
+
+
 class TestPlayerFillsBar:
     def test_mount_fills_bar_height(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
@@ -1212,12 +1224,6 @@ class TestPlayerFillsBar:
         assert after - before > 200, f"Player did not grow with bar drag: before={before}, after={after}"
 
 
-# ---------------------------------------------------------------------------
-# Regression: Follow auto-scroll must place the current row BELOW the
-# sticky player bar, not behind it. scrollIntoView({block: 'center'})
-# alone centers relative to the viewport, which hides the row under the
-# bar once the bar is resized larger.
-# ---------------------------------------------------------------------------
 class TestFollowCenteringBelowBar:
     @staticmethod
     def _install_long_srt(page):  # noqa: F811

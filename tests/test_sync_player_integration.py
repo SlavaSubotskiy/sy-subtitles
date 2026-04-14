@@ -35,7 +35,6 @@ from tests.test_preview_spa import (  # noqa: F401  — re-exported fixtures
 )
 
 # Real Vimeo URL — project-public video from the existing corpus.
-# Video: Mahashivaratri Puja 1979 (Puja in Pune, Marathi)
 TEST_VIMEO_URL = "https://vimeo.com/916194756/a4fda18b19"
 
 # Gate: set SY_E2E_REAL_VIMEO=0 to skip real-network tests in environments
