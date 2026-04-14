@@ -24,8 +24,18 @@ window.Vimeo = {
       window._vimeoPlayer = this;
     }
     ready() { return Promise.resolve(); }
-    pause() { this._paused = true; return Promise.resolve(); }
-    play() { this._paused = false; return Promise.resolve(); }
+    pause() {
+      var wasPaused = this._paused !== false;
+      this._paused = true;
+      if (!wasPaused) this._fire('pause', {});
+      return Promise.resolve();
+    }
+    play() {
+      var wasPaused = this._paused !== false;
+      this._paused = false;
+      if (wasPaused) this._fire('play', {});
+      return Promise.resolve();
+    }
     getPaused() { return Promise.resolve(this._paused !== false); }
     setCurrentTime(sec) { this._currentTime = sec; return Promise.resolve(); }
     on(event, callback) {
@@ -33,13 +43,14 @@ window.Vimeo = {
       this._callbacks[event].push(callback);
     }
     getCurrentTime() { return Promise.resolve(this._currentTime); }
+    _fire(event, data) {
+      var cbs = this._callbacks[event] || [];
+      for (var i = 0; i < cbs.length; i++) cbs[i](data);
+    }
     // Test helper: set time and fire timeupdate
     _setTime(seconds) {
       this._currentTime = seconds;
-      var cbs = this._callbacks['timeupdate'] || [];
-      for (var i = 0; i < cbs.length; i++) {
-        cbs[i]({ seconds: seconds, duration: 3600 });
-      }
+      this._fire('timeupdate', { seconds: seconds, duration: 3600 });
     }
   }
 };
