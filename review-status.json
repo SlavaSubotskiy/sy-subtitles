@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-15T13:18:44.021214+00:00",
+  "updated_at": "2026-04-15T13:20:22.511325+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -93,10 +93,10 @@
       "updated_at": "2026-04-15T13:10:20Z"
     },
     "1987-08-09_Shri-Vishnumaya-Puja-She-has-created-a-big-maya": {
-      "status": "pending",
-      "reviewer": null,
+      "status": "in-progress",
+      "reviewer": "SlavaSubotskiy",
       "issue_number": 70,
-      "updated_at": "2026-04-15T13:10:22Z"
+      "updated_at": "2026-04-15T13:20:21Z"
     }
   }
 }
