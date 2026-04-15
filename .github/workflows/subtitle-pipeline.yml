@@ -1136,12 +1136,12 @@ jobs:
           if [ -n "$EXISTING" ]; then
             echo "Review issue #$EXISTING already exists — resetting to pending"
             gh issue reopen "$EXISTING"
-            gh issue edit "$EXISTING" --remove-label "review:approved,review:in-progress" --add-label "review:pending"
+            gh issue edit "$EXISTING" --remove-label "review:approved,review:in-progress" --add-label "review:pending,talk-review"
           else
             META_TITLE=$(python3 -c "import yaml; print(yaml.safe_load(open('talks/$TALK_ID/meta.yaml'))['title'])" 2>/dev/null || echo "$TALK_ID")
             gh issue create \
               --title "Review: $TALK_ID" \
-              --label "review:pending" \
+              --label "review:pending,talk-review" \
               --body "$(cat <<ISSUEEOF
           ## $META_TITLE
 

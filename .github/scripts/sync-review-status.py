@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Rebuild review-status.json from GitHub review-tracking issues.
 
+Source of truth: issues labeled `talk-review`. Pipeline applies this label
+when creating the initialization issue; no other issue type is tracked.
+
 Preserves manually-set entries for talk_ids not covered by any issue.
 
 Requires GH_TOKEN in env (for `gh issue list`).
@@ -13,7 +16,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 STATUS_FILE = Path("review-status.json")
-TITLE_PREFIXES = ("Review: ", "Subtitle review: ", "Translation review: ")
+GATE_LABEL = "talk-review"
+TITLE_PREFIX = "Review: "
 
 
 def load_existing() -> dict:
@@ -32,7 +36,7 @@ def fetch_issues() -> list[dict]:
             "issue",
             "list",
             "--search",
-            "label:review:pending,review:in-progress,review:approved",
+            f"label:{GATE_LABEL}",
             "--state",
             "all",
             "--json",
@@ -48,9 +52,8 @@ def fetch_issues() -> list[dict]:
 
 
 def talk_id_from_title(title: str) -> str | None:
-    for prefix in TITLE_PREFIXES:
-        if title.startswith(prefix):
-            return title[len(prefix) :].strip()
+    if title.startswith(TITLE_PREFIX):
+        return title[len(TITLE_PREFIX) :].strip()
     return None
 
 
@@ -69,6 +72,11 @@ def main() -> int:
     for issue in issues:
         talk_id = talk_id_from_title(issue["title"])
         if not talk_id:
+            print(
+                f"warning: issue #{issue['number']} has `{GATE_LABEL}` label but "
+                f"title does not start with `{TITLE_PREFIX}` — skipping: {issue['title']!r}",
+                file=sys.stderr,
+            )
             continue
         labels = [lbl["name"] for lbl in issue.get("labels", [])]
         assignees = [a["login"] for a in issue.get("assignees", [])]
