@@ -3,8 +3,10 @@
 import functools
 import http.server
 import json
+import re
 import threading
 from pathlib import Path
+from urllib.parse import quote, unquote
 
 import pytest
 
@@ -2842,6 +2844,433 @@ class TestPreviewEditMode:
         assert "Другий субтитр" in clip, clip[:400]
         assert opened.startswith("https://github.com/") and "final/uk.srt" in opened
 
+    def test_open_preview_editor_url_points_to_full_final_uk_path(self, server, page):
+        """PR target must be the exact canonical path and branch, not just a suffix match.
+        A bug that swapped the repo, branch, or directory would currently slip through
+        the 'final/uk.srt in opened' substring check."""
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'НОВА';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(
+            "window._openedUrl = null;"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " navigator.clipboard.writeText = function() { return Promise.resolve(); };"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        opened = page.evaluate("window._openedUrl || ''")
+        expected = (
+            "https://github.com/SlavaSubotskiy/sy-subtitles/edit/main/"
+            "talks/2001-01-01_Test-Talk/Test-Video/final/uk.srt"
+        )
+        assert opened == expected, f"expected exact editor URL, got: {opened}"
+
+    def test_open_preview_editor_no_edits_opens_url_without_clipboard(self, server, page):
+        """Zero-edit path: must open the editor URL directly and NOT touch the clipboard.
+        A bug that always rebuilt/clipboarded would overwrite the user's buffer on a
+        plain 'go edit this file' click."""
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate(
+            "window._openedUrl = null;"
+            " window._clipText = null;"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(150)
+        opened = page.evaluate("window._openedUrl || ''")
+        clip_written = page.evaluate("window._clipText")
+        assert "final/uk.srt" in opened, opened[:300]
+        assert clip_written is None, f"clipboard should not be touched, got: {clip_written!r}"
+
+    def test_open_preview_editor_clipboard_byte_exact_with_edits_applied(self, server, page):
+        """The clipboard must equal the SOURCE SRT byte-for-byte, with ONLY the edited
+        blocks substituted. Any stray whitespace, reordering, or drift in timecodes/
+        block numbers counts as a regression — reviewers would then see spurious diffs
+        in their PR and lose trust in the tool."""
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        # Edit block 0 ("Перший субтитр") via UI, block 1 ("Другий субтитр") via state.
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'ПЕРШИЙ_НОВ';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate("previewState.edits.uk[1] = 'ДРУГИЙ_НОВ'; savePreviewState();")
+        page.evaluate(
+            "window._clipText = '';"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.alert = function() {};"
+            " window.open = function() {};"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        clip = page.evaluate("window._clipText || ''")
+        expected = SAMPLE_SRT.replace("Перший субтитр", "ПЕРШИЙ_НОВ").replace("Другий субтитр", "ДРУГИЙ_НОВ")
+        assert clip == expected, (
+            "Clipboard does not match source with edits applied.\n"
+            f"--- expected ({len(expected)} bytes) ---\n{expected!r}\n"
+            f"--- got ({len(clip)} bytes) ---\n{clip!r}"
+        )
+
+    def test_open_preview_editor_clipboard_unedited_blocks_are_byte_identical(self, server, page):
+        """When only ONE block is edited, every OTHER byte in the clipboard must be
+        byte-identical to the source (block numbers, timecodes, untouched text,
+        separator blank lines, trailing newline). This guards against the rebuilder
+        subtly normalizing the source file."""
+        _goto_preview_video(page, server)
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(7)")  # inside block 2 (6–10s)
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'ТІЛЬКИ_ДРУГИЙ';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(
+            "window._clipText = '';"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.alert = function() {};"
+            " window.open = function() {};"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        clip = page.evaluate("window._clipText || ''")
+        expected = SAMPLE_SRT.replace("Другий субтитр", "ТІЛЬКИ_ДРУГИЙ")
+        assert clip == expected, (
+            f"Unedited block drifted from source.\n--- expected ---\n{expected!r}\n--- got ---\n{clip!r}"
+        )
+
+    # ------------------------------------------------------------------
+    # Canonicalization coverage for the preview PR button.
+    #
+    # Our pipeline produces SRTs in ONE canonical form: UTF-8 without BOM,
+    # LF line endings, blocks numbered from 1, a single blank line between
+    # blocks, and exactly one trailing newline. If a human manually commits
+    # an SRT in a different shape, `openPreviewEditor` MUST rewrite it back
+    # to canonical form rather than faithfully preserve the source bytes —
+    # reviewers should never see arbitrary formatting drift in their PRs.
+    #
+    # These tests codify that contract, so an accidental "preserve source"
+    # refactor of parseSRT / applyEditsToSrt would fail loudly.
+    # ------------------------------------------------------------------
+    CANONICAL_SRT = "1\n00:00:01,000 --> 00:00:05,000\nПЕРШИЙ_НОВ\n\n2\n00:00:06,000 --> 00:00:10,000\nДругий субтитр\n"
+
+    def _override_uk_srt(self, page, body):
+        """Replace the UK SRT mock with `body`. MUST be called before navigation."""
+        page.unroute("**/raw.githubusercontent.com/**/uk.srt")
+        page.route(
+            "**/raw.githubusercontent.com/**/uk.srt",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=body),
+        )
+
+    def _edit_block0_and_grab_clip(self, page):
+        """Edit block 0 to 'ПЕРШИЙ_НОВ' via the UI, trigger openPreviewEditor,
+        return the captured clipboard text."""
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'ПЕРШИЙ_НОВ';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(
+            "window._clipText = '';"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.alert = function() {};"
+            " window.open = function() {};"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        return page.evaluate("window._clipText || ''")
+
+    def test_canonicalize_strips_utf8_bom(self, server, page):
+        """Source with a leading BOM → clipboard must NOT carry the BOM."""
+        source = "\ufeff" + (
+            "1\n00:00:01,000 --> 00:00:05,000\nПерший субтитр\n\n2\n00:00:06,000 --> 00:00:10,000\nДругий субтитр\n"
+        )
+        self._override_uk_srt(page, source)
+        _goto_preview_video(page, server)
+        clip = self._edit_block0_and_grab_clip(page)
+        assert not clip.startswith("\ufeff"), f"BOM leaked into clipboard: {clip[:10]!r}"
+        assert clip == self.CANONICAL_SRT, (
+            f"BOM source not canonicalized.\n--- expected ---\n{self.CANONICAL_SRT!r}\n--- got ---\n{clip!r}"
+        )
+
+    def test_canonicalize_renumbers_block_indices(self, server, page):
+        """Source with non-sequential block numbers (5, 10) → clipboard renumbers from 1."""
+        source = (
+            "5\n00:00:01,000 --> 00:00:05,000\nПерший субтитр\n\n10\n00:00:06,000 --> 00:00:10,000\nДругий субтитр\n"
+        )
+        self._override_uk_srt(page, source)
+        _goto_preview_video(page, server)
+        clip = self._edit_block0_and_grab_clip(page)
+        assert clip == self.CANONICAL_SRT, (
+            f"Block numbers not renumbered.\n--- expected ---\n{self.CANONICAL_SRT!r}\n--- got ---\n{clip!r}"
+        )
+
+    def test_canonicalize_collapses_extra_blank_lines(self, server, page):
+        """Source with triple blank lines between blocks → clipboard has a single blank line."""
+        source = (
+            "1\n00:00:01,000 --> 00:00:05,000\nПерший субтитр\n\n\n\n2\n00:00:06,000 --> 00:00:10,000\nДругий субтитр\n"
+        )
+        self._override_uk_srt(page, source)
+        _goto_preview_video(page, server)
+        clip = self._edit_block0_and_grab_clip(page)
+        assert clip == self.CANONICAL_SRT, (
+            f"Extra blank lines not collapsed.\n--- expected ---\n{self.CANONICAL_SRT!r}\n--- got ---\n{clip!r}"
+        )
+
+    def test_canonicalize_adds_trailing_newline_when_missing(self, server, page):
+        """Source without a trailing newline → clipboard ends with exactly one `\\n`."""
+        source = "1\n00:00:01,000 --> 00:00:05,000\nПерший субтитр\n\n2\n00:00:06,000 --> 00:00:10,000\nДругий субтитр"
+        assert not source.endswith("\n")
+        self._override_uk_srt(page, source)
+        _goto_preview_video(page, server)
+        clip = self._edit_block0_and_grab_clip(page)
+        assert clip.endswith("\n"), f"missing trailing newline: {clip[-20:]!r}"
+        assert not clip.endswith("\n\n"), f"extra trailing newline: {clip[-20:]!r}"
+        assert clip == self.CANONICAL_SRT, (
+            f"Trailing newline not canonicalized.\n--- expected ---\n{self.CANONICAL_SRT!r}\n--- got ---\n{clip!r}"
+        )
+
+    def test_canonicalize_converts_crlf_to_lf(self, server, page):
+        """Source with CRLF line endings → clipboard has pure LF."""
+        source = (
+            "1\r\n00:00:01,000 --> 00:00:05,000\r\nПерший субтитр\r\n\r\n"
+            "2\r\n00:00:06,000 --> 00:00:10,000\r\nДругий субтитр\r\n"
+        )
+        self._override_uk_srt(page, source)
+        _goto_preview_video(page, server)
+        clip = self._edit_block0_and_grab_clip(page)
+        assert "\r" not in clip, f"CR leaked into clipboard: {clip!r}"
+        assert clip == self.CANONICAL_SRT, (
+            f"CRLF source not canonicalized.\n--- expected ---\n{self.CANONICAL_SRT!r}\n--- got ---\n{clip!r}"
+        )
+
+    # ------------------------------------------------------------------
+    # Multi-language coverage for the preview PR button.
+    #
+    # Preview supports switching `previewState.srtLang` between whatever
+    # languages are present under `final/` for a video. The PR target
+    # path, the clipboard body, and the byte-for-byte canonicalization
+    # contract must all track the current language — NOT hardcode `uk`.
+    #
+    # We also verify that `previewState.edits` is scoped per-language:
+    # an edit made while viewing UK must not leak into the EN clipboard.
+    # ------------------------------------------------------------------
+    MULTI_LANG_TREE = {
+        "sha": "test-multi-lang",
+        "tree": [
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video/final/uk.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video/final/en.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video/source/en.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video/source/whisper.json", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/final/uk.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/meta.yaml", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/review_report.md", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/transcript_en.txt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/transcript_uk.txt", "type": "blob"},
+        ],
+    }
+
+    EN_SRT_TIGHT = (
+        "1\n00:00:01,000 --> 00:00:05,000\nFirst EN block\n\n2\n00:00:06,000 --> 00:00:10,000\nSecond EN block\n"
+    )
+
+    def _install_multi_lang_tree(self, page, en_body=None):
+        """Replace the Trees API mock with one that exposes both uk.srt and
+        en.srt under final/, and narrow the en.srt content mock. MUST be
+        called before navigation."""
+        page.unroute("**/api.github.com/**")
+        page.route(
+            "**/api.github.com/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                headers={"ETag": '"test-etag-multi"'},
+                body=json.dumps(self.MULTI_LANG_TREE),
+            ),
+        )
+        page.unroute("**/raw.githubusercontent.com/**/en.srt")
+        body = en_body if en_body is not None else self.EN_SRT_TIGHT
+        page.route(
+            "**/raw.githubusercontent.com/**/en.srt",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=body),
+        )
+
+    def test_en_language_selector_becomes_visible(self, server, page):
+        """Sanity check: with two languages in the tree, the #srt-lang-select
+        chip is shown. Without this, the following tests could pass trivially
+        against a SPA that silently ignored our tree override."""
+        self._install_multi_lang_tree(page)
+        _goto_preview_video(page, server)
+        assert page.locator("#srt-lang-select").is_visible() is True
+        options = page.evaluate("Array.from(document.querySelectorAll('#srt-lang-select option')).map(o => o.value)")
+        assert set(options) == {"uk", "en"}, options
+
+    def test_open_preview_editor_en_url_and_clipboard_byte_exact(self, server, page):
+        """After SPA.switchSubLang('en'):
+        * openPreviewEditor must open `.../final/en.srt` (NOT uk.srt);
+        * the clipboard must be the EN source with the EN edit applied,
+          byte-for-byte — proving canonicalization is language-agnostic
+          and that no 'uk' value is hardcoded in the PR pipeline."""
+        self._install_multi_lang_tree(page)
+        _goto_preview_video(page, server)
+        page.evaluate("SPA.switchSubLang('en')")
+        page.wait_for_function("previewState.srtLang === 'en'", timeout=5000)
+
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'EN_EDIT';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(
+            "window._clipText = '';"
+            " window._openedUrl = null;"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        opened = page.evaluate("window._openedUrl || ''")
+        clip = page.evaluate("window._clipText || ''")
+
+        expected_url = (
+            "https://github.com/SlavaSubotskiy/sy-subtitles/edit/main/"
+            "talks/2001-01-01_Test-Talk/Test-Video/final/en.srt"
+        )
+        assert opened == expected_url, f"wrong PR target for EN: {opened}"
+        expected_clip = self.EN_SRT_TIGHT.replace("First EN block", "EN_EDIT")
+        assert clip == expected_clip, (
+            f"EN clipboard mismatch.\n--- expected ---\n{expected_clip!r}\n--- got ---\n{clip!r}"
+        )
+
+    def test_canonicalize_en_srt_strips_bom(self, server, page):
+        """Canonicalization must apply to any language — verify BOM is stripped
+        from an EN source too. This catches a hypothetical regression where
+        canonicalization was only wired up for the UK code path."""
+        en_with_bom = "\ufeff" + self.EN_SRT_TIGHT
+        self._install_multi_lang_tree(page, en_body=en_with_bom)
+        _goto_preview_video(page, server)
+        page.evaluate("SPA.switchSubLang('en')")
+        page.wait_for_function("previewState.srtLang === 'en'", timeout=5000)
+
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'EN_EDIT';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(
+            "window._clipText = '';"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.open = function() {};"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        clip = page.evaluate("window._clipText || ''")
+        assert not clip.startswith("\ufeff"), f"BOM leaked into EN clipboard: {clip[:10]!r}"
+        expected = self.EN_SRT_TIGHT.replace("First EN block", "EN_EDIT")
+        assert clip == expected, (
+            f"EN BOM source not canonicalized.\n--- expected ---\n{expected!r}\n--- got ---\n{clip!r}"
+        )
+
+    def test_edits_are_scoped_by_language(self, server, page):
+        """An edit made while viewing UK must NOT leak into the EN clipboard.
+        After switching to EN with no EN edits, openPreviewEditor must take
+        the no-clipboard branch (open URL only) — even though previewState.edits
+        still holds UK edits. A regression that checked `Object.keys(edits).length`
+        instead of `edits[lang]` would fail this test."""
+        self._install_multi_lang_tree(page)
+        _goto_preview_video(page, server)
+
+        # Plant a UK edit through the real UI flow.
+        self._switch_to_edit(page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_timeout(100)
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'UK_ONLY_EDIT';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        assert page.evaluate("previewState.edits.uk && previewState.edits.uk[0]") == "UK_ONLY_EDIT"
+
+        # Switch to EN — edits for EN should be empty.
+        page.evaluate("SPA.switchSubLang('en')")
+        page.wait_for_function("previewState.srtLang === 'en'", timeout=5000)
+
+        page.evaluate(
+            "window._clipText = null;"
+            " window._openedUrl = null;"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        opened = page.evaluate("window._openedUrl || ''")
+        clip_written = page.evaluate("window._clipText")
+
+        assert "final/en.srt" in opened, f"EN target expected: {opened}"
+        assert "final/uk.srt" not in opened, f"UK leaked into EN URL: {opened}"
+        assert clip_written is None, f"Clipboard must NOT be touched for EN (no EN edits), got: {clip_written!r}"
+        # UK edit must survive the language switch untouched.
+        assert page.evaluate("previewState.edits.uk[0]") == "UK_ONLY_EDIT"
+
     def test_overlay_reflects_edited_text_during_playback(self, server, page):
         _goto_preview_video(page, server)
         self._switch_to_edit(page)
@@ -3035,3 +3464,190 @@ class TestPreviewVideoSwitcher:
         page.select_option("#preview-video-select", "Test-Video-2")
         page.wait_for_timeout(500)
         assert "Test-Video-2" in page.url
+
+
+class TestPreviewMarkerIssueAndCopy:
+    """Coverage for the 'Copy all' and marker-mode 'Create issue' buttons.
+
+    These verify that the *content* handed to clipboard/window.open is correct,
+    not just that the buttons render. Gaps in this area previously let broken
+    markdown tables or wrong file paths slip through silently."""
+
+    def _seed_markers(self, page):
+        page.evaluate(
+            """
+            previewState.markers = [
+              { time: 2, tc: '00:00:02', text: 'Перший субтитр', comment: 'timing off' },
+              { time: 7, tc: '00:00:07', text: 'Другий субтитр', comment: '' }
+            ];
+            savePreviewState();
+            renderMarkers();
+            updateClearBtn();
+            """
+        )
+
+    def test_copy_all_puts_markdown_markers_on_clipboard(self, server, page):
+        """#btn-copy-all must copy a markdown bullet list: `- **{tc}** {text} — _{comment}_`.
+        Empty comments must NOT produce a trailing em-dash."""
+        _goto_preview_video(page, server)
+        self._seed_markers(page)
+        page.evaluate(
+            """
+            window._clipText = '';
+            navigator.clipboard.writeText = function(t) {
+              window._clipText = t; return Promise.resolve();
+            };
+            """
+        )
+        page.click("#btn-copy-all")
+        page.wait_for_timeout(150)
+        clip = page.evaluate("window._clipText || ''")
+        assert clip.startswith("# "), f"expected title header, got: {clip[:200]}"
+        # Both marker timestamps and texts present.
+        assert "**00:00:02**" in clip and "Перший субтитр" in clip, clip[:500]
+        assert "**00:00:07**" in clip and "Другий субтитр" in clip, clip[:500]
+        # Commented marker → em-dash italic suffix.
+        assert "— _timing off_" in clip, clip[:500]
+        # Empty-comment marker must NOT carry an em-dash / italic block.
+        second = next(line for line in clip.splitlines() if "Другий субтитр" in line)
+        assert "—" not in second and "_" not in second, f"stray comment suffix: {second!r}"
+
+    def test_create_issue_marker_mode_body_contains_markers_table(self, server, page):
+        """SPA.createPreviewIssue() in marker mode must build a GitHub issues/new URL
+        whose body has the SRT path, a `### Markers` table with `| Time | Subtitle | Comment |`
+        header, and a row per marker — including an empty comment cell. It must NOT
+        leak the edit-mode `Suggested edits` section."""
+        _goto_preview_video(page, server)
+        self._seed_markers(page)
+        page.evaluate(
+            "window._openedUrl = null;"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " navigator.clipboard.writeText = function() { return Promise.resolve(); };"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.createPreviewIssue()")
+        page.wait_for_timeout(200)
+        url = page.evaluate("window._openedUrl || ''")
+        body = unquote(url)
+        assert "/issues/new" in url, url[:300]
+        assert "labels=review:pending" in url, url[:300]
+        assert "Test-Video/final/uk.srt" in body, body[:500]
+        assert "### Markers" in body, body[:600]
+        assert "| Time | Subtitle | Comment |" in body, body[:600]
+        assert "| 00:00:02 | Перший субтитр | timing off |" in body, body[:600]
+        assert "| 00:00:07 | Другий субтитр |  |" in body, body[:600]
+        assert "Suggested edits" not in body, f"marker body leaked edits section: {body[:500]}"
+
+
+class TestAddTalkForm:
+    """E2E coverage for the 'Create PR' (Add Talk) button.
+
+    `SPA.submitAddTalk()` builds a GitHub 'new file' URL from DOM inputs. Until
+    now only the yaml builder was unit-tested in isolation — nothing verified
+    that the button produces the right filename/message/encoded yaml at runtime,
+    so a broken form→URL wiring would ship silently."""
+
+    ADD_DATA = {
+        "t": "My Test Talk",
+        "d": "2020-05-05",
+        "u": "https://www.amruta.org/2020/05/05/my-test-talk/",
+        "loc": "Test City",
+        "v": [{"id": "1234", "h": "abcd"}],
+        "tx": "Intro line. Second line of transcript body.",
+    }
+
+    def _open_add_form(self, page, server, transcript=None):
+        data = dict(self.ADD_DATA)
+        if transcript is not None:
+            data["tx"] = transcript
+        encoded = quote(json.dumps(data), safe="")
+        page.goto(f"{server}{SPA_URL}#/add?data={encoded}")
+        page.wait_for_selector("#add-form", state="visible", timeout=5000)
+        page.wait_for_timeout(200)  # let updateAddPreview run
+
+    def test_form_prefilled_from_bookmarklet_data(self, server, page):
+        self._open_add_form(page, server)
+        assert page.input_value("#add-title") == "My Test Talk"
+        assert page.input_value("#add-date") == "2020-05-05"
+        assert "amruta.org" in page.input_value("#add-url")
+        assert page.input_value("#add-location") == "Test City"
+
+    def test_preview_yaml_contains_expected_fields(self, server, page):
+        self._open_add_form(page, server)
+        yaml_text = page.locator("#add-preview").text_content()
+        assert "title: 'My Test Talk'" in yaml_text
+        assert "date: '2020-05-05'" in yaml_text
+        assert "location: Test City" in yaml_text
+        assert "amruta_url: https://www.amruta.org/" in yaml_text
+        assert "language: en" in yaml_text
+        assert "videos:" in yaml_text
+        assert "vimeo_url: https://vimeo.com/1234/abcd" in yaml_text
+        assert "transcript_en_base64: |" in yaml_text
+
+    def test_create_pr_button_generates_github_new_file_url(self, server, page):
+        self._open_add_form(page, server)
+        page.evaluate(
+            "window._openedUrl = null;"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.submitAddTalk()")
+        page.wait_for_timeout(200)
+        url = page.evaluate("window._openedUrl || ''")
+        assert url.startswith("https://github.com/"), url[:300]
+        assert "/new/main" in url, url[:300]
+        # Filename from slugify("My Test Talk") → "My-Test-Talk".
+        assert "filename=talks%2F2020-05-05_My-Test-Talk%2Fmeta.yaml" in url, url[:500]
+        assert "message=Add%20My%20Test%20Talk" in url, url[:500]
+        m = re.search(r"[?&]value=([^&]+)", url)
+        assert m, f"no value= in URL: {url[:300]}"
+        yaml_decoded = unquote(m.group(1))
+        assert "title: 'My Test Talk'" in yaml_decoded, yaml_decoded[:400]
+        assert "date: '2020-05-05'" in yaml_decoded, yaml_decoded[:400]
+        assert "vimeo_url: https://vimeo.com/1234/abcd" in yaml_decoded, yaml_decoded[:400]
+        assert "transcript_en_base64: |" in yaml_decoded, yaml_decoded[:400]
+        assert "language: en" in yaml_decoded, yaml_decoded[:400]
+        # Description carries the source amruta URL.
+        d = re.search(r"[?&]description=([^&]+)", url)
+        assert d is not None, url[:400]
+        assert "amruta.org" in unquote(d.group(1))
+
+    def test_create_pr_submit_via_real_form_submit(self, server, page):
+        """Clicking the actual <button type="submit">Create PR</button> must
+        trigger the same URL (not just calling SPA.submitAddTalk() manually)."""
+        self._open_add_form(page, server)
+        page.evaluate(
+            "window._openedUrl = null;"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " window.alert = function() {};"
+        )
+        page.click('#add-form button[type="submit"]')
+        page.wait_for_timeout(200)
+        url = page.evaluate("window._openedUrl || ''")
+        assert "/new/main" in url, url[:400]
+        assert "filename=talks%2F2020-05-05_My-Test-Talk%2Fmeta.yaml" in url, url[:400]
+
+    def test_create_pr_with_long_yaml_copies_to_clipboard(self, server, page):
+        """When the full URL would exceed 8000 chars the yaml is copied to the
+        clipboard and a short URL (without `value=`) is opened instead."""
+        self._open_add_form(page, server, transcript="a" * 12000)
+        page.evaluate("updateAddPreview()")
+        page.evaluate(
+            "window._openedUrl = null;"
+            " window._clipText = '';"
+            " window.open = function(u) { window._openedUrl = u; };"
+            " navigator.clipboard.writeText = function(t) {"
+            "   window._clipText = t; return Promise.resolve();"
+            " };"
+            " window.alert = function() {};"
+        )
+        page.evaluate("SPA.submitAddTalk()")
+        page.wait_for_timeout(300)
+        url = page.evaluate("window._openedUrl || ''")
+        clip = page.evaluate("window._clipText || ''")
+        assert "/new/main" in url, url[:400]
+        assert "value=" not in url, f"long URL should be shortened: {url[:400]}"
+        assert "filename=talks%2F2020-05-05_My-Test-Talk%2Fmeta.yaml" in url, url[:400]
+        assert "message=Add%20My%20Test%20Talk" in url, url[:400]
+        assert "title: 'My Test Talk'" in clip, clip[:400]
+        assert "transcript_en_base64" in clip, clip[:400]
