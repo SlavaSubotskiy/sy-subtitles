@@ -1,24 +1,24 @@
 {
   "version": 1,
-  "updated_at": "2026-04-14T07:36:40.648521+00:00",
+  "updated_at": "2026-04-15T13:10:22.128531+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
       "reviewer": "IrynaFilSY",
       "issue_number": 5,
-      "updated_at": "2026-04-09T08:41:57Z"
+      "updated_at": "2026-04-15T13:10:05Z"
     },
     "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2": {
       "status": "pending",
       "reviewer": null,
       "issue_number": 27,
-      "updated_at": "2026-04-10T15:53:12Z"
+      "updated_at": "2026-04-15T13:10:18Z"
     },
     "1980-03-23_Birthday-Puja": {
       "status": "pending",
       "reviewer": null,
       "issue_number": 6,
-      "updated_at": "2026-04-03T08:11:15Z"
+      "updated_at": "2026-04-15T13:10:07Z"
     },
     "1981-03-21_Birthday-Puja-1981-Sydney": {
       "status": "approved",
@@ -30,13 +30,13 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 8,
-      "updated_at": "2026-04-03T18:12:51Z"
+      "updated_at": "2026-04-15T13:10:11Z"
     },
     "1983-03-30_Celebration-Of-Birthday-In-Bombay": {
       "status": "pending",
       "reviewer": null,
       "issue_number": 7,
-      "updated_at": "2026-04-12T14:40:06Z"
+      "updated_at": "2026-04-15T13:10:09Z"
     },
     "1983-07-24_Guru-Puja-Awakening-The-Principle-Of-Guru": {
       "status": "approved",
@@ -48,13 +48,13 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 9,
-      "updated_at": "2026-04-04T18:17:14Z"
+      "updated_at": "2026-04-15T13:10:13Z"
     },
     "1992-07-19_Guru-Puja": {
       "status": "pending",
       "reviewer": null,
       "issue_number": 2,
-      "updated_at": "2026-04-01T20:20:03Z"
+      "updated_at": "2026-04-15T13:10:03Z"
     },
     "1993-09-19_Ganesha-Puja-Cabella": {
       "status": "approved",
@@ -72,13 +72,13 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 26,
-      "updated_at": "2026-04-10T09:08:43Z"
+      "updated_at": "2026-04-15T13:10:16Z"
     },
     "2001-07-29_Shri-Krishna-Puja-New-York": {
       "status": "approved",
       "reviewer": "SlavaSubotskiy",
       "issue_number": 1,
-      "updated_at": "2026-04-08T08:30:58Z"
+      "updated_at": "2026-04-15T13:10:01Z"
     },
     "Kundalini Aur Yeshu Krist Mumbai NITL HD": {
       "status": "pending",
@@ -90,13 +90,13 @@
       "status": "in-progress",
       "reviewer": "IrynaFilSY",
       "issue_number": 21,
-      "updated_at": "2026-04-13T18:29:17Z"
+      "updated_at": "2026-04-15T13:10:14Z"
     },
     "1987-01-02_Talk-on-Innocence-Musical-Program-Morning": {
       "status": "approved",
       "reviewer": "SlavaSubotskiy",
       "issue_number": 31,
-      "updated_at": "2026-04-12T09:20:00Z"
+      "updated_at": "2026-04-15T13:10:20Z"
     },
     "Talk on Innocence & Musical Program (Morning)": {
       "status": "pending",
@@ -115,6 +115,12 @@
       "reviewer": null,
       "issue_number": 61,
       "updated_at": "2026-04-14T07:36:39Z"
+    },
+    "1987-08-09_Shri-Vishnumaya-Puja-She-has-created-a-big-maya": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 70,
+      "updated_at": "2026-04-15T10:12:20Z"
     }
   }
 }
