@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-15T13:10:14.723677+00:00",
+  "updated_at": "2026-04-15T13:10:31.366832+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -12,7 +12,7 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 27,
-      "updated_at": "2026-04-10T15:53:12Z"
+      "updated_at": "2026-04-15T13:10:18Z"
     },
     "1980-03-23_Birthday-Puja": {
       "status": "pending",
@@ -72,7 +72,7 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 26,
-      "updated_at": "2026-04-10T09:08:43Z"
+      "updated_at": "2026-04-15T13:10:16Z"
     },
     "2001-07-29_Shri-Krishna-Puja-New-York": {
       "status": "approved",
@@ -90,13 +90,13 @@
       "status": "in-progress",
       "reviewer": "IrynaFilSY",
       "issue_number": 21,
-      "updated_at": "2026-04-13T18:29:17Z"
+      "updated_at": "2026-04-15T13:10:14Z"
     },
     "1987-01-02_Talk-on-Innocence-Musical-Program-Morning": {
       "status": "approved",
       "reviewer": "SlavaSubotskiy",
       "issue_number": 31,
-      "updated_at": "2026-04-12T09:20:00Z"
+      "updated_at": "2026-04-15T13:10:20Z"
     },
     "Talk on Innocence & Musical Program (Morning)": {
       "status": "pending",
@@ -120,7 +120,7 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 70,
-      "updated_at": "2026-04-15T10:12:20Z"
+      "updated_at": "2026-04-15T13:10:22Z"
     }
   }
 }
