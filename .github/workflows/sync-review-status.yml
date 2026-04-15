@@ -4,6 +4,7 @@ on:
   issues:
     types: [labeled, unlabeled, assigned, unassigned, closed, reopened]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: write
@@ -14,26 +15,27 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     if: >
-      github.event_name == 'workflow_dispatch' ||
+      github.event_name != 'issues' ||
       contains(join(github.event.issue.labels.*.name, ','), 'review:')
     steps:
       - uses: actions/checkout@v4
 
       - name: Auto-update labels on assign/unassign/close/reopen
         if: >
-          github.event.action == 'assigned' ||
-          github.event.action == 'unassigned' ||
-          github.event.action == 'closed' ||
-          github.event.action == 'reopened'
+          github.event_name == 'issues' && (
+            github.event.action == 'assigned' ||
+            github.event.action == 'unassigned' ||
+            github.event.action == 'closed' ||
+            github.event.action == 'reopened'
+          )
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
+          ACTION: ${{ github.event.action }}
         run: |
-          ISSUE=${{ github.event.issue.number }}
-          ACTION="${{ github.event.action }}"
           if [ "$ACTION" = "assigned" ]; then
             gh issue edit "$ISSUE" --remove-label "review:pending" --add-label "review:in-progress"
           elif [ "$ACTION" = "unassigned" ]; then
-            # No assignees left → back to pending
             ASSIGNEES=$(gh issue view "$ISSUE" --json assignees --jq '.assignees | length')
             if [ "$ASSIGNEES" = "0" ]; then
               gh issue edit "$ISSUE" --remove-label "review:in-progress" --add-label "review:pending"
@@ -47,65 +49,7 @@ jobs:
       - name: Generate review-status.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 << 'PYEOF'
-          import json, subprocess
-          from datetime import datetime, timezone
-
-          # Load existing statuses (preserve manually set entries)
-          existing = {}
-          try:
-              with open("review-status.json") as f:
-                  existing = json.load(f).get("talks", {})
-          except (FileNotFoundError, json.JSONDecodeError):
-              pass
-
-          result = subprocess.run(
-              ["gh", "issue", "list",
-               "--search", "label:review:pending,review:in-progress,review:approved",
-               "--state", "all", "--json", "number,title,labels,assignees,updatedAt",
-               "--limit", "500"],
-              capture_output=True, text=True
-          )
-          issues = json.loads(result.stdout) if result.returncode == 0 else []
-
-          # Merge: Issues override existing entries for matched talk_ids
-          for issue in issues:
-              title = issue["title"]
-              talk_id = None
-              for prefix in ["Review: ", "Subtitle review: ", "Translation review: "]:
-                  if title.startswith(prefix):
-                      talk_id = title[len(prefix):].strip()
-                      break
-              if not talk_id:
-                  continue
-
-              labels = [l["name"] for l in issue.get("labels", [])]
-              if "review:approved" in labels:
-                  status = "approved"
-              elif "review:in-progress" in labels:
-                  status = "in-progress"
-              else:
-                  status = "pending"
-
-              assignees = [a["login"] for a in issue.get("assignees", [])]
-              existing[talk_id] = {
-                  "status": status,
-                  "reviewer": assignees[0] if assignees else None,
-                  "issue_number": issue["number"],
-                  "updated_at": issue["updatedAt"]
-              }
-
-          output = {
-              "version": 1,
-              "updated_at": datetime.now(timezone.utc).isoformat(),
-              "talks": existing
-          }
-          with open("review-status.json", "w") as f:
-              json.dump(output, f, indent=2, ensure_ascii=False)
-              f.write("\n")
-          print(f"Synced {len(existing)} talk statuses ({len(issues)} from issues)")
-          PYEOF
+        run: python3 .github/scripts/sync-review-status.py
 
       - name: Commit via PR
         env:
