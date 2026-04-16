@@ -75,7 +75,7 @@ permissions:
   pull-requests: write
 
 env:
-  MODEL_HEAVY: claude-opus-4-6
+  MODEL_HEAVY: claude-opus-4-7
   MODEL_LIGHT: claude-sonnet-4-6
 
 jobs:
