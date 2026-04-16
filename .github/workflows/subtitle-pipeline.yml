@@ -791,7 +791,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 20 --dangerously-skip-permissions --effort low --model ${{ env.MODEL_LIGHT }}"
+          claude_args: "--max-turns 20 --dangerously-skip-permissions --model ${{ env.MODEL_LIGHT }}"
           show_full_output: true
           prompt: |
             Read the file talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}.txt
