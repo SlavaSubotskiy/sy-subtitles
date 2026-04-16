@@ -3384,6 +3384,114 @@ class TestSubtitleLangPerTalk:
         assert lang == "uk"
 
 
+class TestReviewSrtLangDropdowns:
+    """Review SRT mode: left dropdown shows source/ languages,
+    right dropdown shows final/ languages, choices are persisted."""
+
+    MULTI_SRC_TREE = {
+        "sha": "test-multi-src",
+        "tree": [
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video/final/uk.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video/final/en.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video/source/en.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video/source/hi.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video/source/whisper.json", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/final/uk.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/source/en.srt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/Test-Video-2/source/whisper.json", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/meta.yaml", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/review_report.md", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/transcript_en.txt", "type": "blob"},
+            {"path": "talks/2001-01-01_Test-Talk/transcript_uk.txt", "type": "blob"},
+        ],
+    }
+
+    def _install_tree(self, page):
+        page.unroute("**/api.github.com/**")
+        page.route(
+            "**/api.github.com/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                headers={"ETag": '"test-etag-multi-src"'},
+                body=json.dumps(self.MULTI_SRC_TREE),
+            ),
+        )
+
+    def _goto_review_srt(self, server, page):
+        self._install_tree(page)
+        goto_spa(page, server)
+        page.evaluate("localStorage.setItem('sy_expert_mode', '1'); expertMode = true; applyExpertMode();")
+        page.evaluate("location.hash = '#/review/2001-01-01_Test-Talk'")
+        page.wait_for_function("document.querySelectorAll('.cell').length > 0", timeout=10000)
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+
+    def test_manifest_has_src_srt_langs(self, server, page):
+        """buildManifest should populate _srcSrtLangs from source/*.srt."""
+        self._install_tree(page)
+        goto_spa(page, server)
+        page.evaluate("location.hash = '#/review/2001-01-01_Test-Talk'")
+        page.wait_for_function("document.querySelectorAll('.cell').length > 0", timeout=10000)
+        src_langs = page.evaluate(
+            "manifest.talks.find(t => t.id === '2001-01-01_Test-Talk')._srcSrtLangs['Test-Video']"
+        )
+        assert sorted(src_langs) == ["en", "hi"]
+
+    def test_manifest_has_final_srt_langs(self, server, page):
+        """buildManifest should populate _srtLangs from final/*.srt."""
+        self._install_tree(page)
+        goto_spa(page, server)
+        page.evaluate("location.hash = '#/review/2001-01-01_Test-Talk'")
+        page.wait_for_function("document.querySelectorAll('.cell').length > 0", timeout=10000)
+        final_langs = page.evaluate("manifest.talks.find(t => t.id === '2001-01-01_Test-Talk')._srtLangs['Test-Video']")
+        assert sorted(final_langs) == ["en", "uk"]
+
+    def test_left_dropdown_shows_source_langs(self, server, page):
+        """Left column dropdown should list source/ languages."""
+        self._goto_review_srt(server, page)
+        page.evaluate("SPA.toggleTranscriptDropdown('left')")
+        page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
+        texts = [el.text_content() for el in page.locator("#transcript-dropdown-left div").all()]
+        assert len(texts) == 2
+        assert "English" in texts
+        assert "Hindi" in texts
+
+    def test_right_dropdown_shows_final_langs(self, server, page):
+        """Right column dropdown should list final/ languages."""
+        self._goto_review_srt(server, page)
+        page.evaluate("SPA.toggleTranscriptDropdown('right')")
+        page.wait_for_selector("#transcript-dropdown-right.open", timeout=5000)
+        texts = [el.text_content() for el in page.locator("#transcript-dropdown-right div").all()]
+        assert len(texts) == 2
+        assert "English" in texts
+        assert "Ukrainian" in texts
+
+    def test_srt_lang_choice_persisted(self, server, page):
+        """switchSrtLang should save choice to localStorage."""
+        self._goto_review_srt(server, page)
+        page.evaluate("SPA.switchSrtLang('right', 'en')")
+        page.wait_for_timeout(500)
+        saved = page.evaluate("localStorage.getItem('sy_review_srt_right_2001-01-01_Test-Talk')")
+        assert saved == "en"
+
+    def test_srt_lang_choice_restored(self, server, page):
+        """Saved SRT lang should be restored on re-entering SRT mode."""
+        self._goto_review_srt(server, page)
+        page.evaluate("localStorage.setItem('sy_review_srt_right_2001-01-01_Test-Talk', 'en')")
+        # Re-enter SRT mode
+        page.evaluate("SPA.switchReviewMode('srt', 'Test-Video')")
+        page.wait_for_timeout(500)
+        lang = page.evaluate("reviewState.srtRightLang")
+        assert lang == "en"
+
+    def test_default_langs_without_saved(self, server, page):
+        """Without saved choice, left defaults to en, right to uk."""
+        self._goto_review_srt(server, page)
+        assert page.evaluate("reviewState.srtLeftLang") == "en"
+        assert page.evaluate("reviewState.srtRightLang") == "uk"
+
+
 class TestIndexFilterPersistence:
     """Active filter on the index is persisted separately for normal and
     expert mode so each mode recalls its own last choice."""

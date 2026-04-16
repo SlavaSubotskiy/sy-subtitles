@@ -309,7 +309,7 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 }
 .sync-player-video {
   flex: 1 1 auto;
-  background: #000;
+  background: var(--video-bg, #000);
   position: relative;
   min-height: 0;
   overflow: hidden;
@@ -715,7 +715,7 @@ var APP_DEPLOY_DATE = ''; // deploy date YYYY-MM-DD
 // ============================================================
 // Cache — schema versioned, auto-migrates on format change
 // ============================================================
-var CACHE_SCHEMA = 2; // bump when cache format changes
+var CACHE_SCHEMA = 3; // bump when cache format changes
 var CACHE_KEY = 'sy_tree_cache__' + BRANCH;
 (function() {
   try {
@@ -1723,7 +1723,7 @@ function buildManifest(tree) {
     var m = entry.path.match(/^talks\/([^/]+)\/meta\.yaml$/);
     if (m) {
       var tid = m[1];
-      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, hasReviewReport: false, _whisperSlugs: [], _srtSlugs: [], _srtSha: {}, _srtLangs: {}, _transcriptSha: {}, transcripts: [] };
+      if (!talks[tid]) talks[tid] = { id: tid, title: '', date: '', videos: [], hasEn: false, hasUk: false, hasReviewReport: false, _whisperSlugs: [], _srtSlugs: [], _srtSha: {}, _srtLangs: {}, _srcSrtSha: {}, _srcSrtLangs: {}, _transcriptSha: {}, transcripts: [] };
     }
   });
   // Pass 2: fill in transcripts and SRT
@@ -1754,6 +1754,14 @@ function buildManifest(tree) {
       if (!talks[m[1]]._srtLangs) talks[m[1]]._srtLangs = {};
       if (!talks[m[1]]._srtLangs[srtSlug]) talks[m[1]]._srtLangs[srtSlug] = [];
       if (talks[m[1]]._srtLangs[srtSlug].indexOf(srtLang) === -1) talks[m[1]]._srtLangs[srtSlug].push(srtLang);
+    }
+    m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/source\/([a-z]{2})\.srt$/);
+    if (m && talks[m[1]]) {
+      var srcSlug = m[2], srcLang = m[3];
+      talks[m[1]]._srcSrtSha[srcSlug + '/' + srcLang] = entry.sha || '';
+      if (!talks[m[1]]._srcSrtLangs) talks[m[1]]._srcSrtLangs = {};
+      if (!talks[m[1]]._srcSrtLangs[srcSlug]) talks[m[1]]._srcSrtLangs[srcSlug] = [];
+      if (talks[m[1]]._srcSrtLangs[srcSlug].indexOf(srcLang) === -1) talks[m[1]]._srcSrtLangs[srcSlug].push(srcLang);
     }
   });
 
@@ -2807,7 +2815,6 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   reviewState.mode = 'srt';
   reviewState.videoSlug = videoSlug || '';
   localStorage.setItem('sy_review_mode_' + talkId, JSON.stringify({ mode: 'srt', video: videoSlug }));
-  updateColHeaders();
   statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
   renderReviewSkeleton();
@@ -2815,10 +2822,19 @@ SPA.switchReviewMode = function(mode, videoSlug) {
   SyncPlayer.init(talkId, videoSlug);
 
   var talk = reviewState.talk;
-  var enSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/en']) || '';
-  var ukSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/uk']) || '';
-  var enUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/source/en.srt' + (enSha ? '?v=' + enSha.substring(0, 8) : '');
-  var ukUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/final/uk.srt' + (ukSha ? '?v=' + ukSha.substring(0, 8) : '');
+  var srcLangs = (talk && talk._srcSrtLangs && talk._srcSrtLangs[videoSlug]) || ['en'];
+  var finalLangs = (talk && talk._srtLangs && talk._srtLangs[videoSlug]) || ['uk'];
+  var savedLeft = localStorage.getItem('sy_review_srt_left_' + talkId);
+  var savedRight = localStorage.getItem('sy_review_srt_right_' + talkId);
+  var leftLang = (savedLeft && srcLangs.indexOf(savedLeft) !== -1) ? savedLeft : (srcLangs.indexOf('en') !== -1 ? 'en' : srcLangs[0]);
+  var rightLang = (savedRight && finalLangs.indexOf(savedRight) !== -1) ? savedRight : (finalLangs.indexOf('uk') !== -1 ? 'uk' : finalLangs[0]);
+  reviewState.srtLeftLang = leftLang;
+  reviewState.srtRightLang = rightLang;
+  updateColHeaders();
+  var leftSha = (talk && talk._srcSrtSha && talk._srcSrtSha[videoSlug + '/' + leftLang]) || '';
+  var rightSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/' + rightLang]) || '';
+  var enUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/source/' + leftLang + '.srt' + (leftSha ? '?v=' + leftSha.substring(0, 8) : '');
+  var ukUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/final/' + rightLang + '.srt' + (rightSha ? '?v=' + rightSha.substring(0, 8) : '');
 
   Promise.all([
     fetch(enUrl).then(function(r) { return r.ok ? r.text() : ''; }),
@@ -3237,9 +3253,10 @@ SPA.toggleTranscriptDropdown = function(side) {
   var talk = reviewState.talk;
 
   if (reviewState.mode === 'srt') {
-    // SRT mode: show available SRT languages for this video
-    var srtLangs = (talk && talk._srtLangs && talk._srtLangs[reviewState.videoSlug]) || [];
-    var langs = side === 'left' ? ['en'] : srtLangs.filter(function(l) { return l !== 'en'; });
+    // SRT mode: left shows source/ languages, right shows final/ languages
+    var langs = side === 'left'
+      ? (talk && talk._srcSrtLangs && talk._srcSrtLangs[reviewState.videoSlug]) || ['en']
+      : (talk && talk._srtLangs && talk._srtLangs[reviewState.videoSlug]) || ['uk'];
     if (langs.length <= 1) { return; }
     dd.innerHTML = '';
     var currentSrtLang = side === 'left' ? (reviewState.srtLeftLang) : (reviewState.srtRightLang);
@@ -3279,14 +3296,16 @@ SPA.switchSrtLang = function(side, lang) {
   statusEl.textContent = t('review.loading');
   statusEl.style.display = 'block';
 
-  var enLang = side === 'left' ? lang : (reviewState.srtLeftLang);
-  var ukLang = side === 'right' ? lang : (reviewState.srtRightLang);
-  reviewState.srtLeftLang = enLang;
-  reviewState.srtRightLang = ukLang;
-  var enSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/' + enLang]) || '';
-  var ukSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/' + ukLang]) || '';
-  var enUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/source/' + enLang + '.srt' + (enSha ? '?v=' + enSha.substring(0, 8) : '');
-  var ukUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/final/' + ukLang + '.srt' + (ukSha ? '?v=' + ukSha.substring(0, 8) : '');
+  var leftLang = side === 'left' ? lang : (reviewState.srtLeftLang);
+  var rightLang = side === 'right' ? lang : (reviewState.srtRightLang);
+  reviewState.srtLeftLang = leftLang;
+  reviewState.srtRightLang = rightLang;
+  localStorage.setItem('sy_review_srt_left_' + talkId, leftLang);
+  localStorage.setItem('sy_review_srt_right_' + talkId, rightLang);
+  var leftSha = (talk && talk._srcSrtSha && talk._srcSrtSha[videoSlug + '/' + leftLang]) || '';
+  var rightSha = (talk && talk._srtSha && talk._srtSha[videoSlug + '/' + rightLang]) || '';
+  var enUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/source/' + leftLang + '.srt' + (leftSha ? '?v=' + leftSha.substring(0, 8) : '');
+  var ukUrl = RAW + '/talks/' + talkId + '/' + videoSlug + '/final/' + rightLang + '.srt' + (rightSha ? '?v=' + rightSha.substring(0, 8) : '');
 
   Promise.all([
     fetch(enUrl).then(function(r) { return r.ok ? r.text() : ''; }),

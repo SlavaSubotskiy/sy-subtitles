@@ -405,6 +405,74 @@ describe('extractSrtLangs', () => {
   });
 });
 
+// --- extractSrcSrtLangs logic (extracted from buildManifest) ---
+function extractSrcSrtLangs(treeEntries) {
+  var result = {};
+  treeEntries.forEach(function(entry) {
+    var m = entry.path.match(/^talks\/([^/]+)\/([^/]+)\/source\/([a-z]{2})\.srt$/);
+    if (m) {
+      var tid = m[1], slug = m[2], lang = m[3];
+      if (!result[tid]) result[tid] = {};
+      if (!result[tid][slug]) result[tid][slug] = [];
+      if (result[tid][slug].indexOf(lang) === -1) result[tid][slug].push(lang);
+    }
+  });
+  return result;
+}
+
+// ============================================================
+// Tests: extractSrcSrtLangs
+// ============================================================
+describe('extractSrcSrtLangs', () => {
+  it('returns empty for no source SRT entries', () => {
+    var result = extractSrcSrtLangs([
+      { path: 'talks/Talk/meta.yaml' },
+    ]);
+    assert.deepStrictEqual(result, {});
+  });
+
+  it('extracts single source language', () => {
+    var result = extractSrcSrtLangs([
+      { path: 'talks/Talk/Vid/source/en.srt', sha: 'abc' },
+    ]);
+    assert.deepStrictEqual(result['Talk']['Vid'], ['en']);
+  });
+
+  it('extracts multiple source languages', () => {
+    var result = extractSrcSrtLangs([
+      { path: 'talks/Talk/Vid/source/en.srt', sha: 'a' },
+      { path: 'talks/Talk/Vid/source/hi.srt', sha: 'b' },
+    ]);
+    var langs = result['Talk']['Vid'].sort();
+    assert.deepStrictEqual(langs, ['en', 'hi']);
+  });
+
+  it('ignores final/ entries', () => {
+    var result = extractSrcSrtLangs([
+      { path: 'talks/Talk/Vid/source/en.srt', sha: 'a' },
+      { path: 'talks/Talk/Vid/final/uk.srt', sha: 'b' },
+    ]);
+    assert.deepStrictEqual(result['Talk']['Vid'], ['en']);
+  });
+
+  it('no duplicates', () => {
+    var result = extractSrcSrtLangs([
+      { path: 'talks/Talk/Vid/source/en.srt', sha: 'a' },
+      { path: 'talks/Talk/Vid/source/en.srt', sha: 'b' },
+    ]);
+    assert.strictEqual(result['Talk']['Vid'].length, 1);
+  });
+
+  it('separate languages per video slug', () => {
+    var result = extractSrcSrtLangs([
+      { path: 'talks/Talk/Vid1/source/en.srt', sha: 'a' },
+      { path: 'talks/Talk/Vid2/source/hi.srt', sha: 'b' },
+    ]);
+    assert.deepStrictEqual(result['Talk']['Vid1'], ['en']);
+    assert.deepStrictEqual(result['Talk']['Vid2'], ['hi']);
+  });
+});
+
 // ============================================================
 // Tests: buildSrtUrlWithLang
 // ============================================================
@@ -2921,8 +2989,12 @@ describe('Expert mode: filter reset on toggle', () => {
   var html = fs.readFileSync('site/index.html', 'utf8');
 
   it('toggleExpert resets activeFilter', () => {
-    assert.ok(html.includes("expertMode ? 'pending' : 'needs-review'"),
-      'toggleExpert should reset activeFilter based on mode');
+    // activeFilter is reset via loadSavedFilter which defaults to
+    // 'pending' for expert and 'needs-review' for normal mode
+    assert.ok(html.includes("loadSavedFilter(expertMode)"),
+      'toggleExpert should reset activeFilter via loadSavedFilter');
+    assert.ok(html.includes("isExpert ? 'pending' : 'needs-review'"),
+      'loadSavedFilter should default to pending/needs-review');
   });
 
   it('toggleExpert calls renderStats and renderIndex', () => {
