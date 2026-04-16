@@ -3759,3 +3759,146 @@ class TestAddTalkForm:
         assert "message=Add%20My%20Test%20Talk" in url, url[:400]
         assert "title: 'My Test Talk'" in clip, clip[:400]
         assert "transcript_en_base64" in clip, clip[:400]
+
+
+class TestStickyHeaders:
+    """Headers must remain visible while scrolling so action buttons are
+    always reachable."""
+
+    def _goto_review(self, server, page):
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+
+    def _goto_preview(self, server, page):
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(500)
+
+    def test_freshness_bar_is_sticky(self, server, page):
+        self._goto_review(server, page)
+        pos = page.evaluate("getComputedStyle(document.getElementById('freshness-bar')).position")
+        assert pos == "sticky"
+
+    def test_review_header_is_sticky(self, server, page):
+        self._goto_review(server, page)
+        pos = page.evaluate("getComputedStyle(document.querySelector('#view-review > .header')).position")
+        assert pos == "sticky"
+
+    def test_preview_header_is_sticky(self, server, page):
+        self._goto_preview(server, page)
+        pos = page.evaluate("getComputedStyle(document.querySelector('#view-preview > .header')).position")
+        assert pos == "sticky"
+
+    def test_review_header_visible_after_scroll(self, server, page):
+        self._goto_review(server, page)
+        # Inject enough cells to make the page actually scroll past the header,
+        # otherwise sticky has no work to do and the test would falsely pass.
+        page.evaluate("""
+          const grid = document.getElementById('review-grid');
+          for (let i = 0; i < 100; i++) {
+            const en = document.createElement('div'); en.className = 'cell en'; en.textContent = 'EN ' + i;
+            const uk = document.createElement('div'); uk.className = 'cell uk'; uk.textContent = 'UK ' + i;
+            grid.appendChild(en); grid.appendChild(uk);
+          }
+        """)
+        page.evaluate("window.scrollTo(0, 2000)")
+        page.wait_for_timeout(100)
+        sy = page.evaluate("window.scrollY")
+        assert sy > 1500, f"page failed to scroll (scrollY={sy})"
+        rect = page.evaluate(
+            "(() => { const r = document.querySelector('#view-review > .header').getBoundingClientRect(); return {top: r.top, bottom: r.bottom}; })()"
+        )
+        # Header bottom edge should still be inside the viewport (sticky pinned).
+        assert rect["bottom"] > 0
+        assert rect["top"] < 100  # near the top of viewport
+
+    def test_freshness_bar_above_view_header(self, server, page):
+        """When both are pinned, freshness-bar must sit above the view header."""
+        self._goto_review(server, page)
+        page.evaluate("window.scrollTo(0, 1500)")
+        page.wait_for_timeout(100)
+        fb_bottom = page.evaluate("document.getElementById('freshness-bar').getBoundingClientRect().bottom")
+        hdr_top = page.evaluate("document.querySelector('#view-review > .header').getBoundingClientRect().top")
+        # Header should sit at or below the freshness-bar bottom (no overlap).
+        assert hdr_top >= fb_bottom - 1
+
+
+class TestStickyHeaderWithSyncPlayer:
+    """Regression: when the SyncPlayer is open on the review page, the
+    player bar must not overlap the view header."""
+
+    def _goto_review(self, server, page):
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+
+    def test_view_header_visible_when_sync_player_open(self, server, page):
+        self._goto_review(server, page)
+        # Add scrollable content so sticky pinning kicks in.
+        page.evaluate("""
+          const grid = document.getElementById('review-grid');
+          for (let i = 0; i < 100; i++) {
+            const en = document.createElement('div'); en.className = 'cell en'; en.textContent = 'EN ' + i;
+            const uk = document.createElement('div'); uk.className = 'cell uk'; uk.textContent = 'UK ' + i;
+            grid.appendChild(en); grid.appendChild(uk);
+          }
+        """)
+        # Force-show the sync player bar (avoids touching Vimeo player init).
+        page.evaluate("document.getElementById('sync-player-bar').hidden = false;")
+        page.evaluate("window.scrollTo(0, 2000)")
+        page.wait_for_timeout(150)
+        info = page.evaluate("""(() => {
+          const h = document.querySelector('#view-review > .header').getBoundingClientRect();
+          const p = document.getElementById('sync-player-bar').getBoundingClientRect();
+          return {header_top: h.top, header_bottom: h.bottom, player_top: p.top};
+        })()""")
+        # View header must remain inside the viewport, and the player bar must
+        # sit BELOW the header (no overlap).
+        assert info["header_bottom"] > 0, f"header off-screen: {info}"
+        assert info["header_top"] < 100, f"header not pinned: {info}"
+        assert info["player_top"] >= info["header_bottom"] - 1, f"player overlaps header: {info}"
+
+
+class TestRevertAllConfirmation:
+    """Revert all on the review page must ask for confirmation, mirroring
+    the preview's Clear all button."""
+
+    def _goto_review_with_edit(self, server, page):
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+        cell = page.locator(".cell.uk .cell-text").first
+        cell.click()
+        cell.press("End")
+        cell.type(" edited")
+        cell.press("Tab")
+        page.wait_for_timeout(200)
+        return cell
+
+    def test_revert_all_button_visible_after_edit(self, server, page):
+        self._goto_review_with_edit(server, page)
+        assert page.locator("#btn-revert-all").is_visible()
+
+    def test_revert_all_prompts_confirmation(self, server, page):
+        self._goto_review_with_edit(server, page)
+        seen = []
+        page.once("dialog", lambda d: (seen.append(d.message), d.accept()))
+        page.click("#btn-revert-all")
+        page.wait_for_timeout(200)
+        assert len(seen) == 1, "Expected a confirm() dialog before reverting"
+
+    def test_revert_all_cancel_keeps_edits(self, server, page):
+        self._goto_review_with_edit(server, page)
+        page.once("dialog", lambda d: d.dismiss())
+        page.click("#btn-revert-all")
+        page.wait_for_timeout(200)
+        edits = page.evaluate("JSON.parse(localStorage.getItem('review_2001-01-01_Test-Talk') || '{}').edits || {}")
+        assert len(edits) == 1, "Cancelling confirm must keep edits intact"
+        assert page.locator("#btn-revert-all").is_visible()
+
+    def test_revert_all_confirm_clears_edits(self, server, page):
+        self._goto_review_with_edit(server, page)
+        page.once("dialog", lambda d: d.accept())
+        page.click("#btn-revert-all")
+        page.wait_for_timeout(200)
+        edits = page.evaluate("JSON.parse(localStorage.getItem('review_2001-01-01_Test-Talk') || '{}').edits || {}")
+        assert edits == {}
+        assert page.locator("#btn-revert-all").is_visible() is False

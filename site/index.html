@@ -57,7 +57,13 @@ body { background: var(--bg); color: var(--fg); font-family: -apple-system, Blin
 /* --- Shared --- */
 a { color: var(--link); text-decoration: none; }
 a:hover { text-decoration: underline; }
-.header { padding: 12px 20px; background: var(--bg2); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+/* Header bars stay pinned while scrolling so action buttons (Clear all,
+   Create issue, mode toggle…) remain reachable from anywhere on the page.
+   --freshness-h is the measured height of #freshness-bar above; the view
+   header sits directly under it. */
+:root { --freshness-h: 30px; }
+.header { padding: 12px 20px; background: var(--bg2); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  position: sticky; top: var(--freshness-h); z-index: 20; }
 .header h1 { font-size: 16px; font-weight: normal; color: var(--fg4); }
 .header-actions { display: flex; gap: 8px; }
 .header-actions button { background: var(--bg4); color: var(--fg); border: 1px solid var(--border3); border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
@@ -301,7 +307,9 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 :root { --sync-player-h: 25vh; }
 @media (max-width: 768px) { :root { --sync-player-h: 22vh; } }
 .sync-player-bar {
-  position: sticky; top: 0; z-index: 20;
+  /* Sit below the freshness-bar AND the view header so both headers stay
+     visible while the player is open. --view-header-h is measured by JS. */
+  position: sticky; top: calc(var(--freshness-h) + var(--view-header-h, 0px)); z-index: 15;
   background: var(--bg2); border-bottom: 1px solid var(--border);
   height: var(--sync-player-h);
   min-height: 120px;
@@ -355,7 +363,7 @@ body.sync-player-resizing, body.sync-player-resizing * {
 <body>
 
 <!-- === FRESHNESS BAR (global, all views) === -->
-<div id="freshness-bar" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 20px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--fg6);">
+<div id="freshness-bar" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 20px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--fg6);position:sticky;top:0;z-index:30;">
   <div class="branch-selector">
     <button class="branch-btn" id="branch-btn" onclick="SPA.toggleBranches()">main &#x25BE;</button>
     <div class="branch-dropdown" id="branch-dropdown"></div>
@@ -749,6 +757,7 @@ var I18N = {
     'toast.edits_cleared': '\u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F \u043E\u0447\u0438\u0449\u0435\u043D\u043E',
     'toast.no_active_subtitle': '\u041D\u0435\u043C\u0430\u0454 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0443',
     'confirm.clear_edits': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0456 {n} \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u044C ({lang})?',
+    'confirm.revert_all': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0432\u0441\u0456 {n} \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u044C?',
     'link.preview': '\u25B6 \u041F\u0435\u0440\u0435\u0433\u043B\u044F\u043D\u0443\u0442\u0438 \u043F\u0435\u0440\u0435\u043A\u043B\u0430\u0434',
     'markers.summary': '\u041C\u0430\u0440\u043A\u0435\u0440\u0438',
     'btn.copy_all': '\u041A\u043E\u043F\u0456\u044E\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
@@ -849,6 +858,7 @@ var I18N = {
     'toast.edits_cleared': 'Edits cleared',
     'toast.no_active_subtitle': 'No active subtitle at this time',
     'confirm.clear_edits': 'Clear all {n} edits ({lang})?',
+    'confirm.revert_all': 'Revert all {n} edits?',
     'link.preview': '\u25B6 View translation',
     'markers.summary': 'Markers',
     'btn.copy_all': 'Copy all',
@@ -2019,6 +2029,29 @@ document.addEventListener('DOMContentLoaded', function() {
       debounce = setTimeout(function() { renderStats(); renderIndex(document.getElementById('index-content')); }, 200);
     });
   }
+  // Sticky view-headers sit directly under #freshness-bar; keep --freshness-h
+  // in sync with its actual height so wrapping (mobile, long branch names) can't
+  // hide the view header behind the freshness-bar.
+  var fb = document.getElementById('freshness-bar');
+  if (fb) {
+    var sync = function() {
+      document.documentElement.style.setProperty('--freshness-h', fb.offsetHeight + 'px');
+    };
+    sync();
+    if (window.ResizeObserver) new ResizeObserver(sync).observe(fb);
+    else window.addEventListener('resize', sync);
+  }
+  // --view-header-h tracks the review view's sticky header so the SyncPlayer
+  // bar can pin itself below it (otherwise the player covers the header).
+  var rh = document.querySelector('#view-review > .header');
+  if (rh) {
+    var syncRh = function() {
+      document.documentElement.style.setProperty('--view-header-h', rh.offsetHeight + 'px');
+    };
+    syncRh();
+    if (window.ResizeObserver) new ResizeObserver(syncRh).observe(rh);
+    else window.addEventListener('resize', syncRh);
+  }
 });
 
 // ============================================================
@@ -3089,7 +3122,9 @@ SPA.revertEdit = function(idx) {
 };
 
 SPA.revertAllEdits = function() {
-  if (!Object.keys(reviewState.edits).length) return;
+  var n = Object.keys(reviewState.edits).length;
+  if (!n) return;
+  if (!confirm(t('confirm.revert_all').replace('{n}', n))) return;
   reviewState.edits = {};
   saveReview();
   renderReview();
