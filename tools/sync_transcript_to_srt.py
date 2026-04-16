@@ -1,8 +1,13 @@
 """Sync transcript_uk.txt text edits into existing uk.srt.
 
-Swaps text in SRT blocks where paragraph text changed.
-When block count changes, redistributes timecodes proportionally
-(needs optimizer post-processing for proper timing).
+Applies text changes from a transcript diff directly to SRT blocks
+via difflib fragment matching.  This approach works regardless of
+whether the SRT block structure matches prepare_blocks output (e.g.
+whisper-built SRTs that combine sentences differently).
+
+When a replacement pushes a block over MAX_CPL, returns an error —
+the caller should fall back to the full pipeline, which rebuilds
+timing from whisper.
 
 Usage:
     python -m tools.sync_transcript_to_srt \
@@ -15,7 +20,7 @@ import sys
 from pathlib import Path
 
 from .srt_utils import parse_srt, write_srt
-from .text_segmentation import build_blocks_from_paragraphs, load_transcript
+from .text_segmentation import MAX_CPL, build_blocks_from_paragraphs, load_transcript
 
 
 def prepare_blocks(paragraphs: list) -> list:
@@ -38,15 +43,90 @@ def find_paragraph_blocks(srt_blocks: list, para_blocks: list) -> list | None:
     return None
 
 
-def sync_transcript(talk_dir: str, video_slug: str, old_transcript: str, new_transcript: str) -> dict:
-    """Swap changed paragraph text in SRT.
+def _find_diff(old_para: str, new_para: str) -> tuple[str, str]:
+    """Find the changed region between old and new paragraph text.
 
-    Only handles edits that preserve block count (same CPL layout). When a
-    paragraph's edit causes a different number of subtitle blocks (e.g. a
-    sentence grew/shrunk enough to cross the CPL threshold), returns an
-    error — the caller should fall back to the full pipeline, which
-    rebuilds timing from whisper. We deliberately do NOT redistribute
-    timecodes proportionally (see feedback_no_proportional).
+    Returns (old_fragment, new_fragment) — the minimal differing middle
+    with enough surrounding context for unique matching in SRT blocks.
+    """
+    # Common prefix
+    prefix_len = 0
+    min_len = min(len(old_para), len(new_para))
+    while prefix_len < min_len and old_para[prefix_len] == new_para[prefix_len]:
+        prefix_len += 1
+
+    # Common suffix (can't overlap prefix)
+    suffix_len = 0
+    max_suffix = min_len - prefix_len
+    while suffix_len < max_suffix and old_para[-(suffix_len + 1)] == new_para[-(suffix_len + 1)]:
+        suffix_len += 1
+
+    old_end = len(old_para) - suffix_len if suffix_len else len(old_para)
+    new_end = len(new_para) - suffix_len if suffix_len else len(new_para)
+    old_mid = old_para[prefix_len:old_end]
+    new_mid = new_para[prefix_len:new_end]
+
+    # If the diff region is too short, include surrounding context
+    # so the fragment is findable and unique in SRT blocks
+    while len(old_mid) < 3 and (prefix_len > 0 or suffix_len > 0):
+        if prefix_len > 0:
+            prefix_len -= 1
+        if suffix_len > 0:
+            suffix_len -= 1
+            old_end = len(old_para) - suffix_len if suffix_len else len(old_para)
+            new_end = len(new_para) - suffix_len if suffix_len else len(new_para)
+        old_mid = old_para[prefix_len:old_end]
+        new_mid = new_para[prefix_len:new_end]
+
+    return old_mid, new_mid
+
+
+def _apply_diff(old_para: str, new_para: str, srt_blocks: list, p_idx: int) -> dict | None:
+    """Apply text diff from old_para → new_para to SRT blocks.
+
+    Finds the changed region (prefix/suffix trimming), then searches
+    SRT blocks for the old fragment and replaces it in-place.
+
+    Returns an error dict on failure, or None on success.
+    """
+    old_frag, new_frag = _find_diff(old_para, new_para)
+
+    if not old_frag:
+        return {"error": (f"P{p_idx + 1}: cannot determine changed text — run the full subtitle pipeline to rebuild")}
+
+    found = False
+    for block in srt_blocks:
+        if old_frag in block["text"]:
+            block["text"] = block["text"].replace(old_frag, new_frag, 1)
+            found = True
+            print(
+                f"  P{p_idx + 1}: «{old_frag[:60]}» → «{new_frag[:60]}»",
+                file=sys.stderr,
+            )
+            break
+
+    if not found:
+        return {"error": (f"P{p_idx + 1}: cannot find «{old_frag[:60]}» in SRT blocks")}
+
+    # CPL check on all blocks after replacement
+    for block in srt_blocks:
+        if len(block["text"]) > MAX_CPL:
+            return {
+                "error": (
+                    f"P{p_idx + 1}: block exceeds {MAX_CPL} CPL after edit — run the full subtitle pipeline to re-split"
+                )
+            }
+
+    return None
+
+
+def sync_transcript(talk_dir: str, video_slug: str, old_transcript: str, new_transcript: str) -> dict:
+    """Apply changed paragraph text to SRT via difflib fragment matching.
+
+    For each changed paragraph, computes a character-level diff and applies
+    the replacements directly to the SRT blocks that contain the old text.
+    This works even when SRT block boundaries differ from what prepare_blocks
+    would produce (e.g. whisper-built SRTs).
     """
     old_paras = load_transcript(old_transcript)
     new_paras = load_transcript(new_transcript)
@@ -68,49 +148,17 @@ def sync_transcript(talk_dir: str, video_slug: str, old_transcript: str, new_tra
 
     total_updated = 0
     for p_idx in changed_paras:
-        old_blocks = prepare_blocks([old_paras[p_idx]])
-        new_blocks = prepare_blocks([new_paras[p_idx]])
-
-        preview = old_paras[p_idx][:120].replace("\n", " ")
-
-        srt_indices = find_paragraph_blocks(srt_blocks, old_blocks)
-        if srt_indices is None:
-            print(f"  P{p_idx + 1}: «{preview}…»", file=sys.stderr)
-            print("    expected blocks:", file=sys.stderr)
-            for b in old_blocks:
-                print(f"      {b['text']}", file=sys.stderr)
-            return {"error": f"P{p_idx + 1}: cannot find matching blocks in SRT"}
-
-        if len(old_blocks) != len(new_blocks):
-            # Block count changed means the edit crossed a CPL boundary and
-            # the paragraph now needs a different number of subtitle blocks.
-            # Proportional or approximate time distribution is banned
-            # (see feedback_no_proportional): subtly-wrong timing is worse
-            # than a clear error. Surface it and let the full pipeline
-            # rebuild timing via whisper.
-            return {
-                "error": (
-                    f"P{p_idx + 1}: block count changed {len(old_blocks)} → {len(new_blocks)} "
-                    f"(edit crosses CPL boundary). Run the full subtitle pipeline to rebuild timing — "
-                    f"text-only sync can't place new blocks without whisper."
-                )
-            }
-        else:
-            for j, srt_idx in enumerate(srt_indices):
-                old_text = srt_blocks[srt_idx]["text"]
-                new_text = new_blocks[j]["text"]
-                if old_text != new_text:
-                    print(f"  P{p_idx + 1} block {srt_idx + 1}: «{old_text}» → «{new_text}»", file=sys.stderr)
-                srt_blocks[srt_idx]["text"] = new_text
-            total_updated += len(old_blocks)
-        print(f"  P{p_idx + 1}: swapped {len(old_blocks)} → {len(new_blocks)} blocks", file=sys.stderr)
+        err = _apply_diff(old_paras[p_idx], new_paras[p_idx], srt_blocks, p_idx)
+        if err:
+            return err
+        total_updated += 1
 
     # Renumber
     for i, b in enumerate(srt_blocks):
         b["idx"] = i + 1
 
     write_srt(srt_blocks, str(srt_path))
-    print(f"Updated: {srt_path} ({total_updated} blocks)", file=sys.stderr)
+    print(f"Updated: {srt_path} ({total_updated} paragraphs)", file=sys.stderr)
     return {"changed": len(changed_paras), "updated_blocks": total_updated}
 
 
