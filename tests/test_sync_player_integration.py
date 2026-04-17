@@ -219,7 +219,12 @@ class TestRealVimeoIntegration:
         assert abs(result - 5) < 1.0, f"Expected ~5s after setCurrentTime(5), got {result}"
 
     def test_real_vimeo_iframe_fills_bar(self, server, real_vimeo_page):  # noqa: F811
-        """Real Vimeo iframe must fill the sticky bar, not collapse to 150px."""
+        """Real Vimeo iframe must fill the sticky bar vertically, not collapse to 150px.
+
+        The iframe is now aspect-ratio constrained (so Vimeo's internal black
+        letterbox gives way to page-colored pillarboxes) — so only height
+        needs to hit the bar, width tracks the video's native aspect ratio.
+        """
         real_vimeo_page.set_viewport_size({"width": 1280, "height": 800})
         _goto_review_srt_real(real_vimeo_page, server)
         real_vimeo_page.click("#btn-sync-player")
@@ -233,4 +238,7 @@ class TestRealVimeoIntegration:
         )
         # Default 25vh of 800 = 200px. Minus 8px handle → ~192px content.
         assert dims["ifrH"] > 180, f"Real iframe collapsed (layout bug): {dims!r}"
-        assert abs(dims["ifrW"] - dims["barW"]) < 2, f"Iframe width must match bar: {dims!r}"
+        # Aspect-ratio keeps width ≥ height for landscape video and never
+        # wider than the bar.
+        assert dims["ifrW"] >= dims["ifrH"], f"Iframe unexpectedly portrait: {dims!r}"
+        assert dims["ifrW"] <= dims["barW"] + 1, f"Iframe overflows bar: {dims!r}"

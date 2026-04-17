@@ -225,6 +225,28 @@ def goto_spa(page, server, hash=""):
     page.goto(f"{server}{SPA_URL}{hash}")
 
 
+def spa_confirm_accept(page, timeout=2000):
+    """Accept the SPA custom confirm dialog (clicks primary/danger button).
+
+    Returns the title+body text for assertions about what was shown.
+    Replaces native confirm() handling via page.once("dialog", ...).
+    """
+    page.wait_for_selector(".sy-modal", timeout=timeout)
+    title = page.locator(".sy-modal-title").text_content() or ""
+    body_loc = page.locator(".sy-modal-body")
+    body = body_loc.text_content() if body_loc.count() else ""
+    page.locator(".sy-modal-btn.primary, .sy-modal-btn.danger").first.click()
+    page.wait_for_selector(".sy-modal", state="detached", timeout=timeout)
+    return f"{title}\n{body}".strip()
+
+
+def spa_confirm_dismiss(page, timeout=2000):
+    """Cancel the SPA custom confirm dialog (clicks the non-primary button)."""
+    page.wait_for_selector(".sy-modal", timeout=timeout)
+    page.locator(".sy-modal-btn:not(.primary):not(.danger)").first.click()
+    page.wait_for_selector(".sy-modal", state="detached", timeout=timeout)
+
+
 class TestIndexView:
     def test_loads_talks(self, server, page):
         goto_spa(page, server)
@@ -512,8 +534,8 @@ class TestMarkers:
         page.click("#btn-mark")
         page.click("#btn-mark")
         assert page.locator("#marker-count").text_content() == "2"
-        page.once("dialog", lambda dialog: dialog.accept())
         page.click("button.danger")
+        spa_confirm_accept(page)
         assert page.locator("#marker-count").text_content() == "0"
         assert page.locator(".marker-item").count() == 0
 
@@ -524,8 +546,8 @@ class TestMarkers:
         page.wait_for_timeout(200)
         page.click("#btn-mark")
         assert page.locator("#marker-count").text_content() == "1"
-        page.once("dialog", lambda dialog: dialog.dismiss())
         page.click("button.danger")
+        spa_confirm_dismiss(page)
         assert page.locator("#marker-count").text_content() == "1"
         assert page.locator(".marker-item").count() == 1
 
@@ -539,8 +561,8 @@ class TestMarkers:
             "JSON.parse(localStorage.getItem('preview_2001-01-01_Test-Talk_Test-Video') || '{}').markers || []"
         )
         assert len(data) == 1
-        page.once("dialog", lambda dialog: dialog.accept())
         page.click("button.danger")
+        spa_confirm_accept(page)
         data = page.evaluate(
             "JSON.parse(localStorage.getItem('preview_2001-01-01_Test-Talk_Test-Video') || '{}').markers || []"
         )
@@ -2136,16 +2158,14 @@ class TestTranscriptSelector:
         cell.press("Tab")
         page.wait_for_timeout(300)
         assert "(1)" in (page.locator("#btn-revert-all").text_content() or "")
-        confirmed = []
-        page.once("dialog", lambda dialog: (confirmed.append(True), dialog.accept()))
         page.locator("#col-header-left").click()
         page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
         page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
+        spa_confirm_accept(page)
         page.wait_for_function(
             "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
             timeout=10000,
         )
-        assert len(confirmed) == 1
 
     def test_edit_warning_cancel_keeps_language(self, server, page):
         """Cancelling confirm keeps current language."""
@@ -2155,18 +2175,16 @@ class TestTranscriptSelector:
         cell.press_sequentially(" test", delay=20)
         cell.press("Tab")
         page.wait_for_timeout(300)
-        page.once("dialog", lambda dialog: dialog.dismiss())
         page.locator("#col-header-left").click()
         page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
         page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
-        page.wait_for_timeout(500)
+        spa_confirm_dismiss(page)
+        page.wait_for_timeout(200)
         assert page.evaluate("reviewState.leftLang") == "en"
 
     def test_no_warning_without_edits(self, server, page):
         """No confirm dialog when switching language without edits."""
         self._goto_review(server, page)
-        dialogs = []
-        page.on("dialog", lambda dialog: (dialogs.append(True), dialog.accept()))
         page.locator("#col-header-left").click()
         page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
         page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
@@ -2174,7 +2192,8 @@ class TestTranscriptSelector:
             "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
             timeout=10000,
         )
-        assert len(dialogs) == 0
+        # No SPA modal should have appeared during the switch.
+        assert page.locator(".sy-modal").count() == 0
 
     def test_edits_cleared_after_switch(self, server, page):
         """Edits are cleared after confirmed language switch."""
@@ -2185,10 +2204,10 @@ class TestTranscriptSelector:
         cell.press("Tab")
         page.wait_for_timeout(300)
         assert "(1)" in (page.locator("#btn-revert-all").text_content() or "")
-        page.once("dialog", lambda dialog: dialog.accept())
         page.locator("#col-header-left").click()
         page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
         page.locator("#transcript-dropdown-left div", has_text="Hindi").click()
+        spa_confirm_accept(page)
         page.wait_for_function(
             "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
             timeout=10000,
@@ -3319,8 +3338,8 @@ class TestPreviewEditMode:
           el.dispatchEvent(new Event('input', { bubbles: true }));
         """)
         page.wait_for_timeout(50)
-        page.once("dialog", lambda dialog: dialog.accept())
         page.click("#btn-clear-all")
+        spa_confirm_accept(page)
         count = page.locator(".edit-item").count()
         assert count == 0
         stored = page.evaluate(f"JSON.parse(localStorage.getItem('{PREVIEW_KEY}') || 'null')")
@@ -4144,17 +4163,14 @@ class TestUkrainianPlurals:
         cell.type(" edited")
         cell.press("Tab")
         page.wait_for_timeout(200)
-        msgs = []
-        page.once("dialog", lambda d: (msgs.append(d.message), d.dismiss()))
         page.click("#btn-revert-all")
-        page.wait_for_timeout(200)
-        assert msgs, "expected a confirm dialog"
-        assert "редагування" in msgs[0]
-        assert "редагувань" not in msgs[0]
+        message = spa_confirm_accept(page)
+        assert "редагування" in message
+        assert "редагувань" not in message
         # The plural quantifier "всі" never agrees with a singular noun —
         # make sure we don't print "Скасувати всі 1 редагування?" again.
-        assert "всі 1" not in msgs[0]
-        assert "всі" not in msgs[0]
+        assert "всі 1" not in message
+        assert "всі" not in message
 
 
 class TestClearAllCount:
@@ -4284,26 +4300,26 @@ class TestRevertAllConfirmation:
 
     def test_revert_all_prompts_confirmation(self, server, page):
         self._goto_review_with_edit(server, page)
-        seen = []
-        page.once("dialog", lambda d: (seen.append(d.message), d.accept()))
         page.click("#btn-revert-all")
-        page.wait_for_timeout(200)
-        assert len(seen) == 1, "Expected a confirm() dialog before reverting"
+        # If the dialog never opens, the helper raises — fail with a clear
+        # assertion message instead of a timeout.
+        assert page.wait_for_selector(".sy-modal", timeout=2000) is not None, (
+            "Expected a confirm dialog before reverting"
+        )
+        spa_confirm_accept(page)
 
     def test_revert_all_cancel_keeps_edits(self, server, page):
         self._goto_review_with_edit(server, page)
-        page.once("dialog", lambda d: d.dismiss())
         page.click("#btn-revert-all")
-        page.wait_for_timeout(200)
+        spa_confirm_dismiss(page)
         edits = page.evaluate("JSON.parse(localStorage.getItem('review_2001-01-01_Test-Talk') || '{}').edits || {}")
         assert len(edits) == 1, "Cancelling confirm must keep edits intact"
         assert page.locator("#btn-revert-all").is_visible()
 
     def test_revert_all_confirm_clears_edits(self, server, page):
         self._goto_review_with_edit(server, page)
-        page.once("dialog", lambda d: d.accept())
         page.click("#btn-revert-all")
-        page.wait_for_timeout(200)
+        spa_confirm_accept(page)
         edits = page.evaluate("JSON.parse(localStorage.getItem('review_2001-01-01_Test-Talk') || '{}').edits || {}")
         assert edits == {}
         assert page.locator("#btn-revert-all").is_visible() is False

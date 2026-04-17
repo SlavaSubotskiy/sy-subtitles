@@ -7,6 +7,9 @@
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <title>SY Subtitles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
 <script src="https://player.vimeo.com/api/player.js"></script>
 <style>
@@ -320,6 +323,10 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .chip:hover { border-color: var(--fg4); }
 :root { --sync-player-h: 25vh; }
 @media (max-width: 768px) { :root { --sync-player-h: 22vh; } }
+
+/* Preview-view resize handles write these live via JS. Declaring the
+   defaults here keeps the var() resolution stable on first paint. */
+:root { --preview-player-h: 54vh; --preview-subs-h: 120px; }
 .sync-player-bar {
   /* Sit below the freshness-bar AND the view header so both headers stay
      visible while the player is open. --view-header-h is measured by JS. */
@@ -373,8 +380,940 @@ body.sync-player-resizing, body.sync-player-resizing * {
 #view-preview.fs-mode #subtitle-overlay { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 10000; font-size: clamp(28px, 4vw, 80px); background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 40px 10% 28px; min-height: 0; border-radius: 0; text-shadow: 0 2px 6px rgba(0,0,0,1); pointer-events: none; }
 #view-preview.fs-mode .controls { display: none !important; }
 </style>
+<style id="sy-warm-theme">
+/* ============================================================
+   SY Subtitles — warm paper theme override
+   Reskins the live app's CSS variables + typography.
+   No selectors renamed; all JS/HTML contracts preserved.
+   ============================================================ */
+
+/* LIGHT — warm paper (cream manuscript). Applied as default AND under
+   [data-theme="light"] AND under auto-theme light preference. */
+:root,
+[data-theme="light"] {
+  --bg:  #FAF6EE;   /* page */
+  --bg2: #F6F0E2;   /* cards / header strip */
+  --bg3: #F0E9D7;   /* inputs / chips */
+  --bg4: #E8DFCB;   /* buttons / hover */
+  --bg5: #F3ECDE;   /* subtle zone */
+
+  --fg:  #221E18;   /* primary */
+  --fg2: #2E2820;
+  --fg3: #4A4338;
+  --fg4: #6B6050;
+  --fg5: #8A7D68;
+  --fg6: #A99C85;
+
+  --border:  #E5DCC6;
+  --border2: #D6C9AD;
+  --border3: #B9A887;
+
+  --link: #8A4A2E;          /* warm terracotta link */
+  --accent-green:  #5A7A3A; /* moss */
+  --accent-orange: #C68A2A; /* saffron */
+  --accent-red:    #B04B2E; /* clay */
+
+  --overlay-bg: rgba(26,22,16,0.78);
+
+  --stat-active-bg: #EFE4CE;
+  --primary-bg:     #E6E9D6;
+  --primary-border: #8DA06A;
+  --primary-fg:     #3F5222;
+
+  --issue-bg:     #F1E4D3;
+  --issue-border: #C08A4E;
+  --issue-fg:     #7A4A1E;
+
+  --mark-bg: rgba(198, 138, 42, 0.14);
+
+  --danger-bg:     #F2DCD2;
+  --danger-border: #C08070;
+  --danger-fg:     #8A2E1A;
+
+  --cell-hover:       #F3ECDB;
+  --cell-edit-bg:     #EDEAD4;
+  --cell-edited-bg:   #EFE6CC;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:  #FAF6EE;
+    --bg2: #F6F0E2;
+    --bg3: #F0E9D7;
+    --bg4: #E8DFCB;
+    --bg5: #F3ECDE;
+    --fg:  #221E18; --fg2: #2E2820; --fg3: #4A4338; --fg4: #6B6050; --fg5: #8A7D68; --fg6: #A99C85;
+    --border: #E5DCC6; --border2: #D6C9AD; --border3: #B9A887;
+    --link: #8A4A2E;
+    --accent-green: #5A7A3A; --accent-orange: #C68A2A; --accent-red: #B04B2E;
+    --overlay-bg: rgba(26,22,16,0.78);
+    --stat-active-bg: #EFE4CE;
+    --primary-bg: #E6E9D6; --primary-border: #8DA06A; --primary-fg: #3F5222;
+    --issue-bg: #F1E4D3; --issue-border: #C08A4E; --issue-fg: #7A4A1E;
+    --mark-bg: rgba(198, 138, 42, 0.14);
+    --danger-bg: #F2DCD2; --danger-border: #C08070; --danger-fg: #8A2E1A;
+    --cell-hover: #F3ECDB; --cell-edit-bg: #EDEAD4; --cell-edited-bg: #EFE6CC;
+  }
+}
+
+/* DARK — dim lamp over manuscript. Walnut base, warm cream ink. */
+:root { color-scheme: light dark; }
+[data-theme="dark"] { color-scheme: dark; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:  #14120F; --bg2: #1A1612; --bg3: #1E1A14; --bg4: #2A2520; --bg5: #221D17;
+    --fg:  #F0E8D6; --fg2: #E4DCC6; --fg3: #C8BDA5; --fg4: #A89C82; --fg5: #8A7F6A; --fg6: #6B6150;
+    --border: #2B2720; --border2: #3B352C; --border3: #4D463A;
+    --link: #E39770;
+    --accent-green: #A8C884; --accent-orange: #E3B26A; --accent-red: #E08B6A;
+    --overlay-bg: rgba(0,0,0,0.80);
+    --stat-active-bg: #2B2418;
+    --primary-bg: #223020; --primary-border: #6C8448; --primary-fg: #BFD29A;
+    --issue-bg: #2E241A; --issue-border: #A67744; --issue-fg: #E0B478;
+    --mark-bg: rgba(227, 151, 112, 0.14);
+    --danger-bg: #2E1F1A; --danger-border: #9E5848; --danger-fg: #E8A48E;
+    --cell-hover: #221E18; --cell-edit-bg: #1F2A1C; --cell-edited-bg: #2A2518;
+  }
+}
+[data-theme="dark"] {
+  --bg:  #14120F; --bg2: #1A1612; --bg3: #1E1A14; --bg4: #2A2520; --bg5: #221D17;
+  --fg:  #F0E8D6; --fg2: #E4DCC6; --fg3: #C8BDA5; --fg4: #A89C82; --fg5: #8A7F6A; --fg6: #6B6150;
+  --border: #2B2720; --border2: #3B352C; --border3: #4D463A;
+  --link: #E39770;
+  --accent-green: #A8C884; --accent-orange: #E3B26A; --accent-red: #E08B6A;
+  --overlay-bg: rgba(0,0,0,0.80);
+  --stat-active-bg: #2B2418;
+  --primary-bg: #223020; --primary-border: #6C8448; --primary-fg: #BFD29A;
+  --issue-bg: #2E241A; --issue-border: #A67744; --issue-fg: #E0B478;
+  --mark-bg: rgba(227, 151, 112, 0.14);
+  --danger-bg: #2E1F1A; --danger-border: #9E5848; --danger-fg: #E8A48E;
+  --cell-hover: #221E18; --cell-edit-bg: #1F2A1C; --cell-edited-bg: #2A2518;
+}
+
+/* --- Typography: warm serif for titles/text, mono for codes, sans for UI --- */
+:root {
+  --f-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --f-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --f-mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+body {
+  font-family: var(--f-sans);
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .3s ease, color .3s ease;
+}
+
+/* Titles — serif, feels like a reading room */
+.header h1,
+#view-preview .header h1,
+#view-review .header h1,
+#view-index .header h1,
+#view-add .header h1 {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  font-size: 18px;
+  letter-spacing: -0.005em;
+  color: var(--fg2);
+}
+#p-title, #r-title {
+  font-family: var(--f-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--fg);
+}
+.talk-title {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  font-size: 18px;
+  letter-spacing: -0.005em;
+  color: var(--fg);
+  line-height: 1.3;
+}
+.talk-date, #time-display, .cell-label, .stat-card .label,
+.talk-videos a, .expert-btn, .branch-btn,
+.review-badge, .ai-tag, .pipe-node {
+  font-family: var(--f-mono);
+}
+.cell.en, .cell.uk, .cell-text {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  line-height: 1.55;
+}
+.cell-label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  color: var(--fg5);
+}
+.col-header {
+  font-family: var(--f-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Cards / inputs — square-ish, gentle paper feel */
+.talk-item {
+  border-radius: 2px;
+  border-color: var(--border);
+  background: var(--bg2);
+  padding: 18px 22px;
+  transition: border-color .2s ease, background .2s ease, transform .2s ease;
+}
+.talk-item:hover { border-color: var(--border3); }
+.talk-item.selected { border-color: var(--link); background: var(--stat-active-bg); }
+
+.stat-card {
+  border-radius: 2px;
+  padding: 14px 18px;
+  background: var(--bg2);
+  border-color: var(--border);
+}
+.stat-card .num {
+  font-family: var(--f-serif);
+  font-weight: 300;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.stat-card .label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  margin-top: 6px;
+}
+
+.input, input.input, textarea.input {
+  border-radius: 2px;
+  background: var(--bg2);
+  border-color: var(--border);
+  font-family: var(--f-sans);
+}
+#search-input {
+  font-family: var(--f-serif);
+  font-size: 17px;
+  font-style: italic;
+  padding: 10px 14px;
+  background: var(--bg2);
+}
+#search-input:not(:placeholder-shown) { font-style: normal; }
+
+/* Buttons / chips — square corners, quiet weight */
+.header-actions button, .controls button, .chip, .select-chip, .branch-btn,
+.preview-mode-toggle button {
+  border-radius: 2px;
+  font-family: var(--f-sans);
+  letter-spacing: 0.01em;
+}
+.header-actions button.primary { letter-spacing: 0.02em; }
+
+/* Links — warm terracotta, no underline by default */
+a { text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
+/* Freshness bar — compact, serif-mono blend */
+#freshness-bar {
+  font-family: var(--f-mono);
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+#freshness-bar .branch-btn { font-size: 11px; }
+#last-updated { font-style: italic; font-family: var(--f-serif); letter-spacing: 0; }
+
+/* Review badges — flatter, less candy */
+.review-badge {
+  border-radius: 999px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 10px;
+  font-weight: 500;
+}
+
+/* Subtitle overlay — serif reads like kavanot */
+#subtitle-overlay {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  font-size: 32px;
+}
+
+/* Grid cells — tighter rule, more room */
+.cell { border-bottom-color: var(--border); padding: 14px 20px; font-size: 16px; }
+.cell.uk.marked { border-left-width: 3px; }
+
+/* Pipeline nodes */
+.pipe-node { border-radius: 2px; letter-spacing: 0.05em; }
+
+/* ADD-talk bookmarklet button — warm terracotta, serif label */
+#bookmarklet-link {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  border-radius: 2px;
+  background: var(--link);
+  color: #FAF6EE;
+  border-color: var(--link);
+}
+[data-theme="dark"] #bookmarklet-link,
+:root:not([data-theme="light"]) #bookmarklet-link { color: #14120F; }
+
+/* Subtle page texture — a breath of paper (very faint) */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(169,156,133,0.04) 0, transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(169,156,133,0.05) 0, transparent 45%);
+}
+[data-theme="dark"] body::before,
+:root:not([data-theme="light"]) body::before { opacity: 0.6; }
+
+/* Preserve stacking — main content above the texture */
+body > * { position: relative; z-index: 1; }
+#freshness-bar, .header, .sync-player-bar { z-index: 20; }
+
+/* Selection — saffron */
+::selection { background: var(--mark-bg); color: var(--fg); }
+
+/* Player surfaces — blend the player area with the paper theme.
+   The actual Vimeo iframe has its own black letterbox (cross-origin,
+   can't be restyled), so we constrain the iframe to 16:9 inside a warm
+   container — the bars on the sides become our page color instead of a
+   black box pretending to be the player. */
+.player-container,
+#view-preview .player-container,
+.video-wrap,
+.sync-player-bar,
+.sync-player-video,
+#sync-player-mount {
+  background: var(--bg3) !important;
+}
+.sync-player-video {
+  display: flex !important; align-items: center; justify-content: center;
+  padding: 0;
+}
+#sync-player-mount {
+  /* Box the Vimeo iframe in the video's native aspect ratio (set by JS via
+     --sync-aspect once Vimeo reports the dimensions). Defaults to 16/9
+     before the player is ready. Height follows the bar, width follows. */
+  height: 100%;
+  width: auto;
+  aspect-ratio: var(--sync-aspect, 16 / 9);
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
+  flex: 0 0 auto;
+}
+#view-preview .video-wrap {
+  /* Same idea for the preview page: override the 56.25% padding hack with
+     the real aspect once known. */
+  padding-bottom: 0 !important;
+  height: var(--preview-player-h, 54vh) !important;
+  aspect-ratio: var(--preview-aspect, 16 / 9);
+  max-width: 100%;
+  margin: 0 auto;
+}
+#view-preview .video-wrap iframe {
+  position: absolute;
+}
+
+/* Resize handle under the preview player — mirror the review handle UX. */
+#view-preview.fs-mode .preview-player-resize,
+#view-preview.fs-mode .preview-subs-resize { display: none !important; }
+.preview-player-resize,
+.preview-subs-resize {
+  height: 8px;
+  width: min(100%, 960px);
+  margin: -2px auto 0;
+  background: var(--bg4);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  cursor: ns-resize;
+  touch-action: none;
+  border-radius: 2px;
+  position: relative;
+  transition: background .15s ease;
+}
+.preview-player-resize::before,
+.preview-subs-resize::before {
+  content: '';
+  position: absolute; left: 50%; top: 50%;
+  width: 36px; height: 2px;
+  background: var(--fg5);
+  border-radius: 1px;
+  transform: translate(-50%, -50%);
+  opacity: 0.5;
+}
+.preview-player-resize:hover,
+.preview-subs-resize:hover { background: var(--border3); }
+.preview-player-resize:hover::before,
+.preview-subs-resize:hover::before { opacity: 0.9; }
+.preview-player-resize.dragging,
+.preview-subs-resize.dragging { background: var(--border3); }
+body.preview-player-resize-active-body,
+body.preview-player-resize-active-body *,
+body.preview-subs-resize-active-body,
+body.preview-subs-resize-active-body * { cursor: ns-resize !important; user-select: none !important; }
+
+/* Tunable subtitle overlay height (driven by its own resize handle).
+   Default = original behavior: auto-height, 40px text (24px on mobile).
+   Once the user has dragged the handle (setting --preview-subs-h), the
+   block grows to that height AND the font scales to match so the text
+   fills the space instead of leaving a white void. */
+#view-preview #subtitle-overlay {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  /* Inherit the original 40px default unless JS has populated the var. */
+}
+/* Enable inline-size container queries on the player container so the
+   subtitle block can base its font-size off the real available width. */
+#view-preview .player-container { container-type: inline-size; }
+
+/* Only once a custom height is set do we enable the scaling behavior. */
+#view-preview[data-subs-tuned="1"] #subtitle-overlay {
+  height: var(--preview-subs-h);
+  overflow: hidden;
+  /* Font sizing is constrained by BOTH block height AND block width.
+     Subtitles wrap across lines, so the width term assumes ~42 chars per
+     line (84 chars total across two lines). Fraunces ≈ 0.55em avg char
+     width → 1em ≈ w / (42 × 0.55) ≈ w / 23. */
+  font-size: clamp(
+    24px,
+    min(
+      calc(var(--preview-subs-h, 120px) * 0.42),
+      calc((100cqw - 48px) / 23)
+    ),
+    132px
+  );
+  line-height: 1.2;
+  padding: 16px 24px;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* ==== Sticky top zone in the preview view ====
+   Player + subtitles + controls stay pinned; only the marker / edit lists
+   scroll underneath them. Scoped to .active so the view stays hidden on
+   the other routes (.view { display: none } would otherwise be overridden
+   by the higher-specificity rule below). */
+#view-preview.active:not(.fs-mode) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+#view-preview.active:not(.fs-mode) .player-container {
+  position: sticky;
+  top: calc(var(--freshness-h, 0px) + var(--view-header-h, 0px));
+  z-index: 12;
+  background: var(--bg);
+  margin-top: 0;
+  padding-top: 8px;
+  /* Soft shadow cue that there's scrollable content below. */
+  box-shadow: 0 8px 16px -12px rgba(34, 30, 24, 0.18);
+}
+#view-preview.active:not(.fs-mode) .preview-list {
+  flex: 1 1 auto;
+  overflow: visible; /* let the page scroll handle it — the sticky parent keeps the chrome in place */
+  padding-top: 10px;
+}
+.sync-player-video iframe,
+#sync-player-mount iframe,
+.video-wrap iframe {
+  background: var(--bg3);
+}
+.video-wrap { border-radius: 3px; overflow: hidden; }
+/* Keep the 56.25% padding-based aspect ratio but make position:relative
+   explicit so absolute children (iframe + placeholder) anchor to the box. */
+.video-wrap {
+  position: relative;
+  background: linear-gradient(180deg,
+    hsl(var(--warm-h) calc(var(--warm-s) * 0.75) calc(var(--warm-l) - 2%)) 0%,
+    hsl(var(--warm-h) calc(var(--warm-s) * 0.85) calc(var(--warm-l) - 10%)) 100%);
+}
+.video-wrap::after {
+  content: '▷';
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--f-serif);
+  font-size: clamp(48px, 8vw, 96px);
+  color: var(--fg5);
+  opacity: 0.32;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Iframe sits above placeholder when loaded; hidden when no real src yet. */
+.video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; z-index: 1; background: #000; }
+.video-wrap iframe:not([src]),
+.video-wrap iframe[src=""],
+.video-wrap iframe[src="about:blank"] { visibility: hidden; background: transparent; }
+.sync-player-video iframe { background: #000; }
+
+#subtitle-overlay {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--fg);
+  margin-top: 10px;
+}
+#view-preview.fs-mode #subtitle-overlay {
+  /* Deeper, longer gradient so the top of the text also sits on a dark
+     enough backdrop — prior version faded to transparent too early and
+     bright shots (sky, water) left the first line hard to read. */
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0)   0%,
+    rgba(0, 0, 0, 0.35) 35%,
+    rgba(0, 0, 0, 0.72) 70%,
+    rgba(0, 0, 0, 0.92) 100%
+  );
+  border: 0; border-radius: 0;
+  color: #fff;
+  /* Belt-and-braces: a soft shadow keeps letters legible even if the
+     gradient ever sits over a near-white frame. */
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85), 0 0 2px rgba(0, 0, 0, 0.9);
+  padding-top: 80px;      /* extend the dark band above the text */
+  padding-bottom: 36px;
+  /* In fullscreen the overlay is fixed to the bottom of the viewport and
+     must size from its content — NEVER from the preview-mode resize var,
+     which is sized for the embedded player, not the viewport. Otherwise
+     a two-line subtitle overflows below the screen. */
+  height: auto !important;
+  max-height: 60vh;
+  overflow: hidden;
+}
+/* Also: the [data-subs-tuned] font-scaling rule is meant for the embedded
+   preview, not fullscreen. Lock a viewport-based size while in fs-mode. */
+#view-preview.fs-mode[data-subs-tuned="1"] #subtitle-overlay {
+  font-size: clamp(28px, 4vw, 80px);
+  height: auto;
+  line-height: 1.25;
+}
+
+/* Focus ring — warm */
+button:focus-visible, a:focus-visible,
+input:focus-visible, select:focus-visible, textarea:focus-visible,
+[contenteditable="true"]:focus-visible {
+  outline-color: var(--link);
+}
+</style>
+<style id="sy-tweaks-theme">
+/* ============================================================
+   SY Subtitles — tunable warm palette
+   Overrides only the light-mode surface tokens using HSL knobs.
+   Dark mode is untouched.
+   ============================================================ */
+:root {
+  /* HSL knobs — these are the "warm" palette values the design was tuned to
+     (hue 36°, saturation 71%, lightness 92%, contrast 1.0). */
+  --warm-h: 36;
+  --warm-s: 71%;
+  --warm-l: 92%;
+  --warm-contrast: 1;
+}
+:root,
+[data-theme="light"] {
+  /* Surfaces — step lightness downward from --warm-l */
+  --bg:  hsl(var(--warm-h)  calc(var(--warm-s))       var(--warm-l));
+  --bg2: hsl(var(--warm-h)  calc(var(--warm-s) * 0.95) calc(var(--warm-l) - 2.5%));
+  --bg3: hsl(var(--warm-h)  calc(var(--warm-s) * 0.92) calc(var(--warm-l) - 5%));
+  --bg4: hsl(var(--warm-h)  calc(var(--warm-s) * 0.85) calc(var(--warm-l) - 9%));
+  --bg5: hsl(var(--warm-h)  calc(var(--warm-s) * 0.88) calc(var(--warm-l) - 4%));
+
+  /* Borders */
+  --border:  hsl(var(--warm-h) calc(var(--warm-s) * 0.7)  calc(var(--warm-l) - 8%));
+  --border2: hsl(var(--warm-h) calc(var(--warm-s) * 0.75) calc(var(--warm-l) - 14%));
+  --border3: hsl(var(--warm-h) calc(var(--warm-s) * 0.75) calc(var(--warm-l) - 24%));
+
+  /* Ink — contrast multiplier darkens text on richer backgrounds */
+  --fg:  hsl(30 20% calc(14% / var(--warm-contrast)));
+  --fg2: hsl(30 18% calc(18% / var(--warm-contrast)));
+  --fg3: hsl(30 15% calc(26% / var(--warm-contrast)));
+  --fg4: hsl(32 12% calc(40% / var(--warm-contrast)));
+  --fg5: hsl(34 14% calc(52% / var(--warm-contrast)));
+  --fg6: hsl(36 16% calc(64% / var(--warm-contrast)));
+
+  /* Accent zones — keep the earth tones, just shift lightness slightly with base */
+  --stat-active-bg: hsl(var(--warm-h) calc(var(--warm-s) * 1.05) calc(var(--warm-l) - 7%));
+  --cell-hover:     hsl(var(--warm-h) calc(var(--warm-s) * 0.95) calc(var(--warm-l) - 3%));
+  --cell-edit-bg:   hsl(70            28%                         calc(var(--warm-l) - 6%));
+  --cell-edited-bg: hsl(42            38%                         calc(var(--warm-l) - 7%));
+  --mark-bg:        hsla(36 60% 50% / 0.16);
+}
+
+/* Keep the dark-theme override from the warm block winning in dark mode */
+[data-theme="dark"] {
+  --bg:  #14120F; --bg2: #1A1612; --bg3: #1E1A14; --bg4: #2A2520; --bg5: #221D17;
+  --fg:  #F0E8D6; --fg2: #E4DCC6; --fg3: #C8BDA5; --fg4: #A89C82; --fg5: #8A7F6A; --fg6: #6B6150;
+  --border: #2B2720; --border2: #3B352C; --border3: #4D463A;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:  #14120F; --bg2: #1A1612; --bg3: #1E1A14; --bg4: #2A2520; --bg5: #221D17;
+    --fg:  #F0E8D6; --fg2: #E4DCC6; --fg3: #C8BDA5; --fg4: #A89C82; --fg5: #8A7F6A; --fg6: #6B6150;
+    --border: #2B2720; --border2: #3B352C; --border3: #4D463A;
+  }
+}
+
+/* Tweaks panel (design-preview dev tool) was stripped from the shipped
+   HTML. The --warm-h / --warm-s / --warm-l / --warm-contrast vars keep
+   their static defaults declared in :root above and drive the whole
+   paper palette. */
+
+/* ============================================================
+   Modal dialog + toast — used for confirm("clear edits"), etc.
+   ============================================================ */
+.sy-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(34, 30, 24, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 20000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  animation: sy-fade-in .14s ease-out;
+}
+.sy-modal {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 20px 60px -20px rgba(34, 30, 24, 0.5), 0 0 0 1px rgba(34, 30, 24, 0.04);
+  max-width: 440px; width: 100%;
+  padding: 24px 24px 20px;
+  font-family: var(--f-sans);
+  animation: sy-modal-in .18s cubic-bezier(.2,.9,.3,1.1);
+}
+.sy-modal-title {
+  font-family: var(--f-serif);
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0 0 10px;
+  color: var(--fg);
+  line-height: 1.3;
+}
+.sy-modal-body {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg5);
+  margin-bottom: 20px;
+}
+.sy-modal-body strong { color: var(--fg); font-weight: 600; }
+.sy-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.sy-modal-btn {
+  background: var(--bg4);
+  color: var(--fg);
+  border: 1px solid var(--border3);
+  border-radius: 2px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 36px;
+  transition: background .12s ease, border-color .12s ease;
+}
+.sy-modal-btn:hover { background: var(--border3); }
+.sy-modal-btn.primary {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.sy-modal-btn.primary:hover { background: var(--fg5); border-color: var(--fg5); }
+.sy-modal-btn.danger {
+  background: var(--danger-bg, #c4453a);
+  color: var(--danger-fg, #fff);
+  border-color: var(--danger-border, #c4453a);
+}
+.sy-modal-btn.danger:hover { filter: brightness(0.92); }
+
+@keyframes sy-fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes sy-modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Toast — discreet feedback, bottom-center */
+.sy-toast-stack {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20001;
+  display: flex; flex-direction: column; gap: 6px;
+  align-items: center;
+  pointer-events: none;
+}
+.sy-toast {
+  background: var(--fg);
+  color: var(--bg);
+  padding: 10px 16px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-family: var(--f-sans);
+  box-shadow: 0 8px 24px -6px rgba(34, 30, 24, 0.4);
+  max-width: 420px;
+  animation: sy-toast-in .2s ease-out, sy-toast-out .25s ease-in forwards;
+  animation-delay: 0s, 2.6s;
+}
+@keyframes sy-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes sy-toast-out {
+  to { opacity: 0; transform: translateY(8px); }
+}
+</style>
 </head>
 <body>
+
+<script>
+(function(){
+  // --- Adaptive player aspect ratio ---
+  // Every Vimeo iframe the app creates gets its intrinsic video dimensions
+  // read from the SDK once it's ready, and the enclosing mount/.video-wrap
+  // gets its --*-aspect CSS var set. Result: the player box matches the
+  // real video shape, so the letterbox pillars become our warm page color
+  // instead of Vimeo's default black inside the iframe.
+  function adaptAspect(iframe, target, cssVar) {
+    if (!iframe || !target || !window.Vimeo) return;
+    try {
+      const p = new Vimeo.Player(iframe);
+      Promise.all([p.getVideoWidth(), p.getVideoHeight()]).then(([w, h]) => {
+        if (w > 0 && h > 0) target.style.setProperty(cssVar, w + ' / ' + h);
+      }).catch(()=>{});
+    } catch(_){}
+  }
+  function scanPlayers() {
+    const sync = document.querySelector('#sync-player-mount iframe');
+    const mount = document.getElementById('sync-player-mount');
+    if (sync && mount && !mount.dataset.aspectBound) {
+      mount.dataset.aspectBound = '1';
+      adaptAspect(sync, mount, '--sync-aspect');
+    }
+    const prev = document.getElementById('vimeo-player');
+    const wrap = prev && prev.closest('.video-wrap');
+    if (prev && wrap && prev.src && !wrap.dataset.aspectBound) {
+      wrap.dataset.aspectBound = '1';
+      adaptAspect(prev, wrap, '--preview-aspect');
+    }
+  }
+  // Observe the DOM — the app creates/replaces iframes dynamically (video
+  // switch, sync-player open). Fire the scan whenever anything changes.
+  const mo = new MutationObserver(() => scanPlayers());
+  mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
+  // Also clear the bound flag when src changes, so the next video re-measures.
+  document.addEventListener('load', e => {
+    const f = e.target;
+    if (f && f.tagName === 'IFRAME') {
+      const m = f.closest('#sync-player-mount'); if (m) delete m.dataset.aspectBound;
+      const w = f.closest('.video-wrap');        if (w) delete w.dataset.aspectBound;
+      scanPlayers();
+    }
+  }, true);
+  setTimeout(scanPlayers, 500);
+  setInterval(scanPlayers, 1500);
+
+  // --- Preview player + subtitles resize ---
+  // Two drag handles under the preview chrome:
+  //   1) Player height (width follows aspect ratio)
+  //   2) Subtitle overlay height
+  // Both persist per-talk so returning to the same video keeps your layout.
+  const PREVIEW_PLAYER_MIN = 18, PREVIEW_PLAYER_MAX = 88, PREVIEW_PLAYER_DEF = 54; // vh
+  const PREVIEW_SUBS_MIN_PX = 60, PREVIEW_SUBS_MAX_PX = 480, PREVIEW_SUBS_DEF_PX = 120;
+
+  const previewTalkKey = () => {
+    const hash = location.hash || '';
+    const m = hash.match(/^#\/preview\/([^/]+)\/([^/?#]+)/);
+    return m ? m[1] + '.' + m[2] : '__default';
+  };
+  const keyPlayer = () => 'sy.preview_player.'   + previewTalkKey();
+  const keySubs   = () => 'sy.preview_subs_h.'   + previewTalkKey();
+
+  function loadNum(k, def, min, max) {
+    try {
+      const raw = localStorage.getItem(k);
+      if (!raw) return def;
+      const v = parseFloat(raw);
+      if (!isFinite(v)) return def;
+      return Math.max(min, Math.min(max, v));
+    } catch(_) { return def; }
+  }
+  function saveNum(k, v) { try { localStorage.setItem(k, String(v)); } catch(_){} }
+
+  function applyPlayerVh(v) { document.documentElement.style.setProperty('--preview-player-h', v + 'vh'); }
+  function applySubsPx(v)   {
+    document.documentElement.style.setProperty('--preview-subs-h', v + 'px');
+    const vp = document.getElementById('view-preview');
+    if (vp) vp.setAttribute('data-subs-tuned', '1');
+  }
+
+  // The max useful subtitle height is whatever lets the font grow to the
+  // width-limited ceiling — pulling higher just adds whitespace. Compute
+  // it from the live overlay width so we stop drag-resize exactly there.
+  function computeSubsMaxPx() {
+    const overlay = document.getElementById('subtitle-overlay');
+    const w = overlay ? overlay.clientWidth : 960;
+    // width_term = (w - padding 48) / 23  (see CSS)
+    const widthFont = Math.max(24, (w - 48) / 23);
+    // height_term = h * 0.42 → h = font / 0.42; add padding + small buffer.
+    const h = Math.ceil(widthFont / 0.42) + 40;
+    // Absolute safety rails.
+    return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(480, h));
+  }
+
+  function makeDragHandle({id, className, title, onMove, onCommit, onReset}) {
+    const h = document.createElement('div');
+    h.id = id;
+    h.className = className;
+    h.setAttribute('role','separator');
+    h.setAttribute('aria-orientation','horizontal');
+    h.setAttribute('aria-label', title);
+    h.title = title;
+    h.tabIndex = 0;
+    let pid = null, startY = 0, startVal = 0, cur = 0;
+    h.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      startY = e.clientY;
+      startVal = onMove.getStart();
+      pid = e.pointerId;
+      try { h.setPointerCapture(pid); } catch(_){}
+      h.classList.add('dragging');
+      document.body.classList.add(className + '-active-body');
+      const mv = ev => { cur = onMove.compute(startVal, ev.clientY - startY); onMove.apply(cur); };
+      const up = () => {
+        if (pid === null) return;
+        try { h.releasePointerCapture(pid); } catch(_){}
+        pid = null;
+        h.classList.remove('dragging');
+        document.body.classList.remove(className + '-active-body');
+        onCommit(cur || startVal);
+        window.removeEventListener('pointermove', mv);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', up);
+      };
+      window.addEventListener('pointermove', mv);
+      window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', up);
+      e.preventDefault();
+    });
+    h.addEventListener('keydown', e => {
+      const step = e.shiftKey ? onMove.bigStep : onMove.smallStep;
+      let v = onMove.getStart();
+      if (e.key === 'ArrowUp')   { v = onMove.clamp(v - step); onMove.apply(v); onCommit(v); e.preventDefault(); }
+      if (e.key === 'ArrowDown') { v = onMove.clamp(v + step); onMove.apply(v); onCommit(v); e.preventDefault(); }
+    });
+    if (onReset) h.addEventListener('dblclick', () => { onReset(); });
+    return h;
+  }
+
+  function ensurePreviewResizers() {
+    const wrap    = document.querySelector('#view-preview .video-wrap');
+    const overlay = document.getElementById('subtitle-overlay');
+    if (!wrap || !overlay) return;
+
+    // Player handle: between wrap and overlay
+    if (!document.getElementById('preview-player-resize')) {
+      const h = makeDragHandle({
+        id: 'preview-player-resize',
+        className: 'preview-player-resize',
+        title: 'Потягніть, щоб змінити висоту плеєра',
+        onMove: {
+          getStart: () => {
+            const cs = getComputedStyle(document.documentElement).getPropertyValue('--preview-player-h').trim();
+            const p = parseFloat(cs);
+            return isFinite(p) ? p : loadNum(keyPlayer(), PREVIEW_PLAYER_DEF, PREVIEW_PLAYER_MIN, PREVIEW_PLAYER_MAX);
+          },
+          compute: (start, dy) => Math.max(PREVIEW_PLAYER_MIN, Math.min(PREVIEW_PLAYER_MAX, start + (dy / (window.innerHeight||800)) * 100)),
+          apply: applyPlayerVh,
+          clamp: v => Math.max(PREVIEW_PLAYER_MIN, Math.min(PREVIEW_PLAYER_MAX, v)),
+          smallStep: 2, bigStep: 6,
+        },
+        onCommit: v => saveNum(keyPlayer(), v),
+        onReset: () => { applyPlayerVh(PREVIEW_PLAYER_DEF); saveNum(keyPlayer(), PREVIEW_PLAYER_DEF); },
+      });
+      wrap.parentNode.insertBefore(h, wrap.nextSibling);
+    }
+
+    // Subs handle: between overlay and controls
+    if (!document.getElementById('preview-subs-resize')) {
+      const h = makeDragHandle({
+        id: 'preview-subs-resize',
+        className: 'preview-subs-resize',
+        title: 'Потягніть, щоб змінити висоту субтитрів',
+        onMove: {
+          getStart: () => {
+            // Prefer the live overlay height so first drag picks up the
+            // visual reality, even if no CSS var has been set yet.
+            const h = overlay.offsetHeight;
+            const max = computeSubsMaxPx();
+            return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(max, h || loadNum(keySubs(), PREVIEW_SUBS_DEF_PX, PREVIEW_SUBS_MIN_PX, max)));
+          },
+          compute: (start, dy) => {
+            const max = computeSubsMaxPx();
+            return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(max, start + dy));
+          },
+          apply: applySubsPx,
+          clamp: v => {
+            const max = computeSubsMaxPx();
+            return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(max, v));
+          },
+          smallStep: 12, bigStep: 32,
+        },
+        onCommit: v => saveNum(keySubs(), v),
+        onReset: () => {
+          // Reset subs to original behavior: auto-height, 40px font.
+          document.documentElement.style.removeProperty('--preview-subs-h');
+          const vp = document.getElementById('view-preview');
+          if (vp) vp.removeAttribute('data-subs-tuned');
+          try { localStorage.removeItem(keySubs()); } catch(_){}
+        },
+      });
+      overlay.parentNode.insertBefore(h, overlay.nextSibling);
+    }
+
+    // Apply stored values — but subs ONLY if the user actually set a
+    // custom height before. Otherwise keep the original auto-height +
+    // 40px behavior.
+    applyPlayerVh(loadNum(keyPlayer(), PREVIEW_PLAYER_DEF, PREVIEW_PLAYER_MIN, PREVIEW_PLAYER_MAX));
+    const savedSubs = (() => { try { return localStorage.getItem(keySubs()); } catch(_) { return null; } })();
+    if (savedSubs != null) {
+      const maxSubs = computeSubsMaxPx();
+      applySubsPx(loadNum(keySubs(), PREVIEW_SUBS_DEF_PX, PREVIEW_SUBS_MIN_PX, maxSubs));
+    } else {
+      const vp = document.getElementById('view-preview');
+      if (vp) vp.removeAttribute('data-subs-tuned');
+    }
+
+    // Measure the view header + freshness bar so the sticky top offset is
+    // always correct (values change with language toggle, mobile wrap, etc.).
+    const fresh = document.getElementById('freshness-bar');
+    const header = document.querySelector('#view-preview .header');
+    if (fresh)  document.documentElement.style.setProperty('--freshness-h',    fresh.offsetHeight + 'px');
+    if (header) document.documentElement.style.setProperty('--view-header-h',  header.offsetHeight + 'px');
+  }
+
+  function maybeInstallResize() {
+    const vp = document.getElementById('view-preview');
+    if (vp && vp.classList.contains('active') && !vp.classList.contains('fs-mode')) ensurePreviewResizers();
+  }
+  window.addEventListener('hashchange', () => setTimeout(maybeInstallResize, 50));
+  window.addEventListener('resize', () => setTimeout(maybeInstallResize, 50));
+  setTimeout(maybeInstallResize, 400);
+  setInterval(maybeInstallResize, 2000);
+})();
+</script>
 
 <!-- === FRESHNESS BAR (global, all views) === -->
 <div id="freshness-bar" style="background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 20px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--fg6);position:sticky;top:0;z-index:30;">
@@ -849,6 +1788,12 @@ var I18N = {
     'toast.no_active_subtitle': '\u041D\u0435\u043C\u0430\u0454 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0443',
     'confirm.clear_edits': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 {n} {word} ({lang})?',
     'confirm.revert_all': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 {n} {word}?',
+    'modal.cancel': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438',
+    'modal.confirm': '\u041F\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0438',
+    'modal.clear': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438',
+    'modal.discard': '\u0412\u0456\u0434\u043A\u0438\u043D\u0443\u0442\u0438',
+    'modal.revert': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438',
+    'modal.clear_edits_body': '\u0426\u044E \u0434\u0456\u044E \u043D\u0435 \u043C\u043E\u0436\u043D\u0430 \u0431\u0443\u0434\u0435 \u0441\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438.',
     'link.preview': '\u25B6 \u041F\u0435\u0440\u0435\u0433\u043B\u044F\u043D\u0443\u0442\u0438 \u043F\u0435\u0440\u0435\u043A\u043B\u0430\u0434',
     'markers.summary': '\u041C\u0430\u0440\u043A\u0435\u0440\u0438',
     'btn.copy_all': '\u041A\u043E\u043F\u0456\u044E\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
@@ -947,6 +1892,12 @@ var I18N = {
     'toast.no_active_subtitle': 'No active subtitle at this time',
     'confirm.clear_edits': 'Clear {n} {word} ({lang})?',
     'confirm.revert_all': 'Revert {n} {word}?',
+    'modal.cancel': 'Cancel',
+    'modal.confirm': 'Confirm',
+    'modal.clear': 'Clear',
+    'modal.discard': 'Discard',
+    'modal.revert': 'Revert',
+    'modal.clear_edits_body': 'This action cannot be undone.',
     'link.preview': '\u25B6 View translation',
     'markers.summary': 'Markers',
     'btn.copy_all': 'Copy all',
@@ -1526,16 +2477,24 @@ var SyncPlayer = (function() {
     // Swallow scroll events caused by smooth scrollTo so onWindowScroll
     // doesn't misread auto-scroll as user intent and pause Follow.
     state.isAutoScrolling = true;
-    // Account for the sticky sync-player-bar: native scrollIntoView({block:'center'})
+    // Account for the sticky sync-player-bar AND the sticky freshness-bar /
+    // view-header sitting above it: native scrollIntoView({block:'center'})
     // centers relative to the whole viewport and leaves the row behind the
     // bar. Compute an ABSOLUTE target scroll position (idempotent across
     // mid-animation re-entries) that puts the row's center in the middle
-    // of the area visible BELOW the bar.
-    var barH = (bar && !bar.hasAttribute('hidden')) ? bar.getBoundingClientRect().height : 0;
+    // of the area visible BELOW the bar. Use bar.bottom (viewport-space
+    // y-coordinate) rather than bar.height — at max bar height on a tall
+    // page, the ~80px gap between the viewport top and the bar's top is
+    // large enough that height alone would leave the row visually above
+    // the bar bottom.
+    var barBottom = 0;
+    if (bar && !bar.hasAttribute('hidden')) {
+      barBottom = bar.getBoundingClientRect().bottom;
+    }
     var rect = el.getBoundingClientRect();
     var absRowCenter = rect.top + rect.height / 2 + window.scrollY;
-    var visibleH = Math.max(1, window.innerHeight - barH);
-    var targetViewportCenter = barH + visibleH / 2;
+    var visibleH = Math.max(1, window.innerHeight - barBottom);
+    var targetViewportCenter = barBottom + visibleH / 2;
     var targetScrollY = Math.max(0, absRowCenter - targetViewportCenter);
     try { window.scrollTo({ top: targetScrollY, behavior: 'smooth' }); }
     catch (e) { window.scrollTo(0, targetScrollY); }
@@ -1676,6 +2635,86 @@ var SyncPlayer = (function() {
 var SPA = {};
 SPA._matchParagraphsToSrt = matchParagraphsToSrt;  // exposed for unit tests
 SPA._parseSRT = parseSRT;                           // exposed for unit tests
+
+// ----- Styled confirm dialog + toast -----
+// Replaces native confirm()/alert() so the app's voice carries through to
+// destructive actions ("clear 14 edits?") and transient feedback.
+SPA.confirm = function(opts) {
+  // opts = { title, body, confirmLabel, cancelLabel, danger }
+  return new Promise(function(resolve) {
+    var prev = document.activeElement;
+    var backdrop = document.createElement('div');
+    backdrop.className = 'sy-modal-backdrop';
+    var modal = document.createElement('div');
+    modal.className = 'sy-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+
+    var h = document.createElement('h3');
+    h.className = 'sy-modal-title';
+    h.textContent = opts.title || '';
+    modal.appendChild(h);
+
+    if (opts.body) {
+      var b = document.createElement('div');
+      b.className = 'sy-modal-body';
+      // Allow basic emphasis via <strong>
+      b.innerHTML = opts.body;
+      modal.appendChild(b);
+    }
+
+    var actions = document.createElement('div');
+    actions.className = 'sy-modal-actions';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'sy-modal-btn';
+    cancelBtn.textContent = opts.cancelLabel || t('modal.cancel') || 'Cancel';
+    cancelBtn.type = 'button';
+
+    var okBtn = document.createElement('button');
+    okBtn.className = 'sy-modal-btn ' + (opts.danger ? 'danger' : 'primary');
+    okBtn.textContent = opts.confirmLabel || t('modal.confirm') || 'Confirm';
+    okBtn.type = 'button';
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(okBtn);
+    modal.appendChild(actions);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    function close(val) {
+      backdrop.style.animation = 'sy-fade-in .12s reverse';
+      setTimeout(function() { if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop); }, 120);
+      document.removeEventListener('keydown', onKey, true);
+      if (prev && prev.focus) try { prev.focus(); } catch(_){}
+      resolve(val);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(false); }
+      if (e.key === 'Enter')  { e.preventDefault(); close(true); }
+    }
+    backdrop.addEventListener('click', function(e) { if (e.target === backdrop) close(false); });
+    cancelBtn.addEventListener('click', function() { close(false); });
+    okBtn.addEventListener('click', function() { close(true); });
+    document.addEventListener('keydown', onKey, true);
+    setTimeout(function() { okBtn.focus(); }, 20);
+  });
+};
+
+SPA.toast = function(msg) {
+  var stack = document.getElementById('sy-toast-stack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.id = 'sy-toast-stack';
+    stack.className = 'sy-toast-stack';
+    document.body.appendChild(stack);
+  }
+  var t = document.createElement('div');
+  t.className = 'sy-toast';
+  t.textContent = msg;
+  stack.appendChild(t);
+  setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
+};
 var manifest = null;
 var reviewStatus = null;
 
@@ -2519,19 +3558,56 @@ SPA.resumePlayer = function() {
 
 SPA.toggleFullscreen = function() {
   var el = document.getElementById('view-preview');
-  if (!document.fullscreenElement) {
-    el.requestFullscreen().catch(function() {});
+  if (!el) return;
+  var nativeIsOn = !!(document.fullscreenElement === el);
+  var cssIsOn = el.classList.contains('fs-mode');
+
+  // If we're already in either kind of fullscreen, turn it off.
+  if (nativeIsOn || cssIsOn) {
+    if (document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch(_) {}
+    }
+    el.classList.remove('fs-mode');
+    document.body.classList.remove('sy-fs-active');
+    return;
+  }
+
+  // Try the real API first — but be ready for it to reject (sandboxed
+  // iframes, permission policy, etc). In that case, fall back to a
+  // CSS-only fullscreen so the feature at least visually works.
+  var req = el.requestFullscreen && el.requestFullscreen();
+  if (req && typeof req.then === 'function') {
+    req.catch(function() {
+      el.classList.add('fs-mode');
+      document.body.classList.add('sy-fs-active');
+    });
   } else {
-    document.exitFullscreen();
+    el.classList.add('fs-mode');
+    document.body.classList.add('sy-fs-active');
   }
 };
 
 document.addEventListener('fullscreenchange', function() {
   var el = document.getElementById('view-preview');
+  if (!el) return;
   if (document.fullscreenElement === el) {
     el.classList.add('fs-mode');
+    document.body.classList.add('sy-fs-active');
   } else {
+    // Only clear if it wasn't the CSS-only path; but safe either way —
+    // pressing Esc / F again re-enters the right mode.
     el.classList.remove('fs-mode');
+    document.body.classList.remove('sy-fs-active');
+  }
+});
+
+// Escape out of CSS-only fullscreen (native Esc is handled by the browser).
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  var el = document.getElementById('view-preview');
+  if (el && el.classList.contains('fs-mode') && !document.fullscreenElement) {
+    el.classList.remove('fs-mode');
+    document.body.classList.remove('sy-fs-active');
   }
 });
 
@@ -2705,20 +3781,36 @@ SPA.clearAll = function() {
     var langEdits = (previewState.edits && previewState.edits[lang]) || {};
     var n = Object.keys(langEdits).length;
     if (!n) return;
-    if (!confirm(t('confirm.clear_edits').replace('{n}', n).replace('{word}', pluralFor(n, 'edits')).replace('{lang}', lang.toUpperCase()))) return;
-    previewState.edits[lang] = {};
-    savePreviewState();
-    renderEditList();
-    updateClearBtn();
-    showToast(t('toast.edits_cleared'));
+    SPA.confirm({
+      title: t('confirm.clear_edits').replace('{n}', n).replace('{word}', pluralFor(n, 'edits')).replace('{lang}', lang.toUpperCase()),
+      body: t('modal.clear_edits_body'),
+      confirmLabel: t('modal.clear'),
+      cancelLabel: t('modal.cancel'),
+      danger: true,
+    }).then(function(ok) {
+      if (!ok) return;
+      previewState.edits[lang] = {};
+      savePreviewState();
+      renderEditList();
+      updateClearBtn();
+      showToast(t('toast.edits_cleared'));
+    });
   } else {
     if (!previewState.markers.length) return;
-    if (!confirm(t('confirm.clear_markers').replace('{n}', previewState.markers.length).replace('{word}', pluralFor(previewState.markers.length, 'markers')))) return;
-    previewState.markers = [];
-    savePreviewState();
-    renderMarkers();
-    updateClearBtn();
-    showToast(t('toast.markers_cleared'));
+    SPA.confirm({
+      title: t('confirm.clear_markers').replace('{n}', previewState.markers.length).replace('{word}', pluralFor(previewState.markers.length, 'markers')),
+      body: t('modal.clear_edits_body'),
+      confirmLabel: t('modal.clear'),
+      cancelLabel: t('modal.cancel'),
+      danger: true,
+    }).then(function(ok) {
+      if (!ok) return;
+      previewState.markers = [];
+      savePreviewState();
+      renderMarkers();
+      updateClearBtn();
+      showToast(t('toast.markers_cleared'));
+    });
   }
 };
 
@@ -2771,7 +3863,7 @@ SPA.createPreviewIssue = function() {
   var shortUrl = gh + '/issues/new?title=' + encodeURIComponent(issueTitle) + '&labels=review:pending';
   if (url.length > 8000) {
     navigator.clipboard.writeText(issueBody).then(function() {
-      alert(t('alert.issue_body_copied'));
+      showToast(t('alert.issue_body_copied'));
       window.open(shortUrl);
     }).catch(function() {
       window.open(shortUrl);
@@ -2790,7 +3882,7 @@ SPA.openPreviewEditor = function() {
   if (Object.keys(langEdits).length > 0) {
     var full = applyEditsToSrt(s.subtitles || [], langEdits);
     navigator.clipboard.writeText(full).then(function() {
-      alert(t('editor.clipboard_alert'));
+      showToast(t('editor.clipboard_alert'));
       window.open(url);
     }).catch(function() {
       window.open(url);
@@ -3394,11 +4486,19 @@ SPA.revertEdit = function(idx) {
 SPA.revertAllEdits = function() {
   var n = Object.keys(reviewState.edits).length;
   if (!n) return;
-  if (!confirm(t('confirm.revert_all').replace('{n}', n).replace('{word}', pluralFor(n, 'edits')))) return;
-  reviewState.edits = {};
-  saveReview();
-  renderReview();
-  showToast(t('toast.all_reverted'));
+  SPA.confirm({
+    title: t('confirm.revert_all').replace('{n}', n).replace('{word}', pluralFor(n, 'edits')),
+    body: t('modal.clear_edits_body'),
+    confirmLabel: t('modal.revert'),
+    cancelLabel: t('modal.cancel'),
+    danger: true,
+  }).then(function(ok) {
+    if (!ok) return;
+    reviewState.edits = {};
+    saveReview();
+    renderReview();
+    showToast(t('toast.all_reverted'));
+  });
 };
 
 function updateRevertBtn() {
@@ -3454,7 +4554,7 @@ SPA.createReviewIssue = function() {
   // GitHub URL limit ~8192 chars — if too long, copy body to clipboard
   if (url.length > 8000) {
     navigator.clipboard.writeText(issueBody).then(function() {
-      alert(t('alert.issue_body_copied'));
+      showToast(t('alert.issue_body_copied'));
       window.open(shortUrl);
     }).catch(function() {
       window.open(shortUrl);
@@ -3507,7 +4607,7 @@ SPA.openEditor = function() {
       full = serializeTranscript(parsed, paras);
     }
     navigator.clipboard.writeText(full).then(function() {
-      alert(t('editor.clipboard_alert'));
+      showToast(t('editor.clipboard_alert'));
       window.open(url);
     });
   } else {
@@ -3616,20 +4716,35 @@ SPA.switchSrtLang = function(side, lang) {
 SPA.switchTranscript = function(side, lang) {
   var current = side === 'left' ? reviewState.leftLang : reviewState.rightLang;
   if (lang === current) { document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); }); return; }
-  if (Object.keys(reviewState.edits).length > 0) {
-    if (!confirm(t('confirm.unsaved_edits'))) return;
-    reviewState.edits = {};
-    reviewState.marks = {};
-    saveReview();
+
+  function doSwitch() {
+    document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    var left = side === 'left' ? lang : reviewState.leftLang;
+    var right = side === 'right' ? lang : reviewState.rightLang;
+    // Save per-talk language choice
+    localStorage.setItem('sy_review_langs_' + reviewState.talkId, JSON.stringify({ left: left, right: right }));
+    var base = '#/review/' + reviewState.talkId;
+    if (left !== 'en' || right !== 'uk') base += '?left=' + left + '&right=' + right;
+    location.hash = base;
   }
-  document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
-  var left = side === 'left' ? lang : reviewState.leftLang;
-  var right = side === 'right' ? lang : reviewState.rightLang;
-  // Save per-talk language choice
-  localStorage.setItem('sy_review_langs_' + reviewState.talkId, JSON.stringify({ left: left, right: right }));
-  var base = '#/review/' + reviewState.talkId;
-  if (left !== 'en' || right !== 'uk') base += '?left=' + left + '&right=' + right;
-  location.hash = base;
+
+  if (Object.keys(reviewState.edits).length > 0) {
+    SPA.confirm({
+      title: t('confirm.unsaved_edits'),
+      body: t('modal.clear_edits_body'),
+      confirmLabel: t('modal.discard'),
+      cancelLabel: t('modal.cancel'),
+      danger: true,
+    }).then(function(ok) {
+      if (!ok) return;
+      reviewState.edits = {};
+      reviewState.marks = {};
+      saveReview();
+      doSwitch();
+    });
+    return;
+  }
+  doSwitch();
 };
 
 document.addEventListener('click', function(e) {
@@ -3907,7 +5022,7 @@ SPA.submitAddTalk = function() {
     + '&message=' + encodeURIComponent('Add ' + title);
   if (ghUrl.length > 8000) {
     navigator.clipboard.writeText(yaml).then(function() {
-      alert(t('alert.new_file_copied'));
+      showToast(t('alert.new_file_copied'));
       window.open(shortUrl);
     }).catch(function() {
       window.open(shortUrl);

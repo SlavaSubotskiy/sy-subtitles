@@ -51,10 +51,18 @@ def _drag_resize_handle(page, dy_px):  # noqa: F811
 
 
 class TestSyncPlayerButtonVisibility:
-    def test_button_hidden_in_transcript_mode(self, server, page):  # noqa: F811
+    def test_button_shows_video_picker_in_transcript_mode(self, server, page):  # noqa: F811
+        """In transcript mode, the sync-player button switches to a
+        'Show video' picker for talks that have playable videos.
+        Hidden only when the talk has no playable video at all."""
         goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
         page.wait_for_selector("#review-grid", timeout=10000)
-        assert not page.locator("#btn-sync-player").is_visible()
+        # Talk has 2 playable videos → button visible with Show-video label.
+        page.wait_for_function(
+            "() => { var b = document.getElementById('btn-sync-player');"
+            "return b && b.style.display !== 'none' && b.dataset.i18n === 'btn.show_video'; }",
+            timeout=5000,
+        )
 
     def test_button_visible_in_srt_mode(self, server, page):  # noqa: F811
         _goto_review_srt(page, server)
@@ -77,12 +85,22 @@ class TestCellDataMsStart:
 
 
 class TestButtonVisibilityTransitions:
-    def test_button_hides_when_switching_from_srt_to_transcript(self, server, page):  # noqa: F811
+    def test_button_relabels_when_switching_from_srt_to_transcript(self, server, page):  # noqa: F811
+        """Switching SRT → transcript used to hide the button entirely.
+        With the transcript-video-sync feature it stays visible but
+        flips the label to 'Show video' so the user can pick a video
+        to follow against the transcript paragraphs."""
         _goto_review_srt(page, server)
-        assert page.locator("#btn-sync-player").is_visible()
+        btn = page.locator("#btn-sync-player")
+        assert btn.is_visible()
+        # SRT mode label was set by updateToggleBtn(); transcript flip
+        # happens inside switchReviewMode → updateTranscriptSyncBtn.
         page.evaluate("SPA.switchReviewMode('transcript')")
-        page.wait_for_timeout(200)
-        assert not page.locator("#btn-sync-player").is_visible()
+        page.wait_for_function(
+            "() => { var b = document.getElementById('btn-sync-player');"
+            "return b && b.dataset.i18n === 'btn.show_video' && b.style.display !== 'none'; }",
+            timeout=5000,
+        )
 
 
 class TestPlayerMount:
@@ -1004,6 +1022,11 @@ class TestCurrentBoxShadow:
 
 class TestHighlightComposition:
     def test_current_marked_edited_compose(self, server, page):  # noqa: F811
+        """All three highlight classes (.current / .edited / .marked) must
+        be able to coexist on the same .cell.uk — the CSS layering is
+        non-trivial and silently dropping one is a regression. Marks are
+        written from external tooling (no UI affordance in review), so we
+        drive them directly through reviewState."""
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
@@ -1022,15 +1045,19 @@ class TestHighlightComposition:
         """)
         page.wait_for_timeout(50)
 
-        # Focus the first cell-text and press Ctrl+M to toggle .marked.
-        page.evaluate("document.querySelector('#review-grid .cell-text').focus()")
-        page.wait_for_timeout(30)
-        page.keyboard.press("Control+m")
+        # Inject a mark on row 0 and re-render so .marked is applied.
+        page.evaluate("""
+          () => {
+            reviewState.marks = reviewState.marks || {};
+            reviewState.marks[0] = 'test-mark';
+            if (typeof renderReview === 'function') renderReview();
+          }
+        """)
         page.wait_for_timeout(50)
 
-        # Re-drive timeupdate so .current is re-applied after potential rerender.
+        # Re-drive timeupdate so .current is re-applied after the rerender.
         page.evaluate("window._vimeoPlayer._setTime(1.1)")
-        page.wait_for_timeout(50)
+        page.wait_for_timeout(100)
 
         has_composition = page.evaluate("""
           () => Array.from(document.querySelectorAll('#review-grid .cell.uk')).some(
@@ -1264,8 +1291,10 @@ class TestPlayerFillsBar:
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        # Bar default 25vh of 800 = 200px. The mock replacement must fill
-        # that — not clamp to some intrinsic fallback.
+        # Bar default 25vh of 800 = 200px. The mount is now aspect-ratio
+        # constrained (so the Vimeo letterbox becomes the page color instead
+        # of black), so the player fills height and width tracks aspect
+        # ratio — it should still be wider than it is tall for landscape.
         dims = page.evaluate("""
           () => {
             var m = document.getElementById('mock-player').getBoundingClientRect();
@@ -1273,11 +1302,11 @@ class TestPlayerFillsBar:
             return { mH: m.height, mW: m.width, barH: bar.height, barW: bar.width };
           }
         """)
-        # Mock should be at least ~180px tall (bar minus handle 8px, minus
-        # rounding). If #sync-player-mount has no size, mock falls back to its
-        # 40px min-height and this test fails.
         assert dims["mH"] > 180, f"Mock player too small: {dims!r}"
-        assert abs(dims["mW"] - dims["barW"]) < 2, f"Mock width must match bar: {dims!r}"
+        # Aspect-ratio: width should be at least mH (landscape-or-square)
+        # and never overflow the bar.
+        assert dims["mW"] >= dims["mH"], f"Mock unexpectedly portrait: {dims!r}"
+        assert dims["mW"] <= dims["barW"] + 1, f"Mock overflows bar: {dims!r}"
 
     def test_mount_grows_when_bar_is_dragged(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
