@@ -2477,16 +2477,24 @@ var SyncPlayer = (function() {
     // Swallow scroll events caused by smooth scrollTo so onWindowScroll
     // doesn't misread auto-scroll as user intent and pause Follow.
     state.isAutoScrolling = true;
-    // Account for the sticky sync-player-bar: native scrollIntoView({block:'center'})
+    // Account for the sticky sync-player-bar AND the sticky freshness-bar /
+    // view-header sitting above it: native scrollIntoView({block:'center'})
     // centers relative to the whole viewport and leaves the row behind the
     // bar. Compute an ABSOLUTE target scroll position (idempotent across
     // mid-animation re-entries) that puts the row's center in the middle
-    // of the area visible BELOW the bar.
-    var barH = (bar && !bar.hasAttribute('hidden')) ? bar.getBoundingClientRect().height : 0;
+    // of the area visible BELOW the bar. Use bar.bottom (viewport-space
+    // y-coordinate) rather than bar.height — at max bar height on a tall
+    // page, the ~80px gap between the viewport top and the bar's top is
+    // large enough that height alone would leave the row visually above
+    // the bar bottom.
+    var barBottom = 0;
+    if (bar && !bar.hasAttribute('hidden')) {
+      barBottom = bar.getBoundingClientRect().bottom;
+    }
     var rect = el.getBoundingClientRect();
     var absRowCenter = rect.top + rect.height / 2 + window.scrollY;
-    var visibleH = Math.max(1, window.innerHeight - barH);
-    var targetViewportCenter = barH + visibleH / 2;
+    var visibleH = Math.max(1, window.innerHeight - barBottom);
+    var targetViewportCenter = barBottom + visibleH / 2;
     var targetScrollY = Math.max(0, absRowCenter - targetViewportCenter);
     try { window.scrollTo({ top: targetScrollY, behavior: 'smooth' }); }
     catch (e) { window.scrollTo(0, targetScrollY); }
