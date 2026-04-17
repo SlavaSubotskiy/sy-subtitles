@@ -803,13 +803,15 @@ body.preview-subs-resize-active-body * { cursor: ns-resize !important; user-sele
 
 /* ==== Sticky top zone in the preview view ====
    Player + subtitles + controls stay pinned; only the marker / edit lists
-   scroll underneath them. */
-#view-preview:not(.fs-mode) {
+   scroll underneath them. Scoped to .active so the view stays hidden on
+   the other routes (.view { display: none } would otherwise be overridden
+   by the higher-specificity rule below). */
+#view-preview.active:not(.fs-mode) {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
-#view-preview:not(.fs-mode) .player-container {
+#view-preview.active:not(.fs-mode) .player-container {
   position: sticky;
   top: calc(var(--freshness-h, 0px) + var(--view-header-h, 0px));
   z-index: 12;
@@ -819,7 +821,7 @@ body.preview-subs-resize-active-body * { cursor: ns-resize !important; user-sele
   /* Soft shadow cue that there's scrollable content below. */
   box-shadow: 0 8px 16px -12px rgba(34, 30, 24, 0.18);
 }
-#view-preview:not(.fs-mode) .preview-list {
+#view-preview.active:not(.fs-mode) .preview-list {
   flex: 1 1 auto;
   overflow: visible; /* let the page scroll handle it — the sticky parent keeps the chrome in place */
   padding-top: 10px;
