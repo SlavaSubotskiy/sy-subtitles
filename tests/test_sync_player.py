@@ -1264,8 +1264,10 @@ class TestPlayerFillsBar:
         _goto_review_srt(page, server)
         page.click("#btn-sync-player")
         page.wait_for_selector("#mock-player", state="visible", timeout=3000)
-        # Bar default 25vh of 800 = 200px. The mock replacement must fill
-        # that — not clamp to some intrinsic fallback.
+        # Bar default 25vh of 800 = 200px. The mount is now aspect-ratio
+        # constrained (so the Vimeo letterbox becomes the page color instead
+        # of black), so the player fills height and width tracks aspect
+        # ratio — it should still be wider than it is tall for landscape.
         dims = page.evaluate("""
           () => {
             var m = document.getElementById('mock-player').getBoundingClientRect();
@@ -1273,11 +1275,11 @@ class TestPlayerFillsBar:
             return { mH: m.height, mW: m.width, barH: bar.height, barW: bar.width };
           }
         """)
-        # Mock should be at least ~180px tall (bar minus handle 8px, minus
-        # rounding). If #sync-player-mount has no size, mock falls back to its
-        # 40px min-height and this test fails.
         assert dims["mH"] > 180, f"Mock player too small: {dims!r}"
-        assert abs(dims["mW"] - dims["barW"]) < 2, f"Mock width must match bar: {dims!r}"
+        # Aspect-ratio: width should be at least mH (landscape-or-square)
+        # and never overflow the bar.
+        assert dims["mW"] >= dims["mH"], f"Mock unexpectedly portrait: {dims!r}"
+        assert dims["mW"] <= dims["barW"] + 1, f"Mock overflows bar: {dims!r}"
 
     def test_mount_grows_when_bar_is_dragged(self, server, page):  # noqa: F811
         page.set_viewport_size({"width": 1280, "height": 800})
