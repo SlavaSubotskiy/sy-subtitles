@@ -178,7 +178,7 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 #time-display { color: var(--fg6); font-size: 13px; font-family: monospace; }
 .preview-list { max-width: 960px; margin: 0 auto; padding: 0 8px; }
 .preview-list summary { color: var(--fg5); cursor: pointer; padding: 8px; font-size: 14px; }
-#btn-clear-all { background: var(--danger-bg); color: var(--danger-fg); border-color: var(--danger-border); }
+.header-actions button.danger { background: var(--danger-bg); color: var(--danger-fg); border-color: var(--danger-border); }
 .preview-mode-toggle { display: inline-flex; border: 1px solid var(--border3); border-radius: 6px; overflow: hidden; }
 .preview-mode-toggle button { background: var(--bg4); color: var(--fg5); border: 0; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 0; }
 .preview-mode-toggle button + button { border-left: 1px solid var(--border3); }
@@ -202,14 +202,18 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .marker-item .comment:focus { border-color: var(--link); outline: none; }
 .edit-item { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;
   display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: start; }
-.edit-item .tc { color: var(--link); cursor: pointer; font-family: monospace; grid-row: 1 / span 2; align-self: center; }
+/* Explicit grid placement so the × lands at the right edge (column 3),
+   mirroring the marker-item layout. Without this, auto-flow drops the ×
+   into column 3 row 1 while the edited field wraps onto column 3 row 2 —
+   which visually reads as "tc, ×, orig, edited". */
+.edit-item .tc { grid-column: 1; grid-row: 1 / span 2; color: var(--link); cursor: pointer; font-family: monospace; align-self: center; }
 .edit-item .tc:hover { text-decoration: underline; }
-.edit-item .orig { color: var(--fg6); font-size: 12px; font-style: italic; }
-.edit-item .edited { color: var(--fg2); background: var(--bg5); border: 1px solid var(--border2);
+.edit-item .orig { grid-column: 2; grid-row: 1; color: var(--fg6); font-size: 12px; font-style: italic; }
+.edit-item .edited { grid-column: 2; grid-row: 2; color: var(--fg2); background: var(--bg5); border: 1px solid var(--border2);
   border-radius: 4px; padding: 4px 8px; min-height: 1.4em; outline: none; white-space: pre-wrap; }
 .edit-item .edited:focus { border-color: var(--link); }
 .edit-item .edited.edited-dirty { border-color: var(--primary-border); background: var(--primary-bg); color: var(--primary-fg); }
-.edit-item .del { color: var(--fg6); cursor: pointer; padding: 0 4px; grid-row: 1 / span 2; align-self: center; }
+.edit-item .del { grid-column: 3; grid-row: 1 / span 2; color: var(--fg6); cursor: pointer; padding: 0 4px; align-self: center; }
 .edit-item .del:hover { color: var(--accent-red); }
 
 /* --- Review --- */
@@ -223,6 +227,19 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .transcript-dropdown div { padding: 6px 12px; cursor: pointer; font-size: 13px; color: var(--fg3); }
 .transcript-dropdown div:hover { background: var(--bg4); }
 .transcript-dropdown div.active { color: var(--accent-green); }
+/* Video picker dropdown — anchored to the Show-video button, opens below it.
+   Mirrors .transcript-dropdown visually but right-aligned since the button
+   sits at the right edge of the header-actions row. */
+.video-picker { position: relative; display: inline-block; }
+.video-dropdown { position: absolute; top: 100%; right: 0; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 4px; max-height: 300px; overflow-y: auto; z-index: 50; min-width: 220px; display: none; margin-top: 4px; }
+.video-dropdown.open { display: block; }
+.video-dropdown div { padding: 8px 12px; cursor: pointer; font-size: 13px; color: var(--fg3); }
+.video-dropdown div:hover { background: var(--bg4); }
+.video-dropdown div.active { color: var(--accent-green); }
+/* Transcript-mode cells mapped to a video become clickable (seek on click). */
+#review-grid .cell.en[data-ms-start],
+#review-grid .cell.uk[data-ms-start] .cell-label { cursor: pointer; }
 .cell { padding: 10px 16px; border-bottom: 1px solid var(--bg5); font-size: 15px; line-height: 1.5; min-height: 40px; }
 .cell.en { color: var(--fg4); }
 .cell.uk { color: var(--fg2); cursor: text; }
@@ -254,9 +271,6 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 }
 .skeleton-cell:nth-child(even) { animation-delay: 0.3s; }
 @keyframes skel-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
-.counter { position: fixed; bottom: 16px; right: 16px; background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 8px; padding: 8px 14px; font-size: 13px; color: var(--fg5); }
-.counter span { color: var(--fg); }
 /* --- Branch selector --- */
 .branch-selector { position: relative; display: inline-block; }
 .branch-btn { background: none; color: var(--fg5); border: 1px solid var(--border2); border-radius: 4px;
@@ -430,13 +444,16 @@ body.sync-player-resizing, body.sync-player-resizing * {
       </select>
     </h1>
     <div class="header-actions">
-      <button id="btn-sync-player" class="chip" style="display:none"
-              onclick="SyncPlayer.toggle()"
-              data-i18n-title="title.show_video"
-              data-i18n="btn.show_video">&#x25B6; Show video</button>
-      <button onclick="SPA.revertAllEdits()" id="btn-revert-all" style="display:none" data-i18n="btn.revert_all">Revert all</button>
+      <span class="video-picker">
+        <button id="btn-sync-player" class="chip" style="display:none"
+                onclick="SPA.onSyncBtnClick()"
+                data-i18n-title="title.show_video"
+                data-i18n="btn.show_video">&#x25B6; Show video</button>
+        <div id="video-picker-dropdown" class="video-dropdown" role="listbox"></div>
+      </span>
       <button class="issue" onclick="SPA.createReviewIssue()" data-i18n="btn.create_review_issue">Create Issue</button>
       <button class="primary" onclick="SPA.openEditor()" data-i18n="btn.open_editor">Open in GitHub Editor</button>
+      <button onclick="SPA.revertAllEdits()" id="btn-revert-all" class="danger" style="display:none" data-i18n="btn.revert_all">Revert all</button>
     </div>
   </div>
   <div id="sync-player-bar" class="sync-player-bar" hidden>
@@ -453,10 +470,6 @@ body.sync-player-resizing, body.sync-player-resizing * {
     <div class="col-header uk" id="col-header-right" role="button" tabindex="0" aria-haspopup="listbox"
          onclick="SPA.toggleTranscriptDropdown('right')"
          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();SPA.toggleTranscriptDropdown('right');}">Ukrainian &#x25BE;<div class="transcript-dropdown" id="transcript-dropdown-right" role="listbox"></div></div>
-  </div>
-  <div class="counter" id="review-counter" style="display:none" aria-live="polite">
-    <span id="mark-count">0</span> <span data-i18n="review.marks">marks</span> &middot; <span id="edit-count">0</span> <span data-i18n="review.edits">edits</span>
-    <div style="font-size:11px;color:var(--fg6);margin-top:2px" data-i18n="review.hint">Ctrl+M = toggle mark</div>
   </div>
 </div>
 
@@ -539,6 +552,84 @@ function timeToMs(t) {
   return parseInt(parts[0], 10) * 3600000 + parseInt(parts[1], 10) * 60000 +
     parseInt(secMs[0], 10) * 1000 + parseInt(secMs[1], 10);
 }
+// Map transcript paragraphs to SRT-block time spans so the review-page
+// transcript mode can piggy-back on SyncPlayer's existing seek & highlight
+// logic. Returns an array the same length as `paragraphs`; each entry is
+// `{startMs, endMs}` when the paragraph text was located inside the SRT,
+// otherwise `null` (paragraph stays click-inert). Monotonic search: each
+// paragraph is looked up AFTER the previous match, so repeated phrases
+// downstream don't snap back to earlier blocks.
+function matchParagraphsToSrt(paragraphs, srtBlocks) {
+  var normalize = function(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+  var flat = '';
+  var charBlock = [];
+  for (var b = 0; b < srtBlocks.length; b++) {
+    var nt = normalize(srtBlocks[b].text);
+    if (!nt) continue;
+    if (flat) { flat += ' '; charBlock.push(b); }
+    for (var c = 0; c < nt.length; c++) charBlock.push(b);
+    flat += nt;
+  }
+  var shrinkToWordBoundary = function(s, minLen) {
+    while (s.length > minLen) {
+      var cut = s.lastIndexOf(' ');
+      if (cut === -1 || cut < minLen) return s.length >= minLen ? s : '';
+      s = s.slice(0, cut);
+    }
+    return s;
+  };
+  var MIN_PROBE = 10;   // roughly 2 short words
+  var MAX_PROBE = 60;
+  var results = [];
+  var searchFrom = 0;
+  for (var p = 0; p < paragraphs.length; p++) {
+    var np = normalize(paragraphs[p]);
+    if (!np) { results.push(null); continue; }
+    // Fast path: whole paragraph appears verbatim in flat.
+    var startIdx = flat.indexOf(np, searchFrom);
+    var endIdx = startIdx !== -1 ? startIdx + np.length - 1 : -1;
+    // Fallback: shrink a head probe word-by-word until we find a start
+    // (tolerates local edits that diverge after the first few words).
+    if (startIdx === -1 && np.length >= MIN_PROBE) {
+      var probe = np.slice(0, MAX_PROBE);
+      while (probe.length >= MIN_PROBE) {
+        var si = flat.indexOf(probe, searchFrom);
+        if (si !== -1) { startIdx = si; break; }
+        var trimmed = shrinkToWordBoundary(probe.slice(0, probe.length - 1), MIN_PROBE);
+        if (!trimmed || trimmed === probe) break;
+        probe = trimmed;
+      }
+      if (startIdx !== -1) {
+        // Try a tail probe for a tighter endMs; otherwise fall back to the
+        // start block's own end — any proportional interpolation would lie
+        // about timing, so we prefer an honest single-block span.
+        var tail = np.slice(-MAX_PROBE);
+        while (tail.length >= MIN_PROBE) {
+          var ei = flat.indexOf(tail, startIdx + probe.length);
+          if (ei !== -1) { endIdx = ei + tail.length - 1; break; }
+          var trimmedTail = shrinkToWordBoundary(tail.slice(1), MIN_PROBE);
+          if (!trimmedTail || trimmedTail === tail) break;
+          tail = trimmedTail;
+        }
+        if (endIdx === -1) endIdx = startIdx + probe.length - 1;
+      }
+    }
+    if (startIdx === -1) { results.push(null); continue; }
+    if (endIdx >= flat.length) endIdx = flat.length - 1;
+    var startBlock = srtBlocks[charBlock[startIdx]];
+    var endBlock = srtBlocks[charBlock[endIdx]];
+    results.push({ startMs: startBlock.startMs, endMs: endBlock.endMs });
+    searchFrom = endIdx + 1;
+  }
+  return results;
+}
+
 function parseSRT(text) {
   text = text.replace(/^\uFEFF/, '');
   var blocks = text.trim().split(/\n\s*\n/);
@@ -756,8 +847,8 @@ var I18N = {
     'edits.summary': '\u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F',
     'toast.edits_cleared': '\u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F \u043E\u0447\u0438\u0449\u0435\u043D\u043E',
     'toast.no_active_subtitle': '\u041D\u0435\u043C\u0430\u0454 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0443',
-    'confirm.clear_edits': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0456 {n} \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u044C ({lang})?',
-    'confirm.revert_all': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0432\u0441\u0456 {n} \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u044C?',
+    'confirm.clear_edits': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 {n} {word} ({lang})?',
+    'confirm.revert_all': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 {n} {word}?',
     'link.preview': '\u25B6 \u041F\u0435\u0440\u0435\u0433\u043B\u044F\u043D\u0443\u0442\u0438 \u043F\u0435\u0440\u0435\u043A\u043B\u0430\u0434',
     'markers.summary': '\u041C\u0430\u0440\u043A\u0435\u0440\u0438',
     'btn.copy_all': '\u041A\u043E\u043F\u0456\u044E\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
@@ -774,7 +865,6 @@ var I18N = {
     'btn.create_review_issue': '\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 Issue',
     'btn.open_editor': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u0432 GitHub Editor',
     'review.loading': '\u0417\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043D\u044F \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442\u0456\u0432...',
-    'review.hint': 'Ctrl+M = \u043F\u0435\u0440\u0435\u043C\u043A\u043D\u0443\u0442\u0438 \u043C\u0430\u0440\u043A\u0435\u0440',
     'title.refresh': '\u041F\u0435\u0440\u0435\u0432\u0456\u0440\u0438\u0442\u0438 \u043E\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044F',
     'title.srt_lang': '\u041C\u043E\u0432\u0430 \u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0456\u0432',
     'title.theme.auto': '\u0422\u0435\u043C\u0430: \u0430\u0432\u0442\u043E',
@@ -828,8 +918,6 @@ var I18N = {
     'pipe.srt': '\u0448\u0456-\u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0438',
     'pipe.review': '\u0432\u0438\u0447\u0438\u0442\u043A\u0430',
     'pipe.approved': '\u0437\u0430\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043E',
-    'review.marks': '\u043C\u0430\u0440\u043A\u0435\u0440\u0456\u0432',
-    'review.edits': '\u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u044C',
     'review.mode_transcript': '\u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442',
     'review.mode_srt': '\u0441\u0443\u0431\u0442\u0438\u0442\u0440\u0438',
     'btn.mark_title': 'M = \u043C\u0430\u0440\u043A\u0435\u0440, Space = \u043F\u043B\u0435\u0439/\u043F\u0430\u0443\u0437\u0430, \u2190\u2192 = 5\u0441',
@@ -839,7 +927,7 @@ var I18N = {
     'toast.all_reverted': '\u0412\u0441\u0456 \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F \u0441\u043A\u0430\u0441\u043E\u0432\u0430\u043D\u043E',
     'alert.issue_body_copied': '\u0422\u0456\u043B\u043E issue \u0441\u043A\u043E\u043F\u0456\u0439\u043E\u0432\u0430\u043D\u043E \u0432 \u0431\u0443\u0444\u0435\u0440. \u0412\u0441\u0442\u0430\u0432\u0442\u0435 (Ctrl+V) \u0432 \u043F\u043E\u043B\u0435 \u043E\u043F\u0438\u0441\u0443 issue.',
     'alert.new_file_copied': '\u0412\u043c\u0456\u0441\u0442 meta.yaml \u0441\u043a\u043e\u043f\u0456\u0439\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440. \u0412\u0441\u0442\u0430\u0432\u0442\u0435 (Ctrl+V) \u0432 \u043f\u043e\u043b\u0435 \u0432\u043c\u0456\u0441\u0442\u0443 \u043d\u043e\u0432\u043e\u0433\u043e \u0444\u0430\u0439\u043b\u0443.',
-    'confirm.clear_markers': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0432\u0441\u0456 {n} \u043C\u0430\u0440\u043A\u0435\u0440\u0456\u0432?',
+    'confirm.clear_markers': '\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438 {n} {word}?',
     'confirm.unsaved_edits': '\u041D\u0435\u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043D\u0456 \u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F \u0431\u0443\u0434\u0443\u0442\u044C \u0432\u0442\u0440\u0430\u0447\u0435\u043D\u0456. \u041F\u0440\u043E\u0434\u043E\u0432\u0436\u0438\u0442\u0438?',
     'editor.clipboard_alert': '\u0412\u0456\u0434\u0440\u0435\u0434\u0430\u0433\u043E\u0432\u0430\u043D\u0438\u0439 \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442 \u0441\u043A\u043E\u043F\u0456\u0439\u043E\u0432\u0430\u043D\u043E.\nGitHub \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440 \u0432\u0456\u0434\u043A\u0440\u0438\u0454\u0442\u044C\u0441\u044F \u2014 \u0432\u0438\u0434\u0456\u043B\u0456\u0442\u044C \u0432\u0441\u0435 (Ctrl+A) \u0456 \u0432\u0441\u0442\u0430\u0432\u0442\u0435 (Ctrl+V).',
     'no_transcripts': '\u041D\u0435\u043C\u0430\u0454 \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442\u0456\u0432',
@@ -857,8 +945,8 @@ var I18N = {
     'edits.summary': 'Edits',
     'toast.edits_cleared': 'Edits cleared',
     'toast.no_active_subtitle': 'No active subtitle at this time',
-    'confirm.clear_edits': 'Clear all {n} edits ({lang})?',
-    'confirm.revert_all': 'Revert all {n} edits?',
+    'confirm.clear_edits': 'Clear {n} {word} ({lang})?',
+    'confirm.revert_all': 'Revert {n} {word}?',
     'link.preview': '\u25B6 View translation',
     'markers.summary': 'Markers',
     'btn.copy_all': 'Copy all',
@@ -875,7 +963,6 @@ var I18N = {
     'btn.create_review_issue': 'Create Issue',
     'btn.open_editor': 'Open in GitHub Editor',
     'review.loading': 'Loading transcripts...',
-    'review.hint': 'Ctrl+M = toggle mark',
     'title.refresh': 'Check for updates',
     'title.srt_lang': 'Subtitle language',
     'title.theme.auto': 'Theme: auto',
@@ -929,8 +1016,6 @@ var I18N = {
     'pipe.srt': 'ai-subtitles',
     'pipe.review': 'review',
     'pipe.approved': 'approved',
-    'review.marks': 'marks',
-    'review.edits': 'edits',
     'review.mode_transcript': 'transcript',
     'review.mode_srt': 'subtitles',
     'btn.mark_title': 'M = mark, Space = play/pause, \u2190\u2192 = seek 5s',
@@ -940,7 +1025,7 @@ var I18N = {
     'toast.all_reverted': 'All edits reverted',
     'alert.issue_body_copied': 'Issue body copied to clipboard. Paste (Ctrl+V) into the issue description field.',
     'alert.new_file_copied': 'meta.yaml content copied to clipboard. Paste (Ctrl+V) into the new file content field.',
-    'confirm.clear_markers': 'Clear all {n} markers?',
+    'confirm.clear_markers': 'Clear {n} {word}?',
     'confirm.unsaved_edits': 'Unsaved edits will be lost. Continue?',
     'editor.clipboard_alert': 'Edited transcript copied to clipboard.\nGitHub editor will open \u2014 select all (Ctrl+A) and paste (Ctrl+V).',
     'no_transcripts': 'No transcripts available',
@@ -962,6 +1047,37 @@ var currentLang = detectLang();
 function t(key) {
   var dict = I18N[currentLang] || I18N['en'];
   return dict[key] !== undefined ? dict[key] : (I18N['en'][key] !== undefined ? I18N['en'][key] : key);
+}
+
+// Pick the grammatically correct plural form for n. `forms` is
+// { one, few, many } — `few` is optional (English uses just two forms).
+// Ukrainian rule: one = n%10==1 && n%100!=11; few = n%10 in 2..4 & n%100 not in 12..14; many otherwise.
+function pluralWord(n, forms) {
+  if (currentLang === 'uk') {
+    var mod10 = n % 10, mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return forms.one;
+    if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return (forms.few || forms.many);
+    return forms.many;
+  }
+  return n === 1 ? forms.one : (forms.many || forms.one);
+}
+
+// Canonical word-form tables. Add languages/keys here as more plural-
+// sensitive strings appear; avoid sprinkling forms across call sites.
+var PLURALS = {
+  uk: {
+    edits:   { one: '\u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F', few: '\u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u043D\u044F', many: '\u0440\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u043D\u044C' },
+    markers: { one: '\u043C\u0430\u0440\u043A\u0435\u0440', few: '\u043C\u0430\u0440\u043A\u0435\u0440\u0438', many: '\u043C\u0430\u0440\u043A\u0435\u0440\u0456\u0432' },
+  },
+  en: {
+    edits:   { one: 'edit', many: 'edits' },
+    markers: { one: 'marker', many: 'markers' },
+  },
+};
+
+function pluralFor(n, key) {
+  var forms = (PLURALS[currentLang] && PLURALS[currentLang][key]) || PLURALS.en[key] || { one: key, many: key };
+  return pluralWord(n, forms);
 }
 
 function translatePage() {
@@ -1546,6 +1662,9 @@ var SyncPlayer = (function() {
     init: init, destroy: destroy, toggle: toggle,
     show: show, hide: hide,
     invalidateHighlight: invalidateHighlight,
+    isActive: function() { return state !== null; },
+    isOpen: function() { return state ? !!state.open : false; },
+    currentVideoSlug: function() { return state ? state.videoSlug : null; },
     _binarySearchByMs: binarySearchByMs,
     _isFollowPaused: function() { return state ? state.followPaused : false; },
   };
@@ -1555,6 +1674,8 @@ var SyncPlayer = (function() {
 // SPA Router
 // ============================================================
 var SPA = {};
+SPA._matchParagraphsToSrt = matchParagraphsToSrt;  // exposed for unit tests
+SPA._parseSRT = parseSRT;                           // exposed for unit tests
 var manifest = null;
 var reviewStatus = null;
 
@@ -2566,15 +2687,16 @@ SPA.deleteEdit = function(idx) {
 function updateClearBtn() {
   var btn = document.getElementById('btn-clear-all');
   if (!btn) return;
-  var show = false;
+  var n = 0;
   if (previewState.mode === 'edit') {
     var lang = previewState.srtLang || 'uk';
     var langEdits = (previewState.edits && previewState.edits[lang]) || {};
-    show = Object.keys(langEdits).length > 0;
+    n = Object.keys(langEdits).length;
   } else {
-    show = (previewState.markers || []).length > 0;
+    n = (previewState.markers || []).length;
   }
-  btn.style.display = show ? 'inline-block' : 'none';
+  btn.style.display = n > 0 ? 'inline-block' : 'none';
+  btn.textContent = n > 0 ? t('btn.clear_all') + ' (' + n + ')' : t('btn.clear_all');
 }
 
 SPA.clearAll = function() {
@@ -2583,7 +2705,7 @@ SPA.clearAll = function() {
     var langEdits = (previewState.edits && previewState.edits[lang]) || {};
     var n = Object.keys(langEdits).length;
     if (!n) return;
-    if (!confirm(t('confirm.clear_edits').replace('{n}', n).replace('{lang}', lang.toUpperCase()))) return;
+    if (!confirm(t('confirm.clear_edits').replace('{n}', n).replace('{word}', pluralFor(n, 'edits')).replace('{lang}', lang.toUpperCase()))) return;
     previewState.edits[lang] = {};
     savePreviewState();
     renderEditList();
@@ -2591,7 +2713,7 @@ SPA.clearAll = function() {
     showToast(t('toast.edits_cleared'));
   } else {
     if (!previewState.markers.length) return;
-    if (!confirm(t('confirm.clear_markers').replace('{n}', previewState.markers.length))) return;
+    if (!confirm(t('confirm.clear_markers').replace('{n}', previewState.markers.length).replace('{word}', pluralFor(previewState.markers.length, 'markers')))) return;
     previewState.markers = [];
     savePreviewState();
     renderMarkers();
@@ -2803,10 +2925,144 @@ function showReview(talkId) {
     renderReview();
     statusEl.style.display = 'none';
     statusEl.classList.remove('status-error');
+    updateTranscriptSyncBtn();
+    var savedSlug = localStorage.getItem(transcriptVideoStorageKey(talkId)) || '';
+    var videos = playableVideosForTalk(reviewState.talk);
+    if (savedSlug && videos.some(function(v) { return v.slug === savedSlug; })) {
+      SPA.openTranscriptVideo(savedSlug);
+    }
   }).catch(function(err) {
     statusEl.textContent = t('review.load_error').replace('{err}', err);
     statusEl.classList.add('status-error');
   });
+}
+
+// --- Transcript-mode video sync --------------------------------------------
+// These helpers let the transcript review mode reuse SyncPlayer (designed for
+// SRT mode) by deriving per-paragraph timings from the chosen video's SRT via
+// matchParagraphsToSrt, writing data-ms-start onto cells, and synthesizing an
+// alignedRows structure SyncPlayer can consume unchanged.
+
+function transcriptVideoStorageKey(talkId) {
+  return 'sy_review_transcript_video_' + talkId;
+}
+
+function playableVideosForTalk(talk) {
+  if (!talk || !talk.videos) return [];
+  return talk.videos.filter(function(v) { return v && v.vimeo_url && v.hasSrt; });
+}
+
+function updateTranscriptSyncBtn() {
+  var btn = document.getElementById('btn-sync-player');
+  if (!btn) return;
+  if (reviewState.mode !== 'transcript') return;
+  if (SyncPlayer.isActive()) return;
+  var videos = playableVideosForTalk(reviewState.talk);
+  btn.style.display = videos.length > 0 ? '' : 'none';
+  btn.textContent = t('btn.show_video');
+  btn.title = t('title.show_video');
+  btn.setAttribute('data-i18n', 'btn.show_video');
+  btn.setAttribute('data-i18n-title', 'title.show_video');
+}
+
+SPA.onSyncBtnClick = function() {
+  if (reviewState.mode !== 'transcript') { SyncPlayer.toggle(); return; }
+  // Transcript mode. Visible player → this click hides it. Otherwise fall
+  // through to the picker so the user can choose (or re-choose) a video —
+  // without this, there was no way to switch to a different video without
+  // leaving review.
+  if (SyncPlayer.isActive() && SyncPlayer.isOpen()) { SyncPlayer.hide(); return; }
+  var videos = playableVideosForTalk(reviewState.talk);
+  if (videos.length === 0) return;
+  if (videos.length === 1) { SPA.openTranscriptVideo(videos[0].slug); return; }
+  SPA.toggleVideoPicker();
+};
+
+SPA.toggleVideoPicker = function() {
+  var dd = document.getElementById('video-picker-dropdown');
+  if (!dd) return;
+  if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
+  while (dd.firstChild) dd.removeChild(dd.firstChild);
+  var videos = playableVideosForTalk(reviewState.talk);
+  var savedSlug = localStorage.getItem(transcriptVideoStorageKey(reviewState.talkId)) || '';
+  videos.forEach(function(v) {
+    var d = document.createElement('div');
+    d.setAttribute('role', 'option');
+    d.dataset.slug = v.slug;
+    if (v.slug === savedSlug) d.classList.add('active');
+    d.textContent = v.title || v.slug;
+    d.addEventListener('click', function() { SPA.openTranscriptVideo(v.slug); });
+    dd.appendChild(d);
+  });
+  dd.classList.add('open');
+};
+
+SPA.openTranscriptVideo = function(videoSlug) {
+  var dd = document.getElementById('video-picker-dropdown');
+  if (dd) dd.classList.remove('open');
+  var talk = reviewState.talk;
+  if (!talk) return;
+  // Switching to a different video while a player is already live: tear
+  // down first so SyncPlayer.init binds grid handlers exactly once.
+  if (SyncPlayer.isActive() && SyncPlayer.currentVideoSlug() !== videoSlug) {
+    SyncPlayer.destroy();
+  }
+  var langs = (talk._srtLangs && talk._srtLangs[videoSlug]) || ['uk'];
+  var srtLang = langs.indexOf('uk') !== -1 ? 'uk' : langs[0];
+  var sha = (talk._srtSha && talk._srtSha[videoSlug + '/' + srtLang]) || '';
+  var url = RAW + '/talks/' + reviewState.talkId + '/' + videoSlug + '/final/' + srtLang + '.srt' +
+    (sha ? '?v=' + sha.substring(0, 8) : '');
+  fetch(url).then(function(r) { return r.ok ? r.text() : ''; }).then(function(text) {
+    if (!text) { showToast(t('review.srt_load_error').replace('{err}', 'SRT not found')); return; }
+    var blocks = parseSRT(text);
+    var timings = matchParagraphsToSrt(reviewState.rightParas, blocks);
+    reviewState.paragraphTimings = timings;
+    reviewState.videoSlug = videoSlug;
+    applyTranscriptTimings(timings);
+    localStorage.setItem(transcriptVideoStorageKey(reviewState.talkId), videoSlug);
+    SyncPlayer.init(reviewState.talkId, videoSlug);
+    SyncPlayer.show();
+  });
+};
+
+function applyTranscriptTimings(timings) {
+  var rows = [];
+  for (var i = 0; i < timings.length; i++) {
+    var tm = timings[i];
+    if (!tm) { rows.push({ en: null, uk: null, startMs: 0, endMs: 0 }); continue; }
+    var enText = reviewState.leftParas[i] || '';
+    var ukText = reviewState.rightParas[i] || '';
+    var side = { startMs: tm.startMs, endMs: tm.endMs };
+    rows.push({
+      en: Object.assign({ text: enText }, side),
+      uk: Object.assign({ text: ukText }, side),
+      startMs: tm.startMs, endMs: tm.endMs,
+    });
+  }
+  reviewState.alignedRows = rows;
+  var grid = document.getElementById('review-grid');
+  if (!grid) return;
+  var enCells = grid.querySelectorAll('.cell.en');
+  var ukCells = grid.querySelectorAll('.cell.uk');
+  var enLabels = grid.querySelectorAll('.cell.en .cell-label');
+  var ukLabels = grid.querySelectorAll('.cell.uk .cell-label');
+  for (var j = 0; j < timings.length; j++) {
+    var t2 = timings[j];
+    var base = 'P' + (j + 1);
+    var labelText = t2
+      ? base + ' \u00B7 ' + msToTC(t2.startMs) + ' \u2013 ' + msToTC(t2.endMs)
+      : base;
+    if (enCells[j]) {
+      if (t2) enCells[j].dataset.msStart = t2.startMs;
+      else delete enCells[j].dataset.msStart;
+    }
+    if (ukCells[j]) {
+      if (t2) ukCells[j].dataset.msStart = t2.startMs;
+      else delete ukCells[j].dataset.msStart;
+    }
+    if (enLabels[j]) enLabels[j].textContent = labelText;
+    if (ukLabels[j]) ukLabels[j].textContent = labelText;
+  }
 }
 
 SPA.switchReviewMode = function(mode, videoSlug) {
@@ -2840,6 +3096,16 @@ SPA.switchReviewMode = function(mode, videoSlug) {
       reviewState.rightParsed = right;
       renderReview();
       statusEl.style.display = 'none';
+      updateTranscriptSyncBtn();
+      // Re-open the last-chosen video so leaving and returning to the
+      // same talk restores the player (memory). Skipped when no saved
+      // slug (first visit) or when the slug no longer points to a
+      // playable video (renamed/removed).
+      var savedSlug = localStorage.getItem(transcriptVideoStorageKey(talkId)) || '';
+      var videos = playableVideosForTalk(reviewState.talk);
+      if (savedSlug && videos.some(function(v) { return v.slug === savedSlug; })) {
+        SPA.openTranscriptVideo(savedSlug);
+      }
     });
     return;
   }
@@ -2962,10 +3228,14 @@ function renderReview() {
     renderReviewSrt(grid);
   } else {
     renderReviewTranscript(grid);
+    // Re-stamp data-ms-start and timecode labels after a rebuild
+    // (revert, language switch, edit refresh) so the transcript-mode
+    // video sync survives re-renders without the user re-picking.
+    if (reviewState.paragraphTimings) {
+      applyTranscriptTimings(reviewState.paragraphTimings);
+    }
   }
-  updateReviewCounter();
-  // Grid DOM was rebuilt — any SyncPlayer .current marker is now stale;
-  // force the next timeupdate to re-apply it.
+  updateRevertBtn();
   SyncPlayer.invalidateHighlight();
 }
 
@@ -3106,7 +3376,7 @@ function onReviewEdit(idx, el) {
 
 function saveReview() {
   localStorage.setItem('review_' + reviewState.talkId, JSON.stringify({ marks: reviewState.marks, edits: reviewState.edits }));
-  updateReviewCounter();
+  updateRevertBtn();
 }
 
 SPA.revertEdit = function(idx) {
@@ -3124,37 +3394,20 @@ SPA.revertEdit = function(idx) {
 SPA.revertAllEdits = function() {
   var n = Object.keys(reviewState.edits).length;
   if (!n) return;
-  if (!confirm(t('confirm.revert_all').replace('{n}', n))) return;
+  if (!confirm(t('confirm.revert_all').replace('{n}', n).replace('{word}', pluralFor(n, 'edits')))) return;
   reviewState.edits = {};
   saveReview();
   renderReview();
   showToast(t('toast.all_reverted'));
 };
 
-function updateReviewCounter() {
-  var mc = Object.keys(reviewState.marks).length;
+function updateRevertBtn() {
   var ec = Object.keys(reviewState.edits).length;
-  document.getElementById('mark-count').textContent = mc;
-  document.getElementById('edit-count').textContent = ec;
-  document.getElementById('review-counter').style.display = (mc + ec > 0) ? 'block' : 'none';
-  document.getElementById('btn-revert-all').style.display = ec > 0 ? 'inline-block' : 'none';
+  var btn = document.getElementById('btn-revert-all');
+  if (!btn) return;
+  btn.style.display = ec > 0 ? 'inline-block' : 'none';
+  btn.textContent = ec > 0 ? t('btn.revert_all') + ' (' + ec + ')' : t('btn.revert_all');
 }
-
-document.addEventListener('keydown', function(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'm' && document.getElementById('view-review').classList.contains('active')) {
-    e.preventDefault();
-    var el = document.activeElement;
-    var textEl = el && el.classList.contains('cell-text') ? el : null;
-    if (textEl) {
-      var idx = parseInt(textEl.dataset.idx);
-      var cell = textEl.closest('.cell.uk');
-      if (reviewState.marks[idx] !== undefined) delete reviewState.marks[idx];
-      else reviewState.marks[idx] = '';
-      if (cell) cell.classList.toggle('marked');
-      saveReview();
-    }
-  }
-});
 
 SPA.createReviewIssue = function() {
   var gh = 'https://github.com/' + REPO;
@@ -3382,6 +3635,10 @@ SPA.switchTranscript = function(side, lang) {
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.col-header')) {
     document.querySelectorAll('.transcript-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+  }
+  if (!e.target.closest('.video-picker')) {
+    var vd = document.getElementById('video-picker-dropdown');
+    if (vd) vd.classList.remove('open');
   }
 });
 

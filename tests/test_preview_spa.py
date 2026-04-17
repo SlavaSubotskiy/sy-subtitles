@@ -1182,8 +1182,8 @@ class TestReviewEditing:
         state = json.loads(data)
         assert "edits" in state
 
-    def test_edit_counter_shows(self, server, page):
-        """Edit counter should appear after editing."""
+    def test_revert_btn_shows_count(self, server, page):
+        """Revert-all button shows count suffix (N) after editing."""
         self._goto_review(server, page)
         cell = page.locator(".cell.uk").first
         cell.click()
@@ -1191,8 +1191,9 @@ class TestReviewEditing:
         cell.type(" edited")
         cell.press("Tab")
         page.wait_for_timeout(200)
-        counter = page.locator("#review-counter")
-        assert counter.is_visible()
+        btn = page.locator("#btn-revert-all")
+        assert btn.is_visible()
+        assert "(1)" in (btn.text_content() or "")
 
     def test_uk_content(self, server, page):
         """UK cells should show translated content."""
@@ -2021,8 +2022,7 @@ class TestBranchSelector:
         cell.press_sequentially(" edited", delay=20)
         cell.press("Tab")
         pg.wait_for_timeout(300)
-        edit_count = pg.locator("#edit-count").text_content()
-        assert edit_count == "1"
+        assert "(1)" in (pg.locator("#btn-revert-all").text_content() or "")
         pg.close()
 
         # Switch to dev — edit should persist
@@ -2030,8 +2030,7 @@ class TestBranchSelector:
         pg2.goto(f"{server}{SPA_URL}?branch=dev#/review/2001-01-01_Test-Talk")
         pg2.wait_for_selector(".cell.uk", timeout=10000)
         pg2.wait_for_timeout(500)
-        edit_count = pg2.locator("#edit-count").text_content()
-        assert edit_count == "1"
+        assert "(1)" in (pg2.locator("#btn-revert-all").text_content() or "")
         pg2.close()
         ctx.close()
 
@@ -2136,7 +2135,7 @@ class TestTranscriptSelector:
         cell.press_sequentially(" test", delay=20)
         cell.press("Tab")
         page.wait_for_timeout(300)
-        assert page.locator("#edit-count").text_content() == "1"
+        assert "(1)" in (page.locator("#btn-revert-all").text_content() or "")
         confirmed = []
         page.once("dialog", lambda dialog: (confirmed.append(True), dialog.accept()))
         page.locator("#col-header-left").click()
@@ -2185,7 +2184,7 @@ class TestTranscriptSelector:
         cell.press_sequentially(" test", delay=20)
         cell.press("Tab")
         page.wait_for_timeout(300)
-        assert page.locator("#edit-count").text_content() == "1"
+        assert "(1)" in (page.locator("#btn-revert-all").text_content() or "")
         page.once("dialog", lambda dialog: dialog.accept())
         page.locator("#col-header-left").click()
         page.wait_for_selector("#transcript-dropdown-left.open", timeout=5000)
@@ -2194,7 +2193,7 @@ class TestTranscriptSelector:
             "document.querySelector('.cell.en') && document.querySelector('.cell.en').textContent.indexOf('पहला') !== -1",
             timeout=10000,
         )
-        assert page.locator("#edit-count").text_content() == "0"
+        assert not page.locator("#btn-revert-all").is_visible()
 
     def test_close_dropdown_on_outside_click(self, server, page):
         """Clicking outside closes dropdown."""
@@ -3761,6 +3760,228 @@ class TestAddTalkForm:
         assert "transcript_en_base64" in clip, clip[:400]
 
 
+class TestTranscriptVideoSync:
+    """Review-page transcript mode: Show Video button, video picker,
+    paragraph ↔ SRT-block wiring."""
+
+    TALK_ID = "2001-01-01_Test-Talk"
+    UK_TRANSCRIPT = "Мова промови: англійська\n\nПерший субтитр\n\nДругий субтитр\n"
+    UK_SRT = "1\n00:00:01,000 --> 00:00:05,000\nПерший субтитр\n\n2\n00:00:06,000 --> 00:00:10,000\nДругий субтитр\n"
+
+    def _patch_matching_fixtures(self, page):
+        """Override UK transcript + UK SRT so paragraph text maps cleanly
+        to SRT block times. Must be called BEFORE navigating."""
+        page.route(
+            "**/raw.githubusercontent.com/**/transcript_uk.txt",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=self.UK_TRANSCRIPT),
+        )
+        page.route(
+            "**/raw.githubusercontent.com/**/final/uk.srt",
+            lambda route: route.fulfill(status=200, content_type="text/plain", body=self.UK_SRT),
+        )
+
+    def _goto_review(self, server, page):
+        self._patch_matching_fixtures(page)
+        goto_spa(page, server, f"#/review/{self.TALK_ID}")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+
+    def test_show_video_btn_visible_in_transcript_mode(self, server, page):
+        self._goto_review(server, page)
+        assert page.locator("#btn-sync-player").is_visible()
+
+    def test_multi_video_click_opens_picker(self, server, page):
+        self._goto_review(server, page)
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(100)
+        dd = page.locator("#video-picker-dropdown")
+        assert dd.evaluate("el => el.classList.contains('open')")
+        options = dd.locator("div[role='option']")
+        assert options.count() == 2  # two videos in the fixture
+
+    def test_picker_lists_video_titles(self, server, page):
+        self._goto_review(server, page)
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(100)
+        texts = page.locator("#video-picker-dropdown div[role='option']").all_text_contents()
+        assert "Test Video" in texts
+        assert "Test Video 2" in texts
+
+    def test_picking_video_annotates_cells_with_ms(self, server, page):
+        self._goto_review(server, page)
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(100)
+        page.click('#video-picker-dropdown div[data-slug="Test-Video"]')
+        page.wait_for_function("document.querySelector('.cell.uk[data-ms-start]') !== null", timeout=5000)
+        # First paragraph maps to SRT block 1 → 1000ms start.
+        first_uk_ms = page.locator(".cell.uk[data-ms-start]").first.get_attribute("data-ms-start")
+        assert first_uk_ms == "1000"
+
+    def test_picking_video_persists_selection(self, server, page):
+        self._goto_review(server, page)
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(100)
+        page.click('#video-picker-dropdown div[data-slug="Test-Video-2"]')
+        page.wait_for_function("document.querySelector('.cell.uk[data-ms-start]') !== null", timeout=5000)
+        stored = page.evaluate(f"localStorage.getItem('sy_review_transcript_video_{self.TALK_ID}')")
+        assert stored == "Test-Video-2"
+
+    def test_dropdown_closes_on_outside_click(self, server, page):
+        self._goto_review(server, page)
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(50)
+        assert page.evaluate("document.getElementById('video-picker-dropdown').classList.contains('open')")
+        page.click("#review-grid", position={"x": 10, "y": 10})
+        page.wait_for_timeout(50)
+        assert not page.evaluate("document.getElementById('video-picker-dropdown').classList.contains('open')")
+
+    def test_click_on_paragraph_seeks_player(self, server, page):
+        self._goto_review(server, page)
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(100)
+        page.click('#video-picker-dropdown div[data-slug="Test-Video"]')
+        # Wait for SyncPlayer + mock-player to be wired up.
+        page.wait_for_selector("#mock-player", state="visible", timeout=5000)
+        # Reset any auto-set time, then click the SECOND EN paragraph
+        # which should seek to 6000ms (block 2 start).
+        page.evaluate("window._vimeoPlayer._setTime(0)")
+        en_cells = page.locator("#view-review .cell.en[data-ms-start]")
+        # Grab the second paragraph (index 1) so we seek past 0.
+        en_cells.nth(1).click()
+        page.wait_for_timeout(200)
+        t = page.evaluate("window._vimeoPlayer._currentTime")
+        assert t == pytest.approx(6.0, abs=0.05)
+
+    def test_paragraph_label_includes_timecode_after_pick(self, server, page):
+        self._goto_review(server, page)
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(100)
+        page.click('#video-picker-dropdown div[data-slug="Test-Video"]')
+        page.wait_for_function("document.querySelector('.cell.uk[data-ms-start]') !== null", timeout=5000)
+        first_label = page.locator(".cell.uk .cell-label").first.text_content()
+        # Label should include the paragraph id AND a timecode derived from SRT.
+        assert "P1" in first_label
+        assert "00:01" in first_label  # 00:00:01 → compact msToTC formats as 00:01
+
+    def test_reclick_show_btn_reopens_picker_when_hidden(self, server, page):
+        """After picking a video and hiding the player, clicking Show again
+        must reopen the picker so the user can switch videos."""
+        self._goto_review(server, page)
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(100)
+        page.click('#video-picker-dropdown div[data-slug="Test-Video"]')
+        page.wait_for_selector("#mock-player", state="visible", timeout=5000)
+        # Hide the player via the toggle (button now says "Hide video").
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(100)
+        assert page.evaluate("!SyncPlayer.isOpen()")
+        # Click again → dropdown should reopen.
+        page.click("#btn-sync-player")
+        page.wait_for_timeout(100)
+        assert page.evaluate("document.getElementById('video-picker-dropdown').classList.contains('open')")
+
+    def test_revisit_autoloads_saved_video(self, server, page):
+        """Leaving and returning to the transcript review should auto-open
+        the player for the last-chosen video — it's "remembered state"."""
+        self._patch_matching_fixtures(page)
+        page.add_init_script(f"localStorage.setItem('sy_review_transcript_video_{self.TALK_ID}', 'Test-Video');")
+        goto_spa(page, server, f"#/review/{self.TALK_ID}")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        # And paragraph cells carry data-ms-start → mapping actually ran.
+        page.wait_for_function("document.querySelector('.cell.uk[data-ms-start]') !== null", timeout=5000)
+
+    def test_label_resets_to_plain_after_render_without_video(self, server, page):
+        """Before any video is picked, labels stay plain P1/P2/... (no times)."""
+        self._goto_review(server, page)
+        labels = page.locator(".cell.uk .cell-label").all_text_contents()
+        for text in labels:
+            assert "00:" not in text
+
+
+class TestMatchParagraphsToSrt:
+    """Pure-function tests for SPA._matchParagraphsToSrt — the paragraph →
+    SRT-block mapping that powers the transcript-mode sync player."""
+
+    SRT = (
+        "1\n00:00:01,000 --> 00:00:05,000\nThis is the first block.\n\n"
+        "2\n00:00:05,500 --> 00:00:09,000\nSecond block continues here.\n\n"
+        "3\n00:00:09,500 --> 00:00:13,000\nThird block, final line.\n\n"
+        "4\n00:00:14,000 --> 00:00:18,000\nFourth block says something new.\n\n"
+        "5\n00:00:18,500 --> 00:00:22,000\nFifth block wraps the talk.\n"
+    )
+
+    def _open_spa(self, server, page):
+        goto_spa(page, server, "")
+        page.wait_for_function(
+            "typeof SPA !== 'undefined' && !!SPA._matchParagraphsToSrt",
+            timeout=5000,
+        )
+
+    def _match(self, page, paragraphs, srt=None):
+        return page.evaluate(
+            "([paras, srt]) => SPA._matchParagraphsToSrt(paras, SPA._parseSRT(srt))",
+            [paragraphs, srt if srt is not None else self.SRT],
+        )
+
+    def test_identical_paragraphs_mapped_to_block_spans(self, server, page):
+        self._open_spa(server, page)
+        out = self._match(
+            page,
+            [
+                "This is the first block.",
+                "Second block continues here. Third block, final line.",
+                "Fourth block says something new. Fifth block wraps the talk.",
+            ],
+        )
+        assert out[0] == {"startMs": 1000, "endMs": 5000}
+        assert out[1] == {"startMs": 5500, "endMs": 13000}
+        assert out[2] == {"startMs": 14000, "endMs": 22000}
+
+    def test_paragraph_with_punctuation_differences_still_matches(self, server, page):
+        self._open_spa(server, page)
+        out = self._match(page, ["THIS is; the, FIRST block!"])
+        assert out[0] == {"startMs": 1000, "endMs": 5000}
+
+    def test_empty_paragraph_returns_null(self, server, page):
+        self._open_spa(server, page)
+        out = self._match(page, ["", "   ", "This is the first block."])
+        assert out[0] is None
+        assert out[1] is None
+        assert out[2] == {"startMs": 1000, "endMs": 5000}
+
+    def test_unmatched_paragraph_returns_null_and_does_not_block_next(self, server, page):
+        self._open_spa(server, page)
+        out = self._match(
+            page,
+            [
+                "This paragraph has nothing in common with the subtitles at all.",
+                "Second block continues here.",
+            ],
+        )
+        assert out[0] is None
+        assert out[1] == {"startMs": 5500, "endMs": 9000}
+
+    def test_matching_is_monotonic(self, server, page):
+        """A phrase that appears twice should map to its Nth occurrence for
+        the Nth paragraph, not collapse to the first."""
+        self._open_spa(server, page)
+        srt = (
+            "1\n00:00:01,000 --> 00:00:05,000\nShared phrase here.\n\n"
+            "2\n00:00:06,000 --> 00:00:10,000\nDifferent content.\n\n"
+            "3\n00:00:11,000 --> 00:00:15,000\nShared phrase here.\n"
+        )
+        out = self._match(page, ["Shared phrase here.", "Shared phrase here."], srt)
+        assert out[0]["startMs"] == 1000
+        assert out[1]["startMs"] == 11000  # second occurrence, not first
+
+    def test_probe_fallback_handles_small_edits(self, server, page):
+        """A paragraph whose tail diverged from SRT (an edit) should still
+        resolve its start via the first-60-chars probe."""
+        self._open_spa(server, page)
+        out = self._match(page, ["This is the first block but with an extra tail added locally."])
+        assert out[0] is not None
+        assert out[0]["startMs"] == 1000
+
+
 class TestStickyHeaders:
     """Headers must remain visible while scrolling so action buttons are
     always reachable."""
@@ -3856,6 +4077,190 @@ class TestStickyHeaderWithSyncPlayer:
         assert info["header_bottom"] > 0, f"header off-screen: {info}"
         assert info["header_top"] < 100, f"header not pinned: {info}"
         assert info["player_top"] >= info["header_bottom"] - 1, f"player overlaps header: {info}"
+
+
+class TestUkrainianPlurals:
+    """Clear/revert confirm dialogs must agree grammatically in Ukrainian:
+    1 редагування, 2–4 редагування, 5+ редагувань; 1 маркер, 2–4 маркери,
+    5+ маркерів."""
+
+    def _goto_preview(self, server, page):
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(500)
+
+    def _force_lang(self, page, lang):
+        page.evaluate(f"currentLang = '{lang}'")
+
+    def test_uk_plural_edits_shape(self, server, page):
+        self._goto_preview(server, page)
+        self._force_lang(page, "uk")
+        # Spot-check the boundary cases defined by Ukrainian plural rules.
+        cases = {
+            1: "редагування",  # n%10==1 && n%100!=11 → one
+            2: "редагування",  # few — same form for this neuter -ння word
+            4: "редагування",
+            5: "редагувань",  # many
+            11: "редагувань",  # 11 is special (many, not one)
+            21: "редагування",  # 21 back to one
+            22: "редагування",
+            25: "редагувань",
+        }
+        for n, expected in cases.items():
+            actual = page.evaluate(f"pluralFor({n}, 'edits')")
+            assert actual == expected, f"n={n}: expected {expected!r}, got {actual!r}"
+
+    def test_uk_plural_markers_shape(self, server, page):
+        self._goto_preview(server, page)
+        self._force_lang(page, "uk")
+        cases = {
+            1: "маркер",
+            2: "маркери",
+            4: "маркери",
+            5: "маркерів",
+            11: "маркерів",
+            21: "маркер",
+        }
+        for n, expected in cases.items():
+            actual = page.evaluate(f"pluralFor({n}, 'markers')")
+            assert actual == expected, f"n={n}: expected {expected!r}, got {actual!r}"
+
+    def test_en_plural_default(self, server, page):
+        self._goto_preview(server, page)
+        self._force_lang(page, "en")
+        assert page.evaluate("pluralFor(1, 'edits')") == "edit"
+        assert page.evaluate("pluralFor(2, 'edits')") == "edits"
+        assert page.evaluate("pluralFor(1, 'markers')") == "marker"
+        assert page.evaluate("pluralFor(5, 'markers')") == "markers"
+
+    def test_confirm_revert_all_uses_correct_form(self, server, page):
+        """Single edit → confirm mentions 'редагування' (not 'редагувань')."""
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+        self._force_lang(page, "uk")
+        cell = page.locator(".cell.uk .cell-text").first
+        cell.click()
+        cell.press("End")
+        cell.type(" edited")
+        cell.press("Tab")
+        page.wait_for_timeout(200)
+        msgs = []
+        page.once("dialog", lambda d: (msgs.append(d.message), d.dismiss()))
+        page.click("#btn-revert-all")
+        page.wait_for_timeout(200)
+        assert msgs, "expected a confirm dialog"
+        assert "редагування" in msgs[0]
+        assert "редагувань" not in msgs[0]
+        # The plural quantifier "всі" never agrees with a singular noun —
+        # make sure we don't print "Скасувати всі 1 редагування?" again.
+        assert "всі 1" not in msgs[0]
+        assert "всі" not in msgs[0]
+
+
+class TestClearAllCount:
+    """Preview's Clear-all button must show (N) suffix, matching Revert-all."""
+
+    def _goto_preview(self, server, page):
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(500)
+
+    def test_clear_all_btn_shows_count(self, server, page):
+        self._goto_preview(server, page)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        btn = page.locator("#btn-clear-all")
+        assert btn.is_visible()
+        assert "(1)" in (btn.text_content() or "")
+        page.evaluate("window._vimeoPlayer._setTime(7)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        assert "(2)" in (btn.text_content() or "")
+
+
+class TestEditItemLayout:
+    """The × delete button on the preview edit list must be the last column
+    (to the right of the edit field), not between tc and orig."""
+
+    def _open_edit_mode(self, server, page):
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.click('.preview-mode-toggle [data-mode="edit"]')
+        page.wait_for_timeout(50)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.wait_for_selector(".edit-item", timeout=3000)
+
+    def test_delete_button_is_rightmost(self, server, page):
+        self._open_edit_mode(server, page)
+        rects = page.evaluate(
+            "(() => { const it = document.querySelector('.edit-item'); "
+            "const q = s => it.querySelector(s).getBoundingClientRect(); "
+            "return {tc: q('.tc'), orig: q('.orig'), edited: q('.edited'), del: q('.del')}; })()"
+        )
+        # × must sit to the right of the edit field (grid col 3, after col 2).
+        assert rects["del"]["left"] >= rects["edited"]["right"] - 1, rects
+        # × must not sit between tc and orig (the old broken layout).
+        assert rects["del"]["left"] > rects["orig"]["left"], rects
+
+    def test_delete_still_removes(self, server, page):
+        self._open_edit_mode(server, page)
+        assert page.locator(".edit-item").count() == 1
+        page.locator(".edit-item .del").click()
+        page.wait_for_timeout(100)
+        assert page.locator(".edit-item").count() == 0
+
+
+class TestDestructiveButtonsInSync:
+    """Clear-all (preview) and Revert-all (review) are the same kind of
+    'blow away my local changes' button; make sure they stay aligned in
+    layout, color, and visibility so the UI reads consistently."""
+
+    def _goto_preview(self, server, page):
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(500)
+
+    def _goto_review_with_edit(self, server, page):
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+        cell = page.locator(".cell.uk .cell-text").first
+        cell.click()
+        cell.press("End")
+        cell.type(" edited")
+        cell.press("Tab")
+        page.wait_for_timeout(200)
+
+    def test_both_buttons_have_danger_class(self, server, page):
+        self._goto_preview(server, page)
+        assert "danger" in (page.locator("#btn-clear-all").get_attribute("class") or "")
+        self._goto_review_with_edit(server, page)
+        assert "danger" in (page.locator("#btn-revert-all").get_attribute("class") or "")
+
+    def test_both_buttons_use_danger_background(self, server, page):
+        """Clear-all and Revert-all must share the same red danger-bg so
+        the UI communicates 'destructive action' consistently."""
+        self._goto_preview(server, page)
+        # Make clear-all visible by adding a marker.
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        clear_bg = page.evaluate("getComputedStyle(document.getElementById('btn-clear-all')).backgroundColor")
+        self._goto_review_with_edit(server, page)
+        revert_bg = page.evaluate("getComputedStyle(document.getElementById('btn-revert-all')).backgroundColor")
+        assert clear_bg == revert_bg
+
+    def test_both_buttons_sit_last_in_header_actions(self, server, page):
+        """Destructive action should be the rightmost button in both
+        headers, so destructive and primary are never adjacent by accident."""
+        self._goto_preview(server, page)
+        last_preview = page.evaluate("document.querySelector('#view-preview .header-actions').lastElementChild.id")
+        assert last_preview == "btn-clear-all"
+        self._goto_review_with_edit(server, page)
+        last_review = page.evaluate("document.querySelector('#view-review .header-actions').lastElementChild.id")
+        assert last_review == "btn-revert-all"
 
 
 class TestRevertAllConfirmation:
