@@ -1794,6 +1794,14 @@ var I18N = {
     'modal.discard': '\u0412\u0456\u0434\u043A\u0438\u043D\u0443\u0442\u0438',
     'modal.revert': '\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438',
     'modal.clear_edits_body': '\u0426\u044E \u0434\u0456\u044E \u043D\u0435 \u043C\u043E\u0436\u043D\u0430 \u0431\u0443\u0434\u0435 \u0441\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438.',
+    'modal.open_github': '\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 GitHub',
+    'modal.ready_to_open': '\u0413\u043E\u0442\u043E\u0432\u043E',
+    'modal.copied_title_issue': '\u0422\u0456\u043B\u043E issue \u0441\u043A\u043E\u043F\u0456\u0439\u043E\u0432\u0430\u043D\u043E',
+    'modal.copied_body_issue': '\u041D\u0430\u0442\u0438\u0441\u043D\u0456\u0442\u044C <strong>\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 GitHub</strong>, \u043F\u043E\u0442\u0456\u043C \u0432\u0441\u0442\u0430\u0432\u0442\u0435 (Ctrl+V) \u0443 \u043F\u043E\u043B\u0435 \u043E\u043F\u0438\u0441\u0443 issue.',
+    'modal.copied_title_srt': '\u0421\u0443\u0431\u0442\u0438\u0442\u0440\u0438 \u0441\u043A\u043E\u043F\u0456\u0439\u043E\u0432\u0430\u043D\u043E',
+    'modal.copied_body_srt': '\u041D\u0430\u0442\u0438\u0441\u043D\u0456\u0442\u044C <strong>\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 GitHub</strong>. \u0423 \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440\u0456 \u0432\u0438\u0434\u0456\u043B\u0456\u0442\u044C \u0432\u0441\u0435 (Ctrl+A) \u0456 \u0432\u0441\u0442\u0430\u0432\u0442\u0435 (Ctrl+V).',
+    'modal.copied_title_meta': 'meta.yaml \u0441\u043A\u043E\u043F\u0456\u0439\u043E\u0432\u0430\u043D\u043E',
+    'modal.copied_body_meta': '\u041D\u0430\u0442\u0438\u0441\u043D\u0456\u0442\u044C <strong>\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 GitHub</strong>, \u043F\u043E\u0442\u0456\u043C \u0432\u0441\u0442\u0430\u0432\u0442\u0435 (Ctrl+V) \u0443 \u043F\u043E\u043B\u0435 \u0432\u043C\u0456\u0441\u0442\u0443 \u043D\u043E\u0432\u043E\u0433\u043E \u0444\u0430\u0439\u043B\u0443.',
     'link.preview': '\u25B6 \u041F\u0435\u0440\u0435\u0433\u043B\u044F\u043D\u0443\u0442\u0438 \u043F\u0435\u0440\u0435\u043A\u043B\u0430\u0434',
     'markers.summary': '\u041C\u0430\u0440\u043A\u0435\u0440\u0438',
     'btn.copy_all': '\u041A\u043E\u043F\u0456\u044E\u0432\u0430\u0442\u0438 \u0432\u0441\u0435',
@@ -1898,6 +1906,14 @@ var I18N = {
     'modal.discard': 'Discard',
     'modal.revert': 'Revert',
     'modal.clear_edits_body': 'This action cannot be undone.',
+    'modal.open_github': 'Open GitHub',
+    'modal.ready_to_open': 'Ready',
+    'modal.copied_title_issue': 'Issue body copied',
+    'modal.copied_body_issue': 'Click <strong>Open GitHub</strong>, then paste (Ctrl+V) into the issue description field.',
+    'modal.copied_title_srt': 'Subtitles copied',
+    'modal.copied_body_srt': 'Click <strong>Open GitHub</strong>. In the editor, select all (Ctrl+A) and paste (Ctrl+V).',
+    'modal.copied_title_meta': 'meta.yaml copied',
+    'modal.copied_body_meta': 'Click <strong>Open GitHub</strong>, then paste (Ctrl+V) into the new file content field.',
     'link.preview': '\u25B6 View translation',
     'markers.summary': 'Markers',
     'btn.copy_all': 'Copy all',
@@ -2640,7 +2656,15 @@ SPA._parseSRT = parseSRT;                           // exposed for unit tests
 // Replaces native confirm()/alert() so the app's voice carries through to
 // destructive actions ("clear 14 edits?") and transient feedback.
 SPA.confirm = function(opts) {
-  // opts = { title, body, confirmLabel, cancelLabel, danger }
+  // opts = { title, body, confirmLabel, cancelLabel, danger, singleButton }
+  // singleButton: true hides the Cancel button (for informational dialogs
+  // that need acknowledgement but have no "reject" branch).
+  // Test hook: window.__spa_auto_info_confirm auto-resolves singleButton
+  // info dialogs so Playwright stubs for window.open keep their original
+  // flow. The flag is never set in production.
+  if (opts.singleButton && window.__spa_auto_info_confirm) {
+    return Promise.resolve(true);
+  }
   return new Promise(function(resolve) {
     var prev = document.activeElement;
     var backdrop = document.createElement('div');
@@ -2666,17 +2690,20 @@ SPA.confirm = function(opts) {
     var actions = document.createElement('div');
     actions.className = 'sy-modal-actions';
 
-    var cancelBtn = document.createElement('button');
-    cancelBtn.className = 'sy-modal-btn';
-    cancelBtn.textContent = opts.cancelLabel || t('modal.cancel') || 'Cancel';
-    cancelBtn.type = 'button';
+    var cancelBtn = null;
+    if (!opts.singleButton) {
+      cancelBtn = document.createElement('button');
+      cancelBtn.className = 'sy-modal-btn';
+      cancelBtn.textContent = opts.cancelLabel || t('modal.cancel') || 'Cancel';
+      cancelBtn.type = 'button';
+    }
 
     var okBtn = document.createElement('button');
     okBtn.className = 'sy-modal-btn ' + (opts.danger ? 'danger' : 'primary');
     okBtn.textContent = opts.confirmLabel || t('modal.confirm') || 'Confirm';
     okBtn.type = 'button';
 
-    actions.appendChild(cancelBtn);
+    if (cancelBtn) actions.appendChild(cancelBtn);
     actions.appendChild(okBtn);
     modal.appendChild(actions);
     backdrop.appendChild(modal);
@@ -2693,8 +2720,10 @@ SPA.confirm = function(opts) {
       if (e.key === 'Escape') { e.preventDefault(); close(false); }
       if (e.key === 'Enter')  { e.preventDefault(); close(true); }
     }
-    backdrop.addEventListener('click', function(e) { if (e.target === backdrop) close(false); });
-    cancelBtn.addEventListener('click', function() { close(false); });
+    backdrop.addEventListener('click', function(e) {
+      if (e.target === backdrop && !opts.singleButton) close(false);
+    });
+    if (cancelBtn) cancelBtn.addEventListener('click', function() { close(false); });
     okBtn.addEventListener('click', function() { close(true); });
     document.addEventListener('keydown', onKey, true);
     setTimeout(function() { okBtn.focus(); }, 20);
@@ -3863,8 +3892,12 @@ SPA.createPreviewIssue = function() {
   var shortUrl = gh + '/issues/new?title=' + encodeURIComponent(issueTitle) + '&labels=review:pending';
   if (url.length > 8000) {
     navigator.clipboard.writeText(issueBody).then(function() {
-      showToast(t('alert.issue_body_copied'));
-      window.open(shortUrl);
+      SPA.confirm({
+        title: t('modal.copied_title_issue'),
+        body: t('modal.copied_body_issue'),
+        confirmLabel: t('modal.open_github'),
+        singleButton: true
+      }).then(function() { window.open(shortUrl); });
     }).catch(function() {
       window.open(shortUrl);
     });
@@ -3882,8 +3915,12 @@ SPA.openPreviewEditor = function() {
   if (Object.keys(langEdits).length > 0) {
     var full = applyEditsToSrt(s.subtitles || [], langEdits);
     navigator.clipboard.writeText(full).then(function() {
-      showToast(t('editor.clipboard_alert'));
-      window.open(url);
+      SPA.confirm({
+        title: t('modal.copied_title_srt'),
+        body: t('modal.copied_body_srt'),
+        confirmLabel: t('modal.open_github'),
+        singleButton: true
+      }).then(function() { window.open(url); });
     }).catch(function() {
       window.open(url);
     });
@@ -4554,8 +4591,12 @@ SPA.createReviewIssue = function() {
   // GitHub URL limit ~8192 chars — if too long, copy body to clipboard
   if (url.length > 8000) {
     navigator.clipboard.writeText(issueBody).then(function() {
-      showToast(t('alert.issue_body_copied'));
-      window.open(shortUrl);
+      SPA.confirm({
+        title: t('modal.copied_title_issue'),
+        body: t('modal.copied_body_issue'),
+        confirmLabel: t('modal.open_github'),
+        singleButton: true
+      }).then(function() { window.open(shortUrl); });
     }).catch(function() {
       window.open(shortUrl);
     });
@@ -4607,8 +4648,12 @@ SPA.openEditor = function() {
       full = serializeTranscript(parsed, paras);
     }
     navigator.clipboard.writeText(full).then(function() {
-      showToast(t('editor.clipboard_alert'));
-      window.open(url);
+      SPA.confirm({
+        title: t('modal.copied_title_srt'),
+        body: t('modal.copied_body_srt'),
+        confirmLabel: t('modal.open_github'),
+        singleButton: true
+      }).then(function() { window.open(url); });
     });
   } else {
     window.open(url);
@@ -5022,8 +5067,12 @@ SPA.submitAddTalk = function() {
     + '&message=' + encodeURIComponent('Add ' + title);
   if (ghUrl.length > 8000) {
     navigator.clipboard.writeText(yaml).then(function() {
-      showToast(t('alert.new_file_copied'));
-      window.open(shortUrl);
+      SPA.confirm({
+        title: t('modal.copied_title_meta'),
+        body: t('modal.copied_body_meta'),
+        confirmLabel: t('modal.open_github'),
+        singleButton: true
+      }).then(function() { window.open(shortUrl); });
     }).catch(function() {
       window.open(shortUrl);
     });

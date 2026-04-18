@@ -212,6 +212,12 @@ def page(server, mock_player_js, browser):
 
     # Clear cache before each page load
     pg.add_init_script("localStorage.removeItem('sy_tree_cache__main');")
+    # Auto-resolve SPA.confirm single-button info dialogs (e.g. the "copied
+    # to clipboard — click Open GitHub" prompt after createIssue/openEditor).
+    # Production keeps the blocking dialog; tests keep their direct
+    # window.open / clipboard stub flow. Regression tests that need to
+    # observe the dialog clear this flag before acting.
+    pg.add_init_script("window.__spa_auto_info_confirm = true;")
     yield pg
     pg.close()
     ctx.close()
@@ -4323,3 +4329,133 @@ class TestRevertAllConfirmation:
         edits = page.evaluate("JSON.parse(localStorage.getItem('review_2001-01-01_Test-Talk') || '{}').edits || {}")
         assert edits == {}
         assert page.locator("#btn-revert-all").is_visible() is False
+
+
+class TestClipboardCopyDialog:
+    """Regression: the clipboard-copy branch of createIssue / openEditor /
+    createPreviewIssue / openPreviewEditor / addTalk MUST block on a confirm
+    dialog before calling window.open — otherwise the new tab steals focus
+    and the user never sees the "paste Ctrl+V" instruction. A prior PR
+    downgraded these five alert() calls to showToast(), silently dropping
+    the notification. These tests fail the moment window.open fires before
+    the user clicks through the dialog.
+    """
+
+    # Stubs mirror the ones used throughout this module: capture the URL
+    # window.open was called with, and pretend the clipboard write
+    # succeeded. `__spa_auto_info_confirm = false` turns OFF the fixture's
+    # fast-path so the real DOM dialog renders and the test can assert on
+    # it.
+    _STUBS = (
+        "window.__spa_auto_info_confirm = false;"
+        " window._openedUrl = null;"
+        " window._openCount = 0;"
+        " window.open = function(u) { window._openCount++; window._openedUrl = u; };"
+        " window._clipText = '';"
+        " navigator.clipboard.writeText = function(t) {"
+        "   window._clipText = t; return Promise.resolve();"
+        " };"
+    )
+
+    def _expect_dialog_then_opens(self, page, expected_url_substr):
+        """Assert: (1) dialog appears, (2) window.open has NOT been called,
+        (3) clicking the primary button fires window.open with the expected
+        URL. Guarantees the dialog actually blocks the tab-open."""
+        page.wait_for_selector(".sy-modal", timeout=2000)
+        assert page.evaluate("window._openCount") == 0, "window.open must NOT be called until the dialog is accepted"
+        body = page.locator(".sy-modal-body").text_content() or ""
+        # Dialog body must tell user what to do next (paste / select-all).
+        assert ("Ctrl+V" in body) or ("paste" in body.lower()), (
+            f"Dialog body must contain next-step instructions, got: {body!r}"
+        )
+        page.locator(".sy-modal-btn.primary").first.click()
+        page.wait_for_selector(".sy-modal", state="detached", timeout=2000)
+        url = page.evaluate("window._openedUrl || ''")
+        assert expected_url_substr in url, (
+            f"window.open not called with expected URL after dialog accept.\n"
+            f"expected substr: {expected_url_substr!r}\ngot: {url!r}"
+        )
+
+    def test_open_preview_editor_blocks_on_dialog_before_open(self, server, page):
+        """openPreviewEditor with edits → clipboard copy → dialog → open."""
+        _goto_preview_video(page, server)
+        page.click('.preview-mode-toggle [data-mode="edit"]')
+        page.wait_for_timeout(50)
+        page.evaluate("window._vimeoPlayer._setTime(2)")
+        page.wait_for_timeout(200)
+        page.click("#btn-mark")
+        page.evaluate("""
+          var el = document.activeElement;
+          el.innerText = 'DIALOG_REGRESSION_EDIT';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        """)
+        page.wait_for_timeout(50)
+        page.evaluate(self._STUBS)
+        page.evaluate("SPA.openPreviewEditor()")
+        self._expect_dialog_then_opens(page, "final/uk.srt")
+
+    def test_open_preview_editor_no_edits_skips_dialog(self, server, page):
+        """Zero-edit path must NOT show the dialog — it opens GitHub directly."""
+        _goto_preview_video(page, server)
+        page.click('.preview-mode-toggle [data-mode="edit"]')
+        page.wait_for_timeout(50)
+        page.evaluate(self._STUBS)
+        page.evaluate("SPA.openPreviewEditor()")
+        page.wait_for_timeout(200)
+        assert page.locator(".sy-modal").count() == 0, "No dialog should appear when there are no edits"
+        assert page.evaluate("window._openCount") == 1
+        assert "final/uk.srt" in page.evaluate("window._openedUrl || ''")
+
+    def test_open_editor_transcript_mode_blocks_on_dialog_before_open(self, server, page):
+        """Review-page openEditor (transcript mode) with edits → dialog before open."""
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+        page.evaluate("reviewState.edits[0] = 'REGRESSION_DIALOG'; saveReview()")
+        page.evaluate(self._STUBS)
+        page.evaluate("SPA.openEditor()")
+        self._expect_dialog_then_opens(page, "transcript_uk.txt")
+
+    def test_create_review_issue_long_body_blocks_on_dialog_before_open(self, server, page):
+        """createReviewIssue with an oversize body must copy to clipboard
+        AND show the dialog before opening GitHub (URL > 8000 chars)."""
+        goto_spa(page, server, "#/review/2001-01-01_Test-Talk")
+        page.wait_for_function("document.querySelectorAll('.cell.uk').length > 0", timeout=10000)
+        # Inflate the body over the 8000-char threshold: one big edit is
+        # enough since edits are URL-encoded into the body.
+        page.evaluate("reviewState.edits[0] = 'X'.repeat(9000); saveReview();")
+        page.evaluate(self._STUBS)
+        page.evaluate("SPA.createReviewIssue()")
+        self._expect_dialog_then_opens(page, "/issues/new")
+        # And the clipboard got the body (not the URL) so the user can paste.
+        clip = page.evaluate("window._clipText || ''")
+        assert "XXXXX" in clip, "Clipboard should hold the issue body text"
+
+    def test_create_preview_issue_long_body_blocks_on_dialog_before_open(self, server, page):
+        """createPreviewIssue in edit mode with an oversize body must show
+        the dialog before opening GitHub."""
+        _goto_preview_video(page, server)
+        page.click('.preview-mode-toggle [data-mode="edit"]')
+        page.wait_for_timeout(50)
+        # Inflate a single edit so the URL crosses 8000 chars.
+        page.evaluate(
+            "previewState.edits = previewState.edits || {};"
+            " previewState.edits.uk = previewState.edits.uk || {};"
+            " previewState.edits.uk[0] = 'X'.repeat(9000);"
+        )
+        page.evaluate(self._STUBS)
+        page.evaluate("SPA.createPreviewIssue()")
+        self._expect_dialog_then_opens(page, "/issues/new")
+        clip = page.evaluate("window._clipText || ''")
+        assert "XXXXX" in clip, "Clipboard should hold the issue body text"
+
+    def test_fixture_auto_confirm_flag_is_default(self, server, page):
+        """Sanity check: by default the fixture's fast-path flag is ON, so
+        tests that don't care about the dialog don't see it. If this test
+        fails, the fast-path stopped working and every other test in this
+        module will silently leak modals into page teardown."""
+        _goto_preview_video(page, server)
+        val = page.evaluate("window.__spa_auto_info_confirm")
+        assert val is True, (
+            "Fixture must set window.__spa_auto_info_confirm = true so tests that "
+            "don't explicitly clear it get the direct window.open path."
+        )
