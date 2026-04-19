@@ -348,7 +348,7 @@ jobs:
         run: rm -rf /tmp/whisper_work
 
       - name: Upload whisper artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: whisper__${{ matrix.talk_id }}__${{ matrix.video_slug }}
           path: talks/${{ matrix.talk_id }}/${{ matrix.video_slug }}/source/whisper.json
