@@ -27,7 +27,7 @@ jobs:
       PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
@@ -123,7 +123,7 @@ jobs:
       NEW_METAS: ${{ needs.detect.outputs.metas }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
@@ -288,7 +288,7 @@ jobs:
       VIDEO_SLUG: ${{ matrix.video_slug }}
       VIMEO_URL: ${{ matrix.vimeo_url }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         with:
@@ -359,7 +359,7 @@ jobs:
     if: needs.detect.outputs.has_whisper == 'true' && !cancelled()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
