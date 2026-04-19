@@ -411,7 +411,7 @@ jobs:
 
       - name: Upload translation artifacts
         if: "!cancelled()"
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           retention-days: 7
           name: translation__${{ matrix.talk_id }}${{ inputs.dry_run_tag }}
@@ -528,7 +528,7 @@ jobs:
           echo "chunk_matrix=$(cat /tmp/matrix_raw.json)" >> "$GITHUB_OUTPUT"
 
       - name: Upload chunk files
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           retention-days: 7
           name: chunks__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
@@ -724,7 +724,7 @@ jobs:
 
       - name: Upload build artifacts
         if: "!cancelled()"
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           retention-days: 7
           name: subtitles__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
@@ -809,7 +809,7 @@ jobs:
 
       - name: Upload chunk result
         if: "!cancelled()"
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           retention-days: 7
           name: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__${{ matrix.ci }}${{ inputs.dry_run_tag }}
@@ -967,7 +967,7 @@ jobs:
 
       - name: Upload build artifacts
         if: "!cancelled()"
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           retention-days: 7
           name: subtitles__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
