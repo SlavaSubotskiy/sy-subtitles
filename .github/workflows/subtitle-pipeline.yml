@@ -444,7 +444,7 @@ jobs:
 
       - name: Download translation artifacts
         if: needs.translate-and-review.result == 'success'
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: translation__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: translation__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
@@ -549,7 +549,7 @@ jobs:
 
       - name: Download translation artifacts
         continue-on-error: true
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
           path: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
@@ -747,7 +747,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download chunk files
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: chunks__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
           path: talks/${{ needs.prepare-build.outputs.talk_id }}
@@ -828,13 +828,13 @@ jobs:
       - run: git pull --rebase
 
       - name: Download chunk files
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: chunks__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
           path: talks/${{ needs.prepare-build.outputs.talk_id }}
 
       - name: Download chunk results
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__*${{ inputs.dry_run_tag }}
           merge-multiple: true
@@ -842,7 +842,7 @@ jobs:
 
       - name: Download translation artifacts
         continue-on-error: true
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
           path: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
@@ -994,7 +994,7 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Download subtitle artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: subtitles__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: /tmp/subtitles
@@ -1067,14 +1067,14 @@ jobs:
 
       - name: Download translation artifacts
         if: needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'failure'
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: translation__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: /tmp/translation
 
       - name: Download subtitle artifacts
         if: needs.assemble-build.result == 'success' || needs.build-en-srt.result == 'success'
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: subtitles__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: /tmp/subtitles
