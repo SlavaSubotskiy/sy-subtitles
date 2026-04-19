@@ -35,7 +35,7 @@ jobs:
       matrix: ${{ steps.build.outputs.matrix }}
       has_jobs: ${{ steps.build.outputs.has_jobs }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -139,7 +139,7 @@ jobs:
       VIDEO_SLUG: ${{ matrix.video_slug }}
       VIMEO_URL: ${{ matrix.vimeo_url }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Validate matrix values
         run: |
@@ -221,7 +221,7 @@ jobs:
     if: needs.discover.outputs.has_jobs == 'true' && !cancelled()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Download all whisper artifacts
         uses: actions/download-artifact@v6
