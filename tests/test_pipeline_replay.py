@@ -1,18 +1,20 @@
 """Level 2 replay tests.
 
 These tests simulate the second half of the pipeline (everything after the
-LLM build-chunks phase) using captured fixtures instead of live API calls.
+single-pass build-timecodes phase) using captured fixtures instead of live
+API calls.
 
 Fixture layout:
     tests/fixtures/llm_responses/
-        {talk}.uk.map         — what the build-chunks agents would emit
+        {talk}.uk.map         — what the single-pass Opus build-timecodes
+                                agent would emit (after cmd_assemble)
 
 The fixtures are paired with real whisper.json + transcript_uk.txt that
 already live under `talks/` — no duplication, one source of truth.
 
-A replay case asserts that given a canned LLM output, the Python side
-(validate_uk_map → build_srt → optimize_srt → validate_subtitles) converges
-to a valid SRT without any API calls. Any regression in build_srt or
+A replay case asserts that given a canned LLM output (as a uk.map), the
+Python side (validate_uk_map → build_srt → optimize_srt → validate_subtitles)
+converges to a valid SRT without any API calls. Any regression in build_srt or
 optimize_srt that would silently ship broken SRTs blows up here within 1 sec.
 """
 

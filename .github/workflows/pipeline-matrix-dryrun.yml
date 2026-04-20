@@ -90,7 +90,7 @@ jobs:
     secrets: inherit
 
   en-srt:
-    # Single-shot build path through build-en-srt job.
+    # EN-SRT timing source (non-English talks: Marathi, Hindi).
     if: github.event_name == 'schedule' || inputs.mode == 'en-srt' || inputs.mode == 'all'
     strategy:
       fail-fast: false

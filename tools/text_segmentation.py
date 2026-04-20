@@ -209,7 +209,9 @@ def build_blocks_from_paragraphs(paragraphs: list[str]) -> list[dict]:
     """
     blocks: list[dict] = []
     for para_idx, para in enumerate(paragraphs):
+        para = re.sub(r"\s*\n+\s*", " ", para).strip()
         for sent in split_sentences(para):
             for line in split_text_to_lines(sent):
+                assert "\n" not in line, f"newline leaked into block text: {line!r}"
                 blocks.append({"id": len(blocks) + 1, "text": line, "para_idx": para_idx})
     return blocks

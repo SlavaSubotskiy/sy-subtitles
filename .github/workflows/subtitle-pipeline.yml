@@ -421,9 +421,9 @@ jobs:
             talks/${{ matrix.talk_id }}/review_report.md
             talks/${{ matrix.talk_id }}/glossary.json
 
-  # --- Build subtitles: 3-phase pipeline (prepare → matrix chunks → assemble) ---
+  # --- Build subtitles: 2-phase pipeline (prepare + single Opus 4.7 pass) ---
 
-  # Phase 1: Split text, compute boundaries, write chunk prompt files
+  # Phase 1: Split UK text into subtitle blocks
   prepare-build:
     needs: [discover, whisper, translate-and-review]
     if: |
@@ -435,7 +435,6 @@ jobs:
       (needs.whisper.result == 'success' || needs.whisper.result == 'skipped')
     runs-on: ubuntu-latest
     outputs:
-      chunk_matrix: ${{ steps.prepare.outputs.chunk_matrix }}
       talk_id: ${{ steps.prepare.outputs.talk_id }}
       video_slug: ${{ steps.prepare.outputs.video_slug }}
     steps:
@@ -487,7 +486,7 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
 
-      - name: Prepare chunks
+      - name: Prepare UK blocks
         id: prepare
         run: |
           TALK_ID="${{ inputs.talk_id }}"
@@ -519,33 +518,43 @@ jobs:
           echo "talk_id=$TALK_ID" >> "$GITHUB_OUTPUT"
           echo "video_slug=$FIRST_VIDEO" >> "$GITHUB_OUTPUT"
 
-          # Run prepare
           python -m tools.build_map prepare \
             --talk-dir "$TALK" \
-            --video-slug "$FIRST_VIDEO" \
-            --timing-source "${{ inputs.timing_source || 'whisper' }}" > /tmp/matrix_raw.json
+            --video-slug "$FIRST_VIDEO" > /dev/null
 
-          echo "chunk_matrix=$(cat /tmp/matrix_raw.json)" >> "$GITHUB_OUTPUT"
-
-      - name: Upload chunk files
+      - name: Upload UK blocks
         uses: actions/upload-artifact@v7
         with:
           retention-days: 7
           name: chunks__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: |
-            talks/${{ inputs.talk_id }}/*/work/chunk_*.txt
             talks/${{ inputs.talk_id }}/*/work/uk_blocks.json
-            talks/${{ inputs.talk_id }}/*/work/build_meta.json
 
-  # Phase 2a: EN-SRT mode — single agent session (no chunks)
-  build-en-srt:
+  # Phase 2: Single Opus 4.7 pass — assign timecodes, build SRT
+  build-timecodes:
     needs: prepare-build
-    if: ${{ !cancelled() && needs.prepare-build.result == 'success' && (inputs.timing_source == 'en-srt') }}
+    if: ${{ !cancelled() && needs.prepare-build.result == 'success' }}
     environment: main
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - run: git pull --rebase
+
+      - name: Download UK blocks artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: chunks__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
+          path: talks/${{ needs.prepare-build.outputs.talk_id }}
+
+      - name: Place UK blocks into work dir
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+        run: |
+          WORK="talks/${TALK_ID}/${VIDEO_SLUG}/work"
+          mkdir -p "$WORK"
+          [ -f "talks/${TALK_ID}/uk_blocks.json" ] && mv "talks/${TALK_ID}/uk_blocks.json" "$WORK/" || true
+          [ -f "$WORK/uk_blocks.json" ] && echo "uk_blocks.json ready" || echo "::warning::uk_blocks.json not found"
 
       - name: Download translation artifacts
         continue-on-error: true
@@ -558,7 +567,6 @@ jobs:
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
         run: |
-          # Pick whichever translation__* directory we got (tagged or not).
           placed=0
           for dir in translation__*/; do
             [ -d "$dir" ] || continue
@@ -571,9 +579,8 @@ jobs:
             done
           done
           if [ "$placed" -eq 0 ] && [ -f "transcript_uk.txt" ]; then
-            echo "WARN: flat extraction detected"
             for f in transcript_uk.txt review_report.md glossary.json; do
-              [ -f "$f" ] && cp "$f" "talks/${TALK_ID}/$f" && echo "Placed (flat): talks/${TALK_ID}/$f"
+              [ -f "$f" ] && cp "$f" "talks/${TALK_ID}/$f"
             done
           fi
 
@@ -582,15 +589,13 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
 
-      - name: Prepare UK blocks
+      - name: Prepare timing data
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+          TIMING_SOURCE: ${{ inputs.timing_source || 'whisper' }}
         run: |
-          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
-          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
-          mkdir -p "$TALK/$VIDEO/work"
-          python -m tools.build_map prepare \
-            --talk-dir "$TALK" \
-            --video-slug "$VIDEO" \
-            --timing-source en-srt > /dev/null
+          python -m tools.build_map prepare-timing             --talk-dir "talks/${TALK_ID}"             --video-slug "${VIDEO_SLUG}"             --timing-source "${TIMING_SOURCE}"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2
@@ -609,17 +614,17 @@ jobs:
           echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
           echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
 
-      - name: Build EN-SRT (dry-run fake)
+      - name: Build timecodes (dry-run fake)
         if: inputs.dry_run == true
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
           VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
         run: |
-          python -m tools.fake_llm build-en-srt \
+          python -m tools.fake_llm build-timecodes \
             --snapshot "tests/fixtures/pipeline_snapshots/${TALK_ID}/${VIDEO_SLUG}" \
             --work-dir "talks/${TALK_ID}/${VIDEO_SLUG}/work"
 
-      - name: Build subtitles from EN SRT
+      - name: Build timecodes (Opus 4.7)
         if: inputs.dry_run != true
         uses: anthropics/claude-code-action@b47fd721da662d48c5680e154ad16a73ed74d2e0  # v1
         env:
@@ -628,37 +633,58 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           path_to_bun_executable: ${{ steps.tools.outputs.bun }}
           path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 60 --dangerously-skip-permissions --model ${{ env.MODEL_LIGHT }}"
+          claude_args: "--max-turns 30 --dangerously-skip-permissions --model ${{ env.MODEL_HEAVY }}"
           show_full_output: true
           prompt: |
-            You have English subtitles with timecodes and Ukrainian subtitle blocks
-            that translate the same speech. For each Ukrainian block, find the English
-            subtitle(s) with the same meaning and assign their timecodes.
+            Assign timecodes to Ukrainian subtitle blocks.
 
             TALK: talks/${{ needs.prepare-build.outputs.talk_id }}
             VIDEO: ${{ needs.prepare-build.outputs.video_slug }}
+            TIMING SOURCE: ${{ inputs.timing_source || 'whisper' }}
 
-            Step 1 — Read inputs:
+            Step 1 — Read:
             - UK blocks: talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/uk_blocks.json
-            - EN SRT: talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/source/en.srt
-              NOTE: If the EN SRT file is too large to read at once, read it in portions
-              using offset/limit parameters (e.g., first 500 lines, then next 500, etc.).
+            - Timing:    talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/timing.json
+            - Context:   talks/${{ needs.prepare-build.outputs.talk_id }}/transcript_en.txt
 
-            Step 2 — For each UK block, find the EN SRT block(s) with the same meaning:
-            - If one UK block = one EN SRT block → copy start and end timecodes
-            - If one UK block covers multiple EN SRT blocks → use start of first, end of last
-            - If multiple UK blocks map to one EN SRT block → split its time range
+            timing.json format:
+              whisper → {"source":"whisper","words":[{"w":word,"s":start_ms,"e":end_ms},...]}
+              en-srt  → {"source":"en-srt","blocks":[{"n":idx,"s":start_ms,"e":end_ms,"t":text},...]}
 
-            Step 3 — Write all timecodes to:
-            talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/uk.map
+            Step 2 — For each block in uk_blocks.json, determine start and end timecodes.
 
-            Format: block_id | start_timecode | end_timecode | text
-            Example: 1 | 00:00:01,000 | 00:00:05,000 | Перший блок субтитрів.
+            WHISPER mode:
+              - Understand the meaning of the Ukrainian block text
+              - Locate the matching words in the English speech (use transcript_en.txt for context)
+              - Find those words in timing.json, use "s" of first match as start and "e" of last as end
+              - Convert ms to HH:MM:SS,mmm
 
-            The text column must come from uk_blocks.json — copy exactly, do not modify.
-            Write in chunks of ~200 lines using bash cat with heredoc and append (>>).
-            Every UK block must have a timecode. Do not skip any blocks.
-            Do not use TodoWrite.
+            EN-SRT mode:
+              - Match each UK block to the EN SRT block(s) with the same meaning
+              - 1 UK = 1 EN: copy "s" and "e"
+              - 1 UK = N EN: start = "s" of first, end = "e" of last
+              - N UK = 1 EN: split the EN block time range proportionally
+
+            Step 3 — Write to:
+            talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/timecodes.txt
+
+            EXACT format — one line per block, all blocks in order, no other text:
+            #<id> | HH:MM:SS,mmm | HH:MM:SS,mmm
+
+            Rules:
+            - Every block in uk_blocks.json must appear exactly once
+            - Timecodes must be sequential and non-overlapping
+            - Do NOT write block text, only the id and timecodes
+            - Do NOT use TodoWrite
+
+      - name: Assemble uk.map and build SRT
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+        run: |
+          python -m tools.build_map assemble \
+            --talk-dir "talks/${TALK_ID}" \
+            --video-slug "${VIDEO_SLUG}"
 
       - name: Validate uk.map contract
         env:
@@ -668,301 +694,82 @@ jobs:
           python -m tools.validate_artifacts \
             --uk-map "talks/${TALK_ID}/${VIDEO_SLUG}/work/uk.map"
 
-      - name: Build SRT from mapping
+      - name: Optimize SRT
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+        run: |
+          python -m tools.optimize_srt \
+            --srt "talks/${TALK_ID}/${VIDEO_SLUG}/final/uk.srt" \
+            --output "talks/${TALK_ID}/${VIDEO_SLUG}/final/uk.srt" \
+            --skip-duration-split \
+            --skip-cps-split
+
+      - name: Handle offset videos
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
           VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
         run: |
           TALK="talks/${TALK_ID}"
-          VIDEO="${VIDEO_SLUG}"
-          mkdir -p "$TALK/$VIDEO/final"
-          python -m tools.build_srt \
-            --mapping "$TALK/$VIDEO/work/uk.map" \
-            --output "$TALK/$VIDEO/final/uk.srt" \
-            --report "$TALK/$VIDEO/final/build_report.txt"
-
-      - name: Optimize SRT
-        run: |
-          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
-          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
-          python -m tools.optimize_srt \
-            --srt "$TALK/$VIDEO/final/uk.srt" \
-            --output "$TALK/$VIDEO/final/uk.srt" \
-            --skip-duration-split \
-            --skip-cps-split
-
-      - name: Handle offset videos
-        run: |
-          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
-          FIRST="${{ needs.prepare-build.outputs.video_slug }}"
+          FIRST="${VIDEO_SLUG}"
 
           python3 -c "
           import yaml
-          with open('$TALK/meta.yaml') as f:
+          with open('${TALK}/meta.yaml') as f:
             meta = yaml.safe_load(f)
           for v in meta['videos']:
-            if v['slug'] != '$FIRST':
+            if v['slug'] != '${FIRST}':
               print(v['slug'])
           " | while read slug; do
             echo "=== Offset video: $slug ==="
             python -m tools.offset_srt detect \
-              --srt1 "$TALK/$FIRST/source/en.srt" \
-              --srt2 "$TALK/$slug/source/en.srt" || true
+              --srt1 "${TALK}/${FIRST}/source/en.srt" \
+              --srt2 "${TALK}/${slug}/source/en.srt" || true
 
             OFFSET=$(python -m tools.offset_srt detect \
-              --srt1 "$TALK/$FIRST/source/en.srt" \
-              --srt2 "$TALK/$slug/source/en.srt" 2>/dev/null | grep -oP '[-\d]+' | head -1)
+              --srt1 "${TALK}/${FIRST}/source/en.srt" \
+              --srt2 "${TALK}/${slug}/source/en.srt" 2>/dev/null | grep -oE '[-0-9]+' | head -1)
 
             if [ -n "$OFFSET" ]; then
-              mkdir -p "$TALK/$slug/final"
+              mkdir -p "${TALK}/${slug}/final"
               python -m tools.offset_srt apply \
-                --srt "$TALK/$FIRST/final/uk.srt" \
+                --srt "${TALK}/${FIRST}/final/uk.srt" \
                 --offset-ms "$OFFSET" \
-                --output "$TALK/$slug/final/uk.srt"
+                --output "${TALK}/${slug}/final/uk.srt"
             fi
           done
 
-      - name: Upload build artifacts
-        if: "!cancelled()"
-        uses: actions/upload-artifact@v7
-        with:
-          retention-days: 7
-          name: subtitles__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
-          path: |
-            talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/uk.map
-            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/uk.srt
-            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
-            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
-
-  # Phase 2b: Whisper mode — parallel matrix chunks
-  build-chunks:
-    needs: prepare-build
-    if: ${{ !cancelled() && needs.prepare-build.result == 'success' && (inputs.timing_source != 'en-srt') }}
-    environment: main
-    strategy:
-      matrix: ${{ fromJson(needs.prepare-build.outputs.chunk_matrix) }}
-      fail-fast: false
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Download chunk files
-        uses: actions/download-artifact@v8
-        with:
-          name: chunks__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
-          path: talks/${{ needs.prepare-build.outputs.talk_id }}
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2
-
-      - name: Cache Claude Code
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.claude-code
-            ~/.local/share/claude-code
-          key: claude-code-${{ runner.os }}
-
-      - name: Install Claude Code
-        run: bun install -g @anthropic-ai/claude-code@latest
-
-      - name: Resolve executable paths
-        id: tools
-        run: |
-          echo "bun=$(which bun)" >> "$GITHUB_OUTPUT"
-          echo "claude=$(which claude)" >> "$GITHUB_OUTPUT"
-
-      - name: Chunk ${{ matrix.ci }} (dry-run fake)
-        if: inputs.dry_run == true
+      - name: Validate subtitles
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
           VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
-          CI: ${{ matrix.ci }}
         run: |
-          python -m tools.fake_llm build-chunk \
-            --snapshot "tests/fixtures/pipeline_snapshots/${TALK_ID}/${VIDEO_SLUG}" \
-            --work-dir "talks/${TALK_ID}/${VIDEO_SLUG}/work" \
-            --chunk-idx "${CI}"
-
-      - name: Determine timecodes for chunk ${{ matrix.ci }}
-        if: inputs.dry_run != true
-        uses: anthropics/claude-code-action@b47fd721da662d48c5680e154ad16a73ed74d2e0  # v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          path_to_bun_executable: ${{ steps.tools.outputs.bun }}
-          path_to_claude_code_executable: ${{ steps.tools.outputs.claude }}
-          claude_args: "--max-turns 20 --dangerously-skip-permissions --model ${{ env.MODEL_LIGHT }}"
-          show_full_output: true
-          prompt: |
-            Read the file talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}.txt
-
-            It contains Ukrainian subtitle blocks, English transcript, and whisper timing data.
-            Follow the instructions in the file to determine timecodes for each block.
-
-            Write your output to:
-            talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}_result.txt
-
-            The output file must contain ONLY lines in this format:
-            #<number> | <start HH:MM:SS,mmm> | <end HH:MM:SS,mmm>
-
-            Do not write anything else. Do not use TodoWrite.
-
-      - name: Upload chunk result
-        if: "!cancelled()"
-        uses: actions/upload-artifact@v7
-        with:
-          retention-days: 7
-          name: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__${{ matrix.ci }}${{ inputs.dry_run_tag }}
-          path: |
-            talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/chunk_${{ matrix.ci }}_result.txt
-
-  # Phase 3: Assemble mapping, build SRT, validate, handle multi-video
-  assemble-build:
-    needs: [prepare-build, build-chunks]
-    if: |
-      !cancelled() && needs.prepare-build.result == 'success' &&
-      needs.build-chunks.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - run: git pull --rebase
-
-      - name: Download chunk files
-        uses: actions/download-artifact@v8
-        with:
-          name: chunks__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
-          path: talks/${{ needs.prepare-build.outputs.talk_id }}
-
-      - name: Download chunk results
-        uses: actions/download-artifact@v8
-        with:
-          pattern: chunk_result__${{ needs.prepare-build.outputs.talk_id }}__*${{ inputs.dry_run_tag }}
-          merge-multiple: true
-          path: talks/${{ needs.prepare-build.outputs.talk_id }}
-
-      - name: Download translation artifacts
-        continue-on-error: true
-        uses: actions/download-artifact@v8
-        with:
-          name: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
-          path: translation__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
-
-      - name: Place translation artifacts
-        env:
-          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
-        run: |
-          placed=0
-          for dir in translation__*/; do
-            [ -d "$dir" ] || continue
-            for f in transcript_uk.txt review_report.md glossary.json; do
-              if [ -f "$dir/$f" ]; then
-                cp "$dir/$f" "talks/${TALK_ID}/$f"
-                echo "Placed: talks/${TALK_ID}/$f"
-                placed=$((placed + 1))
-              fi
-            done
-          done
-          if [ "$placed" -eq 0 ] && [ -f "transcript_uk.txt" ]; then
-            echo "WARN: flat extraction detected"
-            for f in transcript_uk.txt review_report.md glossary.json; do
-              [ -f "$f" ] && cp "$f" "talks/${TALK_ID}/$f" && echo "Placed (flat): talks/${TALK_ID}/$f"
-            done
-          fi
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-      - run: pip install -r requirements.txt
-
-      - name: Place chunk results into work dir
-        run: |
-          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
-          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
-          WORK="$TALK/$VIDEO/work"
-          mkdir -p "$WORK"
-          # Move result files from talk root to work dir (LCA stripping)
-          for f in "$TALK"/chunk_*_result.txt; do
-            [ -f "$f" ] && mv "$f" "$WORK/" && echo "Placed: $(basename $f)"
-          done
-          echo "Work dir:"
-          ls "$WORK"/chunk_*_result.txt 2>/dev/null | wc -l
-          echo "result files"
-
-      - name: Assemble mapping and build SRT
-        run: |
-          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
-          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
-          python -m tools.build_map assemble --talk-dir "$TALK" --video-slug "$VIDEO"
-
-      - name: Optimize SRT
-        run: |
-          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
-          VIDEO="${{ needs.prepare-build.outputs.video_slug }}"
-          python -m tools.optimize_srt \
-            --srt "$TALK/$VIDEO/final/uk.srt" \
-            --output "$TALK/$VIDEO/final/uk.srt" \
-            --skip-duration-split \
-            --skip-cps-split
-
-      - name: Handle offset videos
-        run: |
-          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
-          FIRST="${{ needs.prepare-build.outputs.video_slug }}"
+          TALK="talks/${TALK_ID}"
+          FIRST="${VIDEO_SLUG}"
 
           python3 -c "
           import yaml
-          with open('$TALK/meta.yaml') as f:
-            meta = yaml.safe_load(f)
-          for v in meta['videos']:
-            if v['slug'] != '$FIRST':
-              print(v['slug'])
-          " | while read slug; do
-            echo "=== Offset video: $slug ==="
-            python -m tools.offset_srt detect \
-              --srt1 "$TALK/$FIRST/source/en.srt" \
-              --srt2 "$TALK/$slug/source/en.srt" || true
-
-            OFFSET=$(python -m tools.offset_srt detect \
-              --srt1 "$TALK/$FIRST/source/en.srt" \
-              --srt2 "$TALK/$slug/source/en.srt" 2>/dev/null | grep -oP '[-\d]+' | head -1)
-
-            if [ -n "$OFFSET" ]; then
-              mkdir -p "$TALK/$slug/final"
-              python -m tools.offset_srt apply \
-                --srt "$TALK/$FIRST/final/uk.srt" \
-                --offset-ms "$OFFSET" \
-                --output "$TALK/$slug/final/uk.srt"
-            fi
-          done
-
-      - name: Validate
-        run: |
-          TALK="talks/${{ needs.prepare-build.outputs.talk_id }}"
-          FIRST="${{ needs.prepare-build.outputs.video_slug }}"
-
-          python3 -c "
-          import yaml
-          with open('$TALK/meta.yaml') as f:
+          with open('${TALK}/meta.yaml') as f:
             meta = yaml.safe_load(f)
           for v in meta['videos']:
             print(v['slug'])
           " | while read slug; do
-            VIDEO="$TALK/$slug"
-            if [ ! -f "$VIDEO/final/uk.srt" ]; then
-              echo "SKIP $slug: no uk.srt"
+            VIDEO="${TALK}/${slug}"
+            if [ ! -f "${VIDEO}/final/uk.srt" ]; then
+              echo "SKIP ${slug}: no uk.srt"
               continue
             fi
             EXTRA_FLAGS=""
-            if [ "$slug" != "$FIRST" ]; then
+            if [ "${slug}" != "${FIRST}" ]; then
               EXTRA_FLAGS="--skip-text-check --skip-time-check"
             fi
             python -m tools.validate_subtitles \
-              --srt "$VIDEO/final/uk.srt" \
-              --transcript "$TALK/transcript_uk.txt" \
-              --whisper-json "$VIDEO/source/whisper.json" \
+              --srt "${VIDEO}/final/uk.srt" \
+              --transcript "${TALK}/transcript_uk.txt" \
+              --whisper-json "${VIDEO}/source/whisper.json" \
               --skip-duration-check \
-              $EXTRA_FLAGS \
-              --report "$VIDEO/final/report.txt"
+              ${EXTRA_FLAGS} \
+              --report "${VIDEO}/final/report.txt"
           done
 
       - name: Upload build artifacts
@@ -977,13 +784,14 @@ jobs:
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
 
+
   # Dry-run verifier — replaces the commit job when inputs.dry_run is true.
   # Asserts produced artifacts match the snapshot baseline but does NOT push.
   verify-dryrun:
-    needs: [translate-and-review, assemble-build, build-en-srt]
+    needs: [translate-and-review, build-timecodes]
     if: |
       inputs.dry_run == true && always() && !cancelled() &&
-      (needs.assemble-build.result == 'success' || needs.build-en-srt.result == 'success') &&
+      needs.build-timecodes.result == 'success' &&
       (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
@@ -1051,12 +859,12 @@ jobs:
 
   # Single commit job – collects all artifacts and pushes
   commit:
-    needs: [translate-and-review, assemble-build, build-en-srt]
+    needs: [translate-and-review, build-timecodes]
     # commit runs after any build path completes; skipped for dry-runs.
     if: |
       inputs.dry_run != true && always() &&
       !cancelled() &&
-      (needs.assemble-build.result == 'success' || needs.assemble-build.result == 'failure' || needs.assemble-build.result == 'skipped') &&
+      (needs.build-timecodes.result == 'success' || needs.build-timecodes.result == 'failure' || needs.build-timecodes.result == 'skipped') &&
       (needs.translate-and-review.result == 'success' || needs.translate-and-review.result == 'failure' || needs.translate-and-review.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
@@ -1073,7 +881,7 @@ jobs:
           path: /tmp/translation
 
       - name: Download subtitle artifacts
-        if: needs.assemble-build.result == 'success' || needs.build-en-srt.result == 'success'
+        if: needs.build-timecodes.result == 'success'
         uses: actions/download-artifact@v8
         with:
           name: subtitles__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}

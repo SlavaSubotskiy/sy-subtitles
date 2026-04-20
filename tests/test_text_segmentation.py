@@ -158,3 +158,17 @@ def test_load_transcript_all_header_markers(tmp_path: Path, marker: str) -> None
     f.write_text(f"Date\nTitle\n{marker} English\nBody paragraph.\n", encoding="utf-8")
     paras = load_transcript(str(f))
     assert paras == ["Body paragraph."]
+
+
+def test_build_blocks_normalizes_embedded_newlines() -> None:
+    """Paragraphs with internal \\n (e.g. stage directions glued together by
+    load_transcript) must produce blocks with no embedded newlines."""
+    para = "[Промова англійською]\n[Переклад з маратхі на англійську]\nПерший бхаджан."
+    blocks = build_blocks_from_paragraphs([para])
+    for b in blocks:
+        assert "\n" not in b["text"], f"embedded newline in block: {b['text']!r}"
+    # Content is preserved (collapsed to spaces)
+    combined = " ".join(b["text"] for b in blocks)
+    assert "Промова англійською" in combined
+    assert "Переклад з маратхі" in combined
+    assert "Перший бхаджан" in combined
