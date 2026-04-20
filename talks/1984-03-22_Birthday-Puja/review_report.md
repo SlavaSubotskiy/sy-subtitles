@@ -1,62 +1,72 @@
-# Language Review – 1984-03-22_Birthday-Puja
+# Language Review – 1984-03-22_Birthday-Puja, 2026-04-20
 
 ## Process
 
-Review `transcript_uk.txt` (full paragraphed Ukrainian text) using 2 parallel reviewers + 1 critic filter.
+Review of `transcript_uk.txt` using 2 parallel reviewers (Language + SY Domain) plus a Critic filter.
 
-### Input Format
-
-Full paragraphed text from `transcript_uk.txt` (86 lines, covering both Marathi-translated and English sections of the talk).
+Line numbers below refer to paragraph indices in `transcript_uk.txt`.
 
 ## Results
 
 ### L. Language (Orthography + Grammar + Punctuation)
-| # | Line | Error | Context | Fix |
-|---|------|-------|---------|-----|
-| L1 | 22 | Incorrect accusative of "Мати" | "нашу Мати як взірець" | "нашу Матір як взірець" |
-| L2 | 25 | Missing comma before "як" in comparison | "мирними (прохолодними) як лід" | "мирними (прохолодними), як лід" |
-| L3 | 42 | Missing commas around parenthetical "мабуть" (two occurrences) | "вони мабуть носили, яким примхам мабуть віддавалися" | "вони, мабуть, носили, яким примхам, мабуть, віддавалися" |
+
+| #  | Paragraph | Error | Context | Fix |
+|----|-----------|-------|---------|-----|
+| L1 | 17 | `розквітати` is intransitive in Ukrainian — cannot take a direct object | ви **розквітаєте** свої власні лотоси | ви розпускаєте / розкриваєте свої власні лотоси |
+| L2 | 32 | Spelling — Ukrainian `хихотіти` / `хихотіння` uses pattern и-и, not і-і (`хіхотіння` is non-standard) | постійне **хіхотіння** … Але **хіхотіння** є невідповідним | постійне хихотіння … Але хихотіння є невідповідним |
+| L3 | 37 | Typo — synthetic future of `бити` is `битимуть`, not `бітимуть` (adjacent `плюватимуть` uses correct и) | інші **бітимуть** вас черевиками | інші битимуть вас черевиками |
+| L4 | 53 | Russian-language predicative — `нехорошо` is not a Ukrainian word form | Це **нехорошо**. | Це недобре. |
+| L5 | 81 | Euphony rule — preposition `в` before a word starting with `в`/`ф` must be `у` | усі землі **в ваших** руках | усі землі у ваших руках |
 
 ### S. SY Domain (Capitalization + Terminology + Consistency)
-| # | Line | Error | Context | Fix |
-|---|------|-------|---------|-----|
-| S1 | 15 | "матері-землі" lowercase with hyphen; three divine Shaktis took birth from Mother Earth (sacred entity, glossary: "Бхумі Деві / Мати Земля") | "народилися з матері-землі" | "народилися з Матері Землі" |
-| S2 | 31 | Locative of "Йоґа" (practice) used instead of "йоґ" (person) | "в людині (сахаджа йозі)" | "в людині (сахаджа йоґ)" |
+
+| # | Paragraph | Error | Context | Fix |
+|---|-----------|-------|---------|-----|
+| — | — | No issues found | All deity pronouns for Shri Mataji (Я / Мій / Моя / Моїх / Мого / Мене / Мені / Свою / Вона / Її / Їй) are correctly uppercase; references to the Mother (Мати / Матір / Матері / Матінко) are uppercase; Бог's pronoun (Він) is uppercase. Glossary terms are consistent with `terms_lookup.yaml` (Кундаліні, Сахасрара, Аґія, Екадаша, Сахаджа Йоґа, Дхарма, Пуджа, Дух, Веди, Махакалі, Махалакшмі, Махасарасваті, пунья, бхути, бадх, ашрам, садху, факір, гопі, Ґуру, Чанді, Кріта, Мати Земля, Будинок Матері). Sentence-initial quoted speech capitalizes first letter correctly. Language names (англійська, маратхі, гінді) are lowercase. Declensions of Сахаджа Йоґа (Йоґа / Йоґи / Йозі / Йоґу / Йоґою) and сахаджа йоґ (йоґ / йоґа / йоґи / йоґам / йоґами / йоґів) are all correct. Locative `у Сахаджа Йозі` / `в Сахаджа Йозі` used consistently. | — |
 
 ### Critic Filter
+
 | Source | # | Verdict | Reason |
 |--------|---|---------|--------|
-| L | L1 | Keep | "Мати" in accusative position must be "Матір" per standard Ukrainian declension, even when used as a title for Shri Mataji. "Ми маємо нашу [що?] Матір." |
-| L | L2 | Keep | Ukrainian punctuation requires a comma before "як" in comparisons: "мирними, як лід." |
-| L | L3 | Keep | "Мабуть" is a parenthetical word (вставне слово) in Ukrainian and must be set off by commas. Two instances in the same sentence. |
-| S | S1 | Keep | The three powers (Shri Mahakali, Shri Mahalakshmi, Shri Mahasaraswati) took birth from Mother Earth – a sacred concept in SY. Glossary: "Мати Земля" (capitalized, no hyphen). |
-| S | S2 | Keep | "Йозі" is the locative of "Йоґа" (practice, feminine, 1st declension: ґ→з). English says "Sahaja Yogi" (person), so the correct form is nominative "йоґ" (as appositive label) or locative "йоґові" (masculine, 2nd declension). |
+| L | L1 | **Remove** | The EN original itself uses the non-standard construction "blooming high your own lotuses". The translator's awkward Ukrainian mirrors this source irregularity. Changing only the UK while EN remains unusual would drop the authorial voice. Preserve the deliberate stylistic mirroring. |
+| L | L2 | **Keep** | Clear spelling error. СУМ standard: `хихотіти` / `хихотіння` (both и-и). The form `хіхотіння` does not exist in Ukrainian. Affects two occurrences in the same paragraph. |
+| L | L3 | **Keep** | Clear typo. Synthetic future of `бити` is `битиму, битимеш, …, битимуть` (all и). The neighboring `плюватимуть` in the same sentence already uses correct и, making `бітимуть` an isolated slip. |
+| L | L4 | **Keep** | `Нехорошо` is a Russian predicative with no Ukrainian equivalent of this morphological shape. Standard Ukrainian: `недобре` / `негарно` / `погано`. Chose `недобре` as closest to EN register ("It is not good"). |
+| L | L5 | **Keep** | Ukrainian orthography: preposition `в` before a word starting with `в` or `ф` must be replaced by `у` to avoid consonant cluster. The same sentence already contains `у вас` — making `в ваших` immediately after inconsistent and phonetically awkward. |
 
 ### Approved Corrections
-| # | Line | Error | Fix |
-|---|------|-------|-----|
-| 1 | 15 | "матері-землі" (lowercase, hyphen) | "Матері Землі" (capitalized, no hyphen) |
-| 2 | 22 | "нашу Мати" (incorrect accusative) | "нашу Матір" |
-| 3 | 25 | Missing comma before "як" | "мирними (прохолодними), як лід" |
-| 4 | 31 | "сахаджа йозі" (wrong declension paradigm) | "сахаджа йоґ" |
-| 5 | 42 | "мабуть" without commas (2 occurrences) | "вони, мабуть, носили, яким примхам, мабуть, віддавалися" |
+
+| # | Paragraph | Error | Fix |
+|---|-----------|-------|-----|
+| 1 | 32 | постійне хіхотіння | постійне хихотіння |
+| 2 | 32 | Але хіхотіння є невідповідним | Але хихотіння є невідповідним |
+| 3 | 37 | інші бітимуть вас черевиками | інші битимуть вас черевиками |
+| 4 | 53 | Це нехорошо. | Це недобре. |
+| 5 | 81 | усі землі в ваших руках | усі землі у ваших руках |
 
 ## Summary
 
-- Language (L): 3 issues found, 3 approved by Critic
-- SY Domain (S): 2 issues found, 2 approved by Critic
-- Total corrections applied: 5
+- Language (L): 5 issues found, 4 approved by Critic (L1 retained as deliberate mirror of the non-standard EN original)
+- SY Domain (S): 0 issues found, 0 approved by Critic
+- Total corrections applied: 5 edits covering 4 distinct issues (хіхотіння appears twice in paragraph 32)
 
 ## Quality Notes
 
-The translation is of high quality overall:
-- Shri Mataji's pronoun capitalization (Я/Мій/Мене/Моя/Свою/Вона/Її/Їй) is consistently correct throughout
-- Quotation marks use «» consistently at all levels, no German or English quotes
-- En-dash ` – ` with spaces is used correctly throughout
-- Ellipsis `...` is used correctly (no space before)
-- Glossary terms (Кундаліні, Сахасрара, Аґія, Екадаша, бхути, Дхарма, Пуджа, Дух, Веди, Махакалі, Махалакшмі, Махасарасваті, пунья, ашрам) all match the glossary
-- Locative form "в Сахаджа Йозі" is used consistently and correctly for the practice
-- Plural "сахаджа йоґи" is correct (NOT "йоґі")
-- Language names (маратхі, гінді, англійська) are correctly lowercase
-- God's pronoun "Він" is correctly uppercase (line 83)
-- "Кріта" used correctly for "Krita (active)" per glossary
+The translation is of very high quality overall:
+
+- Shri Mataji's pronoun capitalization (Я / Мій / Моя / Моїх / Мого / Мене / Свою / Вона / Її / Їй) is consistently correct throughout all 86 paragraphs
+- Mother address forms (Мати / Матір / Матері / Матінко) correctly uppercase whenever referring to Shri Mataji; first-letter-of-sentence capitalization preserved in quoted speech
+- God's pronoun `Він` (paragraph 83) correctly uppercase
+- Quotation marks use `«»` consistently at all levels — no German `„"` or English `""` found
+- Nested quotes (e.g. the Marathi phrase embedded in Devanagari parenthesis in paragraph 53) correctly handled
+- En-dash ` – ` with spaces used correctly for interjections throughout
+- Ellipsis `...` used correctly (no space before)
+- All glossary terms match `terms_lookup.yaml`
+- Declension system for Сахаджа Йоґа and сахаджа йоґ is applied correctly in all cases (including the non-trivial alternation ґ→з in locative `в Сахаджа Йозі`, confirmed 6+ times)
+- Numeral `61-й` (ordinal masculine) correctly written
+- Language names (маратхі, гінді, англійська) correctly lowercase
+- Marathi idioms preserved with explanatory parentheticals (`«Він заліз на кущ бобу»`, etc.)
+- `Кріта` used correctly for "Krita (active)" per glossary
+- Proper names (Мумбаї, Делі, Бомбей, Аґра, Гарішчандра, Акбар, Шіваджі Махарадж, Мавланкар, Халді-Кумкум) correctly transliterated and capitalized
+
+The issues found are minor typos/Russianisms and one euphony violation — all localized and easily corrected.
