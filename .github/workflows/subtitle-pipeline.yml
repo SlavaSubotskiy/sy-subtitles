@@ -191,7 +191,7 @@ jobs:
   translate-and-review:
     needs: discover
     if: inputs.translate != false || inputs.review != false
-    environment: main
+    environment: ${{ inputs.dry_run && '' || 'main' }}
     strategy:
       matrix: ${{ fromJson(needs.discover.outputs.talk_matrix) }}
       fail-fast: false
@@ -534,7 +534,7 @@ jobs:
   build-timecodes:
     needs: prepare-build
     if: ${{ !cancelled() && needs.prepare-build.result == 'success' }}
-    environment: main
+    environment: ${{ inputs.dry_run && '' || 'main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
