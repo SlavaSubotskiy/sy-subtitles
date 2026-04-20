@@ -3,86 +3,84 @@
 ## Process
 
 Review `transcript_uk.txt` (full paragraphed Ukrainian text) using 2 parallel reviewers + 1 critic filter.
-This is a re-review after a prior review pass partially corrected the text.
+This is a re-review pass after prior review corrections.
 
 ### Review Agents
 
-- **Reviewer L** -- Language (Orthography + Grammar + Punctuation)
-- **Reviewer S** -- SY Domain (Capitalization + Terminology + Consistency)
-- **Critic** -- Filter + Validate
+- **Reviewer L** – Language (Orthography + Grammar + Punctuation)
+- **Reviewer S** – SY Domain (Capitalization + Terminology + Consistency)
+- **Critic** – Filter + Validate
 
 ## Results
 
 ### L. Language (Orthography + Grammar + Punctuation)
-| # | Line | Error | Context | Fix |
-|---|------|-------|---------|-----|
-| L1 | 27 | Missing comma before indirect question "скільки" | `Я не знаю скільки років тому` | `Я не знаю, скільки років тому` |
-| L2 | 39 | Missing comma before indirect question "чому" | `не можу сказати чому` | `не можу сказати, чому` |
+| # | Paragraph | Error | Context | Fix |
+|---|-----------|-------|---------|-----|
+| L1 | 11 | Conjunction mismatch: «Оскільки...але...» – causal «оскільки» contradicts concessive «але» | `Оскільки Я не маю звички носити прикраси, але Мені доводиться це робити.` | `Хоча Я не маю звички носити прикраси, але Мені доводиться це робити.` |
+| L2 | 38 | Verb form: missing soft sign ь, 3 sg future perfective of «поширитися» | `вона поширится по всьому світу` | `вона пошириться по всьому світу` |
+| L3 | 19 | End punctuation: rhetorical question starting with «Як же...» typically ends with «?» | `Як же пояснити людям, яке значення Пуджі.` | `Як же пояснити людям, яке значення Пуджі?` |
+| L4 | 37 | Case form: Sanskrit name «Шанділья» in genitive context should decline to «Шандільї» | `це місце Шанділья Муні тощо` | `це місце Шандільї Муні тощо` |
+| L5 | 21 | Redundant doubling: «У сахаджа йоґів також деякі з них» – pleonasm in spoken style | `У сахаджа йоґів також деякі з них мають проблеми` | `Серед сахаджа йоґів також деякі мають проблеми` |
 
-**No issues found in:**
-- Spelling, word forms -- all correct
-- Latin/Cyrillic mixing -- none detected
-- Quotation marks -- `<<>>` used consistently at all levels
-- Dash usage -- ` -- ` with spaces throughout
-- Ellipsis -- none present in text
-- Spaces around punctuation -- correct throughout
+**Verified correct:**
+- Spelling, word forms – otherwise consistently correct
+- Latin/Cyrillic mixing – none detected
+- Quotation marks – `«»` used consistently at all levels
+- Em-dash – ` – ` (U+2013) with spaces throughout
+- Ellipsis – none present
+- Apostrophes – consistent use in `п'ятдесят`, `пам'ятати`, `ім'я`, `з'явилася`
+- Comma usage around subordinate clauses – verified
 
 ### S. SY Domain (Capitalization + Terminology + Consistency)
-| # | Line | Error | Context | Fix |
-|---|------|-------|---------|-----|
-| S1 | 35 | Inconsistent capitalization: "День народження" | `на Мій День народження` -- line 29 correctly uses lowercase `день народження` | `день народження` |
+| # | Paragraph | Error | Context | Fix |
+|---|-----------|-------|---------|-----|
+| (none found) | | | | |
 
 **Verified correct:**
 - Deity pronoun capitalization:
-  - Shri Mataji (1st person): Я/Мені/Мій/Моя/Моє/Моїх/Себе/Своєї/Сама -- uppercase throughout
-  - Shri Mataji (3rd person): Вона -- uppercase (line 37)
-  - God: Він/Його/Йому/Нього/Свій/Своїх/Сам -- uppercase throughout
-  - Regular people: lowercase throughout
+  - Shri Mataji (1st person): Я/Мене/Мені/Моя/Моє/Мого/Мій/Моїх/Себе/Сама/Своєї – uppercase throughout
+  - Shri Mataji (3rd person): Вона, Матаджі, Матінко, Мати – uppercase throughout
+  - God: Він/Його/Йому/Нього/Богові/Богом/Свій/Своїх/Сам – uppercase throughout
+  - Regular people (Varkari, tobacco users): він/його/йому – lowercase ✓
 - Glossary terms all match `terms_lookup.yaml`:
-  - Кундаліні, Пуджа, тапасьї, бхакті/бхактів, его
-  - Сахаджа Йоґа / Йоґою (instr.) / Йоґи (gen.) / Йозі (loc.) -- correct declension with ґ->з alternation
-  - сахаджа йоґів (practitioners, lowercase)
-  - Шрі Крішна, Вітхала, Муні, Хануман, Шрі Рама
-  - Всепроникна Сила, Брахмашакті, Махайоґа
-  - віддача на милість (surrender)
-  - Нехай Бог благословить усіх вас. -- exact match
-- Sanskrit 'g' -> ґ consistently applied (Йоґа, ґаті, Ардхамаґадхі)
-- Language names lowercase (англійська, маратхі)
-- Spiritual terms: Пуджа (uppercase), Всесвіт (uppercase), Царство Боже (uppercase)
-- No SY terminology errors detected
+  - Кундаліні, Пуджа, тапасьї, бхакті, бхактів, его
+  - Сахаджа Йоґа / Йоґою (instr.) / Йоґи (gen.) / Йозі (loc.) / Йоґу (acc.) – correct declension with ґ→з alternation per `terms_context.yaml`
+  - сахаджа йоґів (practitioners, lowercase per glossary)
+  - Махайоґа/Махайоґою, Брахмашакті, Всепроникна Сила – preserved
+  - Шрі Крішна, Шрі Рама (genitive «Шрі Рами»), Вітхала, Муні, Хануман (plural «Хануманів»)
+  - Варкарі (religious community, capitalized per English source)
+  - віддача на милість (surrender) – correct usage in para 18, 21
+  - «Нехай Бог благословить усіх вас.» – exact glossary match (para 30)
+- Sanskrit 'g' → ґ consistently applied: Йоґа, Йоґи, ґаті, Ардхамаґадхі, Махайоґа
+- Aspirate 'dh' → дх: Махараштра, Свадхістхана (none here), Пітхи, Муладхара (none here)
+- Sanskrit short 'i' → і: Шіва (none here), Махавіра (none here)
+- Language names lowercase: англійська, маратхі ✓
+- Ethnonyms lowercase: махараштрійці ✓
+- Spiritual terms uppercase: Пуджа, Всесвіт, Царство Боже, Реалізація, Божественна любов, Всепроникна Сила, Брахмашакті, Шакті Пітхи, Аштавінаяки
+- Saints/Gods collective uppercase: Святі, Боги (in Hindu/SY context) – consistent with English
+- Proper names: Прахлад, Шанділья Муні, Рамдас Свамі, Трета Юги, Дандакаранья, Аштавінаяки – all correctly transliterated and capitalized
 
 ### Critic Filter
 | Source | # | Verdict | Reason |
 |--------|---|---------|--------|
-| L | L1 | **Keep** | Clear rule: comma before indirect question word "скільки" after verb of knowledge/speech |
-| L | L2 | **Keep** | Clear rule: comma before indirect question word "чому" after verb of speech |
-| S | S1 | **Keep** | Genuine inconsistency with same phrase in line 29; common noun must be lowercase in running text |
+| L | L1 | **Keep** | Genuine Ukrainian grammar error. «Оскільки» marks cause («since»), which is logically incompatible with adversative «але». Minimal fix: replace «Оскільки» with concessive «Хоча» (preserves sentence rhythm; the «хоча...але» pleonasm is widely tolerated in Ukrainian). |
+| L | L2 | **Keep** | Clear typo: «поширится» is missing the soft sign. 3 sg future perfective of reflexive «поширитися» is «пошириться» per standard Ukrainian conjugation (порівн. «зробиться», «ходиться»). |
+| L | L3 | **Remove** | Style preference, not an error. Source English also uses period («Now how to explain...is.»). The elliptical statement with period works as an expression of puzzlement; changing to «?» is translator discretion. |
+| L | L4 | **Remove** | Sanskrit compound names with invariable «Муні» head are commonly treated as a unit and left uninflected in SY translations. Although strict grammar prefers «Шандільї», this is a translator style choice consistent with the broader practice around «Муні». Not a clear error. |
+| L | L5 | **Remove** | Preserves the source speaking style («Sahaj Yogis also, some of them have problems...»). Reflects Shri Mataji's characteristic spoken English. Not a grammatical error, just colloquial redundancy that the translation faithfully carries over. |
 
 ### Approved Corrections
-| # | Line | Error | Fix |
-|---|------|-------|-----|
-| 1 | 27 | Missing comma before "скільки" | `Я не знаю, скільки років тому` |
-| 2 | 35 | "День народження" uppercase | `день народження` (lowercase, matching line 29) |
-| 3 | 39 | Missing comma before "чому" | `не можу сказати, чому` |
-
-## Prior Review Status
-
-Issues from prior review that were already fixed in current text:
-- L1 (line 15): comma/dash before "що" -- resolved (text rewritten with dash)
-- L2 (line 17): comma before "і" -- resolved (text rewritten with comma)
-- L4 (line 28): comma before "і" -- resolved (comma present)
-- S1 (line 23): "всесвіт" lowercase -- resolved (all instances now uppercase)
-
-Issues from prior review still present (fixed in this review):
-- L3 (line 27): comma before "скільки" -- fixed
-- L5 (line 39): comma before "чому" -- fixed
+| # | Paragraph | Error | Fix |
+|---|-----------|-------|-----|
+| 1 | 11 | «Оскільки ... але» conjunction mismatch | `Хоча Я не маю звички носити прикраси, але Мені доводиться це робити.` |
+| 2 | 38 | Typo «поширится» (missing ь) | `вона пошириться по всьому світу` |
 
 ## Summary
 
-- Language (L): 2 issues found, 2 approved by Critic
-- SY Domain (S): 1 issue found, 1 approved by Critic
-- Total corrections applied: 3
+- Language (L): 5 issues found, 2 approved by Critic
+- SY Domain (S): 0 issues found
+- Total corrections applied: 2
 
 ## Quality Assessment
 
-The translation is of very high quality. Deity pronoun capitalization is meticulous and consistent. SY terminology precisely follows the glossary, including transliteration conventions (ґ for Sanskrit 'g') and Sahaja Yoga declension (Йоґа/Йоґою/Йоґи/Йозі). Quotation marks, dashes, and punctuation follow Ukrainian orthographic rules. The sacred register and devotional tone are well preserved throughout.
+Translation is of high quality. Deity pronoun capitalization is meticulous and consistent (including Мої, Мене, Себе, Сама, Своєї for 1st person Shri Mataji). SY terminology precisely follows the glossary including transliteration conventions (ґ for Sanskrit 'g') and the ґ→з alternation for Sahaja Yoga in locative case (Йозі). Quotation marks «», em-dash ` – `, and apostrophes are all orthographically correct. Dialogue punctuation in embedded quotes (para 18, 35) follows Ukrainian direct-speech rules. Sacred register and devotional tone are well preserved. The two remaining issues were a single-character typo and a single-word conjunction mismatch in an awkward source sentence – both easily fixed without altering meaning.
