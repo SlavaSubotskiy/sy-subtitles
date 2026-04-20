@@ -10,7 +10,7 @@ line of rationale and fails loud with a minimal example.
 
 from __future__ import annotations
 
-from pathlib import Path
+from dataclasses import dataclass
 
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
@@ -19,8 +19,21 @@ from tools.config import OptimizeConfig
 from tools.offset_srt import apply_offset
 from tools.srt_utils import parse_srt, write_srt
 from tools.text_segmentation import MAX_CPL, build_blocks_from_paragraphs
-from tools.uk_map import UkMapBlock, UkMapError, parse_uk_map, validate_uk_map
 from tools.validate_subtitles import validate
+
+
+@dataclass(frozen=True)
+class Block:
+    """Minimal SRT-block fixture for property tests (was tools.uk_map.Block)."""
+
+    idx: int
+    start_ms: int
+    end_ms: int
+    text: str
+
+    def as_dict(self) -> dict:
+        return {"idx": self.idx, "start_ms": self.start_ms, "end_ms": self.end_ms, "text": self.text}
+
 
 # ---------------------------------------------------------------------------
 # Strategies
@@ -40,13 +53,12 @@ paragraphs_strategy = st.lists(_paragraphs, min_size=1, max_size=10)
 
 
 @st.composite
-def uk_map_blocks(draw) -> list[UkMapBlock]:
-    """Generate a sequence of strictly-ordered uk.map blocks that also satisfy
-    CPS/duration/CPL invariants — so they are valid end-to-end, not just to
-    the parser."""
+def uk_map_blocks(draw) -> list[Block]:
+    """Generate a strictly-ordered block sequence satisfying CPS/duration/CPL
+    invariants — valid end-to-end for build_srt / validate_subtitles."""
     config = OptimizeConfig()
     count = draw(st.integers(min_value=1, max_value=30))
-    out: list[UkMapBlock] = []
+    out: list[Block] = []
     cursor = draw(st.integers(min_value=0, max_value=5000))
     for i in range(count):
         raw_text = draw(_sentences)
@@ -60,19 +72,12 @@ def uk_map_blocks(draw) -> list[UkMapBlock]:
         gap = draw(st.integers(min_value=config.min_gap_ms, max_value=500))
         start = cursor
         end = start + duration
-        out.append(UkMapBlock(idx=i + 1, start_ms=start, end_ms=end, text=text))
+        out.append(Block(idx=i + 1, start_ms=start, end_ms=end, text=text))
         cursor = end + gap
     return out
 
 
-def _write_uk_map(blocks: list[UkMapBlock], path: Path) -> None:
-    from tools.srt_utils import ms_to_time
-
-    lines = [f"{b.idx} | {ms_to_time(b.start_ms)} | {ms_to_time(b.end_ms)} | {b.text}" for b in blocks]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
-def _write_srt(blocks: list[UkMapBlock], path: Path) -> None:
+def _write_srt(blocks: list[Block], path) -> None:
     write_srt([b.as_dict() for b in blocks], str(path))
 
 
@@ -98,63 +103,13 @@ def test_build_blocks_ids_sequential(paragraphs: list[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Invariant 2: uk.map parser round-trips through serialize → validate
-# ---------------------------------------------------------------------------
-
-
-@given(uk_map_blocks())
-@settings(max_examples=100, deadline=None)
-def test_uk_map_roundtrip(tmp_path_factory, blocks: list[UkMapBlock]) -> None:
-    path = tmp_path_factory.mktemp("uk_map") / "fixture.uk.map"
-    _write_uk_map(blocks, path)
-    parsed = validate_uk_map(str(path))
-    assert len(parsed) == len(blocks)
-    for a, b in zip(parsed, blocks, strict=True):
-        assert a.idx == b.idx
-        assert a.start_ms == b.start_ms
-        assert a.end_ms == b.end_ms
-        assert a.text == b.text
-
-
-# ---------------------------------------------------------------------------
-# Invariant 3: validate_uk_map rejects any line with end <= start
-# ---------------------------------------------------------------------------
-
-
-@given(
-    st.integers(min_value=0, max_value=100000),
-    st.integers(min_value=0, max_value=100000),
-    _sentences,
-)
-@settings(max_examples=100, deadline=None)
-def test_uk_map_rejects_non_positive_duration(tmp_path_factory, a: int, b: int, text: str) -> None:
-    if a == b:
-        return
-    start, end = (a, b) if a < b else (b, a)
-    # Deliberately swap so end <= start.
-    path = tmp_path_factory.mktemp("uk_map_bad") / "bad.uk.map"
-    from tools.srt_utils import ms_to_time
-
-    path.write_text(
-        f"1 | {ms_to_time(end)} | {ms_to_time(start)} | {text}\n",
-        encoding="utf-8",
-    )
-    try:
-        parse_uk_map(str(path), strict=True)
-    except UkMapError as e:
-        assert "start" in str(e) and "end" in str(e)
-    else:
-        raise AssertionError("expected UkMapError")
-
-
-# ---------------------------------------------------------------------------
-# Invariant 4: offset_srt.apply_offset(0) is identity
+# Invariant 2: offset_srt.apply_offset(0) is identity
 # ---------------------------------------------------------------------------
 
 
 @given(uk_map_blocks())
 @settings(max_examples=50, deadline=None)
-def test_offset_zero_is_identity(tmp_path_factory, blocks: list[UkMapBlock]) -> None:
+def test_offset_zero_is_identity(tmp_path_factory, blocks: list[Block]) -> None:
     src = tmp_path_factory.mktemp("offset_src") / "in.srt"
     dst = tmp_path_factory.mktemp("offset_dst") / "out.srt"
     _write_srt(blocks, src)
@@ -165,15 +120,15 @@ def test_offset_zero_is_identity(tmp_path_factory, blocks: list[UkMapBlock]) -> 
 
 
 # ---------------------------------------------------------------------------
-# Invariant 5: any structurally-valid uk.map parses → writes to SRT that
-# passes validate_subtitles on the trivial CPL/duration/gap axes.
+# Invariant 3: any structurally-valid block sequence writes an SRT that
+# passes validate_subtitles on CPL/duration/gap axes.
 # (Text-preservation is excluded because transcripts are not generated.)
 # ---------------------------------------------------------------------------
 
 
 @given(uk_map_blocks())
 @settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_uk_map_to_srt_satisfies_structural_validation(tmp_path_factory, blocks: list[UkMapBlock]) -> None:
+def test_blocks_to_srt_satisfy_structural_validation(tmp_path_factory, blocks: list[Block]) -> None:
     srt_path = tmp_path_factory.mktemp("srt") / "out.srt"
     _write_srt(blocks, srt_path)
     # Minimal transcript: one paragraph with all block texts concatenated —

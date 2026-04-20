@@ -34,7 +34,7 @@ talks/                          Per-talk directories
     review_report.md            Translation review report
     {video_slug}/               Named video subdirectory (e.g., Talk, Bhajan)
       source/                   Original materials (EN SRT, whisper JSON)
-      work/                     Builder mapping (uk.map)
+      work/                     Build intermediates (timecodes.txt — LLM output)
       final/                    Output (uk.srt, report.txt, build_report.txt)
 
 tools/                          Python modules (used by Actions + locally)

@@ -108,7 +108,7 @@ class TestPipelineIntegration:
         timecodes_text = _generate_mock_timecodes(uk_blocks)
         (work / "timecodes.txt").write_text(timecodes_text, encoding="utf-8")
 
-        # -- Step 5: cmd_assemble → uk.map + uk.srt --------------------------
+        # -- Step 5: cmd_assemble → uk.srt (in-memory merge, no uk.map) -------
         import argparse
 
         from tools.build_map import cmd_assemble
@@ -128,12 +128,11 @@ class TestPipelineIntegration:
         args = argparse.Namespace(talk_dir=str(talk), video_slug="video1")
         cmd_assemble(args)
 
-        map_path = video / "work" / "uk.map"
         srt_path = video / "final" / "uk.srt"
 
-        assert map_path.exists(), "uk.map was not created"
         assert srt_path.exists(), "SRT file was not created"
         assert srt_path.stat().st_size > 0, "SRT file is empty"
+        assert not (video / "work" / "uk.map").exists(), "uk.map should not be produced in new flow"
 
         # Parse and verify the SRT
         srt_blocks = parse_srt(str(srt_path))

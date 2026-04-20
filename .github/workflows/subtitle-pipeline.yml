@@ -677,7 +677,17 @@ jobs:
             - Do NOT write block text, only the id and timecodes
             - Do NOT use TodoWrite
 
-      - name: Assemble uk.map and build SRT
+      - name: Validate timecodes format
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+        run: |
+          N=$(python3 -c "import json; print(len(json.load(open('talks/${TALK_ID}/${VIDEO_SLUG}/work/uk_blocks.json'))))")
+          python -m tools.validate_artifacts \
+            --timecodes "talks/${TALK_ID}/${VIDEO_SLUG}/work/timecodes.txt" \
+            --expected-blocks "${N}"
+
+      - name: Assemble and build SRT
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
           VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
@@ -685,14 +695,6 @@ jobs:
           python -m tools.build_map assemble \
             --talk-dir "talks/${TALK_ID}" \
             --video-slug "${VIDEO_SLUG}"
-
-      - name: Validate uk.map contract
-        env:
-          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
-          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
-        run: |
-          python -m tools.validate_artifacts \
-            --uk-map "talks/${TALK_ID}/${VIDEO_SLUG}/work/uk.map"
 
       - name: Optimize SRT
         env:
@@ -779,7 +781,7 @@ jobs:
           retention-days: 7
           name: subtitles__${{ needs.prepare-build.outputs.talk_id }}${{ inputs.dry_run_tag }}
           path: |
-            talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/uk.map
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/work/timecodes.txt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/uk.srt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
@@ -811,7 +813,7 @@ jobs:
         env:
           TALK_ID: ${{ inputs.talk_id }}
         run: |
-          find /tmp/subtitles \( -name 'uk.srt' -o -name 'uk.map' \) | while read src; do
+          find /tmp/subtitles \( -name 'uk.srt' -o -name 'timecodes.txt' \) | while read src; do
             rel=$(echo "$src" | grep -o '[^/]*/\(work\|final\)/[^/]*$' || true)
             if [ -n "$rel" ]; then
               dest="talks/${TALK_ID}/${rel}"
@@ -908,7 +910,7 @@ jobs:
           if [ -d /tmp/subtitles ]; then
             echo "=== Subtitle artifacts ==="
             find /tmp/subtitles -type f
-            find /tmp/subtitles \( -name "uk.srt" -o -name "uk.map" -o -name "report.txt" -o -name "build_report.txt" \) | while read src; do
+            find /tmp/subtitles \( -name "uk.srt" -o -name "timecodes.txt" -o -name "report.txt" -o -name "build_report.txt" \) | while read src; do
               # Preserve video slug subdirectory
               rel=$(echo "$src" | grep -o '[^/]*/\(work\|final\)/[^/]*$')
               if [ -n "$rel" ]; then
@@ -929,7 +931,7 @@ jobs:
             "Build subtitles (full pipeline)" \
             "talks/*/transcript_uk.txt" "talks/*/review_report.md" \
             "talks/*/glossary.json" \
-            "talks/*/*/work/uk.map" \
+            "talks/*/*/work/timecodes.txt" \
             "talks/*/*/final/uk.srt" "talks/*/*/final/report.txt" \
             "talks/*/*/final/build_report.txt"
 

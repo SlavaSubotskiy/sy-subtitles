@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import re
 
 from tools.build_map import (
     TC_RE,
@@ -318,23 +317,20 @@ class TestCmdAssemble:
         return work
 
     def test_assemble_from_timecodes(self, tmp_path):
-        """cmd_assemble reads timecodes.txt + uk_blocks.json → writes uk.map."""
-        work = self._setup_assemble_dir(tmp_path, n_blocks=3)
+        """cmd_assemble reads timecodes.txt + uk_blocks.json → writes uk.srt directly."""
+        self._setup_assemble_dir(tmp_path, n_blocks=3)
 
         args = argparse.Namespace(talk_dir=str(tmp_path / "talk"), video_slug="video1")
         cmd_assemble(args)
 
-        map_file = work / "uk.map"
-        assert map_file.exists(), "uk.map not created"
-        lines = [line for line in map_file.read_text(encoding="utf-8").strip().split("\n") if line.strip()]
-        assert len(lines) == 3
-        # Each line must have the pipe-separated format with text from uk_blocks
-        tc_re = re.compile(r"^(\d+) \| (\d{2}:\d{2}:\d{2},\d{3}) \| (\d{2}:\d{2}:\d{2},\d{3}) \| (.+)$")
-        for i, line in enumerate(lines):
-            m = tc_re.match(line)
-            assert m, f"Line {i} does not match uk.map format: {line!r}"
-            assert m.group(1) == str(i + 1)
-            assert m.group(4) == f"Блок {i + 1}."
+        srt_file = tmp_path / "talk" / "video1" / "final" / "uk.srt"
+        assert srt_file.exists(), "uk.srt not created"
+        content = srt_file.read_text(encoding="utf-8")
+        # Must contain all 3 block texts
+        for i in range(1, 4):
+            assert f"Блок {i}." in content
+        # Must NOT write uk.map as intermediate
+        assert not (tmp_path / "talk" / "video1" / "work" / "uk.map").exists(), "uk.map should not be produced"
 
     def test_assemble_missing_timecodes_file(self, tmp_path):
         """Missing timecodes.txt → cmd_assemble exits with error."""

@@ -172,7 +172,19 @@ def _run_full_pipeline(case: DryrunCase, scratch: Path) -> None:
         "fake_llm build-timecodes",
     )
 
-    # assemble — timecodes.txt + uk_blocks.json → uk.map → build_srt
+    # validate timecodes format BEFORE assemble — fail early on bad LLM output
+    run(
+        [
+            sys.executable,
+            "-m",
+            "tools.validate_artifacts",
+            "--timecodes",
+            str(video_dir / "work" / "timecodes.txt"),
+        ],
+        "validate_artifacts timecodes",
+    )
+
+    # assemble — timecodes.txt + uk_blocks.json → uk.srt (in-memory merge)
     run(
         [
             sys.executable,
@@ -185,18 +197,6 @@ def _run_full_pipeline(case: DryrunCase, scratch: Path) -> None:
             case.video_slug,
         ],
         "build_map assemble",
-    )
-
-    # validate uk.map contract (strict)
-    run(
-        [
-            sys.executable,
-            "-m",
-            "tools.validate_artifacts",
-            "--uk-map",
-            str(video_dir / "work" / "uk.map"),
-        ],
-        "validate_artifacts",
     )
 
     # optimize (mirror real pipeline flags)

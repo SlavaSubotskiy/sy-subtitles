@@ -1,30 +1,16 @@
-"""Build SRT from agent mapping file.
+"""Apply timing pipeline to pre-merged blocks and write SRT.
 
-Takes a pipe-separated mapping (block# | start | end | text) produced by the
-builder agent and applies padding, gap enforcement, and duration enforcement
-to produce a valid SRT file.
+Consumes blocks as list of dicts with {idx, start_ms, end_ms, text} —
+produced by build_map.cmd_assemble (timecodes.txt + uk_blocks.json merged
+in memory).
 
-Usage:
-    python -m tools.build_srt --mapping PATH --output PATH [--report PATH]
+This module has no CLI entry point — it's called from tools.build_map.
 """
 
-import argparse
 import sys
 
 from .config import OptimizeConfig
 from .srt_utils import ms_to_time, write_srt
-from .uk_map import parse_uk_map
-
-
-def parse_mapping(filepath, *, strict=False):
-    """Parse pipe-separated mapping into blocks via the canonical uk_map parser.
-
-    strict=False preserves legacy build_srt behaviour (WARNINGs, drop bad lines).
-    strict=True raises UkMapError on any contract violation — use from tests and
-    from the pipeline validate-artifacts step.
-    """
-    blocks = parse_uk_map(filepath, strict=strict)
-    return [b.as_dict() for b in blocks]
 
 
 def apply_padding(blocks, config=None):
@@ -250,22 +236,16 @@ def balance_cps(blocks, config=None, threshold=None):
     return blocks
 
 
-def build_srt(mapping_path, output_path, report_path=None):
-    """Full pipeline: parse → gaps(raw) → CPS → duration → CPS(soft) → pad → gaps → write SRT.
+def build_srt_from_blocks(blocks, output_path, report_path=None):
+    """Full timing pipeline on in-memory blocks.
 
-    Gaps run FIRST on raw blocks to fix agent mapping overlaps.
-    CPS hard-max runs on clean blocks with real silence gaps.
-    Duration enforcement runs next — smaller deficits, cascade shifting.
-    CPS target pass — soft optimization with remaining gaps.
-    Padding runs LAST, extending remaining silence for readability.
-    Final gaps pass cleans up any tight spots from padding.
+    blocks: list of dicts with keys {idx, start_ms, end_ms, text}.
+    Runs: gaps(raw) → CPS → duration → CPS(soft) → pad → gaps → write SRT.
     """
     config = OptimizeConfig()
 
-    print(f"Parsing mapping: {mapping_path}")
-    blocks = parse_mapping(mapping_path)
     if not blocks:
-        print("ERROR: No blocks parsed from mapping file")
+        print("ERROR: No blocks provided")
         sys.exit(1)
 
     total = len(blocks)
@@ -320,17 +300,3 @@ def build_srt(mapping_path, output_path, report_path=None):
         with open(report_path, "w", encoding="utf-8") as f:
             f.write("\n".join(summary))
         print(f"  Report saved to: {report_path}")
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Build SRT from agent mapping file")
-    parser.add_argument("--mapping", required=True, help="Path to mapping file (pipe-separated)")
-    parser.add_argument("--output", required=True, help="Path for output SRT file")
-    parser.add_argument("--report", help="Path for build report (optional)")
-    args = parser.parse_args()
-
-    build_srt(args.mapping, args.output, args.report)
-
-
-if __name__ == "__main__":
-    main()

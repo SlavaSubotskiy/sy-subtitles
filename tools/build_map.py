@@ -20,8 +20,8 @@ import re
 import sys
 from pathlib import Path
 
-from .build_srt import build_srt as run_build_srt
-from .srt_utils import load_whisper_json
+from .build_srt import build_srt_from_blocks
+from .srt_utils import load_whisper_json, time_to_ms
 from .text_segmentation import build_blocks_from_paragraphs, load_transcript
 
 # Regex for parsing timecodes output from the LLM
@@ -103,12 +103,12 @@ def cmd_prepare_timing(args):
 
 
 # ---------------------------------------------------------------------------
-# assemble command — timecodes.txt + uk_blocks.json → uk.map → build_srt
+# assemble command — timecodes.txt + uk_blocks.json → uk.srt (in-memory merge)
 # ---------------------------------------------------------------------------
 
 
 def cmd_assemble(args):
-    """Read LLM timecodes, build uk.map, run build_srt."""
+    """Merge LLM timecodes with UK blocks in memory, run build_srt."""
     talk = Path(args.talk_dir)
     video = talk / args.video_slug
     work = video / "work"
@@ -137,23 +137,23 @@ def cmd_assemble(args):
         )
         sys.exit(1)
 
-    print(f"  {len(all_timecodes)}/{len(uk_blocks)} blocks", file=sys.stderr)
-
-    output_map = str(work / "uk.map")
-    map_lines = []
+    blocks = []
     for block in uk_blocks:
         bid = block["id"]
         start_tc, end_tc = all_timecodes[bid]
-        map_lines.append(f"{bid} | {start_tc} | {end_tc} | {block['text']}")
+        start_ms = time_to_ms(start_tc)
+        end_ms = time_to_ms(end_tc)
+        if start_ms >= end_ms:
+            print(f"ERROR: block #{bid} has start {start_tc} >= end {end_tc}", file=sys.stderr)
+            sys.exit(1)
+        blocks.append({"idx": bid, "start_ms": start_ms, "end_ms": end_ms, "text": block["text"]})
 
-    with open(output_map, "w", encoding="utf-8") as f:
-        f.write("\n".join(map_lines) + "\n")
-    print(f"  uk.map: {len(map_lines)} blocks → {output_map}", file=sys.stderr)
+    print(f"  {len(blocks)}/{len(uk_blocks)} blocks merged", file=sys.stderr)
 
     output_srt = str(video / "final" / "uk.srt")
     report = str(video / "final" / "build_report.txt")
     Path(output_srt).parent.mkdir(parents=True, exist_ok=True)
-    run_build_srt(output_map, output_srt, report)
+    build_srt_from_blocks(blocks, output_srt, report)
 
 
 # ---------------------------------------------------------------------------

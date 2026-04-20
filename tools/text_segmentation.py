@@ -1,9 +1,7 @@
 """Shared text-segmentation helpers for subtitle tooling.
 
-Previously these lived inside tools/generate_map.py and tools/align_uk.py
-and were imported cross-module by sync_transcript_to_srt. Lifting them
-here removes the cross-module coupling and gives all transcript-facing
-tools one place to go for:
+One place for all transcript-facing tools (build_map, sync_transcript_to_srt,
+align_uk) to go for:
 
   * load_transcript(path) — strip the metadata header, return the list
     of paragraphs (handles both single-newline and double-newline

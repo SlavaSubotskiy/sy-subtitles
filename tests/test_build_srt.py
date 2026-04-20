@@ -1,71 +1,16 @@
-"""Tests for tools.build_srt."""
+"""Tests for tools.build_srt (internal timing passes)."""
 
 from tools.build_srt import (
     apply_padding,
     balance_cps,
     enforce_duration,
     enforce_gaps,
-    parse_mapping,
 )
 from tools.config import OptimizeConfig
 
 
 def _make_block(idx, start_ms, end_ms, text):
     return {"idx": idx, "start_ms": start_ms, "end_ms": end_ms, "text": text}
-
-
-# ---------------------------------------------------------------------------
-# parse_mapping
-# ---------------------------------------------------------------------------
-
-
-def test_parse_mapping_basic(tmp_path):
-    p = tmp_path / "test.map"
-    p.write_text("1 | 00:00:01,000 | 00:00:03,000 | First block.\n2 | 00:00:03,500 | 00:00:06,000 | Second block.\n")
-    blocks = parse_mapping(str(p))
-    assert len(blocks) == 2
-    assert blocks[0]["idx"] == 1
-    assert blocks[0]["start_ms"] == 1000
-    assert blocks[0]["end_ms"] == 3000
-    assert blocks[0]["text"] == "First block."
-    assert blocks[1]["idx"] == 2
-
-
-def test_parse_mapping_skips_comments_and_blanks(tmp_path):
-    p = tmp_path / "test.map"
-    p.write_text(
-        "# This is a comment\n"
-        "\n"
-        "1 | 00:00:01,000 | 00:00:03,000 | Text.\n"
-        "# Another comment\n"
-        "2 | 00:00:04,000 | 00:00:06,000 | More text.\n"
-    )
-    blocks = parse_mapping(str(p))
-    assert len(blocks) == 2
-
-
-def test_parse_mapping_skips_invalid_lines(tmp_path):
-    p = tmp_path / "test.map"
-    p.write_text("1 | 00:00:01,000 | 00:00:03,000 | Good.\nbad line\n3 | 00:00:04,000 | 00:00:06,000 | Also good.\n")
-    blocks = parse_mapping(str(p))
-    assert len(blocks) == 2
-
-
-def test_parse_mapping_rejects_start_ge_end(tmp_path):
-    """Blocks where start >= end should be skipped."""
-    p = tmp_path / "test.map"
-    p.write_text("1 | 00:00:05,000 | 00:00:03,000 | Backwards.\n2 | 00:00:01,000 | 00:00:03,000 | Valid.\n")
-    blocks = parse_mapping(str(p))
-    assert len(blocks) == 1
-    assert blocks[0]["text"] == "Valid."
-
-
-def test_parse_mapping_text_with_pipes(tmp_path):
-    """Text containing pipe characters should be preserved."""
-    p = tmp_path / "test.map"
-    p.write_text("1 | 00:00:01,000 | 00:00:03,000 | Text | with | pipes.\n")
-    blocks = parse_mapping(str(p))
-    assert blocks[0]["text"] == "Text | with | pipes."
 
 
 # ---------------------------------------------------------------------------

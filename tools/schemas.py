@@ -9,8 +9,8 @@ Schemas covered:
   * whisper.json — speech-detection output shared with build_map/align_uk
   * meta.yaml    — talk manifest, consumed by every workflow
 
-uk.map has its own dedicated validator (tools.uk_map) because the format
-has richer invariants and a non-strict fallback path.
+timecodes.txt is validated inline inside tools.validate_artifacts — the
+format is simple enough (`#N | start | end` per line) that a regex suffices.
 """
 
 from __future__ import annotations
