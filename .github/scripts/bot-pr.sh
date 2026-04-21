@@ -17,8 +17,27 @@ BRANCH_PREFIX="$1"; shift
 COMMIT_MSG="$1"; shift
 ADD_PATHS=("$@")
 
-# Stage files
-git add "${ADD_PATHS[@]}"
+# Stage files — glob each path individually and skip patterns that match nothing.
+# Callers may pass optimistic globs (e.g. work/timecodes.txt) that are absent when
+# an upstream job failed; we still want to commit whatever partial artifacts exist.
+shopt -s nullglob
+EXISTING=()
+for pattern in "${ADD_PATHS[@]}"; do
+  matches=($pattern)
+  if [ ${#matches[@]} -gt 0 ]; then
+    EXISTING+=("${matches[@]}")
+  else
+    echo "  (skip: no match for $pattern)"
+  fi
+done
+shopt -u nullglob
+
+if [ ${#EXISTING[@]} -eq 0 ]; then
+  echo "No paths matched any files — nothing to commit"
+  exit 0
+fi
+
+git add "${EXISTING[@]}"
 
 # Check for changes
 if git diff --cached --quiet; then

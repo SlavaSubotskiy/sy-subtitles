@@ -16,6 +16,7 @@ Usage:
 import argparse
 import re
 import unicodedata
+from typing import NamedTuple
 
 from .config import OptimizeConfig
 from .srt_utils import (
@@ -25,6 +26,18 @@ from .srt_utils import (
     ms_to_time,
     parse_srt,
 )
+
+
+class TimeAnchor(NamedTuple):
+    """Reference time range for check_time_range.
+
+    Sourced from whichever timing source the builder used: whisper words
+    (whisper mode) or EN SRT blocks (en-srt mode).
+    """
+
+    start_ms: int
+    end_ms: int
+    label: str
 
 
 def strip_header(text):
@@ -152,39 +165,47 @@ def check_overlaps(srt_blocks, report):
     return len(overlaps) == 0
 
 
-def check_time_range(srt_blocks, whisper_segments, report):
-    """Check that all blocks fall within whisper time range."""
+def check_time_range(srt_blocks, anchor, report):
+    """Check that SRT range is within the anchor timing source's range."""
     report.append("")
     report.append("=" * 60)
-    report.append("  CHECK 3: Time range (vs whisper)")
+    report.append(f"  CHECK 3: Time range (vs {anchor.label})")
     report.append("=" * 60)
-
-    if not whisper_segments:
-        report.append("  Skipped (no whisper data)")
-        return True
-
-    whisper_start_ms = int(whisper_segments[0]["start"] * 1000)
-    whisper_end_ms = int(whisper_segments[-1]["end"] * 1000)
 
     srt_start_ms = srt_blocks[0]["start_ms"] if srt_blocks else 0
     srt_end_ms = srt_blocks[-1]["end_ms"] if srt_blocks else 0
 
-    report.append(f"  Whisper range: {ms_to_time(whisper_start_ms)} — {ms_to_time(whisper_end_ms)}")
-    report.append(f"  SRT range:     {ms_to_time(srt_start_ms)} — {ms_to_time(srt_end_ms)}")
+    report.append(f"  {anchor.label} range: {ms_to_time(anchor.start_ms)} — {ms_to_time(anchor.end_ms)}")
+    report.append(f"  SRT range:       {ms_to_time(srt_start_ms)} — {ms_to_time(srt_end_ms)}")
 
     # Allow 5s tolerance (build_srt adds up to 2s padding on last block + optimizer shifts)
     tolerance_ms = 5000
-    before_speech = srt_start_ms < whisper_start_ms - tolerance_ms
-    after_speech = srt_end_ms > whisper_end_ms + tolerance_ms
+    before = srt_start_ms < anchor.start_ms - tolerance_ms
+    after = srt_end_ms > anchor.end_ms + tolerance_ms
 
-    if before_speech:
-        report.append(f"  WARNING: SRT starts {whisper_start_ms - srt_start_ms}ms before speech")
-    if after_speech:
-        report.append(f"  WARNING: SRT ends {srt_end_ms - whisper_end_ms}ms after speech")
+    if before:
+        report.append(f"  WARNING: SRT starts {anchor.start_ms - srt_start_ms}ms before {anchor.label}")
+    if after:
+        report.append(f"  WARNING: SRT ends {srt_end_ms - anchor.end_ms}ms after {anchor.label}")
 
-    ok = not before_speech and not after_speech
+    ok = not before and not after
     report.append(f"  Time range: {'OK' if ok else 'WARNING'}")
     return ok
+
+
+def _resolve_anchor(en_srt_path, whisper_json_path, report):
+    """Pick the timing anchor for check_time_range. en_srt takes precedence."""
+    if en_srt_path:
+        blocks = parse_srt(en_srt_path)
+        if blocks:
+            report.append(f"  EN SRT blocks: {len(blocks)}")
+            return TimeAnchor(blocks[0]["start_ms"], blocks[-1]["end_ms"], "EN SRT")
+    if whisper_json_path:
+        segs = load_whisper_json(whisper_json_path)
+        if segs:
+            report.append(f"  Whisper segments: {len(segs)}")
+            return TimeAnchor(int(segs[0]["start"] * 1000), int(segs[-1]["end"] * 1000), "whisper")
+    return None
 
 
 def check_sequential_numbering(srt_blocks, report):
@@ -242,6 +263,7 @@ def validate(
     srt_path,
     transcript_path,
     whisper_json_path=None,
+    en_srt_path=None,
     report_path=None,
     skip_text_check=False,
     skip_time_check=False,
@@ -249,6 +271,10 @@ def validate(
     skip_duration_check=False,
 ):
     """Run all validation checks and write report.
+
+    The time-range check compares SRT range against whatever timing anchor
+    is provided: en_srt_path (preferred when supplied — used in en-srt mode)
+    or whisper_json_path (used in whisper mode). At most one should be set.
 
     Returns (passed: bool, report_lines: list[str]).
     """
@@ -260,6 +286,8 @@ def validate(
     report.append("=" * 60)
     report.append(f"  SRT: {srt_path}")
     report.append(f"  Transcript: {transcript_path}")
+    if en_srt_path:
+        report.append(f"  EN SRT: {en_srt_path}")
     if whisper_json_path:
         report.append(f"  Whisper: {whisper_json_path}")
 
@@ -267,10 +295,7 @@ def validate(
     srt_blocks = parse_srt(srt_path)
     report.append(f"  SRT blocks: {len(srt_blocks)}")
 
-    whisper_segments = None
-    if whisper_json_path:
-        whisper_segments = load_whisper_json(whisper_json_path)
-        report.append(f"  Whisper segments: {len(whisper_segments)}")
+    anchor = None if skip_time_check else _resolve_anchor(en_srt_path, whisper_json_path, report)
 
     if skip_text_check:
         report.append("  (text preservation check skipped — offset video)")
@@ -284,11 +309,7 @@ def validate(
     # Run checks
     text_ok = True if skip_text_check else check_text_preservation(srt_blocks, transcript_path, report)
     overlap_ok = check_overlaps(srt_blocks, report)
-    time_ok = (
-        True
-        if skip_time_check
-        else (check_time_range(srt_blocks, whisper_segments, report) if whisper_segments else True)
-    )
+    time_ok = True if anchor is None else check_time_range(srt_blocks, anchor, report)
     numbering_ok = check_sequential_numbering(srt_blocks, report)
     stats = check_statistics(srt_blocks, config, report)
 
@@ -342,7 +363,8 @@ def main():
     parser = argparse.ArgumentParser(description="Validate SRT subtitles")
     parser.add_argument("--srt", required=True, help="SRT file to validate")
     parser.add_argument("--transcript", required=True, help="Source transcript for text comparison")
-    parser.add_argument("--whisper-json", help="Whisper JSON for time range check")
+    parser.add_argument("--whisper-json", help="Whisper JSON for time range check (whisper mode)")
+    parser.add_argument("--en-srt", help="EN SRT for time range check (en-srt mode, preferred over whisper)")
     parser.add_argument("--report", required=True, help="Output report file")
     parser.add_argument(
         "--skip-text-check",
@@ -369,8 +391,9 @@ def main():
     passed, report = validate(
         args.srt,
         args.transcript,
-        args.whisper_json,
-        args.report,
+        whisper_json_path=args.whisper_json,
+        en_srt_path=args.en_srt,
+        report_path=args.report,
         skip_text_check=args.skip_text_check,
         skip_time_check=args.skip_time_check,
         skip_cps_check=args.skip_cps_check,
