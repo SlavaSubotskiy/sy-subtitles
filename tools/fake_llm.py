@@ -11,11 +11,11 @@ Usage:
     python -m tools.fake_llm review \\
         --snapshot ... --talk-dir talks/TALK
 
-    python -m tools.fake_llm build-chunk \\
-        --snapshot ... --work-dir talks/TALK/VIDEO/work --chunk-idx 0
-
-    python -m tools.fake_llm build-en-srt \\
+    python -m tools.fake_llm build-timecodes \\
         --snapshot ... --work-dir talks/TALK/VIDEO/work
+
+    python -m tools.fake_llm whisper \\
+        --snapshot ... --output talks/TALK/VIDEO/source/whisper.json
 """
 
 from __future__ import annotations
@@ -44,33 +44,20 @@ def cmd_translate(args: argparse.Namespace) -> None:
 def cmd_review(args: argparse.Namespace) -> None:
     snapshot = Path(args.snapshot)
     talk_dir = Path(args.talk_dir)
-    # Review is identity: just re-copy transcript_uk.txt and drop a report.
     _copy(snapshot / "transcript_uk.txt", talk_dir / "transcript_uk.txt")
     _copy(snapshot / "review_report.md", talk_dir / "review_report.md")
 
 
-def cmd_build_chunk(args: argparse.Namespace) -> None:
+def cmd_build_timecodes(args: argparse.Namespace) -> None:
     snapshot = Path(args.snapshot)
     work_dir = Path(args.work_dir)
-    src = snapshot / "work" / f"chunk_{args.chunk_idx}_result.txt"
-    dst = work_dir / f"chunk_{args.chunk_idx}_result.txt"
-    _copy(src, dst)
-
-
-def cmd_build_en_srt(args: argparse.Namespace) -> None:
-    snapshot = Path(args.snapshot)
-    work_dir = Path(args.work_dir)
-    _copy(snapshot / "work" / "uk.map", work_dir / "uk.map")
+    _copy(snapshot / "work" / "timecodes.txt", work_dir / "timecodes.txt")
 
 
 def cmd_whisper(args: argparse.Namespace) -> None:
     """Canned whisper.json output — the repo already has it, so just copy it
     from the original location into the expected path inside work tree."""
     snapshot = Path(args.snapshot)
-    # Whisper is never touched during bootstrap; the snapshot just records
-    # where the original lives so fake_llm can always write a fresh copy.
-    # Here we assume talk_dir/video_slug/source/whisper.json is already present
-    # from the repo checkout — so this is a no-op guard step.
     target = Path(args.output)
     if target.is_file():
         print(f"fake_llm whisper: {target} already present — no-op")
@@ -97,16 +84,10 @@ def main() -> None:
     p_rv.add_argument("--talk-dir", required=True)
     p_rv.set_defaults(func=cmd_review)
 
-    p_bc = sub.add_parser("build-chunk")
-    p_bc.add_argument("--snapshot", required=True)
-    p_bc.add_argument("--work-dir", required=True)
-    p_bc.add_argument("--chunk-idx", type=int, required=True)
-    p_bc.set_defaults(func=cmd_build_chunk)
-
-    p_be = sub.add_parser("build-en-srt")
-    p_be.add_argument("--snapshot", required=True)
-    p_be.add_argument("--work-dir", required=True)
-    p_be.set_defaults(func=cmd_build_en_srt)
+    p_bt = sub.add_parser("build-timecodes")
+    p_bt.add_argument("--snapshot", required=True)
+    p_bt.add_argument("--work-dir", required=True)
+    p_bt.set_defaults(func=cmd_build_timecodes)
 
     p_ws = sub.add_parser("whisper")
     p_ws.add_argument("--snapshot", required=True)

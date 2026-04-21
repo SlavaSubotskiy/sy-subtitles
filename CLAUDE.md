@@ -22,8 +22,8 @@ Source language: English. Target language: Ukrainian.
    - **Whisper**: speech detection → `whisper.json` (word-level timestamps)
    - **Translate**: Claude agent translates EN → UK → `transcript_uk.txt`
    - **Review**: 2+1 review (Reviewer L + Reviewer S + Critic)
-   - **Build**: Claude agent creates mapping (`uk.map`) using `builder_data` + whisper,
-     then `build_srt.py` generates `final/uk.srt`
+   - **Build**: single-pass Opus 4.7 agent writes `timecodes.txt` (`#N | start | end`
+     per block); Python merges with `uk_blocks.json` in memory → `final/uk.srt`
    - **Validate**: structural checks (text, CPL, CPS, overlaps, gaps)
    - **Commit**: pushes all results back to repo
 
@@ -36,7 +36,6 @@ Source language: English. Target language: Ukrainian.
 - **`glossary-release.yml`** — glossary releases
 - **`sync-review-status.yml`** — syncs issue labels to `review-status.json`
 - **`new-talk.yml`** — PR-triggered setup for newly added talks
-- **`canary.yml`** — canary run for pipeline health checks
 - **`pipeline-matrix-dryrun.yml`** — matrix dry-run validation of the subtitle pipeline
 
 ## Local Setup
@@ -145,12 +144,10 @@ The pipeline runs: Whisper → Translate → Review → Build subtitles → Comm
 # Download talk from amruta.org
 python -m tools.download --url "https://www.amruta.org/..." [--what all|srt|text]
 
-# Build subtitle mapping (deterministic orchestrator + LLM timing)
-python -m tools.build_map prepare --talk-dir PATH --video-slug SLUG [--timing-source whisper|en-srt]
-python -m tools.build_map assemble --talk-dir PATH --video-slug SLUG
-
-# Build SRT from mapping table
-python -m tools.build_srt --mapping PATH --output PATH --report PATH
+# Build subtitles (deterministic orchestrator; LLM writes timecodes.txt between prepare and assemble)
+python -m tools.build_map prepare        --talk-dir PATH --video-slug SLUG
+python -m tools.build_map prepare-timing --talk-dir PATH --video-slug SLUG [--timing-source whisper|en-srt]
+python -m tools.build_map assemble       --talk-dir PATH --video-slug SLUG
 
 # Validate SRT subtitles
 python -m tools.validate_subtitles --srt PATH --transcript PATH [--whisper-json PATH] --report PATH \
@@ -184,10 +181,6 @@ python -m tools.extract_review --srt PATH [--output PATH]
 
 # Fetch EN+UK transcripts for glossary corpus
 python -m tools.fetch_transcripts [--index PATH] [--slug SLUG] [--delay N] [--cookie COOKIE]
-
-# Generate initial uk.map from transcripts + EN SRT + whisper
-python -m tools.generate_map --transcript PATH --transcript-en PATH \
-  --en-srt PATH --whisper-json PATH --output PATH
 
 # Scan EN transcript for glossary term candidates
 python -m tools.glossary_check --transcript PATH --glossary PATH --report PATH

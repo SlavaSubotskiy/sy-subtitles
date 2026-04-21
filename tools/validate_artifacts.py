@@ -3,7 +3,7 @@
 Usage:
     python -m tools.validate_artifacts --whisper path/to/whisper.json
     python -m tools.validate_artifacts --meta path/to/meta.yaml
-    python -m tools.validate_artifacts --uk-map path/to/uk.map
+    python -m tools.validate_artifacts --timecodes path/to/timecodes.txt [--expected-blocks N]
     python -m tools.validate_artifacts --talk-dir talks/1988-05-08_X  # all of the above
 
 Exits non-zero on the first failure with a clear message — drop it into a
@@ -14,11 +14,13 @@ outputs never propagate.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
 from .schemas import SchemaError, validate_meta_yaml, validate_whisper_json
-from .uk_map import UkMapError, validate_uk_map
+
+TIMECODE_RE = re.compile(r"^#(\d+)\s*\|\s*(\d{2}:\d{2}:\d{2},\d{3})\s*\|\s*(\d{2}:\d{2}:\d{2},\d{3})\s*$")
 
 
 def _fail(msg: str) -> None:
@@ -42,12 +44,37 @@ def _check_meta(path: str) -> None:
     print(f"OK: meta {path}")
 
 
-def _check_uk_map(path: str) -> None:
-    try:
-        validate_uk_map(path)
-    except UkMapError as e:
-        _fail(str(e))
-    print(f"OK: uk.map {path}")
+def _check_timecodes(path: str, expected_blocks: int | None = None) -> None:
+    p = Path(path)
+    if not p.is_file():
+        _fail(f"timecodes: {path} missing")
+
+    seen_ids: set[int] = set()
+    last_id = 0
+    for line_no, raw in enumerate(p.read_text(encoding="utf-8-sig").splitlines(), 1):
+        line = raw.strip()
+        if not line:
+            continue
+        m = TIMECODE_RE.match(line)
+        if not m:
+            _fail(f"timecodes {path}:{line_no}: expected '#N | HH:MM:SS,mmm | HH:MM:SS,mmm', got {line!r}")
+        idx = int(m.group(1))
+        if idx in seen_ids:
+            _fail(f"timecodes {path}:{line_no}: duplicate block id #{idx}")
+        if idx != last_id + 1:
+            _fail(f"timecodes {path}:{line_no}: non-sequential id #{idx} (expected #{last_id + 1})")
+        seen_ids.add(idx)
+        last_id = idx
+        start, end = m.group(2), m.group(3)
+        if start >= end:
+            _fail(f"timecodes {path}:{line_no}: block #{idx} start {start} >= end {end}")
+
+    if not seen_ids:
+        _fail(f"timecodes {path}: no blocks found")
+    if expected_blocks is not None and len(seen_ids) != expected_blocks:
+        _fail(f"timecodes {path}: got {len(seen_ids)} blocks, expected {expected_blocks}")
+
+    print(f"OK: timecodes {path} ({len(seen_ids)} blocks)")
 
 
 def _check_talk_dir(talk_dir: str) -> None:
@@ -62,28 +89,29 @@ def _check_talk_dir(talk_dir: str) -> None:
         w = video_dir / "source" / "whisper.json"
         if w.is_file():
             _check_whisper(str(w))
-        m = video_dir / "work" / "uk.map"
-        if m.is_file():
-            _check_uk_map(str(m))
+        tc = video_dir / "work" / "timecodes.txt"
+        if tc.is_file():
+            _check_timecodes(str(tc))
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Validate pipeline artifacts")
     parser.add_argument("--whisper", help="Path to whisper.json")
     parser.add_argument("--meta", help="Path to meta.yaml")
-    parser.add_argument("--uk-map", dest="uk_map", help="Path to uk.map")
+    parser.add_argument("--timecodes", help="Path to timecodes.txt")
+    parser.add_argument("--expected-blocks", type=int, help="Expected number of blocks in --timecodes")
     parser.add_argument("--talk-dir", help="Validate every artifact under a talk dir")
     args = parser.parse_args()
 
-    if not any([args.whisper, args.meta, args.uk_map, args.talk_dir]):
-        parser.error("at least one of --whisper/--meta/--uk-map/--talk-dir is required")
+    if not any([args.whisper, args.meta, args.timecodes, args.talk_dir]):
+        parser.error("at least one of --whisper/--meta/--timecodes/--talk-dir is required")
 
     if args.whisper:
         _check_whisper(args.whisper)
     if args.meta:
         _check_meta(args.meta)
-    if args.uk_map:
-        _check_uk_map(args.uk_map)
+    if args.timecodes:
+        _check_timecodes(args.timecodes, args.expected_blocks)
     if args.talk_dir:
         _check_talk_dir(args.talk_dir)
 

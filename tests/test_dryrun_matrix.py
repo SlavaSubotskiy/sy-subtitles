@@ -14,7 +14,6 @@ extends coverage without editing this file.
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import sys
@@ -78,10 +77,6 @@ def _run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, check=False)
 
 
-def _chunks_count(work_dir: Path) -> int:
-    return json.loads((work_dir / "build_meta.json").read_text())["n_chunks"]
-
-
 def _run_full_pipeline(case: DryrunCase, scratch: Path) -> None:
     """Replay translate + review + build phases using fake LLM responses
     from the case's snapshot; raise on any phase error."""
@@ -132,7 +127,7 @@ def _run_full_pipeline(case: DryrunCase, scratch: Path) -> None:
         "fake_llm review",
     )
 
-    # build_map prepare (real Python)
+    # build_map prepare (real Python) — splits UK transcript into uk_blocks.json
     run(
         [
             sys.executable,
@@ -147,38 +142,49 @@ def _run_full_pipeline(case: DryrunCase, scratch: Path) -> None:
         "build_map prepare",
     )
 
-    # build-chunks (fake LLM, one per chunk)
-    n_chunks = _chunks_count(video_dir / "work")
-    for i in range(n_chunks):
-        run(
-            [
-                sys.executable,
-                "-m",
-                "tools.fake_llm",
-                "build-chunk",
-                "--snapshot",
-                str(case.snapshot),
-                "--work-dir",
-                str(video_dir / "work"),
-                "--chunk-idx",
-                str(i),
-            ],
-            f"fake_llm build-chunk {i}",
-        )
+    # build_map prepare-timing (real Python) — builds compact timing.json
+    run(
+        [
+            sys.executable,
+            "-m",
+            "tools.build_map",
+            "prepare-timing",
+            "--talk-dir",
+            str(dst_talk),
+            "--video-slug",
+            case.video_slug,
+        ],
+        "build_map prepare-timing",
+    )
 
-    # validate uk.map contract (strict)
+    # build-timecodes (fake LLM — single pass, writes timecodes.txt)
+    run(
+        [
+            sys.executable,
+            "-m",
+            "tools.fake_llm",
+            "build-timecodes",
+            "--snapshot",
+            str(case.snapshot),
+            "--work-dir",
+            str(video_dir / "work"),
+        ],
+        "fake_llm build-timecodes",
+    )
+
+    # validate timecodes format BEFORE assemble — fail early on bad LLM output
     run(
         [
             sys.executable,
             "-m",
             "tools.validate_artifacts",
-            "--talk-dir",
-            str(dst_talk),
+            "--timecodes",
+            str(video_dir / "work" / "timecodes.txt"),
         ],
-        "validate_artifacts",
+        "validate_artifacts timecodes",
     )
 
-    # assemble
+    # assemble — timecodes.txt + uk_blocks.json → uk.srt (in-memory merge)
     run(
         [
             sys.executable,

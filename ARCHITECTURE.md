@@ -49,13 +49,12 @@ sy-subtitles/
 │           ├── source/
 │           │   ├── en.srt          # English subtitles (from Vimeo)
 │           │   └── whisper.json    # Word-level timestamps
-│           ├── work/               # Build intermediates
+│           ├── work/               # Build intermediates (gitignored + timecodes.txt)
 │           │   ├── uk_blocks.json  # Split Ukrainian text blocks
-│           │   ├── build_meta.json # Build parameters
-│           │   └── chunk_*.txt     # LLM prompt chunks
+│           │   ├── timing.json     # Compact whisper words / EN SRT blocks
+│           │   └── timecodes.txt   # LLM output: #N | start | end per block
 │           └── final/
 │               ├── uk.srt          # Final Ukrainian subtitles
-│               ├── uk.map          # Block mapping table
 │               └── report.txt      # Validation report
 ├── glossary/                       # Translation knowledge base
 │   ├── terms_lookup.yaml           # 374 EN→UK terms
