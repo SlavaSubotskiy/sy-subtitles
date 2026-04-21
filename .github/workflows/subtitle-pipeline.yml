@@ -765,10 +765,19 @@ jobs:
             if [ "${slug}" != "${FIRST}" ]; then
               EXTRA_FLAGS="--skip-text-check --skip-time-check"
             fi
+            # Use the same timing source for range-check that the builder used:
+            #   whisper mode → --whisper-json (whisper words anchor)
+            #   en-srt mode  → --en-srt       (EN SRT blocks anchor)
+            ANCHOR_FLAG=""
+            if [ "${{ inputs.timing_source || 'whisper' }}" = "en-srt" ]; then
+              ANCHOR_FLAG="--en-srt ${VIDEO}/source/en.srt"
+            else
+              ANCHOR_FLAG="--whisper-json ${VIDEO}/source/whisper.json"
+            fi
             python -m tools.validate_subtitles \
               --srt "${VIDEO}/final/uk.srt" \
               --transcript "${TALK}/transcript_uk.txt" \
-              --whisper-json "${VIDEO}/source/whisper.json" \
+              ${ANCHOR_FLAG} \
               --skip-duration-check \
               ${EXTRA_FLAGS} \
               --report "${VIDEO}/final/report.txt"
@@ -883,11 +892,27 @@ jobs:
           path: /tmp/translation
 
       - name: Download subtitle artifacts
-        if: needs.build-timecodes.result == 'success'
+        # Upload runs on !cancelled(), so partial artifacts exist even when
+        # build-timecodes failed at a late step (e.g. validate_subtitles).
+        if: needs.build-timecodes.result != 'skipped'
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: subtitles__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: /tmp/subtitles
+
+      - name: Verify subtitle artifacts present
+        # When build-timecodes SUCCEEDED but nothing landed in /tmp/subtitles
+        # (e.g. artifact download transient failure), fail loudly — we must
+        # not silently commit translation-only while claiming success.
+        # On build-timecodes FAILURE, partial or empty artifacts are expected,
+        # so this guard is scoped to success.
+        if: needs.build-timecodes.result == 'success'
+        run: |
+          if [ ! -d /tmp/subtitles ] || [ -z "$(find /tmp/subtitles -type f -print -quit 2>/dev/null)" ]; then
+            echo "::error::build-timecodes succeeded but no subtitle artifacts were downloaded"
+            exit 1
+          fi
 
       - name: Place artifacts into talk directories
         run: |
