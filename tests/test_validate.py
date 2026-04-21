@@ -1,11 +1,18 @@
 """Tests for tools.validate_subtitles — header stripping and validation checks."""
 
+import json
+
+import pytest
+
 from tools.config import OptimizeConfig
 from tools.validate_subtitles import (
+    TimeAnchor,
+    _resolve_anchor,
     check_overlaps,
     check_sequential_numbering,
     check_statistics,
     check_text_preservation,
+    check_time_range,
     extract_words,
     normalize_text,
     strip_header,
@@ -598,3 +605,130 @@ def test_full_validate_fail_gap(tmp_path):
     assert passed is False
     report_text = "\n".join(report)
     assert "[FAIL] Gap" in report_text
+
+
+# ---------------------------------------------------------------------------
+#  TimeAnchor + _resolve_anchor
+# ---------------------------------------------------------------------------
+
+
+def test_time_anchor_build_accepts_valid_range():
+    a = TimeAnchor.build(1000, 5000, "EN SRT")
+    assert a.start_ms == 1000 and a.end_ms == 5000 and a.label == "EN SRT"
+
+
+def test_time_anchor_build_rejects_inverted_range():
+    with pytest.raises(ValueError, match="invalid range"):
+        TimeAnchor.build(5000, 1000, "whisper")
+
+
+def test_time_anchor_build_rejects_negative():
+    with pytest.raises(ValueError, match="invalid range"):
+        TimeAnchor.build(-1, 1000, "EN SRT")
+
+
+def _write_en_srt(tmp_path, blocks):
+    """Write a minimal EN SRT with (start_ms, end_ms, text) tuples."""
+    path = tmp_path / "en.srt"
+    lines = []
+    for i, (s, e, t) in enumerate(blocks, 1):
+
+        def ms(n):
+            h, rem = divmod(n, 3_600_000)
+            m, rem = divmod(rem, 60_000)
+            sec, milli = divmod(rem, 1000)
+            return f"{h:02d}:{m:02d}:{sec:02d},{milli:03d}"
+
+        lines.append(f"{i}\n{ms(s)} --> {ms(e)}\n{t}\n")
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
+
+
+def test_resolve_anchor_en_srt_preferred_over_whisper(tmp_path):
+    srt = _write_en_srt(tmp_path, [(1000, 2000, "one"), (3000, 4000, "two")])
+    whisper = tmp_path / "whisper.json"
+    whisper.write_text(json.dumps({"segments": [{"start": 9.0, "end": 10.0, "words": []}]}), encoding="utf-8")
+
+    report = []
+    anchor = _resolve_anchor(str(srt), str(whisper), report)
+    assert anchor is not None
+    assert anchor.label == "EN SRT"
+    assert anchor.start_ms == 1000 and anchor.end_ms == 4000
+
+
+def test_resolve_anchor_whisper_when_no_en_srt(tmp_path):
+    whisper = tmp_path / "whisper.json"
+    whisper.write_text(
+        json.dumps({"segments": [{"start": 1.5, "end": 2.0, "words": []}, {"start": 7.0, "end": 8.25, "words": []}]}),
+        encoding="utf-8",
+    )
+    report = []
+    anchor = _resolve_anchor(None, str(whisper), report)
+    assert anchor.label == "whisper"
+    assert anchor.start_ms == 1500 and anchor.end_ms == 8250
+
+
+def test_resolve_anchor_none_when_both_missing():
+    assert _resolve_anchor(None, None, []) is None
+
+
+def test_resolve_anchor_raises_on_empty_en_srt(tmp_path):
+    empty = tmp_path / "empty.srt"
+    empty.write_text("", encoding="utf-8")
+    with pytest.raises(ValueError, match="0 blocks"):
+        _resolve_anchor(str(empty), None, [])
+
+
+def test_resolve_anchor_raises_on_empty_whisper(tmp_path):
+    empty = tmp_path / "empty.json"
+    empty.write_text(json.dumps({"segments": []}), encoding="utf-8")
+    with pytest.raises(ValueError, match="0 segments"):
+        _resolve_anchor(None, str(empty), [])
+
+
+# ---------------------------------------------------------------------------
+#  check_time_range (refactored signature)
+# ---------------------------------------------------------------------------
+
+
+def _block(idx, s, e, t="x"):
+    return {"idx": idx, "start_ms": s, "end_ms": e, "text": t}
+
+
+def test_check_time_range_within_anchor():
+    anchor = TimeAnchor.build(1000, 10_000, "EN SRT")
+    blocks = [_block(1, 2000, 3000), _block(2, 5000, 7000)]
+    report = []
+    assert check_time_range(blocks, anchor, report) is True
+    assert any("Time range: OK" in line for line in report)
+
+
+def test_check_time_range_before_anchor_within_tolerance():
+    anchor = TimeAnchor.build(10_000, 20_000, "whisper")
+    # 4s before anchor start — within 5s tolerance
+    blocks = [_block(1, 6_000, 7_000), _block(2, 11_000, 12_000)]
+    assert check_time_range(blocks, anchor, []) is True
+
+
+def test_check_time_range_before_anchor_beyond_tolerance():
+    anchor = TimeAnchor.build(10_000, 20_000, "whisper")
+    blocks = [_block(1, 100, 1000), _block(2, 15_000, 16_000)]
+    report = []
+    assert check_time_range(blocks, anchor, report) is False
+    assert any("starts" in line and "before whisper" in line for line in report)
+
+
+def test_check_time_range_after_anchor_beyond_tolerance():
+    anchor = TimeAnchor.build(0, 5_000, "EN SRT")
+    blocks = [_block(1, 1_000, 2_000), _block(2, 15_000, 20_000)]
+    report = []
+    assert check_time_range(blocks, anchor, report) is False
+    assert any("ends" in line and "after EN SRT" in line for line in report)
+
+
+def test_check_time_range_label_appears_in_report():
+    anchor = TimeAnchor.build(0, 100_000, "EN SRT")
+    blocks = [_block(1, 1_000, 99_000)]
+    report = []
+    check_time_range(blocks, anchor, report)
+    assert any("vs EN SRT" in line for line in report)

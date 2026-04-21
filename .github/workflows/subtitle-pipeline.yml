@@ -901,6 +901,19 @@ jobs:
           name: subtitles__${{ inputs.talk_id }}${{ inputs.dry_run_tag }}
           path: /tmp/subtitles
 
+      - name: Verify subtitle artifacts present
+        # When build-timecodes SUCCEEDED but nothing landed in /tmp/subtitles
+        # (e.g. artifact download transient failure), fail loudly — we must
+        # not silently commit translation-only while claiming success.
+        # On build-timecodes FAILURE, partial or empty artifacts are expected,
+        # so this guard is scoped to success.
+        if: needs.build-timecodes.result == 'success'
+        run: |
+          if [ ! -d /tmp/subtitles ] || [ -z "$(find /tmp/subtitles -type f -print -quit 2>/dev/null)" ]; then
+            echo "::error::build-timecodes succeeded but no subtitle artifacts were downloaded"
+            exit 1
+          fi
+
       - name: Place artifacts into talk directories
         run: |
           TALK_ID="${{ inputs.talk_id }}"

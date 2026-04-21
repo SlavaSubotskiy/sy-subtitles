@@ -16,7 +16,7 @@ Usage:
 import argparse
 import re
 import unicodedata
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 from .config import OptimizeConfig
 from .srt_utils import (
@@ -27,17 +27,26 @@ from .srt_utils import (
     parse_srt,
 )
 
+AnchorLabel = Literal["EN SRT", "whisper"]
+
 
 class TimeAnchor(NamedTuple):
     """Reference time range for check_time_range.
 
     Sourced from whichever timing source the builder used: whisper words
-    (whisper mode) or EN SRT blocks (en-srt mode).
+    (whisper mode) or EN SRT blocks (en-srt mode). Range is enforced
+    non-inverted at construction via `build()`.
     """
 
     start_ms: int
     end_ms: int
-    label: str
+    label: AnchorLabel
+
+    @classmethod
+    def build(cls, start_ms: int, end_ms: int, label: AnchorLabel) -> "TimeAnchor":
+        if start_ms < 0 or end_ms < 0 or start_ms > end_ms:
+            raise ValueError(f"TimeAnchor ({label}): invalid range {start_ms}..{end_ms}")
+        return cls(start_ms, end_ms, label)
 
 
 def strip_header(text):
@@ -193,18 +202,27 @@ def check_time_range(srt_blocks, anchor, report):
     return ok
 
 
-def _resolve_anchor(en_srt_path, whisper_json_path, report):
-    """Pick the timing anchor for check_time_range. en_srt takes precedence."""
+def _resolve_anchor(en_srt_path: str | None, whisper_json_path: str | None, report: list) -> TimeAnchor | None:
+    """Pick the timing anchor for check_time_range.
+
+    Exactly one of en_srt_path / whisper_json_path should be set in a
+    production invocation — the CLI and workflow enforce this. When a path
+    IS set but yields zero blocks/segments, raise ValueError: the caller
+    asked for a check and we can't silently skip it. Returns None only
+    when both paths are None (the caller opted out entirely).
+    """
     if en_srt_path:
         blocks = parse_srt(en_srt_path)
-        if blocks:
-            report.append(f"  EN SRT blocks: {len(blocks)}")
-            return TimeAnchor(blocks[0]["start_ms"], blocks[-1]["end_ms"], "EN SRT")
+        if not blocks:
+            raise ValueError(f"EN SRT at {en_srt_path} produced 0 blocks — cannot anchor time range")
+        report.append(f"  EN SRT blocks: {len(blocks)}")
+        return TimeAnchor.build(blocks[0]["start_ms"], blocks[-1]["end_ms"], "EN SRT")
     if whisper_json_path:
         segs = load_whisper_json(whisper_json_path)
-        if segs:
-            report.append(f"  Whisper segments: {len(segs)}")
-            return TimeAnchor(int(segs[0]["start"] * 1000), int(segs[-1]["end"] * 1000), "whisper")
+        if not segs:
+            raise ValueError(f"whisper.json at {whisper_json_path} has 0 segments — cannot anchor time range")
+        report.append(f"  Whisper segments: {len(segs)}")
+        return TimeAnchor.build(int(segs[0]["start"] * 1000), int(segs[-1]["end"] * 1000), "whisper")
     return None
 
 
@@ -309,7 +327,15 @@ def validate(
     # Run checks
     text_ok = True if skip_text_check else check_text_preservation(srt_blocks, transcript_path, report)
     overlap_ok = check_overlaps(srt_blocks, report)
-    time_ok = True if anchor is None else check_time_range(srt_blocks, anchor, report)
+    if anchor is None:
+        report.append("")
+        report.append("=" * 60)
+        reason = "explicitly skipped" if skip_time_check else "no anchor source supplied"
+        report.append(f"  CHECK 3: Time range — SKIPPED ({reason})")
+        report.append("=" * 60)
+        time_ok = True
+    else:
+        time_ok = check_time_range(srt_blocks, anchor, report)
     numbering_ok = check_sequential_numbering(srt_blocks, report)
     stats = check_statistics(srt_blocks, config, report)
 
@@ -374,7 +400,7 @@ def main():
     parser.add_argument(
         "--skip-time-check",
         action="store_true",
-        help="Skip time range check (for offset-applied videos that extend beyond whisper range)",
+        help="Skip time range check (for offset-applied videos whose range differs from the anchor source)",
     )
     parser.add_argument(
         "--skip-cps-check",
@@ -387,6 +413,9 @@ def main():
         help="Skip duration hard fail (for builder mode — duration is handled by build_srt)",
     )
     args = parser.parse_args()
+
+    if not args.skip_time_check and not args.whisper_json and not args.en_srt:
+        parser.error("time range check requires one of: --whisper-json, --en-srt, or --skip-time-check")
 
     passed, report = validate(
         args.srt,
