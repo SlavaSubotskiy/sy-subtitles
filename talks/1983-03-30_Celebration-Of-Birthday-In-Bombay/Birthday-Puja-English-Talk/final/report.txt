@@ -1,0 +1,74 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-English-Talk/final/uk.srt
+  Transcript: talks/1983-03-30_Celebration-Of-Birthday-In-Bombay/transcript_uk.txt
+  EN SRT: talks/1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-English-Talk/source/en.srt
+  SRT blocks: 283
+  (text preservation check skipped — offset video)
+  (time range check skipped — offset video)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range — SKIPPED (explicitly skipped)
+============================================================
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 283
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 283
+  CPS: avg=10.0, median=8.3, max=78.2
+  CPS > target: 30 (10.6%)
+  CPS > hard max: 11 (3.9%)
+  CPL: avg=53.2, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 8
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #71: CPS=78.2 (83ch/1.1s) "на такому низькому рівні такими нікчемними людьми, що все ст..."
+    #153: CPS=72.6 (77ch/1.1s) "що ми маємо проголосити – нехай Сахаджа Йоґа стане Махайоґою..."
+    #111: CPS=42.4 (39ch/0.9s) "для чого Я не зробила абсолютно нічого."
+    #50: CPS=37.3 (42ch/1.1s) "Якщо Мені потрібно їх носити, яка різниця?"
+    #102: CPS=29.5 (43ch/1.5s) "ті, хто не насолоджується цим вищим життям."
+    #112: CPS=28.9 (57ch/2.0s) "Я не зробила нічого, бо Я не досягла нічого в житті Сама."
+    #58: CPS=27.6 (79ch/2.9s) "Тож як ви кажете: «Мати, благослови нас», Я кажу: «Ви також ..."
+    #103: CPS=27.1 (29ch/1.1s) "Просто не турбуйтеся про них."
+    #133: CPS=24.8 (29ch/1.2s) "бо Я не старію і не молодшаю."
+    #100: CPS=23.1 (52ch/2.3s) "яких не цікавить Сахаджа Йоґа, ті, хто не збирається"
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [FAIL] CPS ≤ 20.0
+
+  Avg CPS: 10.0 (target ≤15.0)
+  CPS > 15.0: 30 blocks
+  CPS > 20.0: 11 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 8 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: FAILED

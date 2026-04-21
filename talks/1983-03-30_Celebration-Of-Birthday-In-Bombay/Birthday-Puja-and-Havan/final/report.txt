@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-and-Havan/final/uk.srt
+  Transcript: talks/1983-03-30_Celebration-Of-Birthday-In-Bombay/transcript_uk.txt
+  EN SRT: talks/1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-and-Havan/source/en.srt
+  SRT blocks: 279
+  EN SRT blocks: 393
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 15596
+  SRT chars: 15596
+  Exact normalized match: OK
+  Transcript words: 2524
+  SRT words: 2524
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs EN SRT)
+============================================================
+  EN SRT range: 00:05:36,440 — 00:33:05,333
+  SRT range:       00:05:36,440 — 00:33:07,362
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 279
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 279
+  CPS: avg=10.8, median=10.8, max=15.0
+  CPS > target: 7 (2.5%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=54.9, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #278: CPS=15.0 (37ch/2.5s) "Не потрібно ні на що просити дозволу."
+    #276: CPS=15.0 (26ch/1.7s) "Я не хочу нічого говорити."
+    #272: CPS=15.0 (58ch/3.9s) "Коли це потрапить у поле вашої уваги, ви будете здивовані."
+    #277: CPS=15.0 (35ch/2.3s) "Виконуйте Пуджу, як вам заманеться."
+    #219: CPS=15.0 (82ch/5.5s) "Якщо щось здається таємничим зараз, то в Сахаджа Йозі все ро..."
+    #275: CPS=15.0 (41ch/2.7s) "Тепер, що б ви не хотіли робити – робіть."
+    #220: CPS=15.0 (59ch/3.9s) "Тож зрозумійте, що ми сидимо на дуже великій землі чесноти."
+    #108: CPS=15.0 (18ch/1.2s) "Ніщо не рухається."
+    #61: CPS=15.0 (70ch/4.7s) "Ви вже благословили Мене цим прекрасним заходом, який ви орг..."
+    #207: CPS=15.0 (67ch/4.5s) "звичайній мові простого народу), саме тоді Махараштрі Бхаша ..."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 10.8 (target ≤15.0)
+  CPS > 15.0: 7 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
