@@ -178,6 +178,41 @@ def test_text_preservation_with_header(tmp_path):
     assert result is True
 
 
+def test_text_preservation_ignores_stage_direction_lines(tmp_path):
+    """`^\\[…\\]$` editorial lines in the transcript must not cause a mismatch.
+
+    The builder strips them via `load_transcript`; the SRT therefore never
+    contains them. Validation must apply the same rule so transcript and
+    SRT round-trip cleanly. Regression guard for the `check_text_preservation`
+    + `load_transcript` contract.
+    """
+    srt_file = tmp_path / "uk.srt"
+    transcript_file = tmp_path / "transcript.txt"
+
+    _write_srt(
+        srt_file,
+        [
+            (1, "00:00:01,000", "00:00:03,000", "Перший бхаджан заспівано."),
+            (2, "00:00:03,500", "00:00:06,000", "Багато людей запитували Мене."),
+        ],
+    )
+    _write_transcript(
+        transcript_file,
+        "Мова промови: англійська\n\n"
+        "[Промова англійською]\n"
+        "Перший бхаджан заспівано.\n"
+        "[Переклад з маратхі на англійську]\n"
+        "Багато людей запитували Мене.\n"
+        "[Музика]\n",
+    )
+
+    from tools.srt_utils import parse_srt
+
+    blocks = parse_srt(str(srt_file))
+    report = []
+    assert check_text_preservation(blocks, str(transcript_file), report) is True
+
+
 # ---------------------------------------------------------------------------
 #  CHECK 2: Overlap detection
 # ---------------------------------------------------------------------------

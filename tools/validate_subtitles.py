@@ -26,6 +26,7 @@ from .srt_utils import (
     ms_to_time,
     parse_srt,
 )
+from .text_segmentation import load_transcript
 
 AnchorLabel = Literal["EN SRT", "whisper"]
 
@@ -85,9 +86,15 @@ def extract_words(text):
 
 
 def check_text_preservation(srt_blocks, transcript_path, report):
-    """Check that all transcript text appears in SRT and vice versa."""
-    with open(transcript_path, encoding="utf-8") as f:
-        transcript_text = strip_header(f.read())
+    """Check that all transcript text appears in SRT and vice versa.
+
+    Reads the transcript via `load_transcript` so that editorial metadata
+    (header lines and `^\\[…\\]$` stage-direction lines like
+    `[Промова англійською]`) is stripped consistently with the builder's
+    view. Without this, the SRT — which never contains those lines — would
+    always mismatch the raw transcript.
+    """
+    transcript_text = " ".join(load_transcript(transcript_path))
 
     srt_text = " ".join(b["text"] for b in srt_blocks)
 
