@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-19T20:18:50.063122+00:00",
+  "updated_at": "2026-04-22T22:41:51.222132+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -36,7 +36,7 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 7,
-      "updated_at": "2026-04-15T13:10:09Z"
+      "updated_at": "2026-04-22T18:15:04Z"
     },
     "1983-07-24_Guru-Puja-Awakening-The-Principle-Of-Guru": {
       "status": "approved",
@@ -48,7 +48,7 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 9,
-      "updated_at": "2026-04-15T13:10:13Z"
+      "updated_at": "2026-04-22T18:32:30Z"
     },
     "1992-07-19_Guru-Puja": {
       "status": "pending",
@@ -72,7 +72,7 @@
       "status": "pending",
       "reviewer": null,
       "issue_number": 26,
-      "updated_at": "2026-04-15T13:10:16Z"
+      "updated_at": "2026-04-22T19:49:09Z"
     },
     "2001-07-29_Shri-Krishna-Puja-New-York": {
       "status": "approved",
@@ -97,6 +97,24 @@
       "reviewer": "SlavaSubotskiy",
       "issue_number": 70,
       "updated_at": "2026-04-15T13:20:21Z"
+    },
+    "1982-04-22_All-is-so-Beautifully-Made": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 127,
+      "updated_at": "2026-04-22T22:41:44Z"
+    },
+    "2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 124,
+      "updated_at": "2026-04-22T22:08:32Z"
+    },
+    "1979-04-22_Give-up-Misidentifications": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 118,
+      "updated_at": "2026-04-22T21:26:56Z"
     }
   }
 }
