@@ -47,6 +47,20 @@ def load_transcript(path: str) -> list[str]:
 
     body = "\n".join(lines[body_start:])
 
+    # Drop editorial stage-direction lines — a line that is *entirely* bracketed
+    # (e.g. "[Промова англійською]", "[Marathi to English translation]", "[Музика]")
+    # is metadata for the human reader describing what is happening in the
+    # audio; it has no counterpart in en.srt and must not appear as a subtitle.
+    # Inline bracketed content inside a sentence is left alone — translator
+    # clarifications belong in square brackets (see feedback_translation_brackets).
+    body_lines = []
+    for ln in body.split("\n"):
+        stripped = ln.strip()
+        if stripped and re.fullmatch(r"\[[^\[\]]+\]", stripped):
+            continue
+        body_lines.append(ln)
+    body = "\n".join(body_lines)
+
     if "\n\n" in body:
         paragraphs = [p.strip() for p in re.split(r"\n\n+", body) if p.strip()]
     else:

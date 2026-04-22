@@ -67,6 +67,7 @@ KNOWN_BROKEN_VALIDATION: dict[str, str] = {
     "1982-07-11_From-Heart-To-Sahastrar-Derby/From-Heart-to-Sahasrara": "text preservation drift",
     "1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-English-Talk": "text preservation drift",
     "1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet": "duration > 21s",
+    "1984-03-22_Birthday-Puja/Birthday-Puja-Talk-Be-Sweet": "legacy SRT contains stripped stage directions; rebuild via pipeline",
 }
 
 KNOWN_NON_IDEMPOTENT: dict[str, str] = {
@@ -81,6 +82,7 @@ KNOWN_NON_IDEMPOTENT: dict[str, str] = {
     "1982-07-11_From-Heart-To-Sahastrar-Derby/From-Heart-to-Sahasrara": "text preservation drift",
     "1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-English-Talk": "text preservation drift",
     "1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet": "high CPS from merged stage-direction blocks; fixed by opus-single-pass rebuild",
+    "1984-03-22_Birthday-Puja/Birthday-Puja-Talk-Be-Sweet": "legacy SRT contains stripped stage directions; rebuild via pipeline",
 }
 
 
