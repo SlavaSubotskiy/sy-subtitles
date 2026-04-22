@@ -11,16 +11,12 @@
 ============================================================
   CHECK 1: Text preservation
 ============================================================
-  Transcript chars: 15596
+  Transcript chars: 15482
   SRT chars: 15482
-  Exact normalized match: MISMATCH
-  Transcript words: 2524
+  Exact normalized match: OK
+  Transcript words: 2510
   SRT words: 2510
-  Word-level match: MISMATCH
-
-  First difference at word 0:
-    Transcript: ...[Промова англійською] [Переклад з...
-    SRT:        ...Перший бхаджан «Бхай кайя...
+  Word-level match: OK
 
 ============================================================
   CHECK 2: Timing overlaps
@@ -71,7 +67,7 @@
 ============================================================
   SUMMARY
 ============================================================
-  [FAIL] Text preservation
+  [PASS] Text preservation
   [PASS] No overlaps
   [PASS] Time range
   [PASS] Sequential numbering
@@ -87,4 +83,4 @@
   Duration > 21000ms: 0 blocks
   Gaps < 80ms: 0 blocks
 
-  Overall: FAILED
+  Overall: PASSED
