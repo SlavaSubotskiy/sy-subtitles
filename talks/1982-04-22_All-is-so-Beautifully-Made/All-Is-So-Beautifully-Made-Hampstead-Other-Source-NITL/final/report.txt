@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1982-04-22_All-is-so-Beautifully-Made/All-Is-So-Beautifully-Made-Hampstead-Other-Source-NITL/final/uk.srt
+  Transcript: talks/1982-04-22_All-is-so-Beautifully-Made/transcript_uk.txt
+  EN SRT: talks/1982-04-22_All-is-so-Beautifully-Made/All-Is-So-Beautifully-Made-Hampstead-Other-Source-NITL/source/en.srt
+  SRT blocks: 578
+  EN SRT blocks: 569
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 30907
+  SRT chars: 30907
+  Exact normalized match: OK
+  Transcript words: 5102
+  SRT words: 5102
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs EN SRT)
+============================================================
+  EN SRT range: 00:00:03,600 — 00:56:26,320
+  SRT range:       00:00:03,600 — 00:56:28,320
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 578
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 578
+  CPS: avg=9.7, median=9.7, max=15.0
+  CPS > target: 0 (0.0%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=52.5, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #541: CPS=15.0 (45ch/3.0s) "Не можна примусити, – бо ви є вільною особою,"
+    #539: CPS=14.8 (82ch/5.5s) "Але якщо ви скажете їм просто подати руки ось так, – бо зреш..."
+    #537: CPS=14.8 (72ch/4.9s) "дадуть йому п'ятсот фунтів, знову вклоняться і повернуться в..."
+    #540: CPS=14.6 (42ch/2.9s) "Крім того, ви самі маєте про це попросити."
+    #281: CPS=14.4 (24ch/1.7s) "Подивімося правді в очі!"
+    #554: CPS=14.3 (24ch/1.7s) "Тут немає чого лякатися."
+    #538: CPS=14.2 (26ch/1.8s) "Я зустрічала багато таких."
+    #555: CPS=14.2 (27ch/1.9s) "Кундаліні нікого не турбує."
+    #536: CPS=14.2 (60ch/4.2s) "А якщо є ґуру, – вони вклонятимуться йому тисячу й один раз,"
+    #527: CPS=14.2 (28ch/2.0s) "Отже, вони показані ось тут."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 9.7 (target ≤15.0)
+  CPS > 15.0: 0 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
