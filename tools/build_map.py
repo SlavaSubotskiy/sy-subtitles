@@ -128,18 +128,25 @@ def cmd_assemble(args):
         if m:
             all_timecodes[int(m.group(1))] = (m.group(2), m.group(3))
 
+    # UK blocks may legitimately skip timecodes in en-srt mode — Opus is
+    # instructed to drop UK blocks without an EN SRT counterpart (closing
+    # signatures, trailing stage directions, transcript content past the
+    # last EN block). Whisper mode still produces timecodes for every id,
+    # but the validator step already enforced that upstream, so here we
+    # just skip any uk_block whose id is absent and log the count.
     expected = {b["id"] for b in uk_blocks}
     missing = sorted(expected - set(all_timecodes.keys()))
     if missing:
         print(
-            f"ERROR: {len(missing)} blocks missing timecodes: {missing[:20]}{'...' if len(missing) > 20 else ''}",
+            f"  {len(missing)} UK blocks skipped (no timecode): {missing[:20]}{'...' if len(missing) > 20 else ''}",
             file=sys.stderr,
         )
-        sys.exit(1)
 
     blocks = []
     for block in uk_blocks:
         bid = block["id"]
+        if bid not in all_timecodes:
+            continue
         start_tc, end_tc = all_timecodes[bid]
         start_ms = time_to_ms(start_tc)
         end_ms = time_to_ms(end_tc)
