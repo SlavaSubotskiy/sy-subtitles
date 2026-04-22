@@ -3,24 +3,20 @@
 ============================================================
   SRT: talks/1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet/final/uk.srt
   Transcript: talks/1984-03-22_Birthday-Puja/transcript_uk.txt
-  Whisper: talks/1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet/source/whisper.json
-  SRT blocks: 617
-  Whisper segments: 439
+  EN SRT: talks/1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet/source/en.srt
+  SRT blocks: 587
+  EN SRT blocks: 153
   (duration hard fail skipped — builder mode)
 
 ============================================================
   CHECK 1: Text preservation
 ============================================================
-  Transcript chars: 31239
-  SRT chars: 31098
-  Exact normalized match: MISMATCH
-  Transcript words: 5128
-  SRT words: 5109
-  Word-level match: MISMATCH
-
-  First difference at word 19:
-    Transcript: ...[Переклад з маратхі] [Промова англійською] [Переклад з...
-    SRT:        ...[Переклад з маратхі] Я вклоняюся всім сахаджа...
+  Transcript chars: 31059
+  SRT chars: 31059
+  Exact normalized match: OK
+  Transcript words: 5127
+  SRT words: 5127
+  Word-level match: OK
 
 ============================================================
   CHECK 2: Timing overlaps
@@ -28,50 +24,50 @@
   Overlapping blocks: 0
 
 ============================================================
-  CHECK 3: Time range (vs whisper)
+  CHECK 3: Time range (vs EN SRT)
 ============================================================
-  Whisper range: 00:00:02,120 — 02:44:45,730
-  SRT range:     00:00:01,239 — 00:42:41,546
+  EN SRT range: 00:00:02,611 — 00:42:39,546
+  SRT range:       00:00:00,000 — 00:42:41,546
   Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 617
+  Total blocks: 587
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 617
-  CPS: avg=15.5, median=16.2, max=27.0
-  CPS > target: 341 (55.3%)
-  CPS > hard max: 77 (12.5%)
-  CPL: avg=49.4, max=84
+  Total blocks: 587
+  CPS: avg=12.4, median=11.4, max=26.5
+  CPS > target: 75 (12.8%)
+  CPS > hard max: 3 (0.5%)
+  CPL: avg=51.9, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
-  Duration < min: 5
+  Duration < min: 3
   Duration > max: 0
   Overlaps: 0
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #399: CPS=27.0 (84ch/3.1s) "Однак бути традиційною – це не значить, що заміжня жінка пов..."
-    #137: CPS=26.7 (83ch/3.1s) "Тож краще не думати багато про це, кажучи: «Я засмучений, у ..."
-    #213: CPS=26.7 (84ch/3.1s) "або вийдуть на сцену, або зможуть показати свою спритність, ..."
-    #176: CPS=26.4 (82ch/3.1s) "З іншого боку, вони впадуть до стоп факіра чи садху, якщо по..."
-    #432: CPS=26.4 (82ch/3.1s) "Що я можу для вас зробити?» Ви знаєте, цар Харішчандра подар..."
-    #367: CPS=26.4 (82ch/3.1s) "про Сахаджа Йоґу – що Шрі Матаджі дала нам Сахаджа Йоґу, і м..."
-    #257: CPS=26.1 (83ch/3.2s) "Сьогодні вони (на вершині справ) літають у небі, а наступног..."
-    #423: CPS=26.0 (81ch/3.1s) "घृणा वाटते – Я тебе ненавиджу)», наші люди поб'ють вас і від..."
-    #188: CPS=25.7 (80ch/3.1s) "По-друге, якщо щось негативне є в нас, його наслідки відобра..."
-    #366: CPS=25.7 (80ch/3.1s) "Запрошуйте жінок на зустрічі (відомі як програми Халді-Кумку..."
+    #479: CPS=26.5 (26ch/1.0s) "Якщо ви кричите на людину,"
+    #516: CPS=25.0 (62ch/2.5s) "Навпаки, ви маєте казати: «Я такий хороший. Що зі мною не та..."
+    #493: CPS=20.3 (43ch/2.1s) "Ось що ви маєте розвивати – цю силу любові."
+    #496: CPS=19.0 (51ch/2.7s) "не доведеться кричати, не доведеться нічого казати."
+    #478: CPS=18.9 (61ch/3.2s) "Якщо ви маєте Мої сили, ви можете це робити; але ви не маєте..."
+    #464: CPS=18.5 (45ch/2.4s) "ставити їх у ситуації, де їх можуть образити."
+    #518: CPS=18.3 (68ch/3.7s) "Що зі мною не так?» Майте цю впевненість у собі, і тоді все ..."
+    #490: CPS=18.3 (77ch/4.2s) "Вони хочуть, вони провокують вас, вони провокують вас, щоб в..."
+    #514: CPS=17.9 (32ch/1.8s) "Я нікуди не гожуся. Я зробив це."
+    #513: CPS=17.6 (45ch/2.6s) "«Як це зі мною відбувається? Я такий поганий."
 
 ============================================================
   SUMMARY
 ============================================================
-  [FAIL] Text preservation
+  [PASS] Text preservation
   [PASS] No overlaps
   [PASS] Time range
   [PASS] Sequential numbering
@@ -79,11 +75,11 @@
   [PASS] Gap ≥ 80ms
   [FAIL] CPS ≤ 20.0
 
-  Avg CPS: 15.5 (target ≤15.0)
-  CPS > 15.0: 341 blocks
-  CPS > 20.0: 77 blocks
+  Avg CPS: 12.4 (target ≤15.0)
+  CPS > 15.0: 75 blocks
+  CPS > 20.0: 3 blocks
   CPL > 84: 0 blocks
-  Duration < 1200ms: 5 blocks
+  Duration < 1200ms: 3 blocks
   Duration > 21000ms: 0 blocks
   Gaps < 80ms: 0 blocks
 
