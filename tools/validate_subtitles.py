@@ -194,10 +194,16 @@ def check_time_range(srt_blocks, anchor, report):
     report.append(f"  {anchor.label} range: {ms_to_time(anchor.start_ms)} — {ms_to_time(anchor.end_ms)}")
     report.append(f"  SRT range:       {ms_to_time(srt_start_ms)} — {ms_to_time(srt_end_ms)}")
 
-    # Allow 5s tolerance (build_srt adds up to 2s padding on last block + optimizer shifts)
-    tolerance_ms = 5000
-    before = srt_start_ms < anchor.start_ms - tolerance_ms
-    after = srt_end_ms > anchor.end_ms + tolerance_ms
+    # Asymmetric tolerance. Title-card / intro subtitles commonly sit before
+    # the first spoken word — many transcripts include a title paragraph
+    # ("Пуджа …, Мумбай (Індія), 22 березня 1984.") that legitimately plays
+    # over up to ~60s of pre-speech silence or music. Subtitles running
+    # *past* the last whisper word, in contrast, usually signal a mapping
+    # bug, so the post-anchor tolerance stays tight.
+    pre_anchor_tolerance_ms = 60_000
+    post_anchor_tolerance_ms = 5_000
+    before = srt_start_ms < anchor.start_ms - pre_anchor_tolerance_ms
+    after = srt_end_ms > anchor.end_ms + post_anchor_tolerance_ms
 
     if before:
         report.append(f"  WARNING: SRT starts {anchor.start_ms - srt_start_ms}ms before {anchor.label}")

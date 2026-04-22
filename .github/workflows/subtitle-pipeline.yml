@@ -928,9 +928,16 @@ jobs:
           fi
 
       - name: Place artifacts into talk directories
+        # BUILD_RESULT gates the subtitle copy — skip when validation failed
+        # so the broken SRT does not end up on main as the next run's
+        # baseline. Translation artifacts are always copied so progress
+        # survives a build failure. `needs.build-timecodes.result` is a
+        # workflow-controlled enum (success/failure/cancelled/skipped),
+        # not user input — using `env:` anyway as the safe default.
+        env:
+          BUILD_RESULT: ${{ needs.build-timecodes.result }}
+          TALK_ID: ${{ inputs.talk_id }}
         run: |
-          TALK_ID="${{ inputs.talk_id }}"
-
           # Translation
           if [ -d /tmp/translation ]; then
             echo "=== Translation artifacts ==="
@@ -944,8 +951,10 @@ jobs:
             done
           fi
 
-          # Subtitles
-          if [ -d /tmp/subtitles ]; then
+          # Subtitles — only when build-timecodes succeeded (validation passed).
+          if [ "$BUILD_RESULT" != "success" ]; then
+            echo "=== Subtitle artifacts SKIPPED (build-timecodes=$BUILD_RESULT) ==="
+          elif [ -d /tmp/subtitles ]; then
             echo "=== Subtitle artifacts ==="
             find /tmp/subtitles -type f
             find /tmp/subtitles \( -name "uk.srt" -o -name "timecodes.txt" -o -name "report.txt" -o -name "build_report.txt" \) | while read src; do

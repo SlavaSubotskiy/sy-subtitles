@@ -739,15 +739,27 @@ def test_check_time_range_within_anchor():
 
 
 def test_check_time_range_before_anchor_within_tolerance():
-    anchor = TimeAnchor.build(10_000, 20_000, "whisper")
-    # 4s before anchor start — within 5s tolerance
-    blocks = [_block(1, 6_000, 7_000), _block(2, 11_000, 12_000)]
+    anchor = TimeAnchor.build(60_000, 70_000, "whisper")
+    # 55s before anchor start — within the 60s pre-anchor tolerance.
+    blocks = [_block(1, 5_000, 6_000), _block(2, 61_000, 62_000)]
     assert check_time_range(blocks, anchor, []) is True
+
+
+def test_check_time_range_title_subtitle_before_speech_passes():
+    """Title-card subtitles can legitimately sit up to ~60s before the first
+    spoken word (pre-speech silence / intro music). Regression guard for
+    the widened pre-anchor tolerance."""
+    anchor = TimeAnchor.build(53_000, 3_600_000, "whisper")
+    # Block #1 is a title-card at 0-10s; speech subtitles resume after 53s.
+    blocks = [_block(1, 0, 10_000), _block(2, 55_000, 60_000)]
+    report = []
+    assert check_time_range(blocks, anchor, report) is True
 
 
 def test_check_time_range_before_anchor_beyond_tolerance():
     anchor = TimeAnchor.build(10_000, 20_000, "whisper")
-    blocks = [_block(1, 100, 1000), _block(2, 15_000, 16_000)]
+    # 70s before anchor — past the 60s pre-anchor tolerance.
+    blocks = [_block(1, -60_000, -59_000), _block(2, 15_000, 16_000)]
     report = []
     assert check_time_range(blocks, anchor, report) is False
     assert any("starts" in line and "before whisper" in line for line in report)
