@@ -4,18 +4,18 @@
   SRT: talks/1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet/final/uk.srt
   Transcript: talks/1984-03-22_Birthday-Puja/transcript_uk.txt
   EN SRT: talks/1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet/source/en.srt
-  SRT blocks: 587
+  SRT blocks: 585
   EN SRT blocks: 153
   (duration hard fail skipped — builder mode)
 
 ============================================================
   CHECK 1: Text preservation
 ============================================================
-  Transcript chars: 31059
-  SRT chars: 31059
+  Transcript chars: 30973
+  SRT chars: 30973
   Exact normalized match: OK
-  Transcript words: 5127
-  SRT words: 5127
+  Transcript words: 5117
+  SRT words: 5117
   Word-level match: OK
 
 ============================================================
@@ -27,42 +27,42 @@
   CHECK 3: Time range (vs EN SRT)
 ============================================================
   EN SRT range: 00:00:02,611 — 00:42:39,546
-  SRT range:       00:00:00,000 — 00:42:41,546
+  SRT range:       00:00:00,000 — 00:42:41,569
   Time range: OK
 
 ============================================================
   CHECK 4: Sequential numbering
 ============================================================
-  Total blocks: 587
+  Total blocks: 585
   Numbering errors: 0
 
 ============================================================
   SUBTITLE STATISTICS
 ============================================================
-  Total blocks: 587
-  CPS: avg=12.4, median=11.4, max=26.5
-  CPS > target: 75 (12.8%)
-  CPS > hard max: 3 (0.5%)
+  Total blocks: 585
+  CPS: avg=12.3, median=11.4, max=19.7
+  CPS > target: 76 (13.0%)
+  CPS > hard max: 0 (0.0%)
   CPL: avg=51.9, max=84
   CPL > max: 0 (0.0%)
   Chars > max block: 0 (0.0%)
   Lines > max: 0
-  Duration < min: 3
+  Duration < min: 2
   Duration > max: 0
   Overlaps: 0
   Gaps < min: 0
 
   Worst CPS blocks (top 10):
-    #479: CPS=26.5 (26ch/1.0s) "Якщо ви кричите на людину,"
-    #516: CPS=25.0 (62ch/2.5s) "Навпаки, ви маєте казати: «Я такий хороший. Що зі мною не та..."
-    #493: CPS=20.3 (43ch/2.1s) "Ось що ви маєте розвивати – цю силу любові."
-    #496: CPS=19.0 (51ch/2.7s) "не доведеться кричати, не доведеться нічого казати."
-    #478: CPS=18.9 (61ch/3.2s) "Якщо ви маєте Мої сили, ви можете це робити; але ви не маєте..."
-    #464: CPS=18.5 (45ch/2.4s) "ставити їх у ситуації, де їх можуть образити."
-    #518: CPS=18.3 (68ch/3.7s) "Що зі мною не так?» Майте цю впевненість у собі, і тоді все ..."
-    #490: CPS=18.3 (77ch/4.2s) "Вони хочуть, вони провокують вас, вони провокують вас, щоб в..."
-    #514: CPS=17.9 (32ch/1.8s) "Я нікуди не гожуся. Я зробив це."
-    #513: CPS=17.6 (45ch/2.6s) "«Як це зі мною відбувається? Я такий поганий."
+    #530: CPS=19.7 (30ch/1.5s) "обличчям), тоді Я просто знаю,"
+    #493: CPS=18.5 (35ch/1.9s) "Тоді вам не доведеться хвилюватися,"
+    #478: CPS=18.4 (59ch/3.2s) "яка має бхутів (Шрі Матаджі сміється), ви отримуєте бхутів."
+    #514: CPS=18.4 (62ch/3.4s) "Навпаки, ви маєте казати: «Я такий хороший. Що зі мною не та..."
+    #494: CPS=18.3 (51ch/2.8s) "не доведеться кричати, не доведеться нічого казати."
+    #529: CPS=18.1 (33ch/1.8s) "розумієте (спотвореним, скрученим"
+    #501: CPS=17.6 (58ch/3.3s) "Якщо ви кричите на когось в его-орієнтованому суспільстві,"
+    #502: CPS=17.1 (42ch/2.5s) "ви завжди їх відштовхнете, і вони втечуть."
+    #489: CPS=17.1 (63ch/3.7s) "і ви повністю зруйнуєтеся, чим більше ви намагаєтеся це роби..."
+    #508: CPS=17.1 (37ch/2.2s) "Намагайтеся мати мир із самими собою."
 
 ============================================================
   SUMMARY
@@ -73,14 +73,14 @@
   [PASS] Sequential numbering
   [PASS] CPL ≤ 84
   [PASS] Gap ≥ 80ms
-  [FAIL] CPS ≤ 20.0
+  [PASS] CPS ≤ 20.0
 
-  Avg CPS: 12.4 (target ≤15.0)
-  CPS > 15.0: 75 blocks
-  CPS > 20.0: 3 blocks
+  Avg CPS: 12.3 (target ≤15.0)
+  CPS > 15.0: 76 blocks
+  CPS > 20.0: 0 blocks
   CPL > 84: 0 blocks
-  Duration < 1200ms: 3 blocks
+  Duration < 1200ms: 2 blocks
   Duration > 21000ms: 0 blocks
   Gaps < 80ms: 0 blocks
 
-  Overall: FAILED
+  Overall: PASSED

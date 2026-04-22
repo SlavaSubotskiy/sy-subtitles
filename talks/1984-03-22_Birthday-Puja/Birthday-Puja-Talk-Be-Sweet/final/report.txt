@@ -1,0 +1,74 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1984-03-22_Birthday-Puja/Birthday-Puja-Talk-Be-Sweet/final/uk.srt
+  Transcript: talks/1984-03-22_Birthday-Puja/transcript_uk.txt
+  EN SRT: talks/1984-03-22_Birthday-Puja/Birthday-Puja-Talk-Be-Sweet/source/en.srt
+  SRT blocks: 570
+  (text preservation check skipped — offset video)
+  (time range check skipped — offset video)
+  (CPS hard fail skipped — builder mode)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range — SKIPPED (explicitly skipped)
+============================================================
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 570
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 570
+  CPS: avg=69.8, median=86.0, max=138.6
+  CPS > target: 476 (83.5%)
+  CPS > hard max: 420 (73.7%)
+  CPL: avg=52.1, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 415
+  Duration > max: 1
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #385: CPS=138.6 (14ch/0.1s) "Навіщо все це?"
+    #35: CPS=131.6 (15ch/0.1s) "Причина в тому,"
+    #424: CPS=120.4 (39ch/0.3s) "Мені буде дуже радісно почути ці слова."
+    #192: CPS=117.6 (18ch/0.2s) "«Шрі Матаджі, що я"
+    #327: CPS=117.6 (18ch/0.2s) "Так само і з вами."
+    #425: CPS=116.1 (52ch/0.4s) "Тож сьогодні Я прошу у вас подарунок любові та миру."
+    #221: CPS=112.4 (20ch/0.2s) "Чи любите ви когось?"
+    #418: CPS=112.4 (20ch/0.2s) "Тепер Я – ваша Мати."
+    #69: CPS=111.7 (20ch/0.2s) "Ви маєте це зробити."
+    #74: CPS=109.9 (21ch/0.2s) "Ви можете це зробити."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+
+  Avg CPS: 69.8 (target ≤15.0)
+  CPS > 15.0: 476 blocks
+  CPS > 20.0: 420 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 415 blocks
+  Duration > 21000ms: 1 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
