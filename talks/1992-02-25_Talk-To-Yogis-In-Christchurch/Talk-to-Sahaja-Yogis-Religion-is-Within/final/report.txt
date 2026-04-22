@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1992-02-25_Talk-To-Yogis-In-Christchurch/Talk-to-Sahaja-Yogis-Religion-is-Within/final/uk.srt
+  Transcript: talks/1992-02-25_Talk-To-Yogis-In-Christchurch/transcript_uk.txt
+  Whisper: talks/1992-02-25_Talk-To-Yogis-In-Christchurch/Talk-to-Sahaja-Yogis-Religion-is-Within/source/whisper.json
+  SRT blocks: 560
+  Whisper segments: 619
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 30841
+  SRT chars: 30841
+  Exact normalized match: OK
+  Transcript words: 5270
+  SRT words: 5270
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs whisper)
+============================================================
+  whisper range: 00:00:52,980 — 01:00:35,380
+  SRT range:       00:00:00,000 — 00:49:55,501
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 560
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 560
+  CPS: avg=10.7, median=10.6, max=15.1
+  CPS > target: 4 (0.7%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=54.1, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 1
+  Duration > max: 1
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #145: CPS=15.1 (48ch/3.2s) "Він сказав: «Добре, проходьте.» І він їх привів."
+    #144: CPS=15.0 (49ch/3.3s) "Вони сказали: «Чому ні?» Їх було четверо-п'ятеро."
+    #147: CPS=15.0 (62ch/4.1s) "«Поставте руки отак.» Вони всі почали трястися, і тоді втекл..."
+    #146: CPS=15.0 (37ch/2.5s) "Він поставив Мою Фотографію і сказав:"
+    #148: CPS=15.0 (36ch/2.4s) "Тож ці учні Раджніша – найскладніші."
+    #141: CPS=15.0 (55ch/3.7s) "Тож він написав у своєму ашрамі, [НЕРОЗБІРЛИВО] ашрамі,"
+    #143: CPS=15.0 (43ch/2.9s) "Тож вони дуже агресивні, тож вони вдерлися."
+    #142: CPS=15.0 (65ch/4.3s) "який він має в Дхарамшалі, що жодним учням Раджніша не дозво..."
+    #428: CPS=14.2 (37ch/2.6s) "Чому ви його цитуєте? Чому не Христа?"
+    #421: CPS=14.1 (61ch/4.3s) "В Італії – те саме. Тепер вони нічого не можуть з цим вдіяти..."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 10.7 (target ≤15.0)
+  CPS > 15.0: 4 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 1 blocks
+  Duration > 21000ms: 1 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
