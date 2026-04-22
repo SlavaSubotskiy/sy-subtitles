@@ -76,6 +76,7 @@ KNOWN_NON_IDEMPOTENT: dict[str, str] = {
     # pass drifts differently. These overlap with KNOWN_BROKEN_VALIDATION
     # entries where the drift is in text preservation, not duration (the
     # duration-only talks now pass because the test uses skip_duration_check).
+    "1979-02-25_Puja-In-Pune-Marathi/Mahashivaratri-Puja": "legacy SRT still contains stage-direction-only blocks that validate now strips from the transcript",
     "1979-12-10_Christmas-And-Its-Relationship-To-Lord-Jesus-1979-2/The-Incarnation-Of-Christ": "text preservation drift",
     "1980-03-23_Birthday-Puja/Birthday-Puja": "text preservation drift",
     "1981-03-21_Birthday-Puja-1981-Sydney/Birthday-Puja-Talk": "text preservation drift",
