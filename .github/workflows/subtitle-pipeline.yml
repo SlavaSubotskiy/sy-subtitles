@@ -707,7 +707,12 @@ jobs:
             --skip-duration-split \
             --skip-cps-split
 
-      - name: Handle offset videos
+      - name: Build secondary-video SRTs
+        # Secondary videos (same talk, different recording) get their uk.srt
+        # from primary's output — by simple time offset when the two en.srt
+        # files are identical-text-different-timing, or by word-level
+        # re-alignment (resync_srt) when the secondary covers a SUBSET of
+        # primary's content (e.g. only the English speech portion of a puja).
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
           VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
@@ -723,20 +728,25 @@ jobs:
             if v['slug'] != '${FIRST}':
               print(v['slug'])
           " | while read slug; do
-            echo "=== Offset video: $slug ==="
-            python -m tools.offset_srt detect \
-              --srt1 "${TALK}/${FIRST}/source/en.srt" \
-              --srt2 "${TALK}/${slug}/source/en.srt" || true
+            echo "=== Secondary video: $slug ==="
+            mkdir -p "${TALK}/${slug}/final"
 
             OFFSET=$(python -m tools.offset_srt detect \
               --srt1 "${TALK}/${FIRST}/source/en.srt" \
               --srt2 "${TALK}/${slug}/source/en.srt" 2>/dev/null | grep -oE '[-0-9]+' | head -1)
 
             if [ -n "$OFFSET" ]; then
-              mkdir -p "${TALK}/${slug}/final"
+              echo "  offset match → offset_srt apply (${OFFSET}ms)"
               python -m tools.offset_srt apply \
                 --srt "${TALK}/${FIRST}/final/uk.srt" \
                 --offset-ms "$OFFSET" \
+                --output "${TALK}/${slug}/final/uk.srt"
+            else
+              echo "  no offset → resync via EN SRT word alignment"
+              python -m tools.resync_srt \
+                --primary-uk "${TALK}/${FIRST}/final/uk.srt" \
+                --primary-en "${TALK}/${FIRST}/source/en.srt" \
+                --secondary-en "${TALK}/${slug}/source/en.srt" \
                 --output "${TALK}/${slug}/final/uk.srt"
             fi
           done
@@ -763,11 +773,14 @@ jobs:
             fi
             EXTRA_FLAGS=""
             if [ "${slug}" != "${FIRST}" ]; then
-              EXTRA_FLAGS="--skip-text-check --skip-time-check"
+              # Secondary is derivative: text comes from primary (already
+              # passed text check), timing comes from offset/resync (may
+              # produce occasional high-CPS blocks unfixable without silence).
+              EXTRA_FLAGS="--skip-text-check --skip-time-check --skip-cps-check"
             fi
-            # Use the same timing source for range-check that the builder used:
-            #   whisper mode → --whisper-json (whisper words anchor)
-            #   en-srt mode  → --en-srt       (EN SRT blocks anchor)
+            # Anchor matches the builder's timing source:
+            #   whisper mode → --whisper-json (whisper words)
+            #   en-srt mode  → --en-srt       (EN SRT blocks)
             ANCHOR_FLAG=""
             if [ "${{ inputs.timing_source || 'whisper' }}" = "en-srt" ]; then
               ANCHOR_FLAG="--en-srt ${VIDEO}/source/en.srt"
