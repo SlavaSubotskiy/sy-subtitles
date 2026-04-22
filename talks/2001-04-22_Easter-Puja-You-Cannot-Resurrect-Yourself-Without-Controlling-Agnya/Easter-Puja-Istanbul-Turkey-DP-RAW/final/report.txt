@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/Easter-Puja-Istanbul-Turkey-DP-RAW/final/uk.srt
+  Transcript: talks/2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/transcript_uk.txt
+  EN SRT: talks/2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/Easter-Puja-Istanbul-Turkey-DP-RAW/source/en.srt
+  SRT blocks: 580
+  EN SRT blocks: 753
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 1: Text preservation
+============================================================
+  Transcript chars: 30771
+  SRT chars: 30771
+  Exact normalized match: OK
+  Transcript words: 5059
+  SRT words: 5059
+  Word-level match: OK
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs EN SRT)
+============================================================
+  EN SRT range: 00:00:00,041 — 00:54:39,060
+  SRT range:       00:05:16,993 — 00:54:41,060
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 580
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 580
+  CPS: avg=10.8, median=10.8, max=15.0
+  CPS > target: 0 (0.0%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=52.1, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #282: CPS=15.0 (70ch/4.7s) "Так само, куди б ви не пішли, ви виявляєте, що вони б'ються ..."
+    #285: CPS=15.0 (70ch/4.7s) "і люди думають, що боротьба – це дуже важлива частина людськ..."
+    #284: CPS=15.0 (64ch/4.3s) "Я маю на увазі, що тепер принцип боротьби проявився дуже сил..."
+    #283: CPS=15.0 (74ch/4.9s) "Якщо ви поїдете до Африки, ви будете здивовані, як вони б'ют..."
+    #345: CPS=14.0 (45ch/3.2s) "Спочатку вони намагаються контролювати інших."
+    #344: CPS=13.9 (63ch/4.5s) "людьми – дуже нервовими, і надзвичайно високо думають про се..."
+    #343: CPS=13.9 (66ch/4.8s) "Отже, ці егоїстичні люди такі, і врешті-решт вони стають нер..."
+    #346: CPS=13.8 (84ch/6.1s) "Але потім їх уже треба контролювати – вони ось такі (Шрі Мат..."
+    #286: CPS=13.7 (44ch/3.2s) "Що б ви не сказали – одразу почнеться бійка."
+    #88: CPS=13.6 (19ch/1.4s) "Як в Індії, Я бачу,"
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 10.8 (target ≤15.0)
+  CPS > 15.0: 0 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED

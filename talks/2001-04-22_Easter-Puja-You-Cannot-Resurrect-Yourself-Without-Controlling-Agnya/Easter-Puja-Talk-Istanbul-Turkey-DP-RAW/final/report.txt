@@ -1,0 +1,74 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/Easter-Puja-Talk-Istanbul-Turkey-DP-RAW/final/uk.srt
+  Transcript: talks/2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/transcript_uk.txt
+  EN SRT: talks/2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/Easter-Puja-Talk-Istanbul-Turkey-DP-RAW/source/en.srt
+  SRT blocks: 579
+  (text preservation check skipped — offset video)
+  (time range check skipped — offset video)
+  (CPS hard fail skipped — builder mode)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range — SKIPPED (explicitly skipped)
+============================================================
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 579
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 579
+  CPS: avg=10.8, median=10.8, max=16.4
+  CPS > target: 3 (0.5%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=52.1, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 1
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #132: CPS=16.4 (13ch/0.8s) "Дуже важливо."
+    #210: CPS=16.1 (42ch/2.6s) "Бо, як ви знаєте, Аґія – така жахлива річ."
+    #48: CPS=15.2 (30ch/2.0s) "Яка з цього користь? Яка мета?"
+    #282: CPS=15.0 (70ch/4.7s) "Так само, куди б ви не пішли, ви виявляєте, що вони б'ються ..."
+    #284: CPS=15.0 (64ch/4.3s) "Я маю на увазі, що тепер принцип боротьби проявився дуже сил..."
+    #224: CPS=15.0 (30ch/2.0s) "Ви стаєте свідком усієї драми."
+    #371: CPS=14.8 (29ch/2.0s) "Починається самосертифікація."
+    #94: CPS=14.8 (72ch/4.9s) "І вони не можуть бачити, що не так із ними, з їхньою власною..."
+    #179: CPS=14.8 (34ch/2.3s) "що вони любили. Вони любили людей."
+    #286: CPS=14.8 (44ch/3.0s) "Що б ви не сказали – одразу почнеться бійка."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+
+  Avg CPS: 10.8 (target ≤15.0)
+  CPS > 15.0: 3 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 1 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
