@@ -172,3 +172,44 @@ def test_build_blocks_normalizes_embedded_newlines() -> None:
     assert "Промова англійською" in combined
     assert "Переклад з маратхі" in combined
     assert "Перший бхаджан" in combined
+
+
+def test_load_transcript_strips_bracketed_stage_directions(tmp_path: Path) -> None:
+    """Standalone bracket-only lines are editorial metadata, not subtitles."""
+    f = tmp_path / "transcript.txt"
+    f.write_text(
+        "Мова промови: англійська | Транскрипт\n"
+        "\n"
+        "[Промова англійською]\n"
+        "[Переклад з маратхі на англійську]\n"
+        "Перший бхаджан було заспівано.\n"
+        "[Промова англійською]\n"
+        "\n"
+        "Багато людей запитували Мене.\n",
+        encoding="utf-8",
+    )
+    paras = load_transcript(str(f))
+    # Stage-direction-only lines gone; content preserved.
+    assert paras == ["Перший бхаджан було заспівано.", "Багато людей запитували Мене."]
+
+
+def test_load_transcript_preserves_inline_brackets(tmp_path: Path) -> None:
+    """Bracketed text inside a sentence is translator clarification — keep."""
+    f = tmp_path / "transcript.txt"
+    f.write_text(
+        "Мова: англійська\n\nШрі Матаджі [в Лондоні] сказала наступне.\n",
+        encoding="utf-8",
+    )
+    paras = load_transcript(str(f))
+    assert paras == ["Шрі Матаджі [в Лондоні] сказала наступне."]
+
+
+def test_load_transcript_strips_multilingual_stage_direction_patterns(tmp_path: Path) -> None:
+    """Works for both UK and EN transcripts — same editorial convention."""
+    f = tmp_path / "transcript.txt"
+    f.write_text(
+        "Language: English\n\n[English Talk]\n[Marathi to English translation]\nFirst Bhajan was sung.\n[Music]\n",
+        encoding="utf-8",
+    )
+    paras = load_transcript(str(f))
+    assert paras == ["First Bhajan was sung."]
