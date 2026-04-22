@@ -38,7 +38,7 @@ jobs:
           echo "Deploy: date=$DEPLOY_DATE sha=$BLOB_SHA"
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
