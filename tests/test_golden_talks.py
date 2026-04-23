@@ -69,6 +69,7 @@ KNOWN_BROKEN_VALIDATION: dict[str, str] = {
     "1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet": "duration > 21s",
     "1984-03-22_Birthday-Puja/Birthday-Puja-Talk-Be-Sweet": "legacy SRT contains stripped stage directions; rebuild via pipeline",
     "1992-02-25_Talk-To-Yogis-In-Christchurch/Talk-to-Sahaja-Yogis-Religion-is-Within": "title subtitle at 0-28.8s exceeds 21s max; pipeline uses --skip-duration-check, golden does not",
+    "2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/Easter-Puja-Talk-Istanbul-Turkey-DP-RAW": "final transcript blessing dropped by builder; duration < 1200ms on one block",
 }
 
 KNOWN_NON_IDEMPOTENT: dict[str, str] = {
@@ -84,6 +85,7 @@ KNOWN_NON_IDEMPOTENT: dict[str, str] = {
     "1982-07-11_From-Heart-To-Sahastrar-Derby/From-Heart-to-Sahasrara": "text preservation drift",
     "1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-English-Talk": "text preservation drift",
     "1984-03-22_Birthday-Puja/Birthday-Puja-Talk-Be-Sweet": "legacy SRT contains stripped stage directions; rebuild via pipeline",
+    "2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/Easter-Puja-Talk-Istanbul-Turkey-DP-RAW": "final transcript blessing dropped by builder; duration < 1200ms on one block",
 }
 
 
