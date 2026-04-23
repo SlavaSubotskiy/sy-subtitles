@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1979-04-22_Give-up-Misidentifications/Talk-London-UK-DP-Opt-HD/final/uk.srt
+  Transcript: talks/1979-04-22_Give-up-Misidentifications/transcript_uk.txt
+  EN SRT: talks/1979-04-22_Give-up-Misidentifications/Talk-London-UK-DP-Opt-HD/source/en.srt
+  SRT blocks: 1068
+  EN SRT blocks: 899
+  (text preservation check skipped — offset video)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs EN SRT)
+============================================================
+  EN SRT range: 00:00:17,734 — 01:20:00,200
+  SRT range:       00:00:17,734 — 01:20:02,200
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 1068
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 1068
+  CPS: avg=12.3, median=13.8, max=20.0
+  CPS > target: 87 (8.1%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=48.6, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #282: CPS=20.0 (83ch/4.2s) "Ви просто скажіть: «Ми людські істоти», – і тоді ви зможете ..."
+    #228: CPS=19.8 (44ch/2.2s) "що вигнали нас, без Другої світової війни..."
+    #223: CPS=18.7 (29ch/1.6s) "Ви й гадки не маєте, Саймоне."
+    #281: CPS=18.5 (76ch/4.1s) "Ось уся ця справа! Щойно ви скажете: «Ми британці чи ні», – ..."
+    #229: CPS=17.9 (59ch/3.3s) "Шрі Матаджі: Ні, ні, Я скажу вам дуже просто. Саме Саймоне."
+    #227: CPS=17.6 (44ch/2.5s) "Зустрічав індійців, що люблять німців за те,"
+    #246: CPS=16.4 (50ch/3.1s) "Він нічого не знає про духовність – Сат'яджит Рай."
+    #729: CPS=15.2 (32ch/2.1s) "Якщо не захочемо, то не зробимо."
+    #199: CPS=15.2 (34ch/2.2s) "Шрі Матаджі: Ні, ні, він жахливий!"
+    #75: CPS=15.2 (42ch/2.8s) "Бо чим більше ви намагатиметеся це робити,"
+
+============================================================
+  CHECK: UK block count vs EN SRT block count
+============================================================
+  UK SRT blocks: 1068
+  EN SRT blocks: 899
+  Ratio UK/EN: 1.19 (max allowed 2.0)
+  Block count: OK
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] UK/EN block count ratio
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 12.3 (target ≤15.0)
+  CPS > 15.0: 87 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
