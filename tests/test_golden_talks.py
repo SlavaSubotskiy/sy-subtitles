@@ -45,23 +45,28 @@ def _mode_flags(srt_path: Path) -> dict:
         manifest = yaml.safe_load(f) or {}
     role = manifest.get("role")
     mode = manifest.get("mode")
+    # All manifest-aware calls share the pipeline's --skip-duration-check:
+    # long title blocks and short interjection blocks are tolerated by the
+    # pipeline's primary+secondary validates, so golden must not be stricter.
+    flags: dict = {"skip_duration_check": True}
     if role == "secondary":
         # Secondary = derivative (offset / resync from primary). Text came
         # from primary (already validated); timing is shifted/warped, CPS
         # may spike in a few places where primary's silences collapse.
-        return {"skip_text_check": True, "skip_time_check": True, "skip_cps_check": True}
+        flags.update(skip_text_check=True, skip_time_check=True, skip_cps_check=True)
+        return flags
     if role == "primary" and mode == "en-srt":
         # En-srt primary: transcript-only content is legitimately dropped
         # by Opus (no EN counterpart), so text preservation is replaced by
         # a block-count sanity against the EN SRT.
+        flags["skip_text_check"] = True
         en_srt = srt_path.parent.parent / "source" / "en.srt"
-        flags = {"skip_text_check": True}
         if en_srt.is_file():
             flags["en_srt_path"] = str(en_srt)
             flags["compare_block_count"] = True
         return flags
-    # Primary + whisper mode: strict default.
-    return {}
+    # Primary + whisper mode: only duration-skip (matches pipeline).
+    return flags
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -108,7 +113,6 @@ KNOWN_BROKEN_VALIDATION: dict[str, str] = {
     "1984-03-22_Birthday-Puja/Birthday-Puja-Be-Sweet": "duration > 21s",
     "1984-03-22_Birthday-Puja/Birthday-Puja-Talk-Be-Sweet": "legacy SRT contains stripped stage directions; rebuild via pipeline",
     "1992-02-25_Talk-To-Yogis-In-Christchurch/Talk-to-Sahaja-Yogis-Religion-is-Within": "title subtitle at 0-28.8s exceeds 21s max; pipeline uses --skip-duration-check, golden does not",
-    "2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/Easter-Puja-Talk-Istanbul-Turkey-DP-RAW": "final transcript blessing dropped by builder; duration < 1200ms on one block",
 }
 
 KNOWN_NON_IDEMPOTENT: dict[str, str] = {
@@ -124,7 +128,6 @@ KNOWN_NON_IDEMPOTENT: dict[str, str] = {
     "1982-07-11_From-Heart-To-Sahastrar-Derby/From-Heart-to-Sahasrara": "text preservation drift",
     "1983-03-30_Celebration-Of-Birthday-In-Bombay/Birthday-Puja-English-Talk": "text preservation drift",
     "1984-03-22_Birthday-Puja/Birthday-Puja-Talk-Be-Sweet": "legacy SRT contains stripped stage directions; rebuild via pipeline",
-    "2001-04-22_Easter-Puja-You-Cannot-Resurrect-Yourself-Without-Controlling-Agnya/Easter-Puja-Talk-Istanbul-Turkey-DP-RAW": "final transcript blessing dropped by builder; duration < 1200ms on one block",
 }
 
 
@@ -190,7 +193,10 @@ def test_optimize_idempotent_on_shipped(
     # build_manifest.yaml (whisper/en-srt/secondary), not `first` (which
     # is in a tmp dir with no manifest sibling).
     mode_flags = _mode_flags(srt_path)
-    passed, report = validate(str(first), str(transcript_path), skip_duration_check=True, **mode_flags)
+    # _mode_flags already includes skip_duration_check for manifest-aware
+    # talks; legacy talks fall back to the explicit flag here.
+    mode_flags.setdefault("skip_duration_check", True)
+    passed, report = validate(str(first), str(transcript_path), **mode_flags)
     assert passed, f"{talk_id}: first-pass optimize broke validation:\n" + "\n".join(report[-40:])
 
     optimize(str(first), None, str(second))
