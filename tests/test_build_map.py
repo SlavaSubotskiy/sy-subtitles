@@ -344,9 +344,13 @@ class TestCmdAssemble:
         assert exc_info.value.code != 0
 
     def test_assemble_missing_block(self, tmp_path):
-        """timecodes.txt with a missing block ID → cmd_assemble exits with error."""
-        import pytest
+        """timecodes.txt missing a UK block id → that block is skipped, assemble succeeds.
 
+        This is the en-srt-mode contract: Opus may drop UK blocks with no
+        EN counterpart (trailing signatures, editorial stage directions).
+        `validate_artifacts --allow-skipped-ids` gates the gap upstream;
+        `cmd_assemble` just emits an SRT from whatever timecodes arrive.
+        """
         work = self._setup_assemble_dir(tmp_path, n_blocks=5, provide_timecodes=False)
         # Write timecodes for only 4 of 5 blocks (block 5 missing)
         lines = []
@@ -359,9 +363,13 @@ class TestCmdAssemble:
         (work / "timecodes.txt").write_text("\n".join(lines), encoding="utf-8")
 
         args = argparse.Namespace(talk_dir=str(tmp_path / "talk"), video_slug="video1")
-        with pytest.raises(SystemExit) as exc_info:
-            cmd_assemble(args)
-        assert exc_info.value.code != 0
+        cmd_assemble(args)
+
+        from tools.srt_utils import parse_srt
+
+        built = parse_srt(str(tmp_path / "talk" / "video1" / "final" / "uk.srt"))
+        # 4 of 5 UK blocks land in the SRT; block 5 is silently dropped.
+        assert len(built) == 4
 
     def test_assemble_timecode_regex_parsing(self):
         """Verify TC_RE parses various timecode formats."""

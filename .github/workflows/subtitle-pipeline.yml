@@ -664,28 +664,58 @@ jobs:
               - 1 UK = 1 EN: copy "s" and "e"
               - 1 UK = N EN: start = "s" of first, end = "e" of last
               - N UK = 1 EN: split the EN block time range proportionally
+              - UK blocks that have NO counterpart in any EN SRT block MUST be SKIPPED — do not emit a timecode line for them. This includes:
+                • editorial closing signatures (e.g. "H.H. Shri Mataji Nirmala Devi" / "Її Святість Шрі Матаджі Нірмала Деві")
+                • parenthetical stage directions that describe audio not present in EN SRT (e.g. "(Just speaking about details of flight.)")
+                • any trailing transcript paragraphs past the last EN SRT block
+              - The EN SRT is the ground truth for what is subtitled; transcript-only content must not leak into the output.
 
             Step 3 — Write to:
             talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/timecodes.txt
 
-            EXACT format — one line per block, all blocks in order, no other text:
+            EXACT format — one line per block, IDs in ascending order, no other text:
             #<id> | HH:MM:SS,mmm | HH:MM:SS,mmm
 
             Rules:
-            - Every block in uk_blocks.json must appear exactly once
-            - Timecodes must be sequential and non-overlapping
+            - WHISPER mode: every block in uk_blocks.json must appear exactly once
+            - EN-SRT mode: emit only blocks that have an EN SRT counterpart; IDs may skip but must be strictly ascending
+            - Timecodes must be non-overlapping
             - Do NOT write block text, only the id and timecodes
             - Do NOT use TodoWrite
+
+            ROLE: you are a TRANSLATION ALIGNER, not a coder.
+            Match UK block meaning directly to words in timing.json (whisper)
+            or blocks in timing.json (en-srt), then Write the timecodes line
+            by line. Do NOT author a Python/Bash script that computes or
+            distributes timecodes procedurally — proportional distribution,
+            weight-by-char allocation, paragraph-range guessing, or any
+            other mechanical assignment is banned. Each timecode must come
+            from a specific matched word or block in timing.json, read with
+            Read and emitted with Write. If you find yourself about to run
+            Bash with multi-line Python that computes start/end times, stop
+            and match each UK block by meaning instead.
 
       - name: Validate timecodes format
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
           VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+          TIMING_SOURCE: ${{ inputs.timing_source || 'whisper' }}
         run: |
           N=$(python3 -c "import json; print(len(json.load(open('talks/${TALK_ID}/${VIDEO_SLUG}/work/uk_blocks.json'))))")
-          python -m tools.validate_artifacts \
-            --timecodes "talks/${TALK_ID}/${VIDEO_SLUG}/work/timecodes.txt" \
-            --expected-blocks "${N}"
+          # WHISPER mode: every uk_block must have a timecode — exact count.
+          # EN-SRT mode: Opus is allowed to SKIP UK blocks with no EN
+          # counterpart, so count is an upper bound; IDs must still be
+          # strictly ascending.
+          if [ "$TIMING_SOURCE" = "en-srt" ]; then
+            python -m tools.validate_artifacts \
+              --timecodes "talks/${TALK_ID}/${VIDEO_SLUG}/work/timecodes.txt" \
+              --max-blocks "${N}" \
+              --allow-skipped-ids
+          else
+            python -m tools.validate_artifacts \
+              --timecodes "talks/${TALK_ID}/${VIDEO_SLUG}/work/timecodes.txt" \
+              --expected-blocks "${N}"
+          fi
 
       - name: Assemble and build SRT
         env:
@@ -706,6 +736,37 @@ jobs:
             --output "talks/${TALK_ID}/${VIDEO_SLUG}/final/uk.srt" \
             --skip-duration-split \
             --skip-cps-split
+
+      - name: Write primary build manifest
+        # Records which mode was used so downstream consumers (golden tests,
+        # future reviewers) can apply the same validation rules the
+        # pipeline used. See `tests/test_golden_talks.py` for how this is
+        # consumed.
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+          TIMING_SOURCE: ${{ inputs.timing_source || 'whisper' }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 <<'PYEOF'
+          import os
+          import yaml
+          from datetime import datetime, timezone
+
+          talk = os.environ["TALK_ID"]
+          video = os.environ["VIDEO_SLUG"]
+          mode = os.environ["TIMING_SOURCE"]  # whisper | en-srt
+          manifest = {
+              "role": "primary",
+              "mode": mode,
+              "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "run_id": int(os.environ["RUN_ID"]),
+          }
+          path = f"talks/{talk}/{video}/final/build_manifest.yaml"
+          with open(path, "w") as f:
+              yaml.dump(manifest, f, default_flow_style=False, sort_keys=False)
+          print(f"  wrote {path} (mode={mode})")
+          PYEOF
 
       - name: Build secondary-video SRTs
         # Secondary videos (same talk, different recording) get their uk.srt
@@ -741,6 +802,7 @@ jobs:
                 --srt "${TALK}/${FIRST}/final/uk.srt" \
                 --offset-ms "$OFFSET" \
                 --output "${TALK}/${slug}/final/uk.srt"
+              SUB_MODE="secondary-offset"
             else
               echo "  no offset → resync via EN SRT word alignment"
               python -m tools.resync_srt \
@@ -748,7 +810,26 @@ jobs:
                 --primary-en "${TALK}/${FIRST}/source/en.srt" \
                 --secondary-en "${TALK}/${slug}/source/en.srt" \
                 --output "${TALK}/${slug}/final/uk.srt"
+              SUB_MODE="secondary-resync"
             fi
+
+            # Mirror the primary's build_manifest so golden tests know to
+            # apply secondary-relaxed validation (skip text/time/cps —
+            # derivative output from primary).
+            python3 <<PYEOF
+          import yaml
+          from datetime import datetime, timezone
+          manifest = {
+              "role": "secondary",
+              "mode": "${SUB_MODE}",
+              "primary_slug": "${FIRST}",
+              "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "run_id": ${{ github.run_id }},
+          }
+          with open("${TALK}/${slug}/final/build_manifest.yaml", "w") as f:
+              yaml.dump(manifest, f, default_flow_style=False, sort_keys=False)
+          print("  wrote ${TALK}/${slug}/final/build_manifest.yaml (mode=${SUB_MODE})")
+          PYEOF
           done
 
       - name: Validate subtitles
@@ -777,6 +858,13 @@ jobs:
               # passed text check), timing comes from offset/resync (may
               # produce occasional high-CPS blocks unfixable without silence).
               EXTRA_FLAGS="--skip-text-check --skip-time-check --skip-cps-check"
+            elif [ "${{ inputs.timing_source || 'whisper' }}" = "en-srt" ]; then
+              # Primary in en-srt mode: Opus is instructed to DROP UK blocks
+              # with no EN counterpart (trailing signatures, stage
+              # directions), so transcript ↔ SRT word equality no longer
+              # holds. Replace text-preservation with a block-count sanity
+              # check against EN SRT; time range still enforced.
+              EXTRA_FLAGS="--skip-text-check --compare-block-count"
             fi
             # Anchor matches the builder's timing source:
             #   whisper mode → --whisper-json (whisper words)
@@ -807,6 +895,7 @@ jobs:
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/uk.srt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_manifest.yaml
 
 
   # Dry-run verifier — replaces the commit job when inputs.dry_run is true.
@@ -980,7 +1069,8 @@ jobs:
             "talks/*/glossary.json" \
             "talks/*/*/work/timecodes.txt" \
             "talks/*/*/final/uk.srt" "talks/*/*/final/report.txt" \
-            "talks/*/*/final/build_report.txt"
+            "talks/*/*/final/build_report.txt" \
+            "talks/*/*/final/build_manifest.yaml"
 
       - name: Create review tracking issue
         if: success()

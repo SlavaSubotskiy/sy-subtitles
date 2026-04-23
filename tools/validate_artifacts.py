@@ -44,7 +44,12 @@ def _check_meta(path: str) -> None:
     print(f"OK: meta {path}")
 
 
-def _check_timecodes(path: str, expected_blocks: int | None = None) -> None:
+def _check_timecodes(
+    path: str,
+    expected_blocks: int | None = None,
+    max_blocks: int | None = None,
+    allow_skipped_ids: bool = False,
+) -> None:
     p = Path(path)
     if not p.is_file():
         _fail(f"timecodes: {path} missing")
@@ -61,8 +66,16 @@ def _check_timecodes(path: str, expected_blocks: int | None = None) -> None:
         idx = int(m.group(1))
         if idx in seen_ids:
             _fail(f"timecodes {path}:{line_no}: duplicate block id #{idx}")
-        if idx != last_id + 1:
-            _fail(f"timecodes {path}:{line_no}: non-sequential id #{idx} (expected #{last_id + 1})")
+        # IDs must be strictly ascending. With `allow_skipped_ids` (en-srt
+        # mode — Opus may drop UK blocks without an EN counterpart), gaps
+        # are fine; without the flag (whisper mode), every id must follow
+        # its predecessor exactly.
+        if allow_skipped_ids:
+            if idx <= last_id:
+                _fail(f"timecodes {path}:{line_no}: id #{idx} not strictly after previous #{last_id}")
+        else:
+            if idx != last_id + 1:
+                _fail(f"timecodes {path}:{line_no}: non-sequential id #{idx} (expected #{last_id + 1})")
         seen_ids.add(idx)
         last_id = idx
         start, end = m.group(2), m.group(3)
@@ -73,6 +86,8 @@ def _check_timecodes(path: str, expected_blocks: int | None = None) -> None:
         _fail(f"timecodes {path}: no blocks found")
     if expected_blocks is not None and len(seen_ids) != expected_blocks:
         _fail(f"timecodes {path}: got {len(seen_ids)} blocks, expected {expected_blocks}")
+    if max_blocks is not None and len(seen_ids) > max_blocks:
+        _fail(f"timecodes {path}: got {len(seen_ids)} blocks, exceeds max {max_blocks}")
 
     print(f"OK: timecodes {path} ({len(seen_ids)} blocks)")
 
@@ -99,7 +114,17 @@ def main() -> None:
     parser.add_argument("--whisper", help="Path to whisper.json")
     parser.add_argument("--meta", help="Path to meta.yaml")
     parser.add_argument("--timecodes", help="Path to timecodes.txt")
-    parser.add_argument("--expected-blocks", type=int, help="Expected number of blocks in --timecodes")
+    parser.add_argument("--expected-blocks", type=int, help="Expected number of blocks in --timecodes (exact)")
+    parser.add_argument(
+        "--max-blocks",
+        type=int,
+        help="Maximum number of blocks in --timecodes (upper bound; for en-srt mode where Opus may skip)",
+    )
+    parser.add_argument(
+        "--allow-skipped-ids",
+        action="store_true",
+        help="Allow gaps in block IDs (en-srt mode — Opus may drop UK blocks without an EN counterpart)",
+    )
     parser.add_argument("--talk-dir", help="Validate every artifact under a talk dir")
     args = parser.parse_args()
 
@@ -111,7 +136,12 @@ def main() -> None:
     if args.meta:
         _check_meta(args.meta)
     if args.timecodes:
-        _check_timecodes(args.timecodes, args.expected_blocks)
+        _check_timecodes(
+            args.timecodes,
+            expected_blocks=args.expected_blocks,
+            max_blocks=args.max_blocks,
+            allow_skipped_ids=args.allow_skipped_ids,
+        )
     if args.talk_dir:
         _check_talk_dir(args.talk_dir)
 

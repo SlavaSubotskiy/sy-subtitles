@@ -150,6 +150,39 @@ def check_text_preservation(srt_blocks, transcript_path, report):
     return words_match
 
 
+def check_block_count_vs_en_srt(srt_blocks, en_srt_path, report, max_ratio=2.0):
+    """Compare UK SRT block count against EN SRT block count.
+
+    Intended for en-srt mode with text preservation skipped: if Opus
+    legitimately drops UK blocks that have no EN counterpart, the UK
+    count should stay near or below the EN count. A UK count much higher
+    than EN suggests transcript-only content leaked into the SRT.
+    """
+    report.append("")
+    report.append("=" * 60)
+    report.append("  CHECK: UK block count vs EN SRT block count")
+    report.append("=" * 60)
+
+    en_blocks = parse_srt(en_srt_path)
+    uk_count = len(srt_blocks)
+    en_count = len(en_blocks)
+    report.append(f"  UK SRT blocks: {uk_count}")
+    report.append(f"  EN SRT blocks: {en_count}")
+    if en_count == 0:
+        report.append("  SKIPPED (EN SRT has no blocks)")
+        return True
+    ratio = uk_count / en_count
+    report.append(f"  Ratio UK/EN: {ratio:.2f} (max allowed {max_ratio})")
+    ok = ratio <= max_ratio
+    report.append(f"  Block count: {'OK' if ok else 'FAIL'}")
+    if not ok:
+        report.append(
+            "  (a UK count this far above EN usually means transcript content "
+            "without an EN SRT counterpart leaked into the subtitles)"
+        )
+    return ok
+
+
 def check_overlaps(srt_blocks, report):
     """Check that no blocks overlap in time."""
     report.append("")
@@ -300,6 +333,7 @@ def validate(
     skip_time_check=False,
     skip_cps_check=False,
     skip_duration_check=False,
+    compare_block_count=False,
 ):
     """Run all validation checks and write report.
 
@@ -352,6 +386,13 @@ def validate(
     numbering_ok = check_sequential_numbering(srt_blocks, report)
     stats = check_statistics(srt_blocks, config, report)
 
+    # Optional en-srt-mode sanity: UK block count not wildly above EN.
+    # Enabled via --compare-block-count; requires --en-srt.
+    if compare_block_count and en_srt_path:
+        block_count_ok = check_block_count_vs_en_srt(srt_blocks, en_srt_path, report)
+    else:
+        block_count_ok = True
+
     # Summary
     report.append("")
     report.append("=" * 60)
@@ -365,6 +406,8 @@ def validate(
         (f"CPL ≤ {config.max_cpl}", stats["cpl_over_max"] == 0),
         (f"Gap ≥ {config.min_gap_ms}ms", stats["gap_under_min"] == 0),
     ]
+    if compare_block_count and en_srt_path:
+        checks.append(("UK/EN block count ratio", block_count_ok))
     if not skip_duration_check:
         checks.append((f"Duration ≥ {config.min_duration_ms}ms", stats["duration_under_min"] == 0))
         checks.append((f"Duration ≤ {config.max_duration_ms}ms", stats["duration_over_max"] == 0))
@@ -421,6 +464,11 @@ def main():
         help="Skip CPS hard fail (for builder mode — CPS is handled by build_srt)",
     )
     parser.add_argument(
+        "--compare-block-count",
+        action="store_true",
+        help="In en-srt mode with --skip-text-check, verify UK block count is not wildly above EN SRT count (requires --en-srt)",
+    )
+    parser.add_argument(
         "--skip-duration-check",
         action="store_true",
         help="Skip duration hard fail (for builder mode — duration is handled by build_srt)",
@@ -440,6 +488,7 @@ def main():
         skip_time_check=args.skip_time_check,
         skip_cps_check=args.skip_cps_check,
         skip_duration_check=args.skip_duration_check,
+        compare_block_count=args.compare_block_count,
     )
     for line in report:
         print(line)

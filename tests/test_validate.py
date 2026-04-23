@@ -8,6 +8,7 @@ from tools.config import OptimizeConfig
 from tools.validate_subtitles import (
     TimeAnchor,
     _resolve_anchor,
+    check_block_count_vs_en_srt,
     check_overlaps,
     check_sequential_numbering,
     check_statistics,
@@ -779,3 +780,36 @@ def test_check_time_range_label_appears_in_report():
     report = []
     check_time_range(blocks, anchor, report)
     assert any("vs EN SRT" in line for line in report)
+
+
+# ---------------------------------------------------------------------------
+#  check_block_count_vs_en_srt — en-srt-mode sanity against transcript leak
+# ---------------------------------------------------------------------------
+
+
+def test_block_count_near_en_srt_passes(tmp_path):
+    """UK ≈ EN block count passes."""
+    en_path = tmp_path / "en.srt"
+    _write_srt(en_path, [(i, "00:00:01,000", "00:00:03,000", "x") for i in range(1, 11)])
+    uk_blocks = [_block(i, 1000 * i, 1000 * i + 500) for i in range(1, 12)]  # 11 UK vs 10 EN
+    report = []
+    assert check_block_count_vs_en_srt(uk_blocks, str(en_path), report) is True
+
+
+def test_block_count_over_ratio_fails(tmp_path):
+    """UK count > 2× EN count trips the leak guard."""
+    en_path = tmp_path / "en.srt"
+    _write_srt(en_path, [(i, "00:00:01,000", "00:00:03,000", "x") for i in range(1, 11)])
+    uk_blocks = [_block(i, 1000 * i, 1000 * i + 500) for i in range(1, 30)]  # 29 UK vs 10 EN
+    report = []
+    assert check_block_count_vs_en_srt(uk_blocks, str(en_path), report) is False
+    assert any("leaked" in line for line in report)
+
+
+def test_block_count_fewer_uk_is_ok(tmp_path):
+    """UK count lower than EN is fine — Opus dropped editorial blocks."""
+    en_path = tmp_path / "en.srt"
+    _write_srt(en_path, [(i, "00:00:01,000", "00:00:03,000", "x") for i in range(1, 21)])
+    uk_blocks = [_block(i, 1000 * i, 1000 * i + 500) for i in range(1, 6)]  # 5 UK vs 20 EN
+    report = []
+    assert check_block_count_vs_en_srt(uk_blocks, str(en_path), report) is True
