@@ -683,6 +683,18 @@ jobs:
             - Do NOT write block text, only the id and timecodes
             - Do NOT use TodoWrite
 
+            ROLE: you are a TRANSLATION ALIGNER, not a coder.
+            Match UK block meaning directly to words in timing.json (whisper)
+            or blocks in timing.json (en-srt), then Write the timecodes line
+            by line. Do NOT author a Python/Bash script that computes or
+            distributes timecodes procedurally — proportional distribution,
+            weight-by-char allocation, paragraph-range guessing, or any
+            other mechanical assignment is banned. Each timecode must come
+            from a specific matched word or block in timing.json, read with
+            Read and emitted with Write. If you find yourself about to run
+            Bash with multi-line Python that computes start/end times, stop
+            and match each UK block by meaning instead.
+
       - name: Validate timecodes format
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
@@ -725,6 +737,37 @@ jobs:
             --skip-duration-split \
             --skip-cps-split
 
+      - name: Write primary build manifest
+        # Records which mode was used so downstream consumers (golden tests,
+        # future reviewers) can apply the same validation rules the
+        # pipeline used. See `tests/test_golden_talks.py` for how this is
+        # consumed.
+        env:
+          TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
+          VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
+          TIMING_SOURCE: ${{ inputs.timing_source || 'whisper' }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 <<'PYEOF'
+          import os
+          import yaml
+          from datetime import datetime, timezone
+
+          talk = os.environ["TALK_ID"]
+          video = os.environ["VIDEO_SLUG"]
+          mode = os.environ["TIMING_SOURCE"]  # whisper | en-srt
+          manifest = {
+              "role": "primary",
+              "mode": mode,
+              "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "run_id": int(os.environ["RUN_ID"]),
+          }
+          path = f"talks/{talk}/{video}/final/build_manifest.yaml"
+          with open(path, "w") as f:
+              yaml.dump(manifest, f, default_flow_style=False, sort_keys=False)
+          print(f"  wrote {path} (mode={mode})")
+          PYEOF
+
       - name: Build secondary-video SRTs
         # Secondary videos (same talk, different recording) get their uk.srt
         # from primary's output — by simple time offset when the two en.srt
@@ -759,6 +802,7 @@ jobs:
                 --srt "${TALK}/${FIRST}/final/uk.srt" \
                 --offset-ms "$OFFSET" \
                 --output "${TALK}/${slug}/final/uk.srt"
+              SUB_MODE="secondary-offset"
             else
               echo "  no offset → resync via EN SRT word alignment"
               python -m tools.resync_srt \
@@ -766,7 +810,26 @@ jobs:
                 --primary-en "${TALK}/${FIRST}/source/en.srt" \
                 --secondary-en "${TALK}/${slug}/source/en.srt" \
                 --output "${TALK}/${slug}/final/uk.srt"
+              SUB_MODE="secondary-resync"
             fi
+
+            # Mirror the primary's build_manifest so golden tests know to
+            # apply secondary-relaxed validation (skip text/time/cps —
+            # derivative output from primary).
+            python3 <<PYEOF
+          import yaml
+          from datetime import datetime, timezone
+          manifest = {
+              "role": "secondary",
+              "mode": "${SUB_MODE}",
+              "primary_slug": "${FIRST}",
+              "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "run_id": ${{ github.run_id }},
+          }
+          with open("${TALK}/${slug}/final/build_manifest.yaml", "w") as f:
+              yaml.dump(manifest, f, default_flow_style=False, sort_keys=False)
+          print("  wrote ${TALK}/${slug}/final/build_manifest.yaml (mode=${SUB_MODE})")
+          PYEOF
           done
 
       - name: Validate subtitles
@@ -832,6 +895,7 @@ jobs:
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/uk.srt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/report.txt
             talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_report.txt
+            talks/${{ needs.prepare-build.outputs.talk_id }}/*/final/build_manifest.yaml
 
 
   # Dry-run verifier — replaces the commit job when inputs.dry_run is true.
@@ -1005,7 +1069,8 @@ jobs:
             "talks/*/glossary.json" \
             "talks/*/*/work/timecodes.txt" \
             "talks/*/*/final/uk.srt" "talks/*/*/final/report.txt" \
-            "talks/*/*/final/build_report.txt"
+            "talks/*/*/final/build_report.txt" \
+            "talks/*/*/final/build_manifest.yaml"
 
       - name: Create review tracking issue
         if: success()
