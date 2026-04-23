@@ -30,12 +30,13 @@ on:
         type: boolean
         default: true
       timing_source:
-        description: 'Timing source for builder: whisper (default) or en-srt (for non-English talks)'
+        description: 'Timing source for builder: auto (en-srt if en.srt present, else whisper), whisper, or en-srt'
         type: choice
         options:
+          - auto
           - whisper
           - en-srt
-        default: whisper
+        default: auto
       dry_run:
         description: 'Replay fake LLM responses from snapshots, skip commit'
         type: boolean
@@ -59,7 +60,7 @@ on:
         default: true
       timing_source:
         type: string
-        default: whisper
+        default: auto
       dry_run:
         type: boolean
         default: false
@@ -437,6 +438,7 @@ jobs:
     outputs:
       talk_id: ${{ steps.prepare.outputs.talk_id }}
       video_slug: ${{ steps.prepare.outputs.video_slug }}
+      timing_source: ${{ steps.timing.outputs.timing_source }}
     steps:
       - uses: actions/checkout@v6
       - run: git pull --rebase
@@ -522,6 +524,26 @@ jobs:
             --talk-dir "$TALK" \
             --video-slug "$FIRST_VIDEO" > /dev/null
 
+      - name: Resolve timing source
+        id: timing
+        env:
+          TIMING_SOURCE_INPUT: ${{ inputs.timing_source }}
+          TALK_ID: ${{ steps.prepare.outputs.talk_id }}
+          VIDEO_SLUG: ${{ steps.prepare.outputs.video_slug }}
+        run: |
+          if [ "$TIMING_SOURCE_INPUT" = "auto" ] || [ -z "$TIMING_SOURCE_INPUT" ]; then
+            if [ -f "talks/${TALK_ID}/${VIDEO_SLUG}/source/en.srt" ]; then
+              RESOLVED=en-srt
+            else
+              RESOLVED=whisper
+            fi
+            echo "auto → $RESOLVED (en.srt $( [ "$RESOLVED" = "en-srt" ] && echo present || echo missing ))"
+          else
+            RESOLVED="$TIMING_SOURCE_INPUT"
+            echo "explicit → $RESOLVED"
+          fi
+          echo "timing_source=$RESOLVED" >> "$GITHUB_OUTPUT"
+
       - name: Upload UK blocks
         uses: actions/upload-artifact@v7
         with:
@@ -593,7 +615,7 @@ jobs:
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
           VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
-          TIMING_SOURCE: ${{ inputs.timing_source || 'whisper' }}
+          TIMING_SOURCE: ${{ needs.prepare-build.outputs.timing_source }}
         run: |
           python -m tools.build_map prepare-timing             --talk-dir "talks/${TALK_ID}"             --video-slug "${VIDEO_SLUG}"             --timing-source "${TIMING_SOURCE}"
 
@@ -640,7 +662,7 @@ jobs:
 
             TALK: talks/${{ needs.prepare-build.outputs.talk_id }}
             VIDEO: ${{ needs.prepare-build.outputs.video_slug }}
-            TIMING SOURCE: ${{ inputs.timing_source || 'whisper' }}
+            TIMING SOURCE: ${{ needs.prepare-build.outputs.timing_source }}
 
             Step 1 — Read:
             - UK blocks: talks/${{ needs.prepare-build.outputs.talk_id }}/${{ needs.prepare-build.outputs.video_slug }}/work/uk_blocks.json
@@ -699,7 +721,7 @@ jobs:
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
           VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
-          TIMING_SOURCE: ${{ inputs.timing_source || 'whisper' }}
+          TIMING_SOURCE: ${{ needs.prepare-build.outputs.timing_source }}
         run: |
           N=$(python3 -c "import json; print(len(json.load(open('talks/${TALK_ID}/${VIDEO_SLUG}/work/uk_blocks.json'))))")
           # WHISPER mode: every uk_block must have a timecode — exact count.
@@ -745,7 +767,7 @@ jobs:
         env:
           TALK_ID: ${{ needs.prepare-build.outputs.talk_id }}
           VIDEO_SLUG: ${{ needs.prepare-build.outputs.video_slug }}
-          TIMING_SOURCE: ${{ inputs.timing_source || 'whisper' }}
+          TIMING_SOURCE: ${{ needs.prepare-build.outputs.timing_source }}
           RUN_ID: ${{ github.run_id }}
         run: |
           python3 <<'PYEOF'
@@ -858,7 +880,7 @@ jobs:
               # passed text check), timing comes from offset/resync (may
               # produce occasional high-CPS blocks unfixable without silence).
               EXTRA_FLAGS="--skip-text-check --skip-time-check --skip-cps-check"
-            elif [ "${{ inputs.timing_source || 'whisper' }}" = "en-srt" ]; then
+            elif [ "${{ needs.prepare-build.outputs.timing_source }}" = "en-srt" ]; then
               # Primary in en-srt mode: Opus is instructed to DROP UK blocks
               # with no EN counterpart (trailing signatures, stage
               # directions), so transcript ↔ SRT word equality no longer
@@ -870,7 +892,7 @@ jobs:
             #   whisper mode → --whisper-json (whisper words)
             #   en-srt mode  → --en-srt       (EN SRT blocks)
             ANCHOR_FLAG=""
-            if [ "${{ inputs.timing_source || 'whisper' }}" = "en-srt" ]; then
+            if [ "${{ needs.prepare-build.outputs.timing_source }}" = "en-srt" ]; then
               ANCHOR_FLAG="--en-srt ${VIDEO}/source/en.srt"
             else
               ANCHOR_FLAG="--whisper-json ${VIDEO}/source/whisper.json"
