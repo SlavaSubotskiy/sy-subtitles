@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1996-06-09_Adi-Shakti-Puja-The-compassion-has-to-become-active/Adi-Shakti-Puja-Cabella-Italy-DP-RAW/final/uk.srt
+  Transcript: talks/1996-06-09_Adi-Shakti-Puja-The-compassion-has-to-become-active/transcript_uk.txt
+  EN SRT: talks/1996-06-09_Adi-Shakti-Puja-The-compassion-has-to-become-active/Adi-Shakti-Puja-Cabella-Italy-DP-RAW/source/en.srt
+  SRT blocks: 502
+  EN SRT blocks: 667
+  (text preservation check skipped — offset video)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs EN SRT)
+============================================================
+  EN SRT range: 00:03:42,303 — 00:56:45,567
+  SRT range:       00:03:42,303 — 00:56:43,867
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 502
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 502
+  CPS: avg=10.1, median=9.9, max=15.1
+  CPS > target: 16 (3.2%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=55.6, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 1
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #201: CPS=15.1 (60ch/4.0s) "яка перебуває поза будь-якими прив'язаностями, чимось таким."
+    #421: CPS=15.0 (49ch/3.3s) "Я можу зрозуміти – але обидва ж є сахаджа йоґами."
+    #363: CPS=15.0 (52ch/3.5s) "і нічим іншим – не своєю хіттю, не своєю жадібністю,"
+    #380: CPS=15.0 (58ch/3.9s) "якщо бачать маленьку дитинку, вони всі біжать до неї, вони"
+    #370: CPS=15.0 (32ch/2.1s) "жінки повинні над цим працювати."
+    #316: CPS=15.0 (41ch/2.7s) "але вони працювали над цим, вони говорили"
+    #359: CPS=15.0 (82ch/5.5s) "і раптом ви виявляєте, що вона стала такою жадібною, – ви не..."
+    #369: CPS=15.0 (53ch/3.5s) "Я б сказала, подібно до того, як це роблять чоловіки,"
+    #391: CPS=15.0 (53ch/3.5s) "що Я можу сказати, мудрості немає – нічим жертвувати."
+    #385: CPS=15.0 (65ch/4.3s) "А оскільки ви всі також заміжні, ваші чоловіки відчуватимуть..."
+
+============================================================
+  CHECK: UK block count vs EN SRT block count
+============================================================
+  UK SRT blocks: 502
+  EN SRT blocks: 667
+  Ratio UK/EN: 0.75 (max allowed 2.0)
+  Block count: OK
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] UK/EN block count ratio
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 10.1 (target ≤15.0)
+  CPS > 15.0: 16 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 1 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
