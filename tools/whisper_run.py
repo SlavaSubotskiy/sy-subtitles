@@ -22,6 +22,16 @@ def is_hallucination(text):
     return bool(all(c in ".… " for c in t))
 
 
+def fmt_duration(seconds):
+    """Format seconds as a human-readable duration (e.g. '2s', '37m 18s', '1h 05m')."""
+    s = max(0, int(round(seconds)))
+    if s < 60:
+        return f"{s}s"
+    if s < 3600:
+        return f"{s // 60}m {s % 60:02d}s"
+    return f"{s // 3600}h {(s % 3600) // 60:02d}m"
+
+
 def run_whisper(video_path, output_path, model="medium", language="en"):
     """Run faster-whisper with VAD and save segments to JSON."""
     from faster_whisper import WhisperModel
@@ -94,11 +104,11 @@ def run_whisper(video_path, output_path, model="medium", language="en"):
                 speed = seg.end / elapsed if elapsed > 0 else 0
                 eta = (audio_duration - seg.end) / speed if speed > 0 else 0
                 print(
-                    f"  {pct:5.1f}% | {mins}min/{audio_duration / 60:.0f}min | {len(segments)} seg | ETA {eta:.0f}s",
+                    f"  {pct:5.1f}% | {mins}min/{audio_duration / 60:.0f}min | {len(segments)} seg | ETA {fmt_duration(eta)}",
                     flush=True,
                 )
             else:
-                print(f"  {mins}min | {len(segments)} seg | {elapsed:.0f}s elapsed", flush=True)
+                print(f"  {mins}min | {len(segments)} seg | {fmt_duration(elapsed)} elapsed", flush=True)
 
     output = {
         "language": info.language,
@@ -110,7 +120,9 @@ def run_whisper(video_path, output_path, model="medium", language="en"):
 
     elapsed = time.time() - t0
     total_words = sum(len(s.get("words", [])) for s in segments)
-    print(f"Done in {elapsed:.0f}s: {len(segments)} segments, {total_words} words, {skipped} hallucinations filtered")
+    print(
+        f"Done in {fmt_duration(elapsed)}: {len(segments)} segments, {total_words} words, {skipped} hallucinations filtered"
+    )
     print(f"Saved to {output_path}", flush=True)
     return output
 
