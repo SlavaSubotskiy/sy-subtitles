@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1988-06-18_Seminar-Day-1-Introspection-and-Meditation/Meditation/final/uk.srt
+  Transcript: talks/1988-06-18_Seminar-Day-1-Introspection-and-Meditation/transcript_uk.txt
+  EN SRT: talks/1988-06-18_Seminar-Day-1-Introspection-and-Meditation/Meditation/source/en.srt
+  SRT blocks: 148
+  EN SRT blocks: 150
+  (text preservation check skipped — offset video)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs EN SRT)
+============================================================
+  EN SRT range: 00:00:02,140 — 00:14:54,820
+  SRT range:       00:00:02,140 — 00:14:54,820
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 148
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 148
+  CPS: avg=9.5, median=9.2, max=15.0
+  CPS > target: 14 (9.5%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=44.9, max=83
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #140: CPS=15.0 (22ch/1.5s) "Тепер зробімо ще один."
+    #106: CPS=15.0 (28ch/1.9s) "Ви маєте просити пробачення."
+    #36: CPS=15.0 (31ch/2.1s) "Я бачила: якщо чоловік – лідер,"
+    #6: CPS=15.0 (37ch/2.5s) "де у нас проходили публічні програми."
+    #2: CPS=15.0 (35ch/2.3s) "Тож чи увійдемо ми всі у медитацію?"
+    #105: CPS=15.0 (73ch/4.9s) "за все, чим ми Тебе турбували і кидали Тобі виклик, – прошу,..."
+    #109: CPS=15.0 (73ch/4.9s) "Тепер на Сахасрарі ви маєте подякувати Мені. Покладіть руку ..."
+    #107: CPS=15.0 (38ch/2.5s) "У своєму розумі ви маєте знати, Хто Я."
+    #7: CPS=15.0 (47ch/3.1s) "Отже, спочатку ви маєте покласти руку на серце."
+    #110: CPS=15.0 (50ch/3.3s) "обертайте її сім разів і сім разів подякуйте Мені:"
+
+============================================================
+  CHECK: UK block count vs EN SRT block count
+============================================================
+  UK SRT blocks: 148
+  EN SRT blocks: 150
+  Ratio UK/EN: 0.99 (max allowed 2.0)
+  Block count: OK
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] UK/EN block count ratio
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 9.5 (target ≤15.0)
+  CPS > 15.0: 14 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
