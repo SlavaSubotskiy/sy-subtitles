@@ -63,7 +63,7 @@ chakras:
       - eternal childhood (вічне дитинство)
 
     body_parts:
-      uk_projections: "Основа долонь, п'яти, задня частина голови"
+      uk_projections: "Основа долонь, п’яти, задня частина голови"
 
     enemy_of_spirit:
       en: "Lust (Kama)"
@@ -205,7 +205,7 @@ chakras:
       - enlightened attention (просвітлена увага)
 
     body_parts:
-      uk_projections: "Середні пальці рук, великі пальці ніг, тім'я, лікті, коліна"
+      uk_projections: "Середні пальці рук, великі пальці ніг, тім’я, лікті, коліна"
 
     enemy_of_spirit:
       en: "Greed (Lobha)"
@@ -327,7 +327,7 @@ chakras:
 
     enemy_of_spirit:
       en: "Attachment/Illusion (Moha) + Fear"
-      uk: "Моха (прив'язаність, ілюзія)"
+      uk: "Моха (прив’язаність, ілюзія)"
       mantra_uk: "шрІ нірмоха"
 
     affirmations_uk:
@@ -401,7 +401,7 @@ chakras:
     important: "Crucial for Vibrational Awareness -- nerves for feeling vibrations on hands pass through this centre."
 
     affirmations_uk:
-      centre: "Шрі Матаджі, Твоєю милістю, будь ласка, зроби мене неприв'язаним свідком; будь ласка, зроби мене невід'ємною частинкою цілого."
+      centre: "Шрі Матаджі, Твоєю милістю, будь ласка, зроби мене неприв’язаним свідком; будь ласка, зроби мене невід’ємною частинкою цілого."
       left: "Шрі Матаджі, я ні в чому не винний. Як я можу бути винним, якщо я -- Дух, Твоєю милістю?"
       right: "Шрі Матаджі, істинно, Ти -- Приємний Прояв моїх слів та вчинків."
 
@@ -526,7 +526,7 @@ chakras:
     brahmarandhra: "Fontanelle bone on crown of head -- where Shri Gauri (Kundalini/Parvati) unites with Shri Shiva"
 
     affirmations_uk:
-      centre: "Шрі Матаджі, Твоєю милістю, будь ласка, встанови й зміцни мою Самореалізацію (мій зв'язок з Божественним)."
+      centre: "Шрі Матаджі, Твоєю милістю, будь ласка, встанови й зміцни мою Самореалізацію (мій зв’язок з Божественним)."
       left: "Шрі Матаджі, Твоєю милістю, я захищений від усіх проблем і я отримаю перемогу над усіма перешкодами моєму сходженню."
       right: "Шрі Матаджі, істинно, Ти -- Перемога над усіма перешкодами моєму сходженню (духовному)."
 
@@ -993,7 +993,7 @@ six_enemies:
 
   - number: 4
     en: Moha (Attachment, Illusion, Delusion)
-    uk: Моха (прив'язаність, ілюзія)
+    uk: Моха (прив’язаність, ілюзія)
     attacks: "Heart, Sahasrara"
     remedy_uk: "Ставити суспільні інтереси понад будь-якими особистими потребами. Використовувати «ми» замість «я»"
     mantra_uk: "шрІ нірмоха"
@@ -1291,13 +1291,13 @@ other_deities:
 mantra_formula:
   full_form:
     en: "Om Twameva sakshat Shri [Deity name] sakshat Shri Adi Shakti Mataji Shri Nirmala Devyai namo namah"
-    uk: "оМ твамева сАкШАт шрІ [Ім'я Божества] сАкШАт шрІ Аді шакті мАтАджІ шрІ нірмалА девйаї намо намаХа"
+    uk: "оМ твамева сАкШАт шрІ [Ім’я Божества] сАкШАт шрІ Аді шакті мАтАджІ шрІ нірмалА девйаї намо намаХа"
     meaning_en: "O Divine Mother, verily You are Shri [Deity], who is an aspect of the Primordial Power, Shri Mataji Nirmala Devi, unending salutations to You."
-    meaning_uk: "Амінь, О Божественна Матінко, Шрі Матаджі, істинно, Ти -- [Ім'я Божества]. Вітання й доземний уклін Тобі!"
+    meaning_uk: "Амінь, О Божественна Матінко, Шрі Матаджі, істинно, Ти -- [Ім’я Божества]. Вітання й доземний уклін Тобі!"
 
   short_form:
     en: "Om Twameva sakshat Shri [Deity name] namo namah"
-    uk: "оМ твамева сАкШАт шрІ [Ім'я Божества в давальному відмінку] намо намаХа"
+    uk: "оМ твамева сАкШАт шрІ [Ім’я Божества в давальному відмінку] намо намаХа"
 
   swamini_form:
     en: "Om Twameva sakshat Shri [Chakra name] Chakra Swamini ..."

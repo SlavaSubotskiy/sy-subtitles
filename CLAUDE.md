@@ -60,6 +60,7 @@ python -m pytest tests/test_offset_srt.py -k detect  # run a single test
 - Nested quotes (quote-within-quote): also `«»`, e.g. `«Він сказав: «Привіт»»`
 - NEVER use German `„"` or English `""` for any level of quoting
 - En-dash: ` – ` (U+2013) with spaces for interjections
+- Apostrophe: `’` (U+2019, right single quotation mark)
 - Ellipsis: `...` (three dots, no space before)
 
 ### SRT Format

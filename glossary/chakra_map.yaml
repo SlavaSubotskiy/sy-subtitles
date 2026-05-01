@@ -245,15 +245,15 @@ mantra_formula:
   full_form:
     en: Om Twameva sakshat Shri [Deity name] sakshat Shri Adi Shakti Mataji Shri Nirmala
       Devyai namo namah
-    uk: оМ твамева сАкШАт шрІ [Ім'я Божества] сАкШАт шрІ Аді шакті мАтАджІ шрІ нірмалА
+    uk: оМ твамева сАкШАт шрІ [Ім’я Божества] сАкШАт шрІ Аді шакті мАтАджІ шрІ нірмалА
       девйаї намо намаХа
     meaning_en: O Divine Mother, verily You are Shri [Deity], who is an aspect of
       the Primordial Power, Shri Mataji Nirmala Devi, unending salutations to You.
-    meaning_uk: Амінь, О Божественна Матінко, Шрі Матаджі, істинно, Ти -- [Ім'я Божества].
+    meaning_uk: Амінь, О Божественна Матінко, Шрі Матаджі, істинно, Ти -- [Ім’я Божества].
       Вітання й доземний уклін Тобі!
   short_form:
     en: Om Twameva sakshat Shri [Deity name] namo namah
-    uk: оМ твамева сАкШАт шрІ [Ім'я Божества в давальному відмінку] намо намаХа
+    uk: оМ твамева сАкШАт шрІ [Ім’я Божества в давальному відмінку] намо намаХа
   swamini_form:
     en: Om Twameva sakshat Shri [Chakra name] Chakra Swamini ...
     meaning: The Ruler/Goddess of [this] Chakra
@@ -297,7 +297,7 @@ other_deities:
 - en: Fatima Al-Zahra
   uk: Фатіма Аль-Захра
 - en: Shri Surya
-  uk: Шрі Сур'я
+  uk: Шрі Сур’я
 - en: Shri Hanuman
   uk: Шрі Хануман
 - en: Shri Bhumi Devi

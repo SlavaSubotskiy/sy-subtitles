@@ -46,4 +46,5 @@ Follow the Ukrainian Mantra Book (Книга Мантр Сахаджа Йоґи,
 
 - Quotation marks: `«»` (Ukrainian "yalynky" style)
 - En-dash: ` – ` (U+2013) with spaces for interjections
+- Apostrophe: `’` (U+2019, right single quotation mark)
 - Ellipsis: `...` (three dots, no space before)
