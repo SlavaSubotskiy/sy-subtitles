@@ -1132,7 +1132,10 @@ jobs:
 
   sync-status:
     needs: commit
-    if: needs.commit.result == 'success'
+    # !cancelled() opts out of the implicit success() check that otherwise
+    # propagates `skipped` from transitive needs (e.g. whisper) through
+    # commit's always() and would skip this job even when commit succeeded.
+    if: ${{ !cancelled() && needs.commit.result == 'success' }}
     uses: ./.github/workflows/sync-review-status.yml
     permissions:
       contents: write
