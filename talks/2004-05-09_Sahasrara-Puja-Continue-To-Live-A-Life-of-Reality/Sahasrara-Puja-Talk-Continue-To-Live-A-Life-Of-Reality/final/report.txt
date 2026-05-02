@@ -1,0 +1,74 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/2004-05-09_Sahasrara-Puja-Continue-To-Live-A-Life-of-Reality/Sahasrara-Puja-Talk-Continue-To-Live-A-Life-Of-Reality/final/uk.srt
+  Transcript: talks/2004-05-09_Sahasrara-Puja-Continue-To-Live-A-Life-of-Reality/transcript_uk.txt
+  EN SRT: talks/2004-05-09_Sahasrara-Puja-Continue-To-Live-A-Life-of-Reality/Sahasrara-Puja-Talk-Continue-To-Live-A-Life-Of-Reality/source/en.srt
+  SRT blocks: 82
+  (text preservation check skipped — offset video)
+  (time range check skipped — offset video)
+  (CPS hard fail skipped — builder mode)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range — SKIPPED (explicitly skipped)
+============================================================
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 82
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 82
+  CPS: avg=8.9, median=8.6, max=15.0
+  CPS > target: 0 (0.0%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=55.2, max=83
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #69: CPS=15.0 (37ch/2.5s) "Поки ви не будете використовувати це,"
+    #29: CPS=14.9 (65ch/4.3s) "ви не можете розмовляти з людьми, ви не можете їм нічого ска..."
+    #66: CPS=14.7 (82ch/5.6s) "Але єдине, Я відчуваю, що у вас, людей, не повинно бути емоц..."
+    #17: CPS=14.7 (78ch/5.3s) "Ніхто не може повірити, що в такої великої кількості з вас С..."
+    #26: CPS=14.6 (70ch/4.8s) "Заслуга не належить Мені, Я гадаю, бо Моя Сахасрара вже була..."
+    #73: CPS=14.2 (62ch/4.4s) "Моє здоров’я трохи погіршилося, врешті-решт, Я вже дуже стар..."
+    #78: CPS=13.8 (72ch/5.2s) "але ви можете записати питання й надіслати Мені їх у письмов..."
+    #12: CPS=13.8 (61ch/4.4s) "що Сахасрара була відкрита й усі ви отримали свою Реалізацію..."
+    #75: CPS=13.3 (77ch/5.8s) "Я почуваюсь такою зачарованою, що є так багато сахаджа йоґів..."
+    #77: CPS=13.2 (48ch/3.6s) "Власне, Я б хотіла, щоб ви ставили Мені питання,"
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+
+  Avg CPS: 8.9 (target ≤15.0)
+  CPS > 15.0: 0 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
