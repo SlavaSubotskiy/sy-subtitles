@@ -61,19 +61,33 @@ sy-subtitles/
 │   ├── terms_context.yaml          # Disambiguation context
 │   ├── chakra_map.yaml             # Chakra/deity mappings
 │   └── chakra_system.yaml          # Full subtle system reference
-├── tools/                          # Python tooling
-│   ├── download.py                 # Fetch from amruta.org
-│   ├── build_map.py                # Subtitle mapping orchestrator
-│   ├── build_srt.py                # SRT generator from mapping
-│   ├── validate_subtitles.py       # SRT validation
+├── tools/                          # Python tooling (see tools/ for full listing)
+│   ├── download.py                 # Fetch from amruta.org (local only)
+│   ├── whisper_run.py              # Whisper speech detection wrapper
+│   ├── build_map.py / build_srt.py # Subtitle builder (prepare → LLM → assemble)
+│   ├── builder_data.py             # Whisper / EN-SRT timing query interface
+│   ├── validate_subtitles.py       # SRT validation (text, CPS, overlaps, gaps)
+│   ├── validate_artifacts.py       # Phase-boundary contract enforcement
 │   ├── optimize_srt.py             # Timing optimizer (splits/merges)
-│   ├── sync_transcript_to_srt.py   # Text-only sync for PR edits
+│   ├── sync_pr.py                  # Two-pass sync driver for sync-subtitles.yml
+│   ├── sync_transcript_to_srt.py   # Forward sync (transcript → SRT)
+│   ├── sync_srt_to_transcript.py   # Reverse sync (SRT edits → transcript)
+│   ├── resync_srt.py               # Cross-video UK SRT resync
 │   ├── offset_srt.py               # Multi-video offset detection
+│   ├── align_uk.py                 # Ukrainian text alignment to whisper
 │   ├── text_export.py              # SRT → plain text
+│   ├── extract_review.py           # Extract SRT text for language review
+│   ├── glossary_check.py           # Glossary candidate scanner
+│   ├── fetch_transcripts.py        # amruta.org transcript corpus fetcher
+│   ├── scrape_listing.py           # amruta.org UK index scraper
+│   ├── schemas.py                  # Artifact schema validators
+│   ├── workflow_validation*.py     # Workflow input guards
+│   ├── fake_llm.py                 # Dry-run snapshot replay
+│   ├── verify_snapshot.py          # Dry-run output verifier
 │   ├── srt_utils.py                # Shared SRT parsing/writing
-│   ├── config.py                   # Threshold constants
-│   ├── builder_data.py             # Whisper data query interface
-│   └── align_uk.py                 # Ukrainian text alignment
+│   ├── text_segmentation.py        # Shared text segmentation helpers
+│   ├── sync_common.py              # Shared sync helpers
+│   └── config.py                   # Threshold constants
 ├── site/                           # GitHub Pages SPA
 │   ├── index.html                  # Preview + Review app
 │   └── icon.png                    # Mahayantra favicon
@@ -81,11 +95,16 @@ sy-subtitles/
 ├── templates/                      # Prompt templates
 │   └── language_review_template.md
 └── .github/workflows/
-    ├── subtitle-pipeline.yml       # Main pipeline (whisper→translate→build)
-    ├── sync-subtitles.yml          # PR-based transcript sync
+    ├── subtitle-pipeline.yml       # Main pipeline (whisper→translate→review→build)
+    ├── sync-subtitles.yml          # PR-based transcript ↔ SRT sync
     ├── sync-review-status.yml      # Issues → review-status.json
     ├── whisper.yml                 # Reusable whisper workflow
-    └── ci.yml                      # Lint + tests + E2E
+    ├── ci.yml                      # Lint + tests + E2E
+    ├── deploy-pages.yml            # Deploy site/ to GitHub Pages
+    ├── glossary-release.yml        # Glossary releases
+    ├── golden-talks.yml            # Full-corpus golden tests (manual)
+    ├── new-talk.yml                # PR-triggered setup for new talks
+    └── pipeline-matrix-dryrun.yml  # Matrix dry-run validation
 ```
 
 ## Workflows
@@ -108,9 +127,29 @@ Auto-updates labels: assign → `review:in-progress`, close → `review:approved
 
 ### whisper.yml
 Reusable workflow. Downloads video, runs Whisper for word-level timestamps.
+Also `workflow_dispatch` callable with a `force` flag.
 
 ### ci.yml
 Runs on every push: ruff lint, Python tests, JS tests, Playwright E2E.
+Default golden-talks scope is the curated fixture; full-corpus run lives in
+`golden-talks.yml`.
+
+### deploy-pages.yml
+Deploys `site/` to GitHub Pages on changes under `site/`.
+
+### glossary-release.yml
+Tags and packages glossary releases.
+
+### golden-talks.yml
+Manual `workflow_dispatch` — runs `tests/test_golden_talks.py` with
+`GOLDEN_TALKS_SCOPE=all` against every shipped `uk.srt`.
+
+### new-talk.yml
+Triggered when a PR adds a new talk directory; bootstraps metadata.
+
+### pipeline-matrix-dryrun.yml
+Replays the subtitle pipeline using `tools.fake_llm` snapshots — exercises
+the build/sync stack without burning Claude calls.
 
 ## Subtitle Builder (V2)
 

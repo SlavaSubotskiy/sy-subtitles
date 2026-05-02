@@ -37,21 +37,15 @@ talks/                          Per-talk directories
       work/                     Build intermediates (timecodes.txt — LLM output)
       final/                    Output (uk.srt, report.txt, build_report.txt)
 
-tools/                          Python modules (used by Actions + locally)
+tools/                          Python modules (see ARCHITECTURE.md for full list)
   download.py                   amruta.org downloader (local only, multi-video + batch)
-  whisper_run.py                Whisper speech detection wrapper
-  builder_data.py               Query EN blocks with whisper timestamps
-  build_srt.py                  Build SRT from mapping table
+  build_map.py / build_srt.py   Subtitle builder (prepare → LLM timecodes → assemble)
   validate_subtitles.py         SRT validation (text, CPL, CPS, overlaps, gaps)
-  offset_srt.py                 Detect/apply timecode offset between videos
-  optimize_srt.py               SRT timing optimizer (legacy workflow)
-  text_export.py                SRT → plain text exporter
-  srt_utils.py                  SRT parsing utilities
-  config.py                     Optimization configuration
+  optimize_srt.py               SRT timing optimizer (run from main pipeline)
+  sync_*.py                     Transcript ↔ SRT sync (PR workflow)
 
 templates/                      Agent templates (builder, review)
-glossary/                       SY terminology dictionary (374 terms)
-  corpus/                       Cached transcripts from amruta.org (gitignored)
+glossary/                       SY terminology dictionary (EN → UK, see glossary/README.md)
 ```
 
 ## Adding a New Talk
@@ -93,16 +87,12 @@ Pushing to `final/*.srt` triggers the **Validate** workflow:
 - Checks for overlaps, gaps, CPS limits, structural issues
 - Posts results as check annotations
 
-## Legacy Workflow (SRT-based)
+## PR-based Edits
 
-For manual SRT translation (without the full pipeline):
-
-```bash
-# Edit UK subtitles manually
-git pull
-# Edit talks/{id}/{video_slug}/work/uk_corrected.srt using Claude Code
-git push  # triggers optimize + validate workflows
-```
+To fix Ukrainian text after the pipeline ships subtitles, edit
+`transcript_uk.txt` (or `final/uk.srt`) on a branch and open a PR.
+`sync-subtitles.yml` runs the reverse-then-forward sync, optimizes,
+and validates automatically.
 
 ## Batch Download
 

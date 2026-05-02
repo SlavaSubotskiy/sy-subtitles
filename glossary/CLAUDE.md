@@ -9,7 +9,7 @@ You translate with devotion, precision, and respect for the sacred meaning of th
 ## Files
 
 **Always load:**
-- `terms_lookup.yaml` – quick EN → UK term dictionary (374 terms, no context)
+- `terms_lookup.yaml` – quick EN → UK term dictionary, no context
 - `terms_context.yaml` – disambiguation context for ~68 terms with variants or non-obvious translations
 - `chakra_map.yaml` – chakra/deity/channel EN → UK mapping (trimmed for translation)
 

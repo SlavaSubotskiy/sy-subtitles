@@ -2,18 +2,19 @@
 
 Sahaja Yoga terminology dictionary (EN → UK) and subtle system reference.
 
-**Status: v4** – 374 terms + chakra system reference. Optimized for LLM translator agent.
+**Status: v4** — EN → UK term dictionary + chakra system reference, optimized for the LLM translator agent.
 
 ## Structure
 
 ```
 glossary/
-  terms_lookup.yaml    # Quick EN → UK mapping (374 terms, ~19 KB)
-  terms_context.yaml   # Disambiguation context for ~68 ambiguous terms (~14 KB)
+  terms_lookup.yaml    # Quick EN → UK mapping (~19 KB)
+  terms_context.yaml   # Disambiguation context for ambiguous terms (~14 KB)
   chakra_map.yaml      # Chakra/deity/channel EN → UK mapping (~12 KB)
   chakra_system.yaml   # Full subtle system reference (on-demand, ~51 KB)
-  corpus/              # Cached EN+UK transcripts from amruta.org (gitignored)
-    index.yaml         # Talk listing (38 talks)
+  corpus/              # Optional EN+UK transcript cache (gitignored,
+                       # populated by `tools.fetch_transcripts`)
+    index.yaml         # Talk listing
     {slug}/en.txt      # English transcript
     {slug}/uk.txt      # Ukrainian transcript
   CLAUDE.md            # Translator agent instructions
@@ -32,12 +33,13 @@ glossary/
 
 ## terms_lookup.yaml
 
-All 374 terms as clean `en` / `uk` pairs without context. Organized by thematic sections:
-Subtle System, Spiritual States, Key Concepts, Puja and Rituals, Deities, Sacred Geography, etc.
+Clean `en` / `uk` pairs without context, organized by thematic sections:
+Subtle System, Spiritual States, Key Concepts, Puja and Rituals, Deities,
+Sacred Geography, etc.
 
 ## terms_context.yaml
 
-~68 terms that need disambiguation context:
+Terms that need disambiguation context:
 - Terms with variant Ukrainian translations (`/` in `uk` field)
 - Gender-specific forms (сахаджа йоґ / сахаджа йоґиня)
 - Non-obvious translations (catching → блокування, surrender → віддача на милість)
@@ -78,5 +80,5 @@ Follows the Ukrainian Mantra Book (Книга Мантр Сахаджа Йоґи
 
 - SY Mantrabook, UK Slim Edition 2025 (English)
 - Книга Мантр Сахаджа Йоґи, 3rd ed., Kyiv 2014 (Ukrainian)
-- 38 Ukrainian-translated talks from amruta.org (1970–2008)
+- Ukrainian-translated talks from amruta.org (1970–2008), via `tools.fetch_transcripts`
 - 1983-07-24 Guru Puja, Lodge Hill, UK (original analysis)
