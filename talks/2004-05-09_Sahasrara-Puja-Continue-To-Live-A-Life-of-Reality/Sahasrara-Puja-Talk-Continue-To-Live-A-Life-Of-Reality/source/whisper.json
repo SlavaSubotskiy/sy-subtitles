@@ -1,0 +1,5095 @@
+{
+  "language": "en",
+  "segments": [
+    {
+      "id": 0,
+      "start": 3.06,
+      "end": 10.44,
+      "text": "Today is a very important day in our lives as Sahaja Yogis.",
+      "words": [
+        {
+          "start": 3.06,
+          "end": 3.88,
+          "word": "Today"
+        },
+        {
+          "start": 3.88,
+          "end": 4.78,
+          "word": "is"
+        },
+        {
+          "start": 4.78,
+          "end": 5.1,
+          "word": "a"
+        },
+        {
+          "start": 5.1,
+          "end": 5.44,
+          "word": "very"
+        },
+        {
+          "start": 5.44,
+          "end": 6.02,
+          "word": "important"
+        },
+        {
+          "start": 6.02,
+          "end": 6.66,
+          "word": "day"
+        },
+        {
+          "start": 7.26,
+          "end": 8.14,
+          "word": "in"
+        },
+        {
+          "start": 8.14,
+          "end": 8.56,
+          "word": "our"
+        },
+        {
+          "start": 8.56,
+          "end": 8.96,
+          "word": "lives"
+        },
+        {
+          "start": 8.96,
+          "end": 9.36,
+          "word": "as"
+        },
+        {
+          "start": 9.36,
+          "end": 9.66,
+          "word": "Sahaja"
+        },
+        {
+          "start": 9.66,
+          "end": 10.44,
+          "word": "Yogis."
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "start": 12.31,
+      "end": 15.73,
+      "text": "This was the Day when Sahasrara was opened out,",
+      "words": [
+        {
+          "start": 12.31,
+          "end": 12.53,
+          "word": "This"
+        },
+        {
+          "start": 12.53,
+          "end": 12.79,
+          "word": "was"
+        },
+        {
+          "start": 12.79,
+          "end": 12.79,
+          "word": "the"
+        },
+        {
+          "start": 12.79,
+          "end": 13.09,
+          "word": "Day"
+        },
+        {
+          "start": 13.09,
+          "end": 13.65,
+          "word": "when"
+        },
+        {
+          "start": 13.65,
+          "end": 14.25,
+          "word": "Sahasrara"
+        },
+        {
+          "start": 14.25,
+          "end": 14.51,
+          "word": "was"
+        },
+        {
+          "start": 14.51,
+          "end": 14.89,
+          "word": "opened"
+        },
+        {
+          "start": 14.89,
+          "end": 15.73,
+          "word": "out,"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "start": 17.34,
+      "end": 22.54,
+      "text": "which really happened to be a charismatic thing that happened!",
+      "words": [
+        {
+          "start": 17.34,
+          "end": 17.48,
+          "word": "which"
+        },
+        {
+          "start": 17.48,
+          "end": 18.82,
+          "word": "really"
+        },
+        {
+          "start": 18.82,
+          "end": 19.88,
+          "word": "happened"
+        },
+        {
+          "start": 19.88,
+          "end": 19.9,
+          "word": "to"
+        },
+        {
+          "start": 19.9,
+          "end": 20.36,
+          "word": "be"
+        },
+        {
+          "start": 20.48,
+          "end": 20.48,
+          "word": "a"
+        },
+        {
+          "start": 20.48,
+          "end": 21.36,
+          "word": "charismatic"
+        },
+        {
+          "start": 21.36,
+          "end": 21.74,
+          "word": "thing"
+        },
+        {
+          "start": 21.74,
+          "end": 22.08,
+          "word": "that"
+        },
+        {
+          "start": 22.08,
+          "end": 22.54,
+          "word": "happened!"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "start": 25.08,
+      "end": 26.36,
+      "text": "I never expected",
+      "words": [
+        {
+          "start": 25.08,
+          "end": 25.42,
+          "word": "I"
+        },
+        {
+          "start": 25.42,
+          "end": 25.62,
+          "word": "never"
+        },
+        {
+          "start": 25.62,
+          "end": 26.36,
+          "word": "expected"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "start": 27.38,
+      "end": 31.46,
+      "text": "That In my lifetime i will work it out",
+      "words": [
+        {
+          "start": 27.38,
+          "end": 28.3,
+          "word": "That"
+        },
+        {
+          "start": 28.3,
+          "end": 28.5,
+          "word": "In"
+        },
+        {
+          "start": 28.5,
+          "end": 28.76,
+          "word": "my"
+        },
+        {
+          "start": 28.76,
+          "end": 29.16,
+          "word": "lifetime"
+        },
+        {
+          "start": 29.16,
+          "end": 29.44,
+          "word": "i"
+        },
+        {
+          "start": 29.44,
+          "end": 29.56,
+          "word": "will"
+        },
+        {
+          "start": 29.56,
+          "end": 30.26,
+          "word": "work"
+        },
+        {
+          "start": 30.26,
+          "end": 30.4,
+          "word": "it"
+        },
+        {
+          "start": 30.4,
+          "end": 31.46,
+          "word": "out"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "start": 32.01,
+      "end": 33.65,
+      "text": "It has been",
+      "words": [
+        {
+          "start": 32.01,
+          "end": 32.37,
+          "word": "It"
+        },
+        {
+          "start": 32.37,
+          "end": 32.81,
+          "word": "has"
+        },
+        {
+          "start": 32.81,
+          "end": 33.65,
+          "word": "been"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "start": 33.84,
+      "end": 38.64,
+      "text": "And so many of you have got your Sahastrara opened",
+      "words": [
+        {
+          "start": 33.84,
+          "end": 34.42,
+          "word": "And"
+        },
+        {
+          "start": 34.42,
+          "end": 34.68,
+          "word": "so"
+        },
+        {
+          "start": 34.68,
+          "end": 34.92,
+          "word": "many"
+        },
+        {
+          "start": 34.92,
+          "end": 35.12,
+          "word": "of"
+        },
+        {
+          "start": 35.12,
+          "end": 35.36,
+          "word": "you"
+        },
+        {
+          "start": 35.36,
+          "end": 35.64,
+          "word": "have"
+        },
+        {
+          "start": 35.64,
+          "end": 36.66,
+          "word": "got"
+        },
+        {
+          "start": 37.04,
+          "end": 37.5,
+          "word": "your"
+        },
+        {
+          "start": 37.5,
+          "end": 38.08,
+          "word": "Sahastrara"
+        },
+        {
+          "start": 38.08,
+          "end": 38.64,
+          "word": "opened"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "start": 41.4,
+      "end": 46.92,
+      "text": "Without that, you could never have known what is the truth.",
+      "words": [
+        {
+          "start": 41.4,
+          "end": 42.68,
+          "word": "Without"
+        },
+        {
+          "start": 42.68,
+          "end": 43.08,
+          "word": "that,"
+        },
+        {
+          "start": 43.1,
+          "end": 43.34,
+          "word": "you"
+        },
+        {
+          "start": 43.34,
+          "end": 43.66,
+          "word": "could"
+        },
+        {
+          "start": 43.66,
+          "end": 44.0,
+          "word": "never"
+        },
+        {
+          "start": 44.0,
+          "end": 44.3,
+          "word": "have"
+        },
+        {
+          "start": 44.3,
+          "end": 44.98,
+          "word": "known"
+        },
+        {
+          "start": 45.46,
+          "end": 46.16,
+          "word": "what"
+        },
+        {
+          "start": 46.16,
+          "end": 46.36,
+          "word": "is"
+        },
+        {
+          "start": 46.36,
+          "end": 46.58,
+          "word": "the"
+        },
+        {
+          "start": 46.58,
+          "end": 46.92,
+          "word": "truth."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "start": 49.5,
+      "end": 53.46,
+      "text": "You were all lost as everybody else was!",
+      "words": [
+        {
+          "start": 49.5,
+          "end": 49.64,
+          "word": "You"
+        },
+        {
+          "start": 49.64,
+          "end": 49.84,
+          "word": "were"
+        },
+        {
+          "start": 49.84,
+          "end": 50.1,
+          "word": "all"
+        },
+        {
+          "start": 50.1,
+          "end": 50.66,
+          "word": "lost"
+        },
+        {
+          "start": 50.78,
+          "end": 51.68,
+          "word": "as"
+        },
+        {
+          "start": 51.68,
+          "end": 52.2,
+          "word": "everybody"
+        },
+        {
+          "start": 52.2,
+          "end": 52.74,
+          "word": "else"
+        },
+        {
+          "start": 52.74,
+          "end": 53.46,
+          "word": "was!"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "start": 56.38,
+      "end": 69.22,
+      "text": "First of All Sahastrara is only way we can perceive understand and know the reality",
+      "words": [
+        {
+          "start": 56.38,
+          "end": 56.74,
+          "word": "First"
+        },
+        {
+          "start": 56.74,
+          "end": 57.02,
+          "word": "of"
+        },
+        {
+          "start": 57.02,
+          "end": 58.04,
+          "word": "All"
+        },
+        {
+          "start": 58.55,
+          "end": 59.45,
+          "word": "Sahastrara"
+        },
+        {
+          "start": 59.45,
+          "end": 59.65,
+          "word": "is"
+        },
+        {
+          "start": 59.65,
+          "end": 60.17,
+          "word": "only"
+        },
+        {
+          "start": 60.17,
+          "end": 60.91,
+          "word": "way"
+        },
+        {
+          "start": 61.87,
+          "end": 62.65,
+          "word": "we"
+        },
+        {
+          "start": 62.65,
+          "end": 62.97,
+          "word": "can"
+        },
+        {
+          "start": 62.97,
+          "end": 63.89,
+          "word": "perceive"
+        },
+        {
+          "start": 64.34,
+          "end": 65.98,
+          "word": "understand"
+        },
+        {
+          "start": 66.3,
+          "end": 67.52,
+          "word": "and"
+        },
+        {
+          "start": 67.52,
+          "end": 68.3,
+          "word": "know"
+        },
+        {
+          "start": 68.3,
+          "end": 68.74,
+          "word": "the"
+        },
+        {
+          "start": 68.74,
+          "end": 69.22,
+          "word": "reality"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "start": 73.15,
+      "end": 84.9,
+      "text": "You have come to know as to what is the reality, and you are enjoying that state where",
+      "words": [
+        {
+          "start": 73.15,
+          "end": 74.09,
+          "word": "You"
+        },
+        {
+          "start": 74.09,
+          "end": 74.39,
+          "word": "have"
+        },
+        {
+          "start": 74.39,
+          "end": 74.65,
+          "word": "come"
+        },
+        {
+          "start": 74.65,
+          "end": 74.91,
+          "word": "to"
+        },
+        {
+          "start": 74.91,
+          "end": 75.65,
+          "word": "know"
+        },
+        {
+          "start": 76.87,
+          "end": 77.53,
+          "word": "as"
+        },
+        {
+          "start": 77.53,
+          "end": 77.71,
+          "word": "to"
+        },
+        {
+          "start": 77.71,
+          "end": 77.95,
+          "word": "what"
+        },
+        {
+          "start": 77.95,
+          "end": 78.29,
+          "word": "is"
+        },
+        {
+          "start": 78.29,
+          "end": 78.51,
+          "word": "the"
+        },
+        {
+          "start": 78.51,
+          "end": 78.97,
+          "word": "reality,"
+        },
+        {
+          "start": 82.46,
+          "end": 82.54,
+          "word": "and"
+        },
+        {
+          "start": 82.54,
+          "end": 82.78,
+          "word": "you"
+        },
+        {
+          "start": 82.78,
+          "end": 82.96,
+          "word": "are"
+        },
+        {
+          "start": 82.96,
+          "end": 83.4,
+          "word": "enjoying"
+        },
+        {
+          "start": 83.4,
+          "end": 83.92,
+          "word": "that"
+        },
+        {
+          "start": 83.92,
+          "end": 84.34,
+          "word": "state"
+        },
+        {
+          "start": 84.34,
+          "end": 84.9,
+          "word": "where"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "start": 89.49,
+      "end": 99.75,
+      "text": "it's a great blessing that Sahastrara was opened out",
+      "words": [
+        {
+          "start": 89.49,
+          "end": 90.35,
+          "word": "it's"
+        },
+        {
+          "start": 94.19,
+          "end": 95.05,
+          "word": "a"
+        },
+        {
+          "start": 95.05,
+          "end": 95.33,
+          "word": "great"
+        },
+        {
+          "start": 95.33,
+          "end": 96.05,
+          "word": "blessing"
+        },
+        {
+          "start": 96.37,
+          "end": 97.79,
+          "word": "that"
+        },
+        {
+          "start": 97.79,
+          "end": 98.47,
+          "word": "Sahastrara"
+        },
+        {
+          "start": 98.47,
+          "end": 98.73,
+          "word": "was"
+        },
+        {
+          "start": 98.73,
+          "end": 99.13,
+          "word": "opened"
+        },
+        {
+          "start": 99.13,
+          "end": 99.75,
+          "word": "out"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "start": 100.55,
+      "end": 103.89,
+      "text": "and all of you got your Realization.",
+      "words": [
+        {
+          "start": 100.55,
+          "end": 101.59,
+          "word": "and"
+        },
+        {
+          "start": 101.59,
+          "end": 101.99,
+          "word": "all"
+        },
+        {
+          "start": 101.99,
+          "end": 102.25,
+          "word": "of"
+        },
+        {
+          "start": 102.25,
+          "end": 102.43,
+          "word": "you"
+        },
+        {
+          "start": 102.43,
+          "end": 102.75,
+          "word": "got"
+        },
+        {
+          "start": 102.75,
+          "end": 103.11,
+          "word": "your"
+        },
+        {
+          "start": 103.11,
+          "end": 103.89,
+          "word": "Realization."
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "start": 105.71,
+      "end": 108.15,
+      "text": "Otherwise, All Talks are just talks",
+      "words": [
+        {
+          "start": 105.71,
+          "end": 106.27,
+          "word": "Otherwise,"
+        },
+        {
+          "start": 106.49,
+          "end": 106.73,
+          "word": "All"
+        },
+        {
+          "start": 106.73,
+          "end": 107.15,
+          "word": "Talks"
+        },
+        {
+          "start": 107.15,
+          "end": 107.33,
+          "word": "are"
+        },
+        {
+          "start": 107.33,
+          "end": 107.67,
+          "word": "just"
+        },
+        {
+          "start": 107.67,
+          "end": 108.15,
+          "word": "talks"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "start": 108.95,
+      "end": 110.29,
+      "text": "has no meaning",
+      "words": [
+        {
+          "start": 108.95,
+          "end": 109.47,
+          "word": "has"
+        },
+        {
+          "start": 109.47,
+          "end": 109.77,
+          "word": "no"
+        },
+        {
+          "start": 109.77,
+          "end": 110.29,
+          "word": "meaning"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "start": 110.94,
+      "end": 112.42,
+      "text": "Has No Understanding",
+      "words": [
+        {
+          "start": 110.94,
+          "end": 111.46,
+          "word": "Has"
+        },
+        {
+          "start": 111.46,
+          "end": 111.72,
+          "word": "No"
+        },
+        {
+          "start": 111.72,
+          "end": 112.42,
+          "word": "Understanding"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "start": 113.31,
+      "end": 114.71,
+      "text": "And that's why",
+      "words": [
+        {
+          "start": 113.31,
+          "end": 113.83,
+          "word": "And"
+        },
+        {
+          "start": 113.83,
+          "end": 114.19,
+          "word": "that's"
+        },
+        {
+          "start": 114.19,
+          "end": 114.71,
+          "word": "why"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "start": 115.73,
+      "end": 119.19,
+      "text": "My first anxiety was to open Sastra",
+      "words": [
+        {
+          "start": 115.73,
+          "end": 116.29,
+          "word": "My"
+        },
+        {
+          "start": 116.29,
+          "end": 116.77,
+          "word": "first"
+        },
+        {
+          "start": 116.77,
+          "end": 117.33,
+          "word": "anxiety"
+        },
+        {
+          "start": 117.33,
+          "end": 117.73,
+          "word": "was"
+        },
+        {
+          "start": 117.73,
+          "end": 118.07,
+          "word": "to"
+        },
+        {
+          "start": 118.07,
+          "end": 118.67,
+          "word": "open"
+        },
+        {
+          "start": 118.67,
+          "end": 119.19,
+          "word": "Sastra"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "start": 120.52,
+      "end": 122.02,
+      "text": "That worked out",
+      "words": [
+        {
+          "start": 120.52,
+          "end": 121.1,
+          "word": "That"
+        },
+        {
+          "start": 121.1,
+          "end": 121.5,
+          "word": "worked"
+        },
+        {
+          "start": 121.5,
+          "end": 122.02,
+          "word": "out"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "start": 123.0,
+      "end": 124.42,
+      "text": "Worked Out Well",
+      "words": [
+        {
+          "start": 123.0,
+          "end": 123.6,
+          "word": "Worked"
+        },
+        {
+          "start": 123.6,
+          "end": 123.86,
+          "word": "Out"
+        },
+        {
+          "start": 123.86,
+          "end": 124.42,
+          "word": "Well"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "start": 125.28,
+      "end": 127.1,
+      "text": "&all Of You have Got",
+      "words": [
+        {
+          "start": 125.28,
+          "end": 125.8,
+          "word": "&all"
+        },
+        {
+          "start": 125.8,
+          "end": 125.98,
+          "word": "Of"
+        },
+        {
+          "start": 125.98,
+          "end": 126.14,
+          "word": "You"
+        },
+        {
+          "start": 126.14,
+          "end": 126.44,
+          "word": "have"
+        },
+        {
+          "start": 126.44,
+          "end": 127.1,
+          "word": "Got"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "start": 127.84,
+      "end": 129.5,
+      "text": "Your Sastrara Open",
+      "words": [
+        {
+          "start": 127.84,
+          "end": 128.36,
+          "word": "Your"
+        },
+        {
+          "start": 128.36,
+          "end": 128.98,
+          "word": "Sastrara"
+        },
+        {
+          "start": 128.98,
+          "end": 129.5,
+          "word": "Open"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "start": 130.25,
+      "end": 132.41,
+      "text": "It is a remarkable thing",
+      "words": [
+        {
+          "start": 130.25,
+          "end": 130.81,
+          "word": "It"
+        },
+        {
+          "start": 130.81,
+          "end": 130.89,
+          "word": "is"
+        },
+        {
+          "start": 130.89,
+          "end": 131.13,
+          "word": "a"
+        },
+        {
+          "start": 131.13,
+          "end": 131.55,
+          "word": "remarkable"
+        },
+        {
+          "start": 131.55,
+          "end": 132.41,
+          "word": "thing"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "start": 132.99,
+      "end": 134.43,
+      "text": "Nobody can believe",
+      "words": [
+        {
+          "start": 132.99,
+          "end": 133.61,
+          "word": "Nobody"
+        },
+        {
+          "start": 133.61,
+          "end": 133.91,
+          "word": "can"
+        },
+        {
+          "start": 133.91,
+          "end": 134.43,
+          "word": "believe"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "start": 134.43,
+      "end": 144.15,
+      "text": "That's so many of you have got your Sahasrara open, but I can see now clearly the light",
+      "words": [
+        {
+          "start": 134.43,
+          "end": 135.83,
+          "word": "That's"
+        },
+        {
+          "start": 135.83,
+          "end": 135.83,
+          "word": "so"
+        },
+        {
+          "start": 135.83,
+          "end": 136.07,
+          "word": "many"
+        },
+        {
+          "start": 136.07,
+          "end": 136.39,
+          "word": "of"
+        },
+        {
+          "start": 136.39,
+          "end": 136.57,
+          "word": "you"
+        },
+        {
+          "start": 136.57,
+          "end": 136.87,
+          "word": "have"
+        },
+        {
+          "start": 136.87,
+          "end": 137.95,
+          "word": "got"
+        },
+        {
+          "start": 138.11,
+          "end": 138.69,
+          "word": "your"
+        },
+        {
+          "start": 138.69,
+          "end": 139.25,
+          "word": "Sahasrara"
+        },
+        {
+          "start": 139.25,
+          "end": 139.73,
+          "word": "open,"
+        },
+        {
+          "start": 139.81,
+          "end": 140.09,
+          "word": "but"
+        },
+        {
+          "start": 140.09,
+          "end": 140.29,
+          "word": "I"
+        },
+        {
+          "start": 140.29,
+          "end": 140.55,
+          "word": "can"
+        },
+        {
+          "start": 140.55,
+          "end": 141.03,
+          "word": "see"
+        },
+        {
+          "start": 141.16,
+          "end": 141.98,
+          "word": "now"
+        },
+        {
+          "start": 141.98,
+          "end": 142.56,
+          "word": "clearly"
+        },
+        {
+          "start": 142.75,
+          "end": 143.87,
+          "word": "the"
+        },
+        {
+          "start": 143.87,
+          "end": 144.15,
+          "word": "light"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "start": 144.15,
+      "end": 145.73,
+      "text": "on top off your heads.",
+      "words": [
+        {
+          "start": 144.15,
+          "end": 144.49,
+          "word": "on"
+        },
+        {
+          "start": 144.49,
+          "end": 144.75,
+          "word": "top"
+        },
+        {
+          "start": 144.75,
+          "end": 145.01,
+          "word": "off"
+        },
+        {
+          "start": 145.01,
+          "end": 145.23,
+          "word": "your"
+        },
+        {
+          "start": 145.23,
+          "end": 145.73,
+          "word": "heads."
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "start": 148.05,
+      "end": 157.55,
+      "text": "Whatever that You've achieved is remarkable no doubt it because honest searching – Honest",
+      "words": [
+        {
+          "start": 148.05,
+          "end": 148.49,
+          "word": "Whatever"
+        },
+        {
+          "start": 148.49,
+          "end": 148.83,
+          "word": "that"
+        },
+        {
+          "start": 148.83,
+          "end": 149.15,
+          "word": "You've"
+        },
+        {
+          "start": 149.15,
+          "end": 149.63,
+          "word": "achieved"
+        },
+        {
+          "start": 149.63,
+          "end": 150.21,
+          "word": "is"
+        },
+        {
+          "start": 150.21,
+          "end": 150.81,
+          "word": "remarkable"
+        },
+        {
+          "start": 150.81,
+          "end": 151.13,
+          "word": "no"
+        },
+        {
+          "start": 151.13,
+          "end": 151.41,
+          "word": "doubt"
+        },
+        {
+          "start": 152.5,
+          "end": 153.4,
+          "word": "it"
+        },
+        {
+          "start": 153.4,
+          "end": 154.04,
+          "word": "because"
+        },
+        {
+          "start": 154.04,
+          "end": 154.98,
+          "word": "honest"
+        },
+        {
+          "start": 154.98,
+          "end": 155.56,
+          "word": "searching"
+        },
+        {
+          "start": 156.23,
+          "end": 157.09,
+          "word": "–"
+        },
+        {
+          "start": 157.09,
+          "end": 157.55,
+          "word": "Honest"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "start": 157.55,
+      "end": 158.91,
+      "text": "Searching!",
+      "words": [
+        {
+          "start": 157.55,
+          "end": 158.91,
+          "word": "Searching!"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "start": 159.58,
+      "end": 169.59,
+      "text": "that you have got it. My doing is nothing, because You were just there like a lamp and",
+      "words": [
+        {
+          "start": 159.58,
+          "end": 159.74,
+          "word": "that"
+        },
+        {
+          "start": 159.74,
+          "end": 159.88,
+          "word": "you"
+        },
+        {
+          "start": 159.88,
+          "end": 160.12,
+          "word": "have"
+        },
+        {
+          "start": 160.12,
+          "end": 160.42,
+          "word": "got"
+        },
+        {
+          "start": 160.42,
+          "end": 161.02,
+          "word": "it."
+        },
+        {
+          "start": 162.17,
+          "end": 162.45,
+          "word": "My"
+        },
+        {
+          "start": 162.45,
+          "end": 162.73,
+          "word": "doing"
+        },
+        {
+          "start": 162.73,
+          "end": 163.05,
+          "word": "is"
+        },
+        {
+          "start": 163.05,
+          "end": 163.63,
+          "word": "nothing,"
+        },
+        {
+          "start": 164.59,
+          "end": 164.95,
+          "word": "because"
+        },
+        {
+          "start": 164.95,
+          "end": 165.17,
+          "word": "You"
+        },
+        {
+          "start": 165.17,
+          "end": 165.29,
+          "word": "were"
+        },
+        {
+          "start": 165.29,
+          "end": 165.67,
+          "word": "just"
+        },
+        {
+          "start": 165.67,
+          "end": 166.45,
+          "word": "there"
+        },
+        {
+          "start": 166.61,
+          "end": 167.55,
+          "word": "like"
+        },
+        {
+          "start": 167.55,
+          "end": 167.77,
+          "word": "a"
+        },
+        {
+          "start": 167.77,
+          "end": 168.31,
+          "word": "lamp"
+        },
+        {
+          "start": 168.73,
+          "end": 169.59,
+          "word": "and"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "start": 169.59,
+      "end": 172.01,
+      "text": "I just enlightened It.\" That's all!",
+      "words": [
+        {
+          "start": 169.59,
+          "end": 169.85,
+          "word": "I"
+        },
+        {
+          "start": 169.85,
+          "end": 170.29,
+          "word": "just"
+        },
+        {
+          "start": 170.29,
+          "end": 170.77,
+          "word": "enlightened"
+        },
+        {
+          "start": 170.77,
+          "end": 171.21,
+          "word": "It.\""
+        },
+        {
+          "start": 171.21,
+          "end": 171.59,
+          "word": "That's"
+        },
+        {
+          "start": 171.59,
+          "end": 172.01,
+          "word": "all!"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "start": 173.24,
+      "end": 177.26,
+      "text": "Is not such big thing to do as",
+      "words": [
+        {
+          "start": 173.24,
+          "end": 173.42,
+          "word": "Is"
+        },
+        {
+          "start": 173.42,
+          "end": 173.68,
+          "word": "not"
+        },
+        {
+          "start": 173.68,
+          "end": 173.92,
+          "word": "such"
+        },
+        {
+          "start": 173.92,
+          "end": 174.16,
+          "word": "big"
+        },
+        {
+          "start": 174.16,
+          "end": 174.48,
+          "word": "thing"
+        },
+        {
+          "start": 174.48,
+          "end": 174.76,
+          "word": "to"
+        },
+        {
+          "start": 174.76,
+          "end": 175.42,
+          "word": "do"
+        },
+        {
+          "start": 175.8,
+          "end": 177.26,
+          "word": "as"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "start": 177.26,
+      "end": 180.78,
+      "text": "you people are achieved your state",
+      "words": [
+        {
+          "start": 177.26,
+          "end": 177.8,
+          "word": "you"
+        },
+        {
+          "start": 177.8,
+          "end": 178.14,
+          "word": "people"
+        },
+        {
+          "start": 178.14,
+          "end": 178.42,
+          "word": "are"
+        },
+        {
+          "start": 178.42,
+          "end": 179.0,
+          "word": "achieved"
+        },
+        {
+          "start": 179.0,
+          "end": 180.22,
+          "word": "your"
+        },
+        {
+          "start": 180.22,
+          "end": 180.78,
+          "word": "state"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "start": 182.48,
+      "end": 184.48,
+      "text": "the State of Enlightenment",
+      "words": [
+        {
+          "start": 182.48,
+          "end": 182.86,
+          "word": "the"
+        },
+        {
+          "start": 182.86,
+          "end": 183.3,
+          "word": "State"
+        },
+        {
+          "start": 183.3,
+          "end": 183.68,
+          "word": "of"
+        },
+        {
+          "start": 183.68,
+          "end": 184.48,
+          "word": "Enlightenment"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "start": 184.83,
+      "end": 187.65,
+      "text": "That you got it because",
+      "words": [
+        {
+          "start": 184.83,
+          "end": 185.89,
+          "word": "That"
+        },
+        {
+          "start": 185.89,
+          "end": 186.15,
+          "word": "you"
+        },
+        {
+          "start": 186.15,
+          "end": 186.45,
+          "word": "got"
+        },
+        {
+          "start": 186.45,
+          "end": 186.71,
+          "word": "it"
+        },
+        {
+          "start": 186.71,
+          "end": 187.65,
+          "word": "because"
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "start": 188.16,
+      "end": 190.82,
+      "text": "You were hankering after",
+      "words": [
+        {
+          "start": 188.16,
+          "end": 188.94,
+          "word": "You"
+        },
+        {
+          "start": 188.94,
+          "end": 189.78,
+          "word": "were"
+        },
+        {
+          "start": 189.78,
+          "end": 190.34,
+          "word": "hankering"
+        },
+        {
+          "start": 190.34,
+          "end": 190.82,
+          "word": "after"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "start": 191.5,
+      "end": 193.6,
+      "text": "Working It out",
+      "words": [
+        {
+          "start": 191.5,
+          "end": 192.32,
+          "word": "Working"
+        },
+        {
+          "start": 192.32,
+          "end": 192.78,
+          "word": "It"
+        },
+        {
+          "start": 192.78,
+          "end": 193.6,
+          "word": "out"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "start": 194.21,
+      "end": 195.27,
+      "text": "And,you did",
+      "words": [
+        {
+          "start": 194.21,
+          "end": 194.89,
+          "word": "And"
+        },
+        {
+          "start": 194.89,
+          "end": 195.03,
+          "word": ",you"
+        },
+        {
+          "start": 195.03,
+          "end": 195.27,
+          "word": "did"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "start": 195.27,
+      "end": 198.69,
+      "text": "Its very creditable",
+      "words": [
+        {
+          "start": 195.27,
+          "end": 195.99,
+          "word": "Its"
+        },
+        {
+          "start": 196.41,
+          "end": 197.27,
+          "word": "very"
+        },
+        {
+          "start": 197.27,
+          "end": 198.69,
+          "word": "creditable"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "start": 199.65,
+      "end": 201.67,
+      "text": "Credit doesn't go to me I think",
+      "words": [
+        {
+          "start": 199.65,
+          "end": 200.11,
+          "word": "Credit"
+        },
+        {
+          "start": 200.11,
+          "end": 200.43,
+          "word": "doesn't"
+        },
+        {
+          "start": 200.43,
+          "end": 200.71,
+          "word": "go"
+        },
+        {
+          "start": 200.71,
+          "end": 200.89,
+          "word": "to"
+        },
+        {
+          "start": 200.89,
+          "end": 201.13,
+          "word": "me"
+        },
+        {
+          "start": 201.13,
+          "end": 201.43,
+          "word": "I"
+        },
+        {
+          "start": 201.43,
+          "end": 201.67,
+          "word": "think"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "start": 201.67,
+      "end": 204.01,
+      "text": "Because i had a open Swastrana",
+      "words": [
+        {
+          "start": 201.67,
+          "end": 202.19,
+          "word": "Because"
+        },
+        {
+          "start": 202.19,
+          "end": 202.43,
+          "word": "i"
+        },
+        {
+          "start": 202.43,
+          "end": 202.69,
+          "word": "had"
+        },
+        {
+          "start": 202.69,
+          "end": 202.97,
+          "word": "a"
+        },
+        {
+          "start": 202.97,
+          "end": 203.17,
+          "word": "open"
+        },
+        {
+          "start": 203.17,
+          "end": 204.01,
+          "word": "Swastrana"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "start": 205.09,
+      "end": 208.03,
+      "text": "But To achieve that in you people",
+      "words": [
+        {
+          "start": 205.09,
+          "end": 205.55,
+          "word": "But"
+        },
+        {
+          "start": 205.55,
+          "end": 205.87,
+          "word": "To"
+        },
+        {
+          "start": 205.87,
+          "end": 206.13,
+          "word": "achieve"
+        },
+        {
+          "start": 206.13,
+          "end": 206.45,
+          "word": "that"
+        },
+        {
+          "start": 206.45,
+          "end": 206.71,
+          "word": "in"
+        },
+        {
+          "start": 206.71,
+          "end": 206.91,
+          "word": "you"
+        },
+        {
+          "start": 206.91,
+          "end": 208.03,
+          "word": "people"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "start": 208.32,
+      "end": 212.23,
+      "text": "Was so Joy giving for Me",
+      "words": [
+        {
+          "start": 208.32,
+          "end": 208.92,
+          "word": "Was"
+        },
+        {
+          "start": 208.92,
+          "end": 210.22,
+          "word": "so"
+        },
+        {
+          "start": 210.51,
+          "end": 211.01,
+          "word": "Joy"
+        },
+        {
+          "start": 211.01,
+          "end": 211.33,
+          "word": "giving"
+        },
+        {
+          "start": 211.33,
+          "end": 211.73,
+          "word": "for"
+        },
+        {
+          "start": 211.73,
+          "end": 212.23,
+          "word": "Me"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "start": 213.38,
+      "end": 215.64,
+      "text": "Now ,You will understand",
+      "words": [
+        {
+          "start": 213.38,
+          "end": 214.14,
+          "word": "Now"
+        },
+        {
+          "start": 214.14,
+          "end": 214.6,
+          "word": ",You"
+        },
+        {
+          "start": 214.6,
+          "end": 214.86,
+          "word": "will"
+        },
+        {
+          "start": 214.86,
+          "end": 215.64,
+          "word": "understand"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "start": 216.34,
+      "end": 220.4,
+      "text": "Because if Sahastrara is not open, you can't talk people.",
+      "words": [
+        {
+          "start": 216.34,
+          "end": 217.44,
+          "word": "Because"
+        },
+        {
+          "start": 217.44,
+          "end": 217.9,
+          "word": "if"
+        },
+        {
+          "start": 217.9,
+          "end": 218.32,
+          "word": "Sahastrara"
+        },
+        {
+          "start": 218.32,
+          "end": 218.56,
+          "word": "is"
+        },
+        {
+          "start": 218.56,
+          "end": 218.84,
+          "word": "not"
+        },
+        {
+          "start": 218.84,
+          "end": 219.08,
+          "word": "open,"
+        },
+        {
+          "start": 219.22,
+          "end": 219.26,
+          "word": "you"
+        },
+        {
+          "start": 219.26,
+          "end": 219.6,
+          "word": "can't"
+        },
+        {
+          "start": 219.6,
+          "end": 219.92,
+          "word": "talk"
+        },
+        {
+          "start": 219.92,
+          "end": 220.4,
+          "word": "people."
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "start": 221.06,
+      "end": 228.36,
+      "text": "You cannot say anything to them – it's just they don´t understand with the Sahasrara",
+      "words": [
+        {
+          "start": 221.06,
+          "end": 221.24,
+          "word": "You"
+        },
+        {
+          "start": 221.24,
+          "end": 221.54,
+          "word": "cannot"
+        },
+        {
+          "start": 221.54,
+          "end": 221.8,
+          "word": "say"
+        },
+        {
+          "start": 221.8,
+          "end": 222.2,
+          "word": "anything"
+        },
+        {
+          "start": 222.2,
+          "end": 222.4,
+          "word": "to"
+        },
+        {
+          "start": 222.4,
+          "end": 222.86,
+          "word": "them"
+        },
+        {
+          "start": 222.86,
+          "end": 223.38,
+          "word": "–"
+        },
+        {
+          "start": 223.38,
+          "end": 223.66,
+          "word": "it's"
+        },
+        {
+          "start": 223.66,
+          "end": 223.88,
+          "word": "just"
+        },
+        {
+          "start": 223.88,
+          "end": 224.04,
+          "word": "they"
+        },
+        {
+          "start": 224.04,
+          "end": 224.44,
+          "word": "don´t"
+        },
+        {
+          "start": 224.44,
+          "end": 225.1,
+          "word": "understand"
+        },
+        {
+          "start": 226.64,
+          "end": 227.62,
+          "word": "with"
+        },
+        {
+          "start": 227.62,
+          "end": 227.88,
+          "word": "the"
+        },
+        {
+          "start": 227.88,
+          "end": 228.36,
+          "word": "Sahasrara"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "start": 228.36,
+      "end": 231.64,
+      "text": "opened your understanding improves so much!",
+      "words": [
+        {
+          "start": 228.36,
+          "end": 228.82,
+          "word": "opened"
+        },
+        {
+          "start": 228.82,
+          "end": 229.26,
+          "word": "your"
+        },
+        {
+          "start": 229.26,
+          "end": 230.0,
+          "word": "understanding"
+        },
+        {
+          "start": 230.0,
+          "end": 231.0,
+          "word": "improves"
+        },
+        {
+          "start": 231.0,
+          "end": 231.3,
+          "word": "so"
+        },
+        {
+          "start": 231.3,
+          "end": 231.64,
+          "word": "much!"
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "start": 232.64,
+      "end": 239.2,
+      "text": "That was what has happened for all of us and I am very happy that there are",
+      "words": [
+        {
+          "start": 232.64,
+          "end": 232.84,
+          "word": "That"
+        },
+        {
+          "start": 232.84,
+          "end": 233.1,
+          "word": "was"
+        },
+        {
+          "start": 233.1,
+          "end": 233.34,
+          "word": "what"
+        },
+        {
+          "start": 233.34,
+          "end": 233.58,
+          "word": "has"
+        },
+        {
+          "start": 233.58,
+          "end": 234.02,
+          "word": "happened"
+        },
+        {
+          "start": 234.02,
+          "end": 234.42,
+          "word": "for"
+        },
+        {
+          "start": 234.42,
+          "end": 234.68,
+          "word": "all"
+        },
+        {
+          "start": 234.68,
+          "end": 234.9,
+          "word": "of"
+        },
+        {
+          "start": 234.9,
+          "end": 235.02,
+          "word": "us"
+        },
+        {
+          "start": 235.4,
+          "end": 236.16,
+          "word": "and"
+        },
+        {
+          "start": 236.16,
+          "end": 236.44,
+          "word": "I"
+        },
+        {
+          "start": 236.44,
+          "end": 236.48,
+          "word": "am"
+        },
+        {
+          "start": 236.48,
+          "end": 236.88,
+          "word": "very"
+        },
+        {
+          "start": 236.88,
+          "end": 237.52,
+          "word": "happy"
+        },
+        {
+          "start": 237.78,
+          "end": 238.86,
+          "word": "that"
+        },
+        {
+          "start": 238.86,
+          "end": 239.2,
+          "word": "there"
+        },
+        {
+          "start": 239.2,
+          "end": 239.2,
+          "word": "are"
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "start": 239.2,
+      "end": 244.33,
+      "text": "many people sitting here who have got their Sahasranas opened",
+      "words": [
+        {
+          "start": 239.2,
+          "end": 239.4,
+          "word": "many"
+        },
+        {
+          "start": 239.4,
+          "end": 239.96,
+          "word": "people"
+        },
+        {
+          "start": 239.96,
+          "end": 240.7,
+          "word": "sitting"
+        },
+        {
+          "start": 240.7,
+          "end": 241.72,
+          "word": "here"
+        },
+        {
+          "start": 241.88,
+          "end": 242.34,
+          "word": "who"
+        },
+        {
+          "start": 242.34,
+          "end": 242.58,
+          "word": "have"
+        },
+        {
+          "start": 242.58,
+          "end": 242.92,
+          "word": "got"
+        },
+        {
+          "start": 242.92,
+          "end": 243.28,
+          "word": "their"
+        },
+        {
+          "start": 243.28,
+          "end": 243.98,
+          "word": "Sahasranas"
+        },
+        {
+          "start": 243.98,
+          "end": 244.33,
+          "word": "opened"
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "start": 244.33,
+      "end": 254.36,
+      "text": "and there are many who have not come, so it's a big achievement for human beings to get",
+      "words": [
+        {
+          "start": 244.33,
+          "end": 245.09,
+          "word": "and"
+        },
+        {
+          "start": 245.09,
+          "end": 245.31,
+          "word": "there"
+        },
+        {
+          "start": 245.31,
+          "end": 245.59,
+          "word": "are"
+        },
+        {
+          "start": 245.59,
+          "end": 245.83,
+          "word": "many"
+        },
+        {
+          "start": 245.83,
+          "end": 246.07,
+          "word": "who"
+        },
+        {
+          "start": 246.07,
+          "end": 246.33,
+          "word": "have"
+        },
+        {
+          "start": 246.33,
+          "end": 246.63,
+          "word": "not"
+        },
+        {
+          "start": 246.63,
+          "end": 247.03,
+          "word": "come,"
+        },
+        {
+          "start": 248.01,
+          "end": 248.31,
+          "word": "so"
+        },
+        {
+          "start": 248.31,
+          "end": 248.69,
+          "word": "it's"
+        },
+        {
+          "start": 248.69,
+          "end": 248.83,
+          "word": "a"
+        },
+        {
+          "start": 248.83,
+          "end": 249.71,
+          "word": "big"
+        },
+        {
+          "start": 249.71,
+          "end": 250.55,
+          "word": "achievement"
+        },
+        {
+          "start": 250.62,
+          "end": 251.78,
+          "word": "for"
+        },
+        {
+          "start": 251.78,
+          "end": 252.14,
+          "word": "human"
+        },
+        {
+          "start": 252.14,
+          "end": 252.7,
+          "word": "beings"
+        },
+        {
+          "start": 253.08,
+          "end": 254.06,
+          "word": "to"
+        },
+        {
+          "start": 254.06,
+          "end": 254.36,
+          "word": "get"
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "start": 254.36,
+      "end": 264.38,
+      "text": "Itso much collectively sastra rao opal by which you know the truth.",
+      "words": [
+        {
+          "start": 254.36,
+          "end": 254.74,
+          "word": "Itso"
+        },
+        {
+          "start": 254.74,
+          "end": 255.04,
+          "word": "much"
+        },
+        {
+          "start": 255.04,
+          "end": 256.64,
+          "word": "collectively"
+        },
+        {
+          "start": 256.99,
+          "end": 257.89,
+          "word": "sastra"
+        },
+        {
+          "start": 257.89,
+          "end": 258.33,
+          "word": "rao"
+        },
+        {
+          "start": 258.33,
+          "end": 258.87,
+          "word": "opal"
+        },
+        {
+          "start": 259.77,
+          "end": 260.51,
+          "word": "by"
+        },
+        {
+          "start": 260.51,
+          "end": 261.19,
+          "word": "which"
+        },
+        {
+          "start": 262.28,
+          "end": 263.08,
+          "word": "you"
+        },
+        {
+          "start": 263.08,
+          "end": 263.36,
+          "word": "know"
+        },
+        {
+          "start": 263.36,
+          "end": 263.66,
+          "word": "the"
+        },
+        {
+          "start": 263.66,
+          "end": 264.38,
+          "word": "truth."
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "start": 265.73,
+      "end": 273.4,
+      "text": "Absolute Truth whatever You Know after Your realization is The Absolute Truth.",
+      "words": [
+        {
+          "start": 265.73,
+          "end": 266.23,
+          "word": "Absolute"
+        },
+        {
+          "start": 266.23,
+          "end": 266.85,
+          "word": "Truth"
+        },
+        {
+          "start": 267.33,
+          "end": 268.33,
+          "word": "whatever"
+        },
+        {
+          "start": 268.33,
+          "end": 268.69,
+          "word": "You"
+        },
+        {
+          "start": 268.69,
+          "end": 268.95,
+          "word": "Know"
+        },
+        {
+          "start": 268.95,
+          "end": 269.49,
+          "word": "after"
+        },
+        {
+          "start": 269.49,
+          "end": 269.93,
+          "word": "Your"
+        },
+        {
+          "start": 269.93,
+          "end": 270.63,
+          "word": "realization"
+        },
+        {
+          "start": 270.98,
+          "end": 272.1,
+          "word": "is"
+        },
+        {
+          "start": 272.1,
+          "end": 272.34,
+          "word": "The"
+        },
+        {
+          "start": 272.34,
+          "end": 272.84,
+          "word": "Absolute"
+        },
+        {
+          "start": 272.84,
+          "end": 273.4,
+          "word": "Truth."
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "start": 273.56,
+      "end": 283.57,
+      "text": "You don't argue then, you just know it and accept as a knowledge.",
+      "words": [
+        {
+          "start": 273.56,
+          "end": 274.34,
+          "word": "You"
+        },
+        {
+          "start": 274.34,
+          "end": 274.62,
+          "word": "don't"
+        },
+        {
+          "start": 274.62,
+          "end": 275.08,
+          "word": "argue"
+        },
+        {
+          "start": 275.08,
+          "end": 275.72,
+          "word": "then,"
+        },
+        {
+          "start": 276.52,
+          "end": 276.74,
+          "word": "you"
+        },
+        {
+          "start": 276.74,
+          "end": 278.72,
+          "word": "just"
+        },
+        {
+          "start": 279.07,
+          "end": 279.57,
+          "word": "know"
+        },
+        {
+          "start": 279.57,
+          "end": 280.19,
+          "word": "it"
+        },
+        {
+          "start": 280.19,
+          "end": 280.85,
+          "word": "and"
+        },
+        {
+          "start": 280.85,
+          "end": 281.53,
+          "word": "accept"
+        },
+        {
+          "start": 281.53,
+          "end": 282.81,
+          "word": "as"
+        },
+        {
+          "start": 282.81,
+          "end": 283.05,
+          "word": "a"
+        },
+        {
+          "start": 283.05,
+          "end": 283.57,
+          "word": "knowledge."
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "start": 284.97,
+      "end": 294.57,
+      "text": "It's such nice thing that was all there but not open when opened out how people have",
+      "words": [
+        {
+          "start": 284.97,
+          "end": 285.09,
+          "word": "It's"
+        },
+        {
+          "start": 285.09,
+          "end": 285.41,
+          "word": "such"
+        },
+        {
+          "start": 285.41,
+          "end": 285.89,
+          "word": "nice"
+        },
+        {
+          "start": 285.89,
+          "end": 286.77,
+          "word": "thing"
+        },
+        {
+          "start": 286.77,
+          "end": 287.21,
+          "word": "that"
+        },
+        {
+          "start": 287.21,
+          "end": 287.53,
+          "word": "was"
+        },
+        {
+          "start": 287.53,
+          "end": 287.97,
+          "word": "all"
+        },
+        {
+          "start": 287.97,
+          "end": 288.61,
+          "word": "there"
+        },
+        {
+          "start": 288.61,
+          "end": 289.43,
+          "word": "but"
+        },
+        {
+          "start": 289.43,
+          "end": 289.99,
+          "word": "not"
+        },
+        {
+          "start": 289.99,
+          "end": 290.55,
+          "word": "open"
+        },
+        {
+          "start": 290.81,
+          "end": 291.91,
+          "word": "when"
+        },
+        {
+          "start": 291.91,
+          "end": 292.49,
+          "word": "opened"
+        },
+        {
+          "start": 292.49,
+          "end": 292.93,
+          "word": "out"
+        },
+        {
+          "start": 292.93,
+          "end": 293.23,
+          "word": "how"
+        },
+        {
+          "start": 293.23,
+          "end": 293.63,
+          "word": "people"
+        },
+        {
+          "start": 293.63,
+          "end": 294.57,
+          "word": "have"
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "start": 294.57,
+      "end": 298.97,
+      "text": "understood Me also the laws of Divine.",
+      "words": [
+        {
+          "start": 294.57,
+          "end": 295.23,
+          "word": "understood"
+        },
+        {
+          "start": 295.23,
+          "end": 296.15,
+          "word": "Me"
+        },
+        {
+          "start": 296.59,
+          "end": 297.59,
+          "word": "also"
+        },
+        {
+          "start": 297.59,
+          "end": 297.95,
+          "word": "the"
+        },
+        {
+          "start": 297.95,
+          "end": 298.23,
+          "word": "laws"
+        },
+        {
+          "start": 298.23,
+          "end": 298.57,
+          "word": "of"
+        },
+        {
+          "start": 298.57,
+          "end": 298.97,
+          "word": "Divine."
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "start": 299.74,
+      "end": 308.26,
+      "text": "It's such a blessing of the Divine that you have got your Sahastrara opened out, for which",
+      "words": [
+        {
+          "start": 299.74,
+          "end": 300.76,
+          "word": "It's"
+        },
+        {
+          "start": 300.76,
+          "end": 300.98,
+          "word": "such"
+        },
+        {
+          "start": 300.98,
+          "end": 301.24,
+          "word": "a"
+        },
+        {
+          "start": 301.24,
+          "end": 301.5,
+          "word": "blessing"
+        },
+        {
+          "start": 301.5,
+          "end": 301.74,
+          "word": "of"
+        },
+        {
+          "start": 301.74,
+          "end": 301.98,
+          "word": "the"
+        },
+        {
+          "start": 301.98,
+          "end": 302.42,
+          "word": "Divine"
+        },
+        {
+          "start": 302.81,
+          "end": 303.89,
+          "word": "that"
+        },
+        {
+          "start": 303.89,
+          "end": 304.09,
+          "word": "you"
+        },
+        {
+          "start": 304.09,
+          "end": 304.35,
+          "word": "have"
+        },
+        {
+          "start": 304.35,
+          "end": 304.73,
+          "word": "got"
+        },
+        {
+          "start": 304.73,
+          "end": 305.05,
+          "word": "your"
+        },
+        {
+          "start": 305.05,
+          "end": 305.63,
+          "word": "Sahastrara"
+        },
+        {
+          "start": 305.63,
+          "end": 306.01,
+          "word": "opened"
+        },
+        {
+          "start": 306.01,
+          "end": 306.97,
+          "word": "out,"
+        },
+        {
+          "start": 307.56,
+          "end": 307.86,
+          "word": "for"
+        },
+        {
+          "start": 307.86,
+          "end": 308.26,
+          "word": "which"
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "start": 308.96,
+      "end": 311.31,
+      "text": "You may say we didn't do anything other.",
+      "words": [
+        {
+          "start": 308.96,
+          "end": 309.33,
+          "word": "You"
+        },
+        {
+          "start": 309.33,
+          "end": 309.55,
+          "word": "may"
+        },
+        {
+          "start": 309.55,
+          "end": 309.79,
+          "word": "say"
+        },
+        {
+          "start": 309.79,
+          "end": 309.93,
+          "word": "we"
+        },
+        {
+          "start": 309.93,
+          "end": 310.17,
+          "word": "didn't"
+        },
+        {
+          "start": 310.17,
+          "end": 310.43,
+          "word": "do"
+        },
+        {
+          "start": 310.43,
+          "end": 310.81,
+          "word": "anything"
+        },
+        {
+          "start": 310.81,
+          "end": 311.31,
+          "word": "other."
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "start": 311.97,
+      "end": 312.91,
+      "text": "Is not so!",
+      "words": [
+        {
+          "start": 311.97,
+          "end": 312.27,
+          "word": "Is"
+        },
+        {
+          "start": 312.27,
+          "end": 312.59,
+          "word": "not"
+        },
+        {
+          "start": 312.59,
+          "end": 312.91,
+          "word": "so!"
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "start": 314.14,
+      "end": 324.19,
+      "text": "Your search or truth was intense and definite .You wanted to know The Truth ,that is why",
+      "words": [
+        {
+          "start": 314.14,
+          "end": 314.46,
+          "word": "Your"
+        },
+        {
+          "start": 314.46,
+          "end": 314.98,
+          "word": "search"
+        },
+        {
+          "start": 314.98,
+          "end": 315.34,
+          "word": "or"
+        },
+        {
+          "start": 315.34,
+          "end": 315.86,
+          "word": "truth"
+        },
+        {
+          "start": 316.15,
+          "end": 317.15,
+          "word": "was"
+        },
+        {
+          "start": 317.15,
+          "end": 317.97,
+          "word": "intense"
+        },
+        {
+          "start": 318.07,
+          "end": 319.19,
+          "word": "and"
+        },
+        {
+          "start": 319.19,
+          "end": 319.73,
+          "word": "definite"
+        },
+        {
+          "start": 320.21,
+          "end": 321.39,
+          "word": ".You"
+        },
+        {
+          "start": 321.39,
+          "end": 321.77,
+          "word": "wanted"
+        },
+        {
+          "start": 321.77,
+          "end": 322.09,
+          "word": "to"
+        },
+        {
+          "start": 322.09,
+          "end": 322.29,
+          "word": "know"
+        },
+        {
+          "start": 322.29,
+          "end": 322.55,
+          "word": "The"
+        },
+        {
+          "start": 322.55,
+          "end": 322.93,
+          "word": "Truth"
+        },
+        {
+          "start": 322.99,
+          "end": 323.97,
+          "word": ",that"
+        },
+        {
+          "start": 323.97,
+          "end": 324.09,
+          "word": "is"
+        },
+        {
+          "start": 324.09,
+          "end": 324.19,
+          "word": "why"
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "start": 324.19,
+      "end": 331.45,
+      "text": "it has workedout otherwise no amount money No amount effort nothing would have helped",
+      "words": [
+        {
+          "start": 324.19,
+          "end": 324.39,
+          "word": "it"
+        },
+        {
+          "start": 324.39,
+          "end": 324.59,
+          "word": "has"
+        },
+        {
+          "start": 324.59,
+          "end": 325.41,
+          "word": "workedout"
+        },
+        {
+          "start": 325.63,
+          "end": 326.71,
+          "word": "otherwise"
+        },
+        {
+          "start": 326.71,
+          "end": 327.07,
+          "word": "no"
+        },
+        {
+          "start": 327.07,
+          "end": 327.43,
+          "word": "amount"
+        },
+        {
+          "start": 327.43,
+          "end": 328.03,
+          "word": "money"
+        },
+        {
+          "start": 328.03,
+          "end": 329.01,
+          "word": "No"
+        },
+        {
+          "start": 329.01,
+          "end": 329.43,
+          "word": "amount"
+        },
+        {
+          "start": 329.43,
+          "end": 330.09,
+          "word": "effort"
+        },
+        {
+          "start": 330.09,
+          "end": 330.55,
+          "word": "nothing"
+        },
+        {
+          "start": 330.55,
+          "end": 330.85,
+          "word": "would"
+        },
+        {
+          "start": 330.85,
+          "end": 331.05,
+          "word": "have"
+        },
+        {
+          "start": 331.05,
+          "end": 331.45,
+          "word": "helped"
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "start": 331.93,
+      "end": 335.05,
+      "text": "Sahasrara had to open by itself.",
+      "words": [
+        {
+          "start": 331.93,
+          "end": 333.39,
+          "word": "Sahasrara"
+        },
+        {
+          "start": 333.39,
+          "end": 333.65,
+          "word": "had"
+        },
+        {
+          "start": 333.65,
+          "end": 333.97,
+          "word": "to"
+        },
+        {
+          "start": 333.97,
+          "end": 334.15,
+          "word": "open"
+        },
+        {
+          "start": 334.15,
+          "end": 334.45,
+          "word": "by"
+        },
+        {
+          "start": 334.45,
+          "end": 335.05,
+          "word": "itself."
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "start": 336.55,
+      "end": 346.58,
+      "text": "It's all your building up, I should say it is all you are doing yourself that has brought",
+      "words": [
+        {
+          "start": 336.55,
+          "end": 336.75,
+          "word": "It's"
+        },
+        {
+          "start": 336.75,
+          "end": 336.99,
+          "word": "all"
+        },
+        {
+          "start": 336.99,
+          "end": 338.01,
+          "word": "your"
+        },
+        {
+          "start": 338.36,
+          "end": 339.08,
+          "word": "building"
+        },
+        {
+          "start": 339.08,
+          "end": 339.5,
+          "word": "up,"
+        },
+        {
+          "start": 339.5,
+          "end": 339.8,
+          "word": "I"
+        },
+        {
+          "start": 339.8,
+          "end": 340.04,
+          "word": "should"
+        },
+        {
+          "start": 340.04,
+          "end": 340.62,
+          "word": "say"
+        },
+        {
+          "start": 340.62,
+          "end": 341.32,
+          "word": "it"
+        },
+        {
+          "start": 341.32,
+          "end": 341.32,
+          "word": "is"
+        },
+        {
+          "start": 341.32,
+          "end": 341.62,
+          "word": "all"
+        },
+        {
+          "start": 341.62,
+          "end": 341.92,
+          "word": "you"
+        },
+        {
+          "start": 341.92,
+          "end": 342.1,
+          "word": "are"
+        },
+        {
+          "start": 342.1,
+          "end": 342.92,
+          "word": "doing"
+        },
+        {
+          "start": 342.98,
+          "end": 344.84,
+          "word": "yourself"
+        },
+        {
+          "start": 344.84,
+          "end": 345.94,
+          "word": "that"
+        },
+        {
+          "start": 345.94,
+          "end": 346.24,
+          "word": "has"
+        },
+        {
+          "start": 346.24,
+          "end": 346.58,
+          "word": "brought"
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "start": 346.58,
+      "end": 349.78,
+      "text": "forth such a beautiful happening!",
+      "words": [
+        {
+          "start": 346.58,
+          "end": 347.5,
+          "word": "forth"
+        },
+        {
+          "start": 347.5,
+          "end": 347.98,
+          "word": "such"
+        },
+        {
+          "start": 347.98,
+          "end": 348.22,
+          "word": "a"
+        },
+        {
+          "start": 348.22,
+          "end": 349.12,
+          "word": "beautiful"
+        },
+        {
+          "start": 349.12,
+          "end": 349.78,
+          "word": "happening!"
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "start": 351.86,
+      "end": 358.57,
+      "text": "I do not take any credit for that, at all.",
+      "words": [
+        {
+          "start": 351.86,
+          "end": 352.98,
+          "word": "I"
+        },
+        {
+          "start": 353.17,
+          "end": 354.37,
+          "word": "do"
+        },
+        {
+          "start": 354.37,
+          "end": 354.59,
+          "word": "not"
+        },
+        {
+          "start": 354.59,
+          "end": 354.79,
+          "word": "take"
+        },
+        {
+          "start": 354.79,
+          "end": 355.15,
+          "word": "any"
+        },
+        {
+          "start": 355.15,
+          "end": 355.53,
+          "word": "credit"
+        },
+        {
+          "start": 355.53,
+          "end": 355.81,
+          "word": "for"
+        },
+        {
+          "start": 355.81,
+          "end": 356.49,
+          "word": "that,"
+        },
+        {
+          "start": 357.75,
+          "end": 358.07,
+          "word": "at"
+        },
+        {
+          "start": 358.07,
+          "end": 358.57,
+          "word": "all."
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "start": 359.68,
+      "end": 362.99,
+      "text": "Definitely i must say",
+      "words": [
+        {
+          "start": 359.68,
+          "end": 360.32,
+          "word": "Definitely"
+        },
+        {
+          "start": 360.32,
+          "end": 361.44,
+          "word": "i"
+        },
+        {
+          "start": 361.89,
+          "end": 362.17,
+          "word": "must"
+        },
+        {
+          "start": 362.17,
+          "end": 362.99,
+          "word": "say"
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "start": 363.18,
+      "end": 365.42,
+      "text": "That have made you understand",
+      "words": [
+        {
+          "start": 363.18,
+          "end": 363.84,
+          "word": "That"
+        },
+        {
+          "start": 363.84,
+          "end": 364.1,
+          "word": "have"
+        },
+        {
+          "start": 364.1,
+          "end": 364.38,
+          "word": "made"
+        },
+        {
+          "start": 364.38,
+          "end": 364.66,
+          "word": "you"
+        },
+        {
+          "start": 364.66,
+          "end": 365.42,
+          "word": "understand"
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "start": 366.06,
+      "end": 369.78,
+      "text": "It's important your Sahastrara should be opened",
+      "words": [
+        {
+          "start": 366.06,
+          "end": 367.08,
+          "word": "It's"
+        },
+        {
+          "start": 367.08,
+          "end": 367.7,
+          "word": "important"
+        },
+        {
+          "start": 367.7,
+          "end": 368.28,
+          "word": "your"
+        },
+        {
+          "start": 368.28,
+          "end": 368.88,
+          "word": "Sahastrara"
+        },
+        {
+          "start": 368.88,
+          "end": 369.18,
+          "word": "should"
+        },
+        {
+          "start": 369.18,
+          "end": 369.48,
+          "word": "be"
+        },
+        {
+          "start": 369.48,
+          "end": 369.78,
+          "word": "opened"
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "start": 370.29,
+      "end": 372.33,
+      "text": "No more arguments",
+      "words": [
+        {
+          "start": 370.29,
+          "end": 371.25,
+          "word": "No"
+        },
+        {
+          "start": 371.25,
+          "end": 371.59,
+          "word": "more"
+        },
+        {
+          "start": 371.59,
+          "end": 372.33,
+          "word": "arguments"
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "start": 372.33,
+      "end": 374.71,
+      "text": "no more suggestions",
+      "words": [
+        {
+          "start": 372.33,
+          "end": 373.45,
+          "word": "no"
+        },
+        {
+          "start": 373.45,
+          "end": 373.75,
+          "word": "more"
+        },
+        {
+          "start": 373.75,
+          "end": 374.71,
+          "word": "suggestions"
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "start": 375.03,
+      "end": 379.57,
+      "text": "Nothing but having your own Sahasrara open",
+      "words": [
+        {
+          "start": 375.03,
+          "end": 376.27,
+          "word": "Nothing"
+        },
+        {
+          "start": 376.27,
+          "end": 376.57,
+          "word": "but"
+        },
+        {
+          "start": 376.57,
+          "end": 376.97,
+          "word": "having"
+        },
+        {
+          "start": 376.97,
+          "end": 377.53,
+          "word": "your"
+        },
+        {
+          "start": 377.53,
+          "end": 378.13,
+          "word": "own"
+        },
+        {
+          "start": 378.13,
+          "end": 378.73,
+          "word": "Sahasrara"
+        },
+        {
+          "start": 378.73,
+          "end": 379.57,
+          "word": "open"
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "start": 379.57,
+      "end": 381.85,
+      "text": "Which tells what is the truth",
+      "words": [
+        {
+          "start": 379.57,
+          "end": 380.27,
+          "word": "Which"
+        },
+        {
+          "start": 380.27,
+          "end": 380.61,
+          "word": "tells"
+        },
+        {
+          "start": 380.61,
+          "end": 381.09,
+          "word": "what"
+        },
+        {
+          "start": 381.09,
+          "end": 381.35,
+          "word": "is"
+        },
+        {
+          "start": 381.35,
+          "end": 381.57,
+          "word": "the"
+        },
+        {
+          "start": 381.57,
+          "end": 381.85,
+          "word": "truth"
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "start": 381.85,
+      "end": 389.91,
+      "text": "In these beautiful circumstances, what could your mother say?",
+      "words": [
+        {
+          "start": 381.85,
+          "end": 383.09,
+          "word": "In"
+        },
+        {
+          "start": 383.95,
+          "end": 385.11,
+          "word": "these"
+        },
+        {
+          "start": 385.37,
+          "end": 386.17,
+          "word": "beautiful"
+        },
+        {
+          "start": 386.17,
+          "end": 387.21,
+          "word": "circumstances,"
+        },
+        {
+          "start": 388.31,
+          "end": 388.57,
+          "word": "what"
+        },
+        {
+          "start": 388.57,
+          "end": 388.85,
+          "word": "could"
+        },
+        {
+          "start": 388.85,
+          "end": 389.13,
+          "word": "your"
+        },
+        {
+          "start": 389.13,
+          "end": 389.39,
+          "word": "mother"
+        },
+        {
+          "start": 389.39,
+          "end": 389.91,
+          "word": "say?"
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "start": 391.2,
+      "end": 396.92,
+      "text": "I can only that continue to live a life of reality.",
+      "words": [
+        {
+          "start": 391.2,
+          "end": 391.42,
+          "word": "I"
+        },
+        {
+          "start": 391.42,
+          "end": 391.62,
+          "word": "can"
+        },
+        {
+          "start": 391.62,
+          "end": 391.98,
+          "word": "only"
+        },
+        {
+          "start": 391.98,
+          "end": 392.96,
+          "word": "that"
+        },
+        {
+          "start": 392.96,
+          "end": 393.74,
+          "word": "continue"
+        },
+        {
+          "start": 393.74,
+          "end": 394.08,
+          "word": "to"
+        },
+        {
+          "start": 394.08,
+          "end": 394.34,
+          "word": "live"
+        },
+        {
+          "start": 394.34,
+          "end": 394.78,
+          "word": "a"
+        },
+        {
+          "start": 394.78,
+          "end": 395.36,
+          "word": "life"
+        },
+        {
+          "start": 395.36,
+          "end": 396.3,
+          "word": "of"
+        },
+        {
+          "start": 396.3,
+          "end": 396.92,
+          "word": "reality."
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "start": 397.3,
+      "end": 402.98,
+      "text": "Of understanding in everything you will find there is truth",
+      "words": [
+        {
+          "start": 397.3,
+          "end": 397.48,
+          "word": "Of"
+        },
+        {
+          "start": 397.48,
+          "end": 398.16,
+          "word": "understanding"
+        },
+        {
+          "start": 398.64,
+          "end": 399.68,
+          "word": "in"
+        },
+        {
+          "start": 399.68,
+          "end": 400.22,
+          "word": "everything"
+        },
+        {
+          "start": 400.22,
+          "end": 400.5,
+          "word": "you"
+        },
+        {
+          "start": 400.5,
+          "end": 400.82,
+          "word": "will"
+        },
+        {
+          "start": 400.82,
+          "end": 401.72,
+          "word": "find"
+        },
+        {
+          "start": 401.72,
+          "end": 402.2,
+          "word": "there"
+        },
+        {
+          "start": 402.2,
+          "end": 402.5,
+          "word": "is"
+        },
+        {
+          "start": 402.5,
+          "end": 402.98,
+          "word": "truth"
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "start": 403.23,
+      "end": 407.98,
+      "text": "and how do we use the truth",
+      "words": [
+        {
+          "start": 403.23,
+          "end": 405.11,
+          "word": "and"
+        },
+        {
+          "start": 405.24,
+          "end": 406.16,
+          "word": "how"
+        },
+        {
+          "start": 406.16,
+          "end": 406.9,
+          "word": "do"
+        },
+        {
+          "start": 406.9,
+          "end": 407.12,
+          "word": "we"
+        },
+        {
+          "start": 407.12,
+          "end": 407.36,
+          "word": "use"
+        },
+        {
+          "start": 407.36,
+          "end": 407.68,
+          "word": "the"
+        },
+        {
+          "start": 407.68,
+          "end": 407.98,
+          "word": "truth"
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "start": 407.98,
+      "end": 411.5,
+      "text": "is our own achievement.",
+      "words": [
+        {
+          "start": 407.98,
+          "end": 408.3,
+          "word": "is"
+        },
+        {
+          "start": 408.3,
+          "end": 409.34,
+          "word": "our"
+        },
+        {
+          "start": 409.34,
+          "end": 410.54,
+          "word": "own"
+        },
+        {
+          "start": 410.54,
+          "end": 411.5,
+          "word": "achievement."
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "start": 414.01,
+      "end": 420.85,
+      "text": "People are lost because they have no knowledge,",
+      "words": [
+        {
+          "start": 414.01,
+          "end": 414.33,
+          "word": "People"
+        },
+        {
+          "start": 414.33,
+          "end": 415.49,
+          "word": "are"
+        },
+        {
+          "start": 416.68,
+          "end": 417.36,
+          "word": "lost"
+        },
+        {
+          "start": 417.81,
+          "end": 419.23,
+          "word": "because"
+        },
+        {
+          "start": 419.23,
+          "end": 419.77,
+          "word": "they"
+        },
+        {
+          "start": 419.77,
+          "end": 419.99,
+          "word": "have"
+        },
+        {
+          "start": 419.99,
+          "end": 420.27,
+          "word": "no"
+        },
+        {
+          "start": 420.27,
+          "end": 420.85,
+          "word": "knowledge,"
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "start": 422.03,
+      "end": 423.39,
+      "text": "Knowledge from the books",
+      "words": [
+        {
+          "start": 422.03,
+          "end": 422.43,
+          "word": "Knowledge"
+        },
+        {
+          "start": 422.43,
+          "end": 422.75,
+          "word": "from"
+        },
+        {
+          "start": 422.75,
+          "end": 422.97,
+          "word": "the"
+        },
+        {
+          "start": 422.97,
+          "end": 423.39,
+          "word": "books"
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "start": 424.11,
+      "end": 425.97,
+      "text": "Is No-Knowledge",
+      "words": [
+        {
+          "start": 424.11,
+          "end": 424.53,
+          "word": "Is"
+        },
+        {
+          "start": 424.53,
+          "end": 424.75,
+          "word": "No"
+        },
+        {
+          "start": 424.75,
+          "end": 425.97,
+          "word": "-Knowledge"
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "start": 426.61,
+      "end": 428.03,
+      "text": "Their knowledge must come",
+      "words": [
+        {
+          "start": 426.61,
+          "end": 427.05,
+          "word": "Their"
+        },
+        {
+          "start": 427.05,
+          "end": 427.45,
+          "word": "knowledge"
+        },
+        {
+          "start": 427.45,
+          "end": 427.75,
+          "word": "must"
+        },
+        {
+          "start": 427.75,
+          "end": 428.03,
+          "word": "come"
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "start": 428.03,
+      "end": 428.85,
+      "text": "From within",
+      "words": [
+        {
+          "start": 428.03,
+          "end": 428.31,
+          "word": "From"
+        },
+        {
+          "start": 428.31,
+          "end": 428.85,
+          "word": "within"
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "start": 428.85,
+      "end": 430.29,
+      "text": "From Within themselves",
+      "words": [
+        {
+          "start": 428.85,
+          "end": 429.29,
+          "word": "From"
+        },
+        {
+          "start": 429.29,
+          "end": 429.67,
+          "word": "Within"
+        },
+        {
+          "start": 429.67,
+          "end": 430.29,
+          "word": "themselves"
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "start": 431.22,
+      "end": 432.7,
+      "text": "And that has happened",
+      "words": [
+        {
+          "start": 431.22,
+          "end": 431.64,
+          "word": "And"
+        },
+        {
+          "start": 431.64,
+          "end": 431.9,
+          "word": "that"
+        },
+        {
+          "start": 431.9,
+          "end": 432.14,
+          "word": "has"
+        },
+        {
+          "start": 432.14,
+          "end": 432.7,
+          "word": "happened"
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "start": 432.7,
+      "end": 435.12,
+      "text": "Because of Sahasrara opening",
+      "words": [
+        {
+          "start": 432.7,
+          "end": 433.56,
+          "word": "Because"
+        },
+        {
+          "start": 433.56,
+          "end": 433.9,
+          "word": "of"
+        },
+        {
+          "start": 433.9,
+          "end": 434.52,
+          "word": "Sahasrara"
+        },
+        {
+          "start": 434.52,
+          "end": 435.12,
+          "word": "opening"
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "start": 436.7,
+      "end": 438.04,
+      "text": "In all the countries",
+      "words": [
+        {
+          "start": 436.7,
+          "end": 437.12,
+          "word": "In"
+        },
+        {
+          "start": 437.12,
+          "end": 437.42,
+          "word": "all"
+        },
+        {
+          "start": 437.42,
+          "end": 437.62,
+          "word": "the"
+        },
+        {
+          "start": 437.62,
+          "end": 438.04,
+          "word": "countries"
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "start": 438.04,
+      "end": 439.7,
+      "text": "It Has Happened",
+      "words": [
+        {
+          "start": 438.04,
+          "end": 438.3,
+          "word": "It"
+        },
+        {
+          "start": 438.3,
+          "end": 438.54,
+          "word": "Has"
+        },
+        {
+          "start": 438.54,
+          "end": 439.7,
+          "word": "Happened"
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "start": 439.79,
+      "end": 440.93,
+      "text": "and it will be in",
+      "words": [
+        {
+          "start": 439.79,
+          "end": 440.25,
+          "word": "and"
+        },
+        {
+          "start": 440.25,
+          "end": 440.45,
+          "word": "it"
+        },
+        {
+          "start": 440.45,
+          "end": 440.63,
+          "word": "will"
+        },
+        {
+          "start": 440.63,
+          "end": 440.85,
+          "word": "be"
+        },
+        {
+          "start": 440.85,
+          "end": 440.93,
+          "word": "in"
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "start": 440.93,
+      "end": 442.17,
+      "text": "The whole world",
+      "words": [
+        {
+          "start": 440.93,
+          "end": 441.13,
+          "word": "The"
+        },
+        {
+          "start": 441.13,
+          "end": 441.47,
+          "word": "whole"
+        },
+        {
+          "start": 441.47,
+          "end": 442.17,
+          "word": "world"
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "start": 442.33,
+      "end": 449.45,
+      "text": "So many people will get Realization, but only thing I feel that you",
+      "words": [
+        {
+          "start": 442.33,
+          "end": 443.09,
+          "word": "So"
+        },
+        {
+          "start": 443.09,
+          "end": 443.41,
+          "word": "many"
+        },
+        {
+          "start": 443.41,
+          "end": 443.77,
+          "word": "people"
+        },
+        {
+          "start": 443.77,
+          "end": 444.05,
+          "word": "will"
+        },
+        {
+          "start": 444.05,
+          "end": 444.31,
+          "word": "get"
+        },
+        {
+          "start": 444.31,
+          "end": 445.15,
+          "word": "Realization,"
+        },
+        {
+          "start": 445.99,
+          "end": 446.55,
+          "word": "but"
+        },
+        {
+          "start": 446.55,
+          "end": 446.93,
+          "word": "only"
+        },
+        {
+          "start": 446.93,
+          "end": 447.21,
+          "word": "thing"
+        },
+        {
+          "start": 447.21,
+          "end": 447.43,
+          "word": "I"
+        },
+        {
+          "start": 447.43,
+          "end": 448.11,
+          "word": "feel"
+        },
+        {
+          "start": 448.31,
+          "end": 449.25,
+          "word": "that"
+        },
+        {
+          "start": 449.25,
+          "end": 449.45,
+          "word": "you"
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "start": 449.45,
+      "end": 455.6,
+      "text": "People should have no emotional attachment to it.",
+      "words": [
+        {
+          "start": 449.45,
+          "end": 449.81,
+          "word": "People"
+        },
+        {
+          "start": 449.81,
+          "end": 450.11,
+          "word": "should"
+        },
+        {
+          "start": 450.11,
+          "end": 451.17,
+          "word": "have"
+        },
+        {
+          "start": 451.52,
+          "end": 451.92,
+          "word": "no"
+        },
+        {
+          "start": 451.92,
+          "end": 453.42,
+          "word": "emotional"
+        },
+        {
+          "start": 453.58,
+          "end": 454.68,
+          "word": "attachment"
+        },
+        {
+          "start": 454.68,
+          "end": 454.98,
+          "word": "to"
+        },
+        {
+          "start": 454.98,
+          "end": 455.6,
+          "word": "it."
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "start": 456.57,
+      "end": 460.5,
+      "text": "Not Emotional! But realistic Attachment",
+      "words": [
+        {
+          "start": 456.57,
+          "end": 456.85,
+          "word": "Not"
+        },
+        {
+          "start": 456.85,
+          "end": 457.49,
+          "word": "Emotional!"
+        },
+        {
+          "start": 458.8,
+          "end": 459.2,
+          "word": "But"
+        },
+        {
+          "start": 459.2,
+          "end": 459.7,
+          "word": "realistic"
+        },
+        {
+          "start": 459.7,
+          "end": 460.5,
+          "word": "Attachment"
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "start": 460.66,
+      "end": 462.74,
+      "text": "That It is there",
+      "words": [
+        {
+          "start": 460.66,
+          "end": 461.74,
+          "word": "That"
+        },
+        {
+          "start": 461.74,
+          "end": 462.0,
+          "word": "It"
+        },
+        {
+          "start": 462.0,
+          "end": 462.22,
+          "word": "is"
+        },
+        {
+          "start": 462.22,
+          "end": 462.74,
+          "word": "there"
+        }
+      ]
+    },
+    {
+      "id": 91,
+      "start": 462.83,
+      "end": 464.41,
+      "text": "It has happened",
+      "words": [
+        {
+          "start": 462.83,
+          "end": 463.59,
+          "word": "It"
+        },
+        {
+          "start": 463.59,
+          "end": 463.89,
+          "word": "has"
+        },
+        {
+          "start": 463.89,
+          "end": 464.41,
+          "word": "happened"
+        }
+      ]
+    },
+    {
+      "id": 92,
+      "start": 464.41,
+      "end": 466.15,
+      "text": "Its working out",
+      "words": [
+        {
+          "start": 464.41,
+          "end": 464.89,
+          "word": "Its"
+        },
+        {
+          "start": 464.89,
+          "end": 465.31,
+          "word": "working"
+        },
+        {
+          "start": 465.31,
+          "end": 466.15,
+          "word": "out"
+        }
+      ]
+    },
+    {
+      "id": 93,
+      "start": 466.28,
+      "end": 468.2,
+      "text": "Then You'll be able",
+      "words": [
+        {
+          "start": 466.28,
+          "end": 466.98,
+          "word": "Then"
+        },
+        {
+          "start": 466.98,
+          "end": 467.46,
+          "word": "You'll"
+        },
+        {
+          "start": 467.46,
+          "end": 467.64,
+          "word": "be"
+        },
+        {
+          "start": 467.64,
+          "end": 468.2,
+          "word": "able"
+        }
+      ]
+    },
+    {
+      "id": 94,
+      "start": 468.2,
+      "end": 469.88,
+      "text": "To give Realizations",
+      "words": [
+        {
+          "start": 468.2,
+          "end": 468.9,
+          "word": "To"
+        },
+        {
+          "start": 468.9,
+          "end": 469.14,
+          "word": "give"
+        },
+        {
+          "start": 469.14,
+          "end": 469.88,
+          "word": "Realizations"
+        }
+      ]
+    },
+    {
+      "id": 95,
+      "start": 469.88,
+      "end": 477.39,
+      "text": "to other will understand the importance of Realization, unless and until you use it.",
+      "words": [
+        {
+          "start": 469.88,
+          "end": 470.08,
+          "word": "to"
+        },
+        {
+          "start": 470.08,
+          "end": 470.4,
+          "word": "other"
+        },
+        {
+          "start": 470.4,
+          "end": 471.44,
+          "word": "will"
+        },
+        {
+          "start": 471.44,
+          "end": 472.04,
+          "word": "understand"
+        },
+        {
+          "start": 472.04,
+          "end": 472.4,
+          "word": "the"
+        },
+        {
+          "start": 472.4,
+          "end": 472.9,
+          "word": "importance"
+        },
+        {
+          "start": 472.9,
+          "end": 473.28,
+          "word": "of"
+        },
+        {
+          "start": 473.28,
+          "end": 474.18,
+          "word": "Realization,"
+        },
+        {
+          "start": 475.33,
+          "end": 475.59,
+          "word": "unless"
+        },
+        {
+          "start": 475.59,
+          "end": 475.85,
+          "word": "and"
+        },
+        {
+          "start": 475.85,
+          "end": 476.11,
+          "word": "until"
+        },
+        {
+          "start": 476.11,
+          "end": 476.43,
+          "word": "you"
+        },
+        {
+          "start": 476.43,
+          "end": 476.69,
+          "word": "use"
+        },
+        {
+          "start": 476.69,
+          "end": 477.39,
+          "word": "it."
+        }
+      ]
+    },
+    {
+      "id": 96,
+      "start": 477.59,
+      "end": 485.85,
+      "text": "You won't know what is power of realization is so we must learn how this power which",
+      "words": [
+        {
+          "start": 477.59,
+          "end": 477.75,
+          "word": "You"
+        },
+        {
+          "start": 477.75,
+          "end": 478.03,
+          "word": "won't"
+        },
+        {
+          "start": 478.03,
+          "end": 478.33,
+          "word": "know"
+        },
+        {
+          "start": 478.33,
+          "end": 478.65,
+          "word": "what"
+        },
+        {
+          "start": 478.65,
+          "end": 478.85,
+          "word": "is"
+        },
+        {
+          "start": 478.85,
+          "end": 479.39,
+          "word": "power"
+        },
+        {
+          "start": 479.39,
+          "end": 479.85,
+          "word": "of"
+        },
+        {
+          "start": 479.85,
+          "end": 480.51,
+          "word": "realization"
+        },
+        {
+          "start": 480.51,
+          "end": 481.13,
+          "word": "is"
+        },
+        {
+          "start": 481.13,
+          "end": 482.23,
+          "word": "so"
+        },
+        {
+          "start": 482.23,
+          "end": 482.85,
+          "word": "we"
+        },
+        {
+          "start": 482.85,
+          "end": 483.09,
+          "word": "must"
+        },
+        {
+          "start": 483.09,
+          "end": 483.35,
+          "word": "learn"
+        },
+        {
+          "start": 483.35,
+          "end": 483.71,
+          "word": "how"
+        },
+        {
+          "start": 483.71,
+          "end": 484.41,
+          "word": "this"
+        },
+        {
+          "start": 484.41,
+          "end": 484.97,
+          "word": "power"
+        },
+        {
+          "start": 484.97,
+          "end": 485.85,
+          "word": "which"
+        }
+      ]
+    },
+    {
+      "id": 97,
+      "start": 485.85,
+      "end": 493.17,
+      "text": "within you which has started working out and will give such an immense capacity.",
+      "words": [
+        {
+          "start": 485.85,
+          "end": 486.23,
+          "word": "within"
+        },
+        {
+          "start": 486.23,
+          "end": 487.13,
+          "word": "you"
+        },
+        {
+          "start": 487.13,
+          "end": 487.57,
+          "word": "which"
+        },
+        {
+          "start": 487.57,
+          "end": 487.73,
+          "word": "has"
+        },
+        {
+          "start": 487.73,
+          "end": 488.23,
+          "word": "started"
+        },
+        {
+          "start": 488.23,
+          "end": 488.69,
+          "word": "working"
+        },
+        {
+          "start": 488.69,
+          "end": 489.37,
+          "word": "out"
+        },
+        {
+          "start": 489.37,
+          "end": 490.01,
+          "word": "and"
+        },
+        {
+          "start": 490.01,
+          "end": 490.33,
+          "word": "will"
+        },
+        {
+          "start": 490.33,
+          "end": 490.67,
+          "word": "give"
+        },
+        {
+          "start": 490.67,
+          "end": 491.65,
+          "word": "such"
+        },
+        {
+          "start": 491.65,
+          "end": 492.11,
+          "word": "an"
+        },
+        {
+          "start": 492.11,
+          "end": 492.45,
+          "word": "immense"
+        },
+        {
+          "start": 492.45,
+          "end": 493.17,
+          "word": "capacity."
+        }
+      ]
+    },
+    {
+      "id": 98,
+      "start": 498.51,
+      "end": 505.57,
+      "text": "My health is a little bit gone down after all, I am very old but still i don't feel",
+      "words": [
+        {
+          "start": 498.51,
+          "end": 498.77,
+          "word": "My"
+        },
+        {
+          "start": 498.77,
+          "end": 499.11,
+          "word": "health"
+        },
+        {
+          "start": 499.11,
+          "end": 499.29,
+          "word": "is"
+        },
+        {
+          "start": 499.29,
+          "end": 499.29,
+          "word": "a"
+        },
+        {
+          "start": 499.29,
+          "end": 499.65,
+          "word": "little"
+        },
+        {
+          "start": 499.65,
+          "end": 500.09,
+          "word": "bit"
+        },
+        {
+          "start": 500.09,
+          "end": 500.39,
+          "word": "gone"
+        },
+        {
+          "start": 500.39,
+          "end": 500.67,
+          "word": "down"
+        },
+        {
+          "start": 500.67,
+          "end": 501.01,
+          "word": "after"
+        },
+        {
+          "start": 501.01,
+          "end": 501.25,
+          "word": "all,"
+        },
+        {
+          "start": 501.25,
+          "end": 501.41,
+          "word": "I"
+        },
+        {
+          "start": 501.41,
+          "end": 501.47,
+          "word": "am"
+        },
+        {
+          "start": 501.47,
+          "end": 501.83,
+          "word": "very"
+        },
+        {
+          "start": 501.83,
+          "end": 502.37,
+          "word": "old"
+        },
+        {
+          "start": 502.37,
+          "end": 503.77,
+          "word": "but"
+        },
+        {
+          "start": 503.77,
+          "end": 504.47,
+          "word": "still"
+        },
+        {
+          "start": 504.47,
+          "end": 504.77,
+          "word": "i"
+        },
+        {
+          "start": 504.77,
+          "end": 505.27,
+          "word": "don't"
+        },
+        {
+          "start": 505.27,
+          "end": 505.57,
+          "word": "feel"
+        }
+      ]
+    },
+    {
+      "id": 99,
+      "start": 505.57,
+      "end": 509.55,
+      "text": "tired in any way while addressing You.",
+      "words": [
+        {
+          "start": 505.57,
+          "end": 506.49,
+          "word": "tired"
+        },
+        {
+          "start": 506.49,
+          "end": 506.91,
+          "word": "in"
+        },
+        {
+          "start": 506.91,
+          "end": 507.19,
+          "word": "any"
+        },
+        {
+          "start": 507.19,
+          "end": 508.09,
+          "word": "way"
+        },
+        {
+          "start": 508.09,
+          "end": 508.53,
+          "word": "while"
+        },
+        {
+          "start": 508.53,
+          "end": 508.99,
+          "word": "addressing"
+        },
+        {
+          "start": 508.99,
+          "end": 509.55,
+          "word": "You."
+        }
+      ]
+    },
+    {
+      "id": 100,
+      "start": 509.55,
+      "end": 515.21,
+      "text": "I feel so enamored that there are so many Sahaja Yogis,",
+      "words": [
+        {
+          "start": 509.55,
+          "end": 509.75,
+          "word": "I"
+        },
+        {
+          "start": 509.75,
+          "end": 510.49,
+          "word": "feel"
+        },
+        {
+          "start": 510.49,
+          "end": 511.21,
+          "word": "so"
+        },
+        {
+          "start": 511.21,
+          "end": 512.25,
+          "word": "enamored"
+        },
+        {
+          "start": 512.31,
+          "end": 512.91,
+          "word": "that"
+        },
+        {
+          "start": 512.91,
+          "end": 513.15,
+          "word": "there"
+        },
+        {
+          "start": 513.15,
+          "end": 513.43,
+          "word": "are"
+        },
+        {
+          "start": 513.43,
+          "end": 513.61,
+          "word": "so"
+        },
+        {
+          "start": 513.61,
+          "end": 513.89,
+          "word": "many"
+        },
+        {
+          "start": 513.89,
+          "end": 514.27,
+          "word": "Sahaja"
+        },
+        {
+          "start": 514.27,
+          "end": 515.21,
+          "word": "Yogis,"
+        }
+      ]
+    },
+    {
+      "id": 101,
+      "start": 515.47,
+      "end": 520.39,
+      "text": "who's Sastrara is open and they're enjoying their Sastra.",
+      "words": [
+        {
+          "start": 515.47,
+          "end": 516.59,
+          "word": "who's"
+        },
+        {
+          "start": 516.59,
+          "end": 516.99,
+          "word": "Sastrara"
+        },
+        {
+          "start": 516.99,
+          "end": 517.17,
+          "word": "is"
+        },
+        {
+          "start": 517.17,
+          "end": 517.77,
+          "word": "open"
+        },
+        {
+          "start": 517.77,
+          "end": 518.53,
+          "word": "and"
+        },
+        {
+          "start": 518.53,
+          "end": 518.91,
+          "word": "they're"
+        },
+        {
+          "start": 518.91,
+          "end": 519.31,
+          "word": "enjoying"
+        },
+        {
+          "start": 519.31,
+          "end": 519.75,
+          "word": "their"
+        },
+        {
+          "start": 519.75,
+          "end": 520.39,
+          "word": "Sastra."
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "start": 521.35,
+      "end": 524.33,
+      "text": "Actually i would have liked you to ask me questions",
+      "words": [
+        {
+          "start": 521.35,
+          "end": 521.75,
+          "word": "Actually"
+        },
+        {
+          "start": 521.75,
+          "end": 521.87,
+          "word": "i"
+        },
+        {
+          "start": 521.87,
+          "end": 522.13,
+          "word": "would"
+        },
+        {
+          "start": 522.13,
+          "end": 522.35,
+          "word": "have"
+        },
+        {
+          "start": 522.35,
+          "end": 522.63,
+          "word": "liked"
+        },
+        {
+          "start": 522.63,
+          "end": 522.91,
+          "word": "you"
+        },
+        {
+          "start": 522.91,
+          "end": 523.11,
+          "word": "to"
+        },
+        {
+          "start": 523.11,
+          "end": 523.35,
+          "word": "ask"
+        },
+        {
+          "start": 523.35,
+          "end": 523.53,
+          "word": "me"
+        },
+        {
+          "start": 523.53,
+          "end": 524.33,
+          "word": "questions"
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "start": 524.86,
+      "end": 529.73,
+      "text": "but if You can write question send Me written ones",
+      "words": [
+        {
+          "start": 524.86,
+          "end": 525.25,
+          "word": "but"
+        },
+        {
+          "start": 525.25,
+          "end": 525.51,
+          "word": "if"
+        },
+        {
+          "start": 525.51,
+          "end": 525.51,
+          "word": "You"
+        },
+        {
+          "start": 525.51,
+          "end": 525.67,
+          "word": "can"
+        },
+        {
+          "start": 525.67,
+          "end": 526.01,
+          "word": "write"
+        },
+        {
+          "start": 526.01,
+          "end": 526.55,
+          "word": "question"
+        },
+        {
+          "start": 526.55,
+          "end": 527.31,
+          "word": "send"
+        },
+        {
+          "start": 527.31,
+          "end": 528.33,
+          "word": "Me"
+        },
+        {
+          "start": 528.33,
+          "end": 529.19,
+          "word": "written"
+        },
+        {
+          "start": 529.19,
+          "end": 529.73,
+          "word": "ones"
+        }
+      ]
+    },
+    {
+      "id": 104,
+      "start": 530.12,
+      "end": 532.57,
+      "text": "then will try answer them sometime",
+      "words": [
+        {
+          "start": 530.12,
+          "end": 530.51,
+          "word": "then"
+        },
+        {
+          "start": 530.51,
+          "end": 530.73,
+          "word": "will"
+        },
+        {
+          "start": 530.73,
+          "end": 531.05,
+          "word": "try"
+        },
+        {
+          "start": 531.05,
+          "end": 531.59,
+          "word": "answer"
+        },
+        {
+          "start": 531.59,
+          "end": 531.89,
+          "word": "them"
+        },
+        {
+          "start": 531.89,
+          "end": 532.57,
+          "word": "sometime"
+        }
+      ]
+    },
+    {
+      "id": 105,
+      "start": 533.02,
+      "end": 534.71,
+      "text": "it'll be a much better idea",
+      "words": [
+        {
+          "start": 533.02,
+          "end": 533.41,
+          "word": "it'll"
+        },
+        {
+          "start": 533.41,
+          "end": 533.55,
+          "word": "be"
+        },
+        {
+          "start": 533.55,
+          "end": 533.67,
+          "word": "a"
+        },
+        {
+          "start": 533.67,
+          "end": 533.87,
+          "word": "much"
+        },
+        {
+          "start": 533.87,
+          "end": 534.19,
+          "word": "better"
+        },
+        {
+          "start": 534.19,
+          "end": 534.71,
+          "word": "idea"
+        }
+      ]
+    },
+    {
+      "id": 106,
+      "start": 536.62,
+      "end": 538.88,
+      "text": "So thankyou verymuch",
+      "words": [
+        {
+          "start": 536.62,
+          "end": 537.04,
+          "word": "So"
+        },
+        {
+          "start": 537.04,
+          "end": 537.56,
+          "word": "thankyou"
+        },
+        {
+          "start": 537.56,
+          "end": 538.88,
+          "word": "verymuch"
+        }
+      ]
+    },
+    {
+      "id": 107,
+      "start": 538.91,
+      "end": 540.73,
+      "text": "May God bless you",
+      "words": [
+        {
+          "start": 538.91,
+          "end": 539.25,
+          "word": "May"
+        },
+        {
+          "start": 539.25,
+          "end": 539.47,
+          "word": "God"
+        },
+        {
+          "start": 539.47,
+          "end": 539.79,
+          "word": "bless"
+        },
+        {
+          "start": 539.79,
+          "end": 540.73,
+          "word": "you"
+        }
+      ]
+    },
+    {
+      "id": 108,
+      "start": 541.27,
+      "end": 545.58,
+      "text": "Grow into surge, grow in to your being.",
+      "words": [
+        {
+          "start": 541.27,
+          "end": 541.73,
+          "word": "Grow"
+        },
+        {
+          "start": 541.73,
+          "end": 542.07,
+          "word": "into"
+        },
+        {
+          "start": 542.07,
+          "end": 542.99,
+          "word": "surge,"
+        },
+        {
+          "start": 544.22,
+          "end": 544.3,
+          "word": "grow"
+        },
+        {
+          "start": 544.3,
+          "end": 544.6,
+          "word": "in"
+        },
+        {
+          "start": 544.6,
+          "end": 544.78,
+          "word": "to"
+        },
+        {
+          "start": 544.78,
+          "end": 545.06,
+          "word": "your"
+        },
+        {
+          "start": 545.06,
+          "end": 545.58,
+          "word": "being."
+        }
+      ]
+    },
+    {
+      "id": 109,
+      "start": 546.66,
+      "end": 548.84,
+      "text": "May God bless you all my blessings",
+      "words": [
+        {
+          "start": 546.66,
+          "end": 546.76,
+          "word": "May"
+        },
+        {
+          "start": 546.76,
+          "end": 546.98,
+          "word": "God"
+        },
+        {
+          "start": 546.98,
+          "end": 547.34,
+          "word": "bless"
+        },
+        {
+          "start": 547.34,
+          "end": 547.82,
+          "word": "you"
+        },
+        {
+          "start": 547.82,
+          "end": 548.12,
+          "word": "all"
+        },
+        {
+          "start": 548.12,
+          "end": 548.42,
+          "word": "my"
+        },
+        {
+          "start": 548.42,
+          "end": 548.84,
+          "word": "blessings"
+        }
+      ]
+    }
+  ]
+}
