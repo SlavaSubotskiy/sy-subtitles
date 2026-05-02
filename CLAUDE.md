@@ -18,6 +18,9 @@ Source language: English. Target language: Ukrainian.
 1. Download talk: `python -m tools.download --url "https://www.amruta.org/..."`
 2. Push source files (`meta.yaml`, `transcript_en.txt`, `en.srt`)
 3. Trigger pipeline: `gh workflow run subtitle-pipeline.yml -f talk_id={date}_{slug}`
+   Optional inputs: `timing_source=auto|whisper|en-srt` (default `auto` —
+   en-srt if present, else whisper), `dry_run=true` (replay snapshots via
+   `tools.fake_llm`, no commit).
 4. Pipeline runs automatically:
    - **Whisper**: speech detection → `whisper.json` (word-level timestamps)
    - **Translate**: Claude agent translates EN → UK → `transcript_uk.txt`
@@ -29,72 +32,32 @@ Source language: English. Target language: Ukrainian.
 
 ### Other Workflows
 
-- **`sync-subtitles.yml`** — PR trigger on `transcript_uk.txt` changes: sync text into SRT → optimize → validate
-- **`whisper.yml`** — speech detection (`workflow_dispatch` + `workflow_call` reusable); supports `force` flag
-- **`ci.yml`** — lint + Python tests + JS tests + Playwright E2E
-- **`deploy-pages.yml`** — deploys `site/` to GitHub Pages
-- **`glossary-release.yml`** — glossary releases
-- **`sync-review-status.yml`** — syncs issue labels to `review-status.json`
-- **`new-talk.yml`** — PR-triggered setup for newly added talks
-- **`pipeline-matrix-dryrun.yml`** — matrix dry-run validation of the subtitle pipeline
+See `ARCHITECTURE.md` for full descriptions. In short:
+`sync-subtitles.yml` (PR sync), `whisper.yml` (reusable),
+`ci.yml` (lint + tests), `deploy-pages.yml`, `glossary-release.yml`,
+`sync-review-status.yml`, `new-talk.yml`, `pipeline-matrix-dryrun.yml`,
+`golden-talks.yml` (full-corpus pytest, on-demand).
 
 ## Local Setup
 
 ```bash
 pip install -r requirements.txt
+pip install -r requirements-dev.txt                  # for tests
 python -m pytest tests/                              # run Python tests
 python -m pytest tests/test_offset_srt.py -k detect  # run a single test
+GOLDEN_TALKS_SCOPE=all pytest tests/test_golden_talks.py  # full-corpus golden
 ```
 
 
 ## Language Rules
 
-### Deity Pronoun Capitalization
-- **Shri Mataji**: ALWAYS uppercase pronouns (Я/Мені/Мій/Моя/Вона/Її/Їй)
-- **Individual Incarnations** (Krishna, Buddha, Moses, etc.) singular: uppercase (Він/Його/Йому)
-- **Incarnations plural** mid-sentence: lowercase (вони/їм/їх)
-- **Regular people**: always lowercase (except sentence start)
-
-### Ukrainian Orthography
-- Quotation marks: `«»` (Ukrainian "yalynky" style)
-- Nested quotes (quote-within-quote): also `«»`, e.g. `«Він сказав: «Привіт»»`
-- NEVER use German `„"` or English `""` for any level of quoting
-- En-dash: ` – ` (U+2013) with spaces for interjections
-- Apostrophe: `’` (U+2019, right single quotation mark)
-- Ellipsis: `...` (three dots, no space before)
+See `glossary/CLAUDE.md` for the canonical deity-pronoun, orthography,
+and transliteration rules.
 
 ### SRT Format
 - Single-line mode (no manual line breaks in subtitle text)
-- UTF-8 encoding with BOM is acceptable
-- Block numbering must be sequential starting from 1
-
-## Writing Large SRT Files (manual edits only)
-
-The build pipeline generates `final/uk.srt` automatically. This guidance applies
-only to ad-hoc manual fixes where Claude needs to rewrite a full SRT in one
-session. SRT files typically have 300-500+ blocks and don't fit in a single
-output. Write them in chunks using bash `cat` with heredoc and append:
-
-```bash
-# First chunk – create file
-cat > path/to/uk_corrected.srt << 'SRTEOF'
-1
-00:00:01,000 --> 00:00:05,000
-Перший блок.
-SRTEOF
-
-# Subsequent chunks – append
-cat >> path/to/uk_corrected.srt << 'SRTEOF'
-
-101
-00:05:00,000 --> 00:05:05,000
-Наступний блок.
-SRTEOF
-```
-
-Use ~150 blocks per chunk (2-3 chunks for a typical talk).
-
-When both videos share the same text (different timecodes only), translate the first video manually, then use a Python script to copy the Ukrainian text with the second video's timecodes.
+- UTF-8 with optional BOM
+- Block numbering sequential from 1
 
 ## Review Process
 
@@ -105,39 +68,15 @@ Use the 2+1 agent language review (see `templates/language_review_template.md`):
 
 ## Adding a New Talk
 
-### Download from amruta.org
+End-to-end commands are in `README.md`. Quick reference:
 
 ```bash
-# Download everything (meta + transcript + SRT):
 python -m tools.download --url "https://www.amruta.org/..."
-
-# Download only specific parts:
-python -m tools.download --url "..." --what text   # meta.yaml + transcript_en.txt only
-python -m tools.download --url "..." --what srt    # en.srt from Vimeo only
-
-# Batch mode:
-python -m tools.download --manifest queue.yaml
-```
-
-The downloader automatically:
-- Extracts date and slug from the URL
-- Finds all Vimeo videos on the page
-- Creates `talks/{date}_{slug}/` with subdirectories per video
-- Downloads EN SRTs from Vimeo, saves `transcript_en.txt` and `meta.yaml`
-
-If Vimeo returns 401, download text first (`--what text`), then retry SRT (`--what srt`).
-
-### Push and run pipeline
-
-```bash
-git add talks/{date}_{slug}/
-git commit -m "Add {talk title}"
-git push
-# Trigger the full pipeline:
+git add talks/{date}_{slug}/ && git commit -m "Add {title}" && git push
 gh workflow run subtitle-pipeline.yml -f talk_id={date}_{slug}
 ```
 
-The pipeline runs: Whisper → Translate → Review → Build subtitles → Commit.
+If Vimeo returns 401: `--what text` first, then `--what srt`.
 
 ## Tools
 
@@ -161,6 +100,17 @@ python -m tools.sync_transcript_to_srt --talk-dir PATH --video-slug SLUG \
 # Sync SRT text edits back into transcript_uk.txt (reverse direction, for PR workflow)
 python -m tools.sync_srt_to_transcript --old-srt OLD --new-srt NEW \
   --transcript transcript_uk.txt
+
+# Two-pass sync driver for sync-subtitles PR workflow (used by Actions)
+python -m tools.sync_pr --base SHA --paths "talks/.../transcript_uk.txt ..."
+
+# Resync UK SRT from primary video timeline onto secondary video timeline
+python -m tools.resync_srt --primary-uk PATH --primary-en PATH \
+  --secondary-en PATH --output PATH
+
+# Validate artifact contracts at pipeline phase boundaries
+python -m tools.validate_artifacts [--whisper PATH | --meta PATH |
+  --timecodes PATH | --talk-dir PATH]
 
 # Detect and apply timecode offset between videos
 python -m tools.offset_srt detect --srt1 PATH --srt2 PATH

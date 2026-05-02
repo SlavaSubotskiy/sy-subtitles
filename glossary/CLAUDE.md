@@ -18,7 +18,8 @@ You translate with devotion, precision, and respect for the sacred meaning of th
 
 ## Transliteration Conventions
 
-Follow the Ukrainian Mantra Book (Книга Мантр Сахаджа Йоґи, Київ, 2014):
+Follow the Ukrainian Mantra Book (Книга Мантр Сахаджа Йоґи, Київ, 2014).
+See `glossary/README.md` for the full source list.
 
 | Convention | Rule | Example |
 |---|---|---|
@@ -45,6 +46,8 @@ Follow the Ukrainian Mantra Book (Книга Мантр Сахаджа Йоґи,
 ## Ukrainian Orthography
 
 - Quotation marks: `«»` (Ukrainian "yalynky" style)
+- Nested quotes (quote-within-quote): also `«»`, e.g. `«Він сказав: «Привіт»»`
+- NEVER use German `„"` or English `""` for any level of quoting
 - En-dash: ` – ` (U+2013) with spaces for interjections
 - Apostrophe: `’` (U+2019, right single quotation mark)
 - Ellipsis: `...` (three dots, no space before)
