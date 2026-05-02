@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-23T10:44:48.216978+00:00",
+  "updated_at": "2026-05-02T06:05:57.763806+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -115,6 +115,18 @@
       "reviewer": null,
       "issue_number": 118,
       "updated_at": "2026-04-23T09:32:22Z"
+    },
+    "1988-12-11_Adi-Shakti-Puja-The-steadiness-of-the-mind-is-very-important-for-the-marriages": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 150,
+      "updated_at": "2026-05-02T04:57:00Z"
+    },
+    "1996-06-09_Adi-Shakti-Puja-The-compassion-has-to-become-active": {
+      "status": "pending",
+      "reviewer": null,
+      "issue_number": 137,
+      "updated_at": "2026-04-26T03:45:15Z"
     }
   }
 }
