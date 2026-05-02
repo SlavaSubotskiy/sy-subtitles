@@ -1,0 +1,23 @@
+name: Golden talks (full corpus)
+
+# Runs `tests/test_golden_talks.py` against every shipped uk.srt with
+# GOLDEN_TALKS_SCOPE=all. The default CI run uses the curated fixture
+# (5 talks) so routine editorial drift on the rest of the corpus does
+# not block unrelated PRs from merging — this workflow is the manual
+# button to verify the whole corpus on demand.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  golden:
+    runs-on: ubuntu-latest
+    env:
+      GOLDEN_TALKS_SCOPE: all
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest tests/test_golden_talks.py -n auto --tb=short
