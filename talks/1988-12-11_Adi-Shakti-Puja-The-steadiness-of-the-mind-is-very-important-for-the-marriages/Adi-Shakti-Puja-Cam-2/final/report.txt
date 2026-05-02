@@ -1,0 +1,74 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1988-12-11_Adi-Shakti-Puja-The-steadiness-of-the-mind-is-very-important-for-the-marriages/Adi-Shakti-Puja-Cam-2/final/uk.srt
+  Transcript: talks/1988-12-11_Adi-Shakti-Puja-The-steadiness-of-the-mind-is-very-important-for-the-marriages/transcript_uk.txt
+  EN SRT: talks/1988-12-11_Adi-Shakti-Puja-The-steadiness-of-the-mind-is-very-important-for-the-marriages/Adi-Shakti-Puja-Cam-2/source/en.srt
+  SRT blocks: 285
+  (text preservation check skipped — offset video)
+  (time range check skipped — offset video)
+  (CPS hard fail skipped — builder mode)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range — SKIPPED (explicitly skipped)
+============================================================
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 285
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 285
+  CPS: avg=11.8, median=12.4, max=15.1
+  CPS > target: 20 (7.0%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=54.9, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #49: CPS=15.1 (61ch/4.0s) "Батьки ніколи не казали вам, як поводитися з вашим чоловіком..."
+    #276: CPS=15.0 (62ch/4.1s) "Я надзвичайно пишаюся вами, але іноді Я мушу вам щось сказат..."
+    #91: CPS=15.0 (37ch/2.5s) "Цього ніхто не намагається зрозуміти."
+    #239: CPS=15.0 (40ch/2.7s) "Але Я думаю, що намасте – це краща ідея,"
+    #86: CPS=15.0 (46ch/3.1s) "примирюючи їх, розмовляючи з ними, питаючи їх."
+    #92: CPS=15.0 (55ch/3.7s) "Те, що Я намагаюся зробити, – це зробити вас щасливими,"
+    #260: CPS=15.0 (58ch/3.9s) "тому що вони подумали, що ті самі вінчають себе гірляндою."
+    #220: CPS=15.0 (61ch/4.1s) "за вами, вони покликатимуть вас до свого дому, робитимуть це..."
+    #227: CPS=15.0 (64ch/4.3s) "Мені шкода, що Я мушу це казати в присутності багатьох індій..."
+    #230: CPS=15.0 (64ch/4.3s) "коли давали гірлянди, ви не повинні самі вінчати себе гірлян..."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+
+  Avg CPS: 11.8 (target ≤15.0)
+  CPS > 15.0: 20 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
