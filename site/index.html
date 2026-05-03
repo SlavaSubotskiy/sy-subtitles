@@ -779,21 +779,29 @@ body.preview-subs-resize-active-body * { cursor: ns-resize !important; user-sele
    subtitle block can base its font-size off the real available width. */
 #view-preview .player-container { container-type: inline-size; }
 
+/* Note: --preview-subs-scale is set by JS in applySubsPx() as a unitless
+   number. Computing it from --preview-subs-h via calc(length/length) only
+   works on Safari ≥ 16.4 / Firefox ≥ 89 — and a single browser without
+   support causes the rule below to fall back to the embedded font, which
+   makes fs-mode look broken. Doing the math in JS avoids the foot-gun. */
+
 /* Only once a custom height is set do we enable the scaling behavior. */
 #view-preview[data-subs-tuned="1"] #subtitle-overlay {
   height: var(--preview-subs-h);
   overflow: hidden;
   /* Font sizing is constrained by BOTH block height AND block width.
-     Subtitles wrap across lines, so the width term assumes ~42 chars per
-     line (84 chars total across two lines). Fraunces ≈ 0.55em avg char
-     width → 1em ≈ w / (42 × 0.55) ≈ w / 23. */
+     Subtitles wrap across lines, so the width term assumes ~28 chars per
+     line (56 chars total across two lines). Fraunces ≈ 0.55em avg char
+     width → 1em ≈ w / (28 × 0.55) ≈ w / 15.3.
+     The height factor 0.32 leaves vertical room for up to 3 wrapped
+     lines (3 × line-height 1.2 + ~32px padding ≈ block height / 0.32). */
   font-size: clamp(
     24px,
     min(
-      calc(var(--preview-subs-h, 120px) * 0.42),
-      calc((100cqw - 48px) / 23)
+      calc(var(--preview-subs-h, 120px) * 0.32),
+      calc((100cqw - 48px) / 15.3)
     ),
-    132px
+    198px
   );
   line-height: 1.2;
   padding: 16px 24px;
@@ -892,10 +900,19 @@ body.preview-subs-resize-active-body * { cursor: ns-resize !important; user-sele
   max-height: 60vh;
   overflow: hidden;
 }
-/* Also: the [data-subs-tuned] font-scaling rule is meant for the embedded
-   preview, not fullscreen. Lock a viewport-based size while in fs-mode. */
+/* Fullscreen mirrors the embedded resize handle: the user's drag scales
+   the original viewport-based font BIDIRECTIONALLY. Drag down → smaller
+   fs; drag up → bigger fs (capped at 22vh so two lines stay on-screen).
+   --preview-subs-scale is set by JS as a unitless number; if absent
+   (no drag yet), the fallback 1 keeps the original baseline.
+   The 20px floor lets users go significantly smaller than the no-drag
+   default but stops short of unreadable tiny. */
 #view-preview.fs-mode[data-subs-tuned="1"] #subtitle-overlay {
-  font-size: clamp(28px, 4vw, 80px);
+  font-size: clamp(
+    20px,
+    calc(clamp(28px, 4vw, 80px) * var(--preview-subs-scale, 1)),
+    22vh
+  );
   height: auto;
   line-height: 1.25;
 }
@@ -1131,7 +1148,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   //   2) Subtitle overlay height
   // Both persist per-talk so returning to the same video keeps your layout.
   const PREVIEW_PLAYER_MIN = 18, PREVIEW_PLAYER_MAX = 88, PREVIEW_PLAYER_DEF = 54; // vh
-  const PREVIEW_SUBS_MIN_PX = 60, PREVIEW_SUBS_MAX_PX = 480, PREVIEW_SUBS_DEF_PX = 120;
+  const PREVIEW_SUBS_MIN_PX = 60, PREVIEW_SUBS_MAX_PX = 720, PREVIEW_SUBS_DEF_PX = 120;
 
   const previewTalkKey = () => {
     const hash = location.hash || '';
@@ -1153,8 +1170,22 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   function saveNum(k, v) { try { localStorage.setItem(k, String(v)); } catch(_){} }
 
   function applyPlayerVh(v) { document.documentElement.style.setProperty('--preview-player-h', v + 'vh'); }
+  // Scale bounds for fs-mode. Floor at 0.5× and ceiling at 4× of the
+  // original viewport-based font keep fullscreen readable across the
+  // handle's full range without being clipped by the 22vh hard cap on
+  // tall screens. 120px is the embedded default → scale = 1.0.
+  const PREVIEW_SUBS_SCALE_MIN = 0.5;
+  const PREVIEW_SUBS_SCALE_MAX = 4;
   function applySubsPx(v)   {
     document.documentElement.style.setProperty('--preview-subs-h', v + 'px');
+    // Mirror the user's drag into fs-mode via a unitless multiplier so a
+    // smaller embedded block also gives a smaller fullscreen font, and
+    // vice versa. JS sets this directly because calc(length/length) in
+    // CSS isn't universally supported.
+    const scale = Math.max(PREVIEW_SUBS_SCALE_MIN,
+                           Math.min(PREVIEW_SUBS_SCALE_MAX,
+                                    v / PREVIEW_SUBS_DEF_PX));
+    document.documentElement.style.setProperty('--preview-subs-scale', String(scale));
     const vp = document.getElementById('view-preview');
     if (vp) vp.setAttribute('data-subs-tuned', '1');
   }
@@ -1165,12 +1196,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   function computeSubsMaxPx() {
     const overlay = document.getElementById('subtitle-overlay');
     const w = overlay ? overlay.clientWidth : 960;
-    // width_term = (w - padding 48) / 23  (see CSS)
-    const widthFont = Math.max(24, (w - 48) / 23);
-    // height_term = h * 0.42 → h = font / 0.42; add padding + small buffer.
-    const h = Math.ceil(widthFont / 0.42) + 40;
+    // width_term = (w - padding 48) / 15.3  (see CSS)
+    const widthFont = Math.max(24, (w - 48) / 15.3);
+    // height_term = h * 0.32 → h = font / 0.32; add padding + small buffer.
+    const h = Math.ceil(widthFont / 0.32) + 40;
     // Absolute safety rails.
-    return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(480, h));
+    return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(PREVIEW_SUBS_MAX_PX, h));
   }
 
   function makeDragHandle({id, className, title, onMove, onCommit, onReset}) {
@@ -1273,8 +1304,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
         },
         onCommit: v => saveNum(keySubs(), v),
         onReset: () => {
-          // Reset subs to original behavior: auto-height, 40px font.
+          // Reset subs to original behavior: auto-height, 40px font, and
+          // wipe the fs-mode scale so fullscreen returns to its baseline.
           document.documentElement.style.removeProperty('--preview-subs-h');
+          document.documentElement.style.removeProperty('--preview-subs-scale');
           const vp = document.getElementById('view-preview');
           if (vp) vp.removeAttribute('data-subs-tuned');
           try { localStorage.removeItem(keySubs()); } catch(_){}
@@ -1294,6 +1327,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
     } else {
       const vp = document.getElementById('view-preview');
       if (vp) vp.removeAttribute('data-subs-tuned');
+      document.documentElement.style.removeProperty('--preview-subs-scale');
     }
 
     // Measure the view header + freshness bar so the sticky top offset is
@@ -3591,47 +3625,66 @@ SPA.resumePlayer = function() {
 SPA.toggleFullscreen = function() {
   var el = document.getElementById('view-preview');
   if (!el) return;
-  var nativeIsOn = !!(document.fullscreenElement === el);
+  var nativeIsOn = !!(
+    document.fullscreenElement === el
+    || document.webkitFullscreenElement === el
+  );
   var cssIsOn = el.classList.contains('fs-mode');
 
-  // If we're already in either kind of fullscreen, turn it off.
   if (nativeIsOn || cssIsOn) {
-    if (document.fullscreenElement) {
-      try { document.exitFullscreen(); } catch(_) {}
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      try {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      } catch(_) {}
     }
     el.classList.remove('fs-mode');
     document.body.classList.remove('sy-fs-active');
     return;
   }
 
-  // Try the real API first — but be ready for it to reject (sandboxed
-  // iframes, permission policy, etc). In that case, fall back to a
-  // CSS-only fullscreen so the feature at least visually works.
-  var req = el.requestFullscreen && el.requestFullscreen();
-  if (req && typeof req.then === 'function') {
-    req.catch(function() {
-      el.classList.add('fs-mode');
-      document.body.classList.add('sy-fs-active');
-    });
-  } else {
-    el.classList.add('fs-mode');
-    document.body.classList.add('sy-fs-active');
+  // Add the .fs-mode class SYNCHRONOUSLY so the fullscreen CSS (font size,
+  // positioning, gradient) takes effect on the very first frame. We can't
+  // wait for fullscreenchange — Safari fires only the webkit-prefixed
+  // variant, headless browsers may not fire it at all, and even
+  // standards-compliant browsers can delay it by several frames. Without
+  // this, the overlay shows the embedded base 32px font during the gap,
+  // and on browsers that never fire the event, indefinitely.
+  el.classList.add('fs-mode');
+  document.body.classList.add('sy-fs-active');
+
+  var reqFn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (reqFn) {
+    var req = reqFn.call(el);
+    if (req && typeof req.then === 'function') {
+      // The .fs-mode class stays put on rejection — that's our CSS fallback.
+      req.catch(function() {});
+    }
   }
 };
 
-document.addEventListener('fullscreenchange', function() {
+function syncFsMode() {
   var el = document.getElementById('view-preview');
   if (!el) return;
-  if (document.fullscreenElement === el) {
+  var native = document.fullscreenElement
+    || document.webkitFullscreenElement
+    || document.mozFullScreenElement
+    || document.msFullscreenElement;
+  if (native === el) {
     el.classList.add('fs-mode');
     document.body.classList.add('sy-fs-active');
-  } else {
-    // Only clear if it wasn't the CSS-only path; but safe either way —
-    // pressing Esc / F again re-enters the right mode.
+  } else if (!native && el.classList.contains('fs-mode')) {
+    // Native fullscreen exited (Esc / Cmd-Ctrl-F). Clear our class to
+    // match. CSS-only fullscreen never enters native, so this branch is
+    // only hit on a real fullscreen exit.
     el.classList.remove('fs-mode');
     document.body.classList.remove('sy-fs-active');
   }
-});
+}
+document.addEventListener('fullscreenchange', syncFsMode);
+document.addEventListener('webkitfullscreenchange', syncFsMode);
+document.addEventListener('mozfullscreenchange', syncFsMode);
+document.addEventListener('MSFullscreenChange', syncFsMode);
 
 // Escape out of CSS-only fullscreen (native Esc is handled by the browser).
 document.addEventListener('keydown', function(e) {

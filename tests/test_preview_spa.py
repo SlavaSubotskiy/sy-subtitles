@@ -4459,3 +4459,249 @@ class TestClipboardCopyDialog:
             "Fixture must set window.__spa_auto_info_confirm = true so tests that "
             "don't explicitly clear it get the direct window.open path."
         )
+
+
+class TestSubtitleOverlaySize:
+    """Subtitle overlay resize ceiling — guards the +50% bump from drifting back."""
+
+    def _goto_preview(self, server, page):
+        page.set_viewport_size({"width": 1600, "height": 900})
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(500)
+
+    def test_width_term_widened_by_50pct(self, server, page):
+        """The +50% bump widens the char-width divisor (23 → 15.3). On a
+        wide enough container the width-bound font should be ~1.5× what the
+        old formula would have produced for the same container."""
+        self._goto_preview(server, page)
+        result = page.evaluate(
+            """() => {
+              const overlay = document.getElementById('subtitle-overlay');
+              overlay.textContent = 'Перший субтитр';
+              document.documentElement.style.setProperty('--preview-subs-h', '720px');
+              const vp = document.getElementById('view-preview');
+              vp.setAttribute('data-subs-tuned', '1');
+              const cqw = overlay.parentElement.clientWidth;
+              return {
+                font: parseFloat(getComputedStyle(overlay).fontSize),
+                cqw,
+              };
+            }"""
+        )
+        old_width_bound = (result["cqw"] - 48) / 23
+        new_width_bound = (result["cqw"] - 48) / 15.3
+        assert result["font"] > old_width_bound + 5, (
+            f"Font {result['font']}px should beat the old /23 width-bound "
+            f"≈{old_width_bound:.1f}px (cqw={result['cqw']}px)"
+        )
+        assert result["font"] >= new_width_bound - 1, (
+            f"Font {result['font']}px should reach the new /15.3 width-bound ≈{new_width_bound:.1f}px"
+        )
+
+    def test_min_handle_height_keeps_floor(self, server, page):
+        """Floor should still be the 24px lower bound from the clamp."""
+        self._goto_preview(server, page)
+        font_px = page.evaluate(
+            """() => {
+              const overlay = document.getElementById('subtitle-overlay');
+              document.documentElement.style.setProperty('--preview-subs-h', '60px');
+              const vp = document.getElementById('view-preview');
+              vp.setAttribute('data-subs-tuned', '1');
+              return parseFloat(getComputedStyle(overlay).fontSize);
+            }"""
+        )
+        assert font_px >= 24, f"Subtitle font fell below 24px floor: {font_px}px"
+
+    def test_fs_mode_font_follows_subs_handle(self, server, page):
+        """Fullscreen overlay must scale with the embedded resize handle:
+        dragging the subs taller in preview should also enlarge fullscreen
+        subtitles. The scale is set by JS (applySubsPx), not derived from
+        --preview-subs-h via CSS calc — so the test must set both vars."""
+        self._goto_preview(server, page)
+        result = page.evaluate(
+            """() => {
+              const overlay = document.getElementById('subtitle-overlay');
+              const vp = document.getElementById('view-preview');
+              vp.classList.add('fs-mode');
+              vp.setAttribute('data-subs-tuned', '1');
+              const setHandle = (h) => {
+                const scale = Math.max(0.5, Math.min(4, h / 120));
+                document.documentElement.style.setProperty('--preview-subs-h', h + 'px');
+                document.documentElement.style.setProperty('--preview-subs-scale', String(scale));
+              };
+              setHandle(120);
+              const small = parseFloat(getComputedStyle(overlay).fontSize);
+              setHandle(720);
+              const big = parseFloat(getComputedStyle(overlay).fontSize);
+              vp.classList.remove('fs-mode');
+              return { small, big };
+            }"""
+        )
+        assert result["big"] > result["small"], (
+            f"Fullscreen font should grow with subs handle, got small={result['small']}px big={result['big']}px"
+        )
+
+    # The fs-mode no-drag baseline is clamp(28px, 4vw, 80px) — the original
+    # rule the user wants restored. On a 1600px viewport that's min(80, 64)
+    # = 64px. Use 56px (~12% safety margin) for stable baseline asserts and
+    # 30px as a "definitely tiny" floor for regression checks.
+    FS_MODE_BASELINE_PX = 64
+    FS_MODE_BASELINE_FLOOR_PX = 56
+    FS_MODE_TINY_PX = 30
+    FS_MODE_FLOOR_PX = 20  # Hard floor in CSS so even drag-down stays readable.
+
+    def _read_fs_font_px_via_toggle(self, page, drag_to_h=None):
+        """Use SPA.toggleFullscreen — exercises the real user flow including
+        the synchronous .fs-mode class addition. Optionally drag the embedded
+        handle (which sets --preview-subs-scale via JS, mirroring fs-mode)."""
+        return page.evaluate(
+            """(opts) => {
+              const overlay = document.getElementById('subtitle-overlay');
+              const vp = document.getElementById('view-preview');
+              if (opts.h !== null) {
+                // Mirror what applySubsPx does so we exercise the same JS path.
+                document.documentElement.style.setProperty('--preview-subs-h', opts.h + 'px');
+                const scale = Math.max(0.5, Math.min(4, opts.h / 120));
+                document.documentElement.style.setProperty('--preview-subs-scale', String(scale));
+                vp.setAttribute('data-subs-tuned', '1');
+              }
+              SPA.toggleFullscreen();
+              return parseFloat(getComputedStyle(overlay).fontSize);
+            }""",
+            {"h": drag_to_h},
+        )
+
+    def test_fs_mode_default_matches_original_size(self, server, page):
+        """Entering fullscreen WITHOUT having dragged must give the original
+        clamp(28px, 4vw, 80px) — neither huge (post-bump regression) nor
+        tiny (cascade-fallback bug)."""
+        self._goto_preview(server, page)
+        font_px = self._read_fs_font_px_via_toggle(page, drag_to_h=None)
+        assert font_px >= self.FS_MODE_BASELINE_FLOOR_PX, (
+            f"fs-mode default font shrank to {font_px}px — expected ≈ "
+            f"{self.FS_MODE_BASELINE_PX}px (4vw on 1600 viewport)"
+        )
+        # Sanity ceiling: should NOT be the old "huge" 6vw bump on this size.
+        assert font_px <= 90, (
+            f"fs-mode default {font_px}px is too big — should be the original "
+            f"clamp(28, 4vw, 80) ≈ 64px on 1600vw, not the bumped 6vw size"
+        )
+
+    def test_fs_mode_drag_down_shrinks_proportionally(self, server, page):
+        """User drags the embedded handle DOWN → fullscreen mirrors and
+        shrinks. This is the new bidirectional behavior."""
+        self._goto_preview(server, page)
+        baseline = self._read_fs_font_px_via_toggle(page, drag_to_h=None)
+        page.evaluate("SPA.toggleFullscreen()")  # exit
+        small = self._read_fs_font_px_via_toggle(page, drag_to_h=60)
+        assert small < baseline, (
+            f"Dragging handle down did NOT shrink fs-mode font: baseline={baseline}px, dragged-down={small}px"
+        )
+        assert small >= self.FS_MODE_FLOOR_PX, (
+            f"fs-mode shrank past the readable floor: {small}px < {self.FS_MODE_FLOOR_PX}px"
+        )
+
+    def test_fs_mode_drag_up_enlarges_proportionally(self, server, page):
+        """User drags the embedded handle UP → fullscreen mirrors and grows."""
+        self._goto_preview(server, page)
+        baseline = self._read_fs_font_px_via_toggle(page, drag_to_h=None)
+        page.evaluate("SPA.toggleFullscreen()")
+        big = self._read_fs_font_px_via_toggle(page, drag_to_h=600)
+        assert big > baseline, (
+            f"Dragging handle up did NOT enlarge fs-mode font: baseline={baseline}px, dragged-up={big}px"
+        )
+
+    def test_fs_mode_drag_to_default_keeps_baseline(self, server, page):
+        """Setting handle exactly at the embedded default (120px → scale 1)
+        must give exactly the un-tuned baseline."""
+        self._goto_preview(server, page)
+        font_px = self._read_fs_font_px_via_toggle(page, drag_to_h=120)
+        assert font_px >= self.FS_MODE_BASELINE_FLOOR_PX, (
+            f"fs-mode at scale 1.0 disagreed with baseline: {font_px}px < {self.FS_MODE_BASELINE_FLOOR_PX}px"
+        )
+
+    def test_toggleFullscreen_applies_class_synchronously(self, server, page):
+        """The bug: when toggleFullscreen relied on the fullscreenchange
+        event to add the .fs-mode class, browsers that delay or never fire
+        the event (Safari → webkitfullscreenchange; headless chromium can
+        skip it) showed the embedded base 32px font instead of fs-mode.
+        Reading getComputedStyle synchronously, before any RAF, must already
+        see the fs-mode font."""
+        self._goto_preview(server, page)
+        result = page.evaluate(
+            """() => {
+              const overlay = document.getElementById('subtitle-overlay');
+              const vp = document.getElementById('view-preview');
+              SPA.toggleFullscreen();
+              // No await, no rAF: we MUST already be in fs-mode now.
+              return {
+                hasFsClass: vp.classList.contains('fs-mode'),
+                font: parseFloat(getComputedStyle(overlay).fontSize),
+              };
+            }"""
+        )
+        assert result["hasFsClass"], "SPA.toggleFullscreen() did not add .fs-mode synchronously"
+        assert result["font"] > self.FS_MODE_TINY_PX, (
+            f"Synchronous fs-mode font is {result['font']}px — falling back "
+            f"to the embedded base 32px means .fs-mode CSS isn't applying yet"
+        )
+
+    def test_toggleFullscreen_survives_missing_fullscreenchange(self, server, page):
+        """Simulate a browser that dispatches no fullscreenchange event
+        (Safari without the webkit listener wired, sandboxed iframe, etc).
+        The class must still come from toggleFullscreen itself."""
+        self._goto_preview(server, page)
+        font = page.evaluate(
+            """() => {
+              const overlay = document.getElementById('subtitle-overlay');
+              const vp = document.getElementById('view-preview');
+              // Block the standard event from firing — a stand-in for
+              // browsers that only emit a vendor-prefixed variant.
+              document.addEventListener('fullscreenchange',
+                e => e.stopImmediatePropagation(), true);
+              SPA.toggleFullscreen();
+              return parseFloat(getComputedStyle(overlay).fontSize);
+            }"""
+        )
+        assert font > self.FS_MODE_TINY_PX, (
+            f"Without a fullscreenchange event, fs-mode font fell back to "
+            f"{font}px — toggleFullscreen must add the class itself"
+        )
+
+    def test_drag_handle_mirrors_into_fs_mode(self, server, page):
+        """Once in fs-mode, dragging the embedded resize handle must mirror
+        bidirectionally — bigger handle → bigger fs font; smaller handle →
+        smaller fs font (down to the readable floor)."""
+        self._goto_preview(server, page)
+        result = page.evaluate(
+            """() => {
+              const overlay = document.getElementById('subtitle-overlay');
+              const vp = document.getElementById('view-preview');
+              SPA.toggleFullscreen();
+              const setHandle = (h) => {
+                const scale = Math.max(0.5, Math.min(4, h / 120));
+                document.documentElement.style.setProperty('--preview-subs-h', h + 'px');
+                document.documentElement.style.setProperty('--preview-subs-scale', String(scale));
+                vp.setAttribute('data-subs-tuned', '1');
+              };
+              setHandle(120);
+              const baseline = parseFloat(getComputedStyle(overlay).fontSize);
+              setHandle(600);
+              const enlarged = parseFloat(getComputedStyle(overlay).fontSize);
+              setHandle(60);
+              const draggedDown = parseFloat(getComputedStyle(overlay).fontSize);
+              return { baseline, enlarged, draggedDown };
+            }"""
+        )
+        assert result["enlarged"] > result["baseline"], (
+            f"Dragging handle up did not grow fs-mode font: "
+            f"baseline={result['baseline']}px enlarged={result['enlarged']}px"
+        )
+        assert result["draggedDown"] < result["baseline"], (
+            f"Dragging handle down did not shrink fs-mode font: "
+            f"baseline={result['baseline']}px draggedDown={result['draggedDown']}px"
+        )
+        assert result["draggedDown"] >= self.FS_MODE_FLOOR_PX, (
+            f"Drag-down went past the readable floor: {result['draggedDown']}px < {self.FS_MODE_FLOOR_PX}px"
+        )
