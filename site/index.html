@@ -901,12 +901,12 @@ body.preview-subs-resize-active-body * { cursor: ns-resize !important; user-sele
   overflow: hidden;
 }
 /* Fullscreen mirrors the embedded resize handle: the user's drag scales
-   the original viewport-based font BIDIRECTIONALLY. Drag down → smaller
-   fs; drag up → bigger fs (capped at 22vh so two lines stay on-screen).
+   the original viewport-based font BIDIRECTIONALLY. The handle sits below
+   the overlay, so dragging it DOWN grows the block (and fs); dragging UP
+   shrinks it. 22vh cap stops two lines from being pushed off-screen at
+   the high end; 20px floor stops the low end from becoming unreadable.
    --preview-subs-scale is set by JS as a unitless number; if absent
-   (no drag yet), the fallback 1 keeps the original baseline.
-   The 20px floor lets users go significantly smaller than the no-drag
-   default but stops short of unreadable tiny. */
+   (no drag yet), the fallback 1 keeps the original baseline. */
 #view-preview.fs-mode[data-subs-tuned="1"] #subtitle-overlay {
   font-size: clamp(
     20px,
@@ -1177,6 +1177,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   const PREVIEW_SUBS_SCALE_MIN = 0.5;
   const PREVIEW_SUBS_SCALE_MAX = 4;
   function applySubsPx(v)   {
+    // Reject non-finite input — a NaN/Infinity from a future caller would
+    // silently set --preview-subs-h to "NaNpx" and the fs-mode rule would
+    // fall back to the embedded font, recreating the original "tiny on
+    // fullscreen" bug invisibly.
+    if (!Number.isFinite(v)) {
+      console.warn('[preview] applySubsPx ignored non-finite value:', v);
+      return;
+    }
     document.documentElement.style.setProperty('--preview-subs-h', v + 'px');
     // Mirror the user's drag into fs-mode via a unitless multiplier so a
     // smaller embedded block also gives a smaller fullscreen font, and
@@ -1304,8 +1312,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
         },
         onCommit: v => saveNum(keySubs(), v),
         onReset: () => {
-          // Reset subs to original behavior: auto-height, 40px font, and
-          // wipe the fs-mode scale so fullscreen returns to its baseline.
+          // Reset subs to original behavior: auto-height + the cascade
+          // default (#subtitle-overlay { font-size: 32px } at line ~640
+          // wins after data-subs-tuned is removed) and wipe the fs-mode
+          // scale so fullscreen returns to its baseline.
           document.documentElement.style.removeProperty('--preview-subs-h');
           document.documentElement.style.removeProperty('--preview-subs-scale');
           const vp = document.getElementById('view-preview');
@@ -3622,6 +3632,13 @@ SPA.resumePlayer = function() {
   if (document.activeElement) document.activeElement.blur();
 };
 
+// Tracks the case where requestFullscreen failed (sandboxed iframe,
+// permissions policy, etc) and we're rendering fs-mode purely via CSS.
+// syncFsMode must NOT clear the class on a foreign fullscreenchange (an
+// embedded video player going fullscreen and back, for instance) when
+// we never had native fullscreen of our own.
+var SY_CSS_ONLY_FS = false;
+
 SPA.toggleFullscreen = function() {
   var el = document.getElementById('view-preview');
   if (!el) return;
@@ -3636,10 +3653,13 @@ SPA.toggleFullscreen = function() {
       try {
         if (document.exitFullscreen) document.exitFullscreen();
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-      } catch(_) {}
+      } catch (e) {
+        console.warn('[fs] exitFullscreen failed:', e);
+      }
     }
     el.classList.remove('fs-mode');
     document.body.classList.remove('sy-fs-active');
+    SY_CSS_ONLY_FS = false;
     return;
   }
 
@@ -3652,14 +3672,26 @@ SPA.toggleFullscreen = function() {
   // and on browsers that never fire the event, indefinitely.
   el.classList.add('fs-mode');
   document.body.classList.add('sy-fs-active');
+  // Optimistic: assume CSS-only until requestFullscreen confirms native.
+  SY_CSS_ONLY_FS = true;
 
   var reqFn = el.requestFullscreen || el.webkitRequestFullscreen;
-  if (reqFn) {
-    var req = reqFn.call(el);
-    if (req && typeof req.then === 'function') {
-      // The .fs-mode class stays put on rejection — that's our CSS fallback.
-      req.catch(function() {});
-    }
+  if (!reqFn) return;
+  var req;
+  try { req = reqFn.call(el); }
+  catch (e) {
+    // Sync throws are rare (some engines under permissions-policy) but
+    // possible. The .fs-mode class is already up so the CSS fallback works.
+    console.warn('[fs] requestFullscreen threw synchronously:', e);
+    return;
+  }
+  if (req && typeof req.then === 'function') {
+    req.then(function() { SY_CSS_ONLY_FS = false; },
+             function(e) { console.warn('[fs] requestFullscreen rejected — CSS fallback active:', e); });
+  } else {
+    // Non-promise return (older spec): we don't know the outcome, so
+    // syncFsMode will tighten the state once an event arrives.
+    SY_CSS_ONLY_FS = false;
   }
 };
 
@@ -3673,10 +3705,12 @@ function syncFsMode() {
   if (native === el) {
     el.classList.add('fs-mode');
     document.body.classList.add('sy-fs-active');
-  } else if (!native && el.classList.contains('fs-mode')) {
-    // Native fullscreen exited (Esc / Cmd-Ctrl-F). Clear our class to
-    // match. CSS-only fullscreen never enters native, so this branch is
-    // only hit on a real fullscreen exit.
+    SY_CSS_ONLY_FS = false;
+  } else if (!native && el.classList.contains('fs-mode') && !SY_CSS_ONLY_FS) {
+    // Native fullscreen exited (Esc / Cmd-Ctrl-F). Don't clear our class
+    // when we're in the CSS-only fallback path, otherwise an unrelated
+    // fullscreen exit (e.g. a Vimeo iframe inside the player going FS and
+    // back) would silently drop our overlay styling.
     el.classList.remove('fs-mode');
     document.body.classList.remove('sy-fs-active');
   }

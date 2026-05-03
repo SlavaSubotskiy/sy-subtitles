@@ -4551,6 +4551,11 @@ class TestSubtitleOverlaySize:
     FS_MODE_TINY_PX = 30
     FS_MODE_FLOOR_PX = 20  # Hard floor in CSS so even drag-down stays readable.
 
+    def _wait_for_handle(self, page):
+        """The resize handle is installed asynchronously via a setTimeout
+        chain after hashchange — a fixed sleep is unreliable across machines."""
+        page.wait_for_selector("#preview-subs-resize", timeout=10000)
+
     def _read_fs_font_px_via_toggle(self, page, drag_to_h=None):
         """Use SPA.toggleFullscreen — exercises the real user flow including
         the synchronous .fs-mode class addition. Optionally drag the embedded
@@ -4588,29 +4593,29 @@ class TestSubtitleOverlaySize:
             f"clamp(28, 4vw, 80) ≈ 64px on 1600vw, not the bumped 6vw size"
         )
 
-    def test_fs_mode_drag_down_shrinks_proportionally(self, server, page):
-        """User drags the embedded handle DOWN → fullscreen mirrors and
-        shrinks. This is the new bidirectional behavior."""
+    def test_fs_mode_smaller_block_shrinks_proportionally(self, server, page):
+        """A smaller embedded subtitle block (handle dragged UP — the handle
+        sits below the overlay, so handle-up = block shrinks) must mirror
+        into a smaller fullscreen font. This is the new bidirectional
+        behavior."""
         self._goto_preview(server, page)
         baseline = self._read_fs_font_px_via_toggle(page, drag_to_h=None)
         page.evaluate("SPA.toggleFullscreen()")  # exit
         small = self._read_fs_font_px_via_toggle(page, drag_to_h=60)
-        assert small < baseline, (
-            f"Dragging handle down did NOT shrink fs-mode font: baseline={baseline}px, dragged-down={small}px"
-        )
+        assert small < baseline, f"Smaller block did NOT shrink fs-mode font: baseline={baseline}px, small={small}px"
         assert small >= self.FS_MODE_FLOOR_PX, (
             f"fs-mode shrank past the readable floor: {small}px < {self.FS_MODE_FLOOR_PX}px"
         )
 
-    def test_fs_mode_drag_up_enlarges_proportionally(self, server, page):
-        """User drags the embedded handle UP → fullscreen mirrors and grows."""
+    def test_fs_mode_taller_block_enlarges_proportionally(self, server, page):
+        """A taller embedded subtitle block (handle dragged DOWN — handle
+        sits below the overlay, dy>0 grows the block) must mirror into a
+        bigger fullscreen font."""
         self._goto_preview(server, page)
         baseline = self._read_fs_font_px_via_toggle(page, drag_to_h=None)
         page.evaluate("SPA.toggleFullscreen()")
         big = self._read_fs_font_px_via_toggle(page, drag_to_h=600)
-        assert big > baseline, (
-            f"Dragging handle up did NOT enlarge fs-mode font: baseline={baseline}px, dragged-up={big}px"
-        )
+        assert big > baseline, f"Taller block did NOT enlarge fs-mode font: baseline={baseline}px, big={big}px"
 
     def test_fs_mode_drag_to_default_keeps_baseline(self, server, page):
         """Setting handle exactly at the embedded default (120px → scale 1)
@@ -4670,8 +4675,8 @@ class TestSubtitleOverlaySize:
         )
 
     def test_drag_handle_mirrors_into_fs_mode(self, server, page):
-        """Once in fs-mode, dragging the embedded resize handle must mirror
-        bidirectionally — bigger handle → bigger fs font; smaller handle →
+        """Once in fs-mode, the embedded resize state must mirror
+        bidirectionally — taller block → bigger fs font; shorter block →
         smaller fs font (down to the readable floor)."""
         self._goto_preview(server, page)
         result = page.evaluate(
@@ -4690,18 +4695,139 @@ class TestSubtitleOverlaySize:
               setHandle(600);
               const enlarged = parseFloat(getComputedStyle(overlay).fontSize);
               setHandle(60);
-              const draggedDown = parseFloat(getComputedStyle(overlay).fontSize);
-              return { baseline, enlarged, draggedDown };
+              const shrunk = parseFloat(getComputedStyle(overlay).fontSize);
+              return { baseline, enlarged, shrunk };
             }"""
         )
         assert result["enlarged"] > result["baseline"], (
-            f"Dragging handle up did not grow fs-mode font: "
-            f"baseline={result['baseline']}px enlarged={result['enlarged']}px"
+            f"Taller block did not grow fs-mode font: baseline={result['baseline']}px enlarged={result['enlarged']}px"
         )
-        assert result["draggedDown"] < result["baseline"], (
-            f"Dragging handle down did not shrink fs-mode font: "
-            f"baseline={result['baseline']}px draggedDown={result['draggedDown']}px"
+        assert result["shrunk"] < result["baseline"], (
+            f"Shorter block did not shrink fs-mode font: baseline={result['baseline']}px shrunk={result['shrunk']}px"
         )
-        assert result["draggedDown"] >= self.FS_MODE_FLOOR_PX, (
-            f"Drag-down went past the readable floor: {result['draggedDown']}px < {self.FS_MODE_FLOOR_PX}px"
+
+    # === Tests that exercise the actual JS code path (applySubsPx, reset,
+    # persistence, hard caps) so a refactor of those code paths can't slip
+    # past with a green suite. ===
+
+    def test_handle_arrow_keys_set_scale_var_via_real_apply(self, server, page):
+        """ArrowDown on the focused resize handle calls onMove.apply, which
+        IS the production applySubsPx. This exercises the real JS path
+        instead of the test re-implementing the formula."""
+        self._goto_preview(server, page)
+        self._wait_for_handle(page)
+        result = page.evaluate(
+            """() => {
+              const handle = document.getElementById('preview-subs-resize');
+              if (!handle) return { error: 'handle missing' };
+              handle.focus();
+              const before = getComputedStyle(document.documentElement)
+                .getPropertyValue('--preview-subs-scale');
+              // Arrow keys nudge the handle and route through onMove.apply
+              // (= applySubsPx) — the same path as a real drag/keyboard nudge.
+              for (let i = 0; i < 5; i++) {
+                handle.dispatchEvent(new KeyboardEvent('keydown',
+                  { key: 'ArrowDown', bubbles: true }));
+              }
+              return {
+                scale: getComputedStyle(document.documentElement)
+                  .getPropertyValue('--preview-subs-scale').trim(),
+                tuned: document.getElementById('view-preview')
+                  .getAttribute('data-subs-tuned'),
+                before: before.trim(),
+              };
+            }"""
         )
+        assert result.get("error") is None, result
+        assert result["before"] == "", f"--preview-subs-scale should be unset before any drag, got {result['before']!r}"
+        assert result["tuned"] == "1", "applySubsPx didn't set data-subs-tuned"
+        assert result["scale"] != "", "applySubsPx didn't set --preview-subs-scale"
+        # Scale must be a valid finite number string, never 'NaN'.
+        scale_val = float(result["scale"])
+        assert 0.5 <= scale_val <= 4, f"scale {scale_val} outside [0.5, 4] clamp"
+
+    def test_handle_double_click_resets_scale_and_tuned(self, server, page):
+        """Double-clicking the handle triggers onReset, which must wipe
+        --preview-subs-scale and data-subs-tuned. A future refactor that
+        forgets one of those would silently leave fs scaled after reset."""
+        self._goto_preview(server, page)
+        self._wait_for_handle(page)
+        result = page.evaluate(
+            """() => {
+              const handle = document.getElementById('preview-subs-resize');
+              if (!handle) return { error: 'handle missing' };
+              handle.focus();
+              for (let i = 0; i < 5; i++) {
+                handle.dispatchEvent(new KeyboardEvent('keydown',
+                  { key: 'ArrowDown', bubbles: true }));
+              }
+              const tunedBefore = document.getElementById('view-preview')
+                .getAttribute('data-subs-tuned');
+              const scaleBefore = getComputedStyle(document.documentElement)
+                .getPropertyValue('--preview-subs-scale').trim();
+              // dblclick → onReset
+              handle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+              return {
+                tunedBefore, scaleBefore,
+                tunedAfter: document.getElementById('view-preview')
+                  .getAttribute('data-subs-tuned'),
+                scaleAfter: getComputedStyle(document.documentElement)
+                  .getPropertyValue('--preview-subs-scale').trim(),
+                hAfter: getComputedStyle(document.documentElement)
+                  .getPropertyValue('--preview-subs-h').trim(),
+              };
+            }"""
+        )
+        assert result.get("error") is None, result
+        assert result["tunedBefore"] == "1" and result["scaleBefore"] != "", (
+            "Test setup failed — drag didn't put us in tuned state"
+        )
+        assert result["tunedAfter"] is None, f"Reset didn't clear data-subs-tuned (got {result['tunedAfter']!r})"
+        assert result["scaleAfter"] == "", f"Reset didn't clear --preview-subs-scale (got {result['scaleAfter']!r})"
+
+    def test_localstorage_subs_height_round_trips_on_load(self, server, page):
+        """A persisted subs-h value must be re-applied on the next page
+        load by applySubsPx (which sets the scale var). Persistence
+        silently breaking is the most common subtle bug for handle features."""
+        # First navigation: drag the handle to seed localStorage.
+        self._goto_preview(server, page)
+        self._wait_for_handle(page)
+        page.evaluate(
+            """() => {
+              const handle = document.getElementById('preview-subs-resize');
+              handle.focus();
+              for (let i = 0; i < 8; i++) {
+                handle.dispatchEvent(new KeyboardEvent('keydown',
+                  { key: 'ArrowDown', bubbles: true }));
+              }
+            }"""
+        )
+        # Reload the same talk and check persistence ran applySubsPx.
+        self._goto_preview(server, page)
+        self._wait_for_handle(page)
+        result = page.evaluate(
+            """() => ({
+              tuned: document.getElementById('view-preview').getAttribute('data-subs-tuned'),
+              scale: getComputedStyle(document.documentElement)
+                .getPropertyValue('--preview-subs-scale').trim(),
+              h: getComputedStyle(document.documentElement)
+                .getPropertyValue('--preview-subs-h').trim(),
+            })"""
+        )
+        assert result["tuned"] == "1", f"Reload didn't re-tune the overlay from localStorage: {result}"
+        assert result["scale"] != "", f"Reload didn't re-apply --preview-subs-scale via applySubsPx: {result}"
+        scale_val = float(result["scale"])
+        assert 0.5 <= scale_val <= 4, f"scale {scale_val} outside [0.5, 4]"
+
+    def test_fs_mode_22vh_cap_holds_on_short_viewport(self, server, page):
+        """The 22vh hard cap must pin the fs-mode font on a short viewport
+        even with the handle dragged to its largest position. Without the
+        cap, two-line subtitles get pushed off-screen."""
+        # Use a deliberately short viewport so 22vh < 6vw * scale.
+        page.set_viewport_size({"width": 1600, "height": 400})
+        goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
+        page.wait_for_selector("#mock-player", state="visible", timeout=10000)
+        page.wait_for_timeout(400)
+        font_px = self._read_fs_font_px_via_toggle(page, drag_to_h=720)
+        # 22vh on 400px viewport = 88px. Allow 1px rounding slack.
+        assert font_px <= 89, f"22vh cap not enforced: font {font_px}px > 88px on a 400px viewport"
