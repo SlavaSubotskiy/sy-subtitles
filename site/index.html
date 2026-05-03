@@ -1209,8 +1209,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
     const widthFont = Math.max(24, (w - 48) / 15.3);
     // height_term = h * 0.32 → h = font / 0.32; add padding + small buffer.
     const h = Math.ceil(widthFont / 0.32) + 40;
-    // Absolute safety rails.
-    return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(PREVIEW_SUBS_MAX_PX, h));
+    return clamp(PREVIEW_SUBS_MIN_PX, h, PREVIEW_SUBS_MAX_PX);
   }
 
   function makeDragHandle({id, className, title, onMove, onCommit, onReset}) {
@@ -1275,9 +1274,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
             const p = parseFloat(cs);
             return isFinite(p) ? p : loadNum(keyPlayer(), PREVIEW_PLAYER_DEF, PREVIEW_PLAYER_MIN, PREVIEW_PLAYER_MAX);
           },
-          compute: (start, dy) => Math.max(PREVIEW_PLAYER_MIN, Math.min(PREVIEW_PLAYER_MAX, start + (dy / (window.innerHeight||800)) * 100)),
+          compute: (start, dy) => clamp(PREVIEW_PLAYER_MIN, start + (dy / (window.innerHeight||800)) * 100, PREVIEW_PLAYER_MAX),
           apply: applyPlayerVh,
-          clamp: v => Math.max(PREVIEW_PLAYER_MIN, Math.min(PREVIEW_PLAYER_MAX, v)),
+          clamp: v => clamp(PREVIEW_PLAYER_MIN, v, PREVIEW_PLAYER_MAX),
           smallStep: 2, bigStep: 6,
         },
         onCommit: v => saveNum(keyPlayer(), v),
@@ -1298,17 +1297,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
             // visual reality, even if no CSS var has been set yet.
             const h = overlay.offsetHeight;
             const max = computeSubsMaxPx();
-            return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(max, h || loadNum(keySubs(), PREVIEW_SUBS_DEF_PX, PREVIEW_SUBS_MIN_PX, max)));
+            return clamp(PREVIEW_SUBS_MIN_PX, h || loadNum(keySubs(), PREVIEW_SUBS_DEF_PX, PREVIEW_SUBS_MIN_PX, max), max);
           },
-          compute: (start, dy) => {
-            const max = computeSubsMaxPx();
-            return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(max, start + dy));
-          },
+          compute: (start, dy) => clamp(PREVIEW_SUBS_MIN_PX, start + dy, computeSubsMaxPx()),
           apply: applySubsPx,
-          clamp: v => {
-            const max = computeSubsMaxPx();
-            return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(max, v));
-          },
+          clamp: v => clamp(PREVIEW_SUBS_MIN_PX, v, computeSubsMaxPx()),
           smallStep: 12, bigStep: 32,
         },
         onCommit: v => saveNum(keySubs(), v),
@@ -3327,7 +3320,7 @@ function renderStatusBadge(status, reviewSt) {
   };
   var text = labels[status] || status;
   if (status === 'in-review' && reviewSt && reviewSt.reviewer) text += ' (' + esc(reviewSt.reviewer) + ')';
-  var href = reviewSt && reviewSt.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + reviewSt.issue_number : '';
+  var href = reviewSt && reviewSt.issue_number ? 'https://github.com/' + REPO + '/issues/' + reviewSt.issue_number : '';
   if (href) return '<a href="' + href + '" target="_blank" class="review-badge ' + status + '">' + text + '</a>';
   return '<span class="review-badge ' + status + '">' + text + '</span>';
 }
@@ -3344,7 +3337,7 @@ function renderPipelineDAG(tk, stages, st) {
 
   var wLabel = t('pipe.ai_transcribed') + (stages.nVideos > 1 ? ' ' + stages.whisperProgress : '');
   var sLabel = t('pipe.srt') + (stages.nVideos > 1 ? ' ' + stages.srtProgress : '');
-  var reviewHref = st && st.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + st.issue_number : '';
+  var reviewHref = st && st.issue_number ? 'https://github.com/' + REPO + '/issues/' + st.issue_number : '';
 
   var topBranch = node(wLabel, stages.whisper);
   var bottomBranch = node(t('pipe.ai_translated'), stages.translated)
@@ -3378,13 +3371,11 @@ var previewState = {};
 function showPreview(talkId, videoSlug) {
   document.getElementById('view-preview').classList.add('active');
 
-  // Clear previous state
   document.getElementById('subtitle-overlay').textContent = '';
   if (previewState && previewState.player) {
     try { previewState.player.pause(); } catch(e) {}
   }
 
-  // Find talk info
   var talk = manifest ? manifest.talks.find(function(t) { return t.id === talkId; }) : null;
   var video = talk ? (talk.videos || []).find(function(v) { return v.slug === videoSlug; }) : null;
 
@@ -3415,8 +3406,6 @@ function showPreview(talkId, videoSlug) {
   previewState = {
     talkId: talkId,
     videoSlug: videoSlug,
-    talk: talk,
-    video: video,
     subtitles: [],
     mode: persisted.mode,
     markers: persisted.markers,
@@ -3426,7 +3415,6 @@ function showPreview(talkId, videoSlug) {
     srtLang: defaultLang,
   };
 
-  // Render subtitle language selector
   var langSel = document.getElementById('srt-lang-select');
   if (langSel) {
     if (availLangs.length > 1) {
@@ -4055,7 +4043,6 @@ function updateColHeaders() {
 function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
   SyncPlayer.destroy();
-  // Reset all state for new talk
   reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightParsed: null, mode: 'transcript', videoSlug: '', alignedRows: null, srtLeftLang: 'en', srtRightLang: 'uk' };
 
   var langs = parseReviewLangs(location.hash, talkId);
@@ -4067,7 +4054,6 @@ function showReview(talkId) {
   document.getElementById('r-title').textContent = talk ? talk.title : talkId;
   document.title = 'Review: ' + (talk ? talk.title : talkId);
 
-  // Load state from localStorage
   var skey = 'review_' + talkId;
   try { var s = JSON.parse(localStorage.getItem(skey) || '{}'); reviewState.marks = s.marks || {}; reviewState.edits = s.edits || {}; } catch(e) {}
 
@@ -4343,7 +4329,6 @@ SPA.switchReviewMode = function(mode, videoSlug) {
     var ukBlocks = parseSRT(texts[1]);
     var aligned = alignSubtitlesByTime(enBlocks, ukBlocks);
 
-    // Convert to review format
     reviewState.leftParas = aligned.map(function(r) { return r.en ? r.en.text : ''; });
     reviewState.rightParas = aligned.map(function(r) { return r.uk ? r.uk.text : ''; });
     reviewState.alignedRows = aligned;
@@ -4419,7 +4404,7 @@ function msToSrtTime(ms) {
 
 function renderReview() {
   var grid = document.getElementById('review-grid');
-  // Clear old rows (keep headers)
+  // Keep the header row (the first 2 children).
   while (grid.children.length > 2) grid.removeChild(grid.lastChild);
 
   var isSrt = reviewState.mode === 'srt';
@@ -4998,12 +4983,10 @@ function showAddTalk(hash) {
   document.title = t('add.title') + ' — SY Subtitles';
   translatePage();
 
-  // Hide all states
   document.getElementById('add-state-setup').style.display = 'none';
   document.getElementById('add-state-error').style.display = 'none';
   document.getElementById('add-form').style.display = 'none';
 
-  // Determine state
   var qm = hash.indexOf('?');
   if (qm === -1 || !hash.includes('data=')) {
     // State 1: no data — show setup instructions
@@ -5189,7 +5172,6 @@ SPA.submitAddTalk = function() {
     applyTheme(next);
   };
 
-  // Init button label
   var initMode = getCurrent();
   var btn = document.getElementById('theme-btn');
   if (btn) { btn.textContent = icons[initMode]; btn.title = t('title.theme.' + initMode); }
