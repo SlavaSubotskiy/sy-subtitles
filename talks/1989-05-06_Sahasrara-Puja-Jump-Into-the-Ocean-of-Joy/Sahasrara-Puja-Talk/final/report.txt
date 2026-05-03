@@ -1,0 +1,74 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1989-05-06_Sahasrara-Puja-Jump-Into-the-Ocean-of-Joy/Sahasrara-Puja-Talk/final/uk.srt
+  Transcript: talks/1989-05-06_Sahasrara-Puja-Jump-Into-the-Ocean-of-Joy/transcript_uk.txt
+  EN SRT: talks/1989-05-06_Sahasrara-Puja-Jump-Into-the-Ocean-of-Joy/Sahasrara-Puja-Talk/source/en.srt
+  SRT blocks: 359
+  (text preservation check skipped — offset video)
+  (time range check skipped — offset video)
+  (CPS hard fail skipped — builder mode)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range — SKIPPED (explicitly skipped)
+============================================================
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 359
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 359
+  CPS: avg=10.3, median=10.2, max=15.1
+  CPS > target: 50 (13.9%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=53.2, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 0
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #247: CPS=15.1 (34ch/2.2s) "Усі ці художники багато страждали."
+    #57: CPS=15.1 (64ch/4.2s) "І також ті, хто досягає своєї Реалізації, якщо вони не приве..."
+    #222: CPS=15.1 (68ch/4.5s) "Але якщо це створено прекрасним розумом, то це має бути прек..."
+    #83: CPS=15.0 (82ch/5.5s) "що ви не змогли би зустрітися зі Мною із-за усього світла, я..."
+    #217: CPS=15.0 (80ch/5.3s) "Мова йде про поета, чи критикують вони поета, чи критикують ..."
+    #41: CPS=15.0 (28ch/1.9s) "Раніше цього ніколи не було."
+    #265: CPS=15.0 (34ch/2.3s) "Ви можете критикувати що завгодно."
+    #346: CPS=15.0 (40ch/2.7s) "Ви сумніваєтеся лише тоді, коли думаєте."
+    #341: CPS=15.0 (43ch/2.9s) "а потім Він відмовляється, Він сказав: «Ні,"
+    #253: CPS=15.0 (23ch/1.5s) "Я створюю це для себе»."
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+
+  Avg CPS: 10.3 (target ≤15.0)
+  CPS > 15.0: 50 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 0 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
