@@ -779,21 +779,29 @@ body.preview-subs-resize-active-body * { cursor: ns-resize !important; user-sele
    subtitle block can base its font-size off the real available width. */
 #view-preview .player-container { container-type: inline-size; }
 
+/* Note: --preview-subs-scale is set by JS in applySubsPx() as a unitless
+   number. Computing it from --preview-subs-h via calc(length/length) only
+   works on Safari ≥ 16.4 / Firefox ≥ 89 — and a single browser without
+   support causes the rule below to fall back to the embedded font, which
+   makes fs-mode look broken. Doing the math in JS avoids the foot-gun. */
+
 /* Only once a custom height is set do we enable the scaling behavior. */
 #view-preview[data-subs-tuned="1"] #subtitle-overlay {
   height: var(--preview-subs-h);
   overflow: hidden;
   /* Font sizing is constrained by BOTH block height AND block width.
-     Subtitles wrap across lines, so the width term assumes ~42 chars per
-     line (84 chars total across two lines). Fraunces ≈ 0.55em avg char
-     width → 1em ≈ w / (42 × 0.55) ≈ w / 23. */
+     Subtitles wrap across lines, so the width term assumes ~28 chars per
+     line (56 chars total across two lines). Fraunces ≈ 0.55em avg char
+     width → 1em ≈ w / (28 × 0.55) ≈ w / 15.3.
+     The height factor 0.32 leaves vertical room for up to 3 wrapped
+     lines (3 × line-height 1.2 + ~32px padding ≈ block height / 0.32). */
   font-size: clamp(
     24px,
     min(
-      calc(var(--preview-subs-h, 120px) * 0.42),
-      calc((100cqw - 48px) / 23)
+      calc(var(--preview-subs-h, 120px) * 0.32),
+      calc((100cqw - 48px) / 15.3)
     ),
-    132px
+    198px
   );
   line-height: 1.2;
   padding: 16px 24px;
@@ -892,10 +900,19 @@ body.preview-subs-resize-active-body * { cursor: ns-resize !important; user-sele
   max-height: 60vh;
   overflow: hidden;
 }
-/* Also: the [data-subs-tuned] font-scaling rule is meant for the embedded
-   preview, not fullscreen. Lock a viewport-based size while in fs-mode. */
+/* Fullscreen mirrors the embedded resize handle: the user's drag scales
+   the original viewport-based font BIDIRECTIONALLY. The handle sits below
+   the overlay, so dragging it DOWN grows the block (and fs); dragging UP
+   shrinks it. 22vh cap stops two lines from being pushed off-screen at
+   the high end; 20px floor stops the low end from becoming unreadable.
+   --preview-subs-scale is set by JS as a unitless number; if absent
+   (no drag yet), the fallback 1 keeps the original baseline. */
 #view-preview.fs-mode[data-subs-tuned="1"] #subtitle-overlay {
-  font-size: clamp(28px, 4vw, 80px);
+  font-size: clamp(
+    20px,
+    calc(clamp(28px, 4vw, 80px) * var(--preview-subs-scale, 1)),
+    22vh
+  );
   height: auto;
   line-height: 1.25;
 }
@@ -1131,7 +1148,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   //   2) Subtitle overlay height
   // Both persist per-talk so returning to the same video keeps your layout.
   const PREVIEW_PLAYER_MIN = 18, PREVIEW_PLAYER_MAX = 88, PREVIEW_PLAYER_DEF = 54; // vh
-  const PREVIEW_SUBS_MIN_PX = 60, PREVIEW_SUBS_MAX_PX = 480, PREVIEW_SUBS_DEF_PX = 120;
+  const PREVIEW_SUBS_MIN_PX = 60, PREVIEW_SUBS_MAX_PX = 720, PREVIEW_SUBS_DEF_PX = 120;
 
   const previewTalkKey = () => {
     const hash = location.hash || '';
@@ -1141,20 +1158,43 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   const keyPlayer = () => 'sy.preview_player.'   + previewTalkKey();
   const keySubs   = () => 'sy.preview_subs_h.'   + previewTalkKey();
 
+  const clamp = (min, v, max) => Math.max(min, Math.min(max, v));
+
+  // Custom-property names referenced in JS; hoisted so a typo can't drift
+  // between writers and readers.
+  const CSS_SUBS_H = '--preview-subs-h';
+  const CSS_SUBS_SCALE = '--preview-subs-scale';
+
   function loadNum(k, def, min, max) {
     try {
       const raw = localStorage.getItem(k);
       if (!raw) return def;
       const v = parseFloat(raw);
       if (!isFinite(v)) return def;
-      return Math.max(min, Math.min(max, v));
+      return clamp(min, v, max);
     } catch(_) { return def; }
   }
   function saveNum(k, v) { try { localStorage.setItem(k, String(v)); } catch(_){} }
 
   function applyPlayerVh(v) { document.documentElement.style.setProperty('--preview-player-h', v + 'vh'); }
-  function applySubsPx(v)   {
-    document.documentElement.style.setProperty('--preview-subs-h', v + 'px');
+  // Scale bounds for fs-mode. Floor 0.5× / ceiling 4× of the viewport-based
+  // baseline keep fullscreen readable across the handle's full range
+  // without being clipped by the 22vh hard cap on tall screens. 120px is
+  // the embedded default → scale 1.0.
+  const PREVIEW_SUBS_SCALE_MIN = 0.5;
+  const PREVIEW_SUBS_SCALE_MAX = 4;
+  function applySubsPx(v) {
+    // Reject non-finite input: writing "NaNpx" silently re-creates the
+    // "tiny on fullscreen" bug because CSS drops the property and the
+    // fs-mode rule falls back to the embedded font.
+    if (!Number.isFinite(v)) {
+      console.warn('[preview] applySubsPx ignored non-finite value:', v);
+      return;
+    }
+    const root = document.documentElement.style;
+    root.setProperty(CSS_SUBS_H, v + 'px');
+    root.setProperty(CSS_SUBS_SCALE,
+                     String(clamp(PREVIEW_SUBS_SCALE_MIN, v / PREVIEW_SUBS_DEF_PX, PREVIEW_SUBS_SCALE_MAX)));
     const vp = document.getElementById('view-preview');
     if (vp) vp.setAttribute('data-subs-tuned', '1');
   }
@@ -1165,12 +1205,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   function computeSubsMaxPx() {
     const overlay = document.getElementById('subtitle-overlay');
     const w = overlay ? overlay.clientWidth : 960;
-    // width_term = (w - padding 48) / 23  (see CSS)
-    const widthFont = Math.max(24, (w - 48) / 23);
-    // height_term = h * 0.42 → h = font / 0.42; add padding + small buffer.
-    const h = Math.ceil(widthFont / 0.42) + 40;
-    // Absolute safety rails.
-    return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(480, h));
+    // width_term = (w - padding 48) / 15.3  (see CSS)
+    const widthFont = Math.max(24, (w - 48) / 15.3);
+    // height_term = h * 0.32 → h = font / 0.32; add padding + small buffer.
+    const h = Math.ceil(widthFont / 0.32) + 40;
+    return clamp(PREVIEW_SUBS_MIN_PX, h, PREVIEW_SUBS_MAX_PX);
   }
 
   function makeDragHandle({id, className, title, onMove, onCommit, onReset}) {
@@ -1235,9 +1274,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
             const p = parseFloat(cs);
             return isFinite(p) ? p : loadNum(keyPlayer(), PREVIEW_PLAYER_DEF, PREVIEW_PLAYER_MIN, PREVIEW_PLAYER_MAX);
           },
-          compute: (start, dy) => Math.max(PREVIEW_PLAYER_MIN, Math.min(PREVIEW_PLAYER_MAX, start + (dy / (window.innerHeight||800)) * 100)),
+          compute: (start, dy) => clamp(PREVIEW_PLAYER_MIN, start + (dy / (window.innerHeight||800)) * 100, PREVIEW_PLAYER_MAX),
           apply: applyPlayerVh,
-          clamp: v => Math.max(PREVIEW_PLAYER_MIN, Math.min(PREVIEW_PLAYER_MAX, v)),
+          clamp: v => clamp(PREVIEW_PLAYER_MIN, v, PREVIEW_PLAYER_MAX),
           smallStep: 2, bigStep: 6,
         },
         onCommit: v => saveNum(keyPlayer(), v),
@@ -1258,23 +1297,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
             // visual reality, even if no CSS var has been set yet.
             const h = overlay.offsetHeight;
             const max = computeSubsMaxPx();
-            return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(max, h || loadNum(keySubs(), PREVIEW_SUBS_DEF_PX, PREVIEW_SUBS_MIN_PX, max)));
+            return clamp(PREVIEW_SUBS_MIN_PX, h || loadNum(keySubs(), PREVIEW_SUBS_DEF_PX, PREVIEW_SUBS_MIN_PX, max), max);
           },
-          compute: (start, dy) => {
-            const max = computeSubsMaxPx();
-            return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(max, start + dy));
-          },
+          compute: (start, dy) => clamp(PREVIEW_SUBS_MIN_PX, start + dy, computeSubsMaxPx()),
           apply: applySubsPx,
-          clamp: v => {
-            const max = computeSubsMaxPx();
-            return Math.max(PREVIEW_SUBS_MIN_PX, Math.min(max, v));
-          },
+          clamp: v => clamp(PREVIEW_SUBS_MIN_PX, v, computeSubsMaxPx()),
           smallStep: 12, bigStep: 32,
         },
         onCommit: v => saveNum(keySubs(), v),
         onReset: () => {
-          // Reset subs to original behavior: auto-height, 40px font.
-          document.documentElement.style.removeProperty('--preview-subs-h');
+          document.documentElement.style.removeProperty(CSS_SUBS_H);
+          document.documentElement.style.removeProperty(CSS_SUBS_SCALE);
           const vp = document.getElementById('view-preview');
           if (vp) vp.removeAttribute('data-subs-tuned');
           try { localStorage.removeItem(keySubs()); } catch(_){}
@@ -1294,6 +1327,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
     } else {
       const vp = document.getElementById('view-preview');
       if (vp) vp.removeAttribute('data-subs-tuned');
+      document.documentElement.style.removeProperty(CSS_SUBS_SCALE);
     }
 
     // Measure the view header + freshness bar so the sticky top offset is
@@ -1311,7 +1345,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   window.addEventListener('hashchange', () => setTimeout(maybeInstallResize, 50));
   window.addEventListener('resize', () => setTimeout(maybeInstallResize, 50));
   setTimeout(maybeInstallResize, 400);
-  setInterval(maybeInstallResize, 2000);
 })();
 </script>
 
@@ -3287,7 +3320,7 @@ function renderStatusBadge(status, reviewSt) {
   };
   var text = labels[status] || status;
   if (status === 'in-review' && reviewSt && reviewSt.reviewer) text += ' (' + esc(reviewSt.reviewer) + ')';
-  var href = reviewSt && reviewSt.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + reviewSt.issue_number : '';
+  var href = reviewSt && reviewSt.issue_number ? 'https://github.com/' + REPO + '/issues/' + reviewSt.issue_number : '';
   if (href) return '<a href="' + href + '" target="_blank" class="review-badge ' + status + '">' + text + '</a>';
   return '<span class="review-badge ' + status + '">' + text + '</span>';
 }
@@ -3304,7 +3337,7 @@ function renderPipelineDAG(tk, stages, st) {
 
   var wLabel = t('pipe.ai_transcribed') + (stages.nVideos > 1 ? ' ' + stages.whisperProgress : '');
   var sLabel = t('pipe.srt') + (stages.nVideos > 1 ? ' ' + stages.srtProgress : '');
-  var reviewHref = st && st.issue_number ? 'https://github.com/SlavaSubotskiy/sy-subtitles/issues/' + st.issue_number : '';
+  var reviewHref = st && st.issue_number ? 'https://github.com/' + REPO + '/issues/' + st.issue_number : '';
 
   var topBranch = node(wLabel, stages.whisper);
   var bottomBranch = node(t('pipe.ai_translated'), stages.translated)
@@ -3338,13 +3371,11 @@ var previewState = {};
 function showPreview(talkId, videoSlug) {
   document.getElementById('view-preview').classList.add('active');
 
-  // Clear previous state
   document.getElementById('subtitle-overlay').textContent = '';
   if (previewState && previewState.player) {
     try { previewState.player.pause(); } catch(e) {}
   }
 
-  // Find talk info
   var talk = manifest ? manifest.talks.find(function(t) { return t.id === talkId; }) : null;
   var video = talk ? (talk.videos || []).find(function(v) { return v.slug === videoSlug; }) : null;
 
@@ -3375,8 +3406,6 @@ function showPreview(talkId, videoSlug) {
   previewState = {
     talkId: talkId,
     videoSlug: videoSlug,
-    talk: talk,
-    video: video,
     subtitles: [],
     mode: persisted.mode,
     markers: persisted.markers,
@@ -3386,7 +3415,6 @@ function showPreview(talkId, videoSlug) {
     srtLang: defaultLang,
   };
 
-  // Render subtitle language selector
   var langSel = document.getElementById('srt-lang-select');
   if (langSel) {
     if (availLangs.length > 1) {
@@ -3588,50 +3616,78 @@ SPA.resumePlayer = function() {
   if (document.activeElement) document.activeElement.blur();
 };
 
+// True between the synchronous .fs-mode add and the requestFullscreen
+// promise resolving — used by syncFsMode to avoid clearing our class on
+// a foreign fullscreenchange (e.g. a Vimeo iframe going FS and back)
+// when we never had native fullscreen of our own.
+let SY_CSS_ONLY_FS = false;
+
+const fsEl = () => document.fullscreenElement
+  || document.webkitFullscreenElement
+  || document.mozFullScreenElement
+  || document.msFullscreenElement;
+
 SPA.toggleFullscreen = function() {
   var el = document.getElementById('view-preview');
   if (!el) return;
-  var nativeIsOn = !!(document.fullscreenElement === el);
+  var nativeIsOn = fsEl() === el;
   var cssIsOn = el.classList.contains('fs-mode');
 
-  // If we're already in either kind of fullscreen, turn it off.
   if (nativeIsOn || cssIsOn) {
-    if (document.fullscreenElement) {
-      try { document.exitFullscreen(); } catch(_) {}
+    if (fsEl()) {
+      try {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      } catch (e) {
+        console.warn('[fs] exitFullscreen failed:', e);
+      }
     }
     el.classList.remove('fs-mode');
     document.body.classList.remove('sy-fs-active');
+    SY_CSS_ONLY_FS = false;
     return;
   }
 
-  // Try the real API first — but be ready for it to reject (sandboxed
-  // iframes, permission policy, etc). In that case, fall back to a
-  // CSS-only fullscreen so the feature at least visually works.
-  var req = el.requestFullscreen && el.requestFullscreen();
+  // Add the .fs-mode class SYNCHRONOUSLY: we can't wait for
+  // fullscreenchange — Safari fires only the webkit-prefixed variant and
+  // headless browsers may not fire it at all. Without this the overlay
+  // would render at the embedded base 32px font until (or unless) the
+  // event arrives.
+  el.classList.add('fs-mode');
+  document.body.classList.add('sy-fs-active');
+  SY_CSS_ONLY_FS = true;
+
+  var reqFn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!reqFn) return;
+  var req;
+  try { req = reqFn.call(el); }
+  catch (e) {
+    console.warn('[fs] requestFullscreen threw synchronously:', e);
+    return;
+  }
   if (req && typeof req.then === 'function') {
-    req.catch(function() {
-      el.classList.add('fs-mode');
-      document.body.classList.add('sy-fs-active');
-    });
+    req.then(function() { SY_CSS_ONLY_FS = false; },
+             function(e) { console.warn('[fs] requestFullscreen rejected — CSS fallback active:', e); });
   } else {
-    el.classList.add('fs-mode');
-    document.body.classList.add('sy-fs-active');
+    SY_CSS_ONLY_FS = false;
   }
 };
 
-document.addEventListener('fullscreenchange', function() {
+function syncFsMode() {
   var el = document.getElementById('view-preview');
   if (!el) return;
-  if (document.fullscreenElement === el) {
+  var native = fsEl();
+  if (native === el) {
     el.classList.add('fs-mode');
     document.body.classList.add('sy-fs-active');
-  } else {
-    // Only clear if it wasn't the CSS-only path; but safe either way —
-    // pressing Esc / F again re-enters the right mode.
+    SY_CSS_ONLY_FS = false;
+  } else if (!native && el.classList.contains('fs-mode') && !SY_CSS_ONLY_FS) {
     el.classList.remove('fs-mode');
     document.body.classList.remove('sy-fs-active');
   }
-});
+}
+['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange']
+  .forEach(ev => document.addEventListener(ev, syncFsMode));
 
 // Escape out of CSS-only fullscreen (native Esc is handled by the browser).
 document.addEventListener('keydown', function(e) {
@@ -3987,7 +4043,6 @@ function updateColHeaders() {
 function showReview(talkId) {
   document.getElementById('view-review').classList.add('active');
   SyncPlayer.destroy();
-  // Reset all state for new talk
   reviewState = { talkId: talkId, leftLang: 'en', rightLang: 'uk', leftParas: [], rightParas: [], marks: {}, edits: {}, rightParsed: null, mode: 'transcript', videoSlug: '', alignedRows: null, srtLeftLang: 'en', srtRightLang: 'uk' };
 
   var langs = parseReviewLangs(location.hash, talkId);
@@ -3999,7 +4054,6 @@ function showReview(talkId) {
   document.getElementById('r-title').textContent = talk ? talk.title : talkId;
   document.title = 'Review: ' + (talk ? talk.title : talkId);
 
-  // Load state from localStorage
   var skey = 'review_' + talkId;
   try { var s = JSON.parse(localStorage.getItem(skey) || '{}'); reviewState.marks = s.marks || {}; reviewState.edits = s.edits || {}; } catch(e) {}
 
@@ -4275,7 +4329,6 @@ SPA.switchReviewMode = function(mode, videoSlug) {
     var ukBlocks = parseSRT(texts[1]);
     var aligned = alignSubtitlesByTime(enBlocks, ukBlocks);
 
-    // Convert to review format
     reviewState.leftParas = aligned.map(function(r) { return r.en ? r.en.text : ''; });
     reviewState.rightParas = aligned.map(function(r) { return r.uk ? r.uk.text : ''; });
     reviewState.alignedRows = aligned;
@@ -4351,7 +4404,7 @@ function msToSrtTime(ms) {
 
 function renderReview() {
   var grid = document.getElementById('review-grid');
-  // Clear old rows (keep headers)
+  // Keep the header row (the first 2 children).
   while (grid.children.length > 2) grid.removeChild(grid.lastChild);
 
   var isSrt = reviewState.mode === 'srt';
@@ -4930,12 +4983,10 @@ function showAddTalk(hash) {
   document.title = t('add.title') + ' — SY Subtitles';
   translatePage();
 
-  // Hide all states
   document.getElementById('add-state-setup').style.display = 'none';
   document.getElementById('add-state-error').style.display = 'none';
   document.getElementById('add-form').style.display = 'none';
 
-  // Determine state
   var qm = hash.indexOf('?');
   if (qm === -1 || !hash.includes('data=')) {
     // State 1: no data — show setup instructions
@@ -5121,7 +5172,6 @@ SPA.submitAddTalk = function() {
     applyTheme(next);
   };
 
-  // Init button label
   var initMode = getCurrent();
   var btn = document.getElementById('theme-btn');
   if (btn) { btn.textContent = icons[initMode]; btn.title = t('title.theme.' + initMode); }
