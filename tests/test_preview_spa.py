@@ -4551,6 +4551,19 @@ class TestSubtitleOverlaySize:
     FS_MODE_TINY_PX = 30
     FS_MODE_FLOOR_PX = 20  # Hard floor in CSS so even drag-down stays readable.
 
+    # Single source of truth for the test-side mirror of applySubsPx — used
+    # by every "set the handle to h, read the resulting font" probe so a
+    # constant change in the production formula doesn't silently leave the
+    # tests asserting against stale numbers.
+    _SET_HANDLE_JS = """
+      (h) => {
+        const scale = Math.max(0.5, Math.min(4, h / 120));
+        document.documentElement.style.setProperty('--preview-subs-h', h + 'px');
+        document.documentElement.style.setProperty('--preview-subs-scale', String(scale));
+        document.getElementById('view-preview').setAttribute('data-subs-tuned', '1');
+      }
+    """
+
     def _wait_for_handle(self, page):
         """The resize handle is installed asynchronously via a setTimeout
         chain after hashchange — a fixed sleep is unreliable across machines."""
@@ -4561,19 +4574,12 @@ class TestSubtitleOverlaySize:
         the synchronous .fs-mode class addition. Optionally drag the embedded
         handle (which sets --preview-subs-scale via JS, mirroring fs-mode)."""
         return page.evaluate(
-            """(opts) => {
-              const overlay = document.getElementById('subtitle-overlay');
-              const vp = document.getElementById('view-preview');
-              if (opts.h !== null) {
-                // Mirror what applySubsPx does so we exercise the same JS path.
-                document.documentElement.style.setProperty('--preview-subs-h', opts.h + 'px');
-                const scale = Math.max(0.5, Math.min(4, opts.h / 120));
-                document.documentElement.style.setProperty('--preview-subs-scale', String(scale));
-                vp.setAttribute('data-subs-tuned', '1');
-              }
+            f"""(opts) => {{
+              const setHandle = {self._SET_HANDLE_JS};
+              if (opts.h !== null) setHandle(opts.h);
               SPA.toggleFullscreen();
-              return parseFloat(getComputedStyle(overlay).fontSize);
-            }""",
+              return parseFloat(getComputedStyle(document.getElementById('subtitle-overlay')).fontSize);
+            }}""",
             {"h": drag_to_h},
         )
 
@@ -4680,24 +4686,20 @@ class TestSubtitleOverlaySize:
         smaller fs font (down to the readable floor)."""
         self._goto_preview(server, page)
         result = page.evaluate(
-            """() => {
+            f"""() => {{
               const overlay = document.getElementById('subtitle-overlay');
-              const vp = document.getElementById('view-preview');
               SPA.toggleFullscreen();
-              const setHandle = (h) => {
-                const scale = Math.max(0.5, Math.min(4, h / 120));
-                document.documentElement.style.setProperty('--preview-subs-h', h + 'px');
-                document.documentElement.style.setProperty('--preview-subs-scale', String(scale));
-                vp.setAttribute('data-subs-tuned', '1');
-              };
-              setHandle(120);
-              const baseline = parseFloat(getComputedStyle(overlay).fontSize);
-              setHandle(600);
-              const enlarged = parseFloat(getComputedStyle(overlay).fontSize);
-              setHandle(60);
-              const shrunk = parseFloat(getComputedStyle(overlay).fontSize);
-              return { baseline, enlarged, shrunk };
-            }"""
+              const setHandle = {self._SET_HANDLE_JS};
+              const fontAt = (h) => {{
+                setHandle(h);
+                return parseFloat(getComputedStyle(overlay).fontSize);
+              }};
+              return {{
+                baseline: fontAt(120),
+                enlarged: fontAt(600),
+                shrunk:   fontAt(60),
+              }};
+            }}"""
         )
         assert result["enlarged"] > result["baseline"], (
             f"Taller block did not grow fs-mode font: baseline={result['baseline']}px enlarged={result['enlarged']}px"
@@ -4716,33 +4718,20 @@ class TestSubtitleOverlaySize:
         instead of the test re-implementing the formula."""
         self._goto_preview(server, page)
         self._wait_for_handle(page)
+        page.locator("#preview-subs-resize").focus()
+        for _ in range(5):
+            page.keyboard.press("ArrowDown")
         result = page.evaluate(
-            """() => {
-              const handle = document.getElementById('preview-subs-resize');
-              if (!handle) return { error: 'handle missing' };
-              handle.focus();
-              const before = getComputedStyle(document.documentElement)
-                .getPropertyValue('--preview-subs-scale');
-              // Arrow keys nudge the handle and route through onMove.apply
-              // (= applySubsPx) — the same path as a real drag/keyboard nudge.
-              for (let i = 0; i < 5; i++) {
-                handle.dispatchEvent(new KeyboardEvent('keydown',
-                  { key: 'ArrowDown', bubbles: true }));
-              }
-              return {
-                scale: getComputedStyle(document.documentElement)
-                  .getPropertyValue('--preview-subs-scale').trim(),
-                tuned: document.getElementById('view-preview')
-                  .getAttribute('data-subs-tuned'),
-                before: before.trim(),
-              };
-            }"""
+            """() => ({
+              scale: getComputedStyle(document.documentElement)
+                .getPropertyValue('--preview-subs-scale').trim(),
+              tuned: document.getElementById('view-preview')
+                .getAttribute('data-subs-tuned'),
+            })"""
         )
-        assert result.get("error") is None, result
-        assert result["before"] == "", f"--preview-subs-scale should be unset before any drag, got {result['before']!r}"
         assert result["tuned"] == "1", "applySubsPx didn't set data-subs-tuned"
         assert result["scale"] != "", "applySubsPx didn't set --preview-subs-scale"
-        # Scale must be a valid finite number string, never 'NaN'.
+        # Must be a valid finite number string, never 'NaN'.
         scale_val = float(result["scale"])
         assert 0.5 <= scale_val <= 4, f"scale {scale_val} outside [0.5, 4] clamp"
 
@@ -4752,56 +4741,45 @@ class TestSubtitleOverlaySize:
         forgets one of those would silently leave fs scaled after reset."""
         self._goto_preview(server, page)
         self._wait_for_handle(page)
-        result = page.evaluate(
-            """() => {
-              const handle = document.getElementById('preview-subs-resize');
-              if (!handle) return { error: 'handle missing' };
-              handle.focus();
-              for (let i = 0; i < 5; i++) {
-                handle.dispatchEvent(new KeyboardEvent('keydown',
-                  { key: 'ArrowDown', bubbles: true }));
-              }
-              const tunedBefore = document.getElementById('view-preview')
-                .getAttribute('data-subs-tuned');
-              const scaleBefore = getComputedStyle(document.documentElement)
-                .getPropertyValue('--preview-subs-scale').trim();
-              // dblclick → onReset
-              handle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-              return {
-                tunedBefore, scaleBefore,
-                tunedAfter: document.getElementById('view-preview')
-                  .getAttribute('data-subs-tuned'),
-                scaleAfter: getComputedStyle(document.documentElement)
-                  .getPropertyValue('--preview-subs-scale').trim(),
-                hAfter: getComputedStyle(document.documentElement)
-                  .getPropertyValue('--preview-subs-h').trim(),
-              };
-            }"""
+        handle = page.locator("#preview-subs-resize")
+        handle.focus()
+        for _ in range(5):
+            page.keyboard.press("ArrowDown")
+        before = page.evaluate(
+            """() => ({
+              tuned: document.getElementById('view-preview').getAttribute('data-subs-tuned'),
+              scale: getComputedStyle(document.documentElement)
+                .getPropertyValue('--preview-subs-scale').trim(),
+            })"""
         )
-        assert result.get("error") is None, result
-        assert result["tunedBefore"] == "1" and result["scaleBefore"] != "", (
-            "Test setup failed — drag didn't put us in tuned state"
+        assert before["tuned"] == "1" and before["scale"] != "", (
+            f"Test setup failed — drag didn't tune the overlay: {before}"
         )
-        assert result["tunedAfter"] is None, f"Reset didn't clear data-subs-tuned (got {result['tunedAfter']!r})"
-        assert result["scaleAfter"] == "", f"Reset didn't clear --preview-subs-scale (got {result['scaleAfter']!r})"
+        handle.dblclick()
+        # --preview-subs-h falls back to its :root default (120px) after
+        # removeProperty, that's by design — only data-subs-tuned and the
+        # scale var are user-set state we need to wipe.
+        after = page.evaluate(
+            """() => ({
+              tuned: document.getElementById('view-preview').getAttribute('data-subs-tuned'),
+              scale: getComputedStyle(document.documentElement)
+                .getPropertyValue('--preview-subs-scale').trim(),
+              hInline: document.documentElement.style.getPropertyValue('--preview-subs-h'),
+            })"""
+        )
+        assert after["tuned"] is None, f"Reset didn't clear data-subs-tuned (got {after['tuned']!r})"
+        assert after["scale"] == "", f"Reset didn't clear --preview-subs-scale (got {after['scale']!r})"
+        assert after["hInline"] == "", f"Reset didn't clear inline --preview-subs-h (got {after['hInline']!r})"
 
     def test_localstorage_subs_height_round_trips_on_load(self, server, page):
         """A persisted subs-h value must be re-applied on the next page
         load by applySubsPx (which sets the scale var). Persistence
         silently breaking is the most common subtle bug for handle features."""
-        # First navigation: drag the handle to seed localStorage.
         self._goto_preview(server, page)
         self._wait_for_handle(page)
-        page.evaluate(
-            """() => {
-              const handle = document.getElementById('preview-subs-resize');
-              handle.focus();
-              for (let i = 0; i < 8; i++) {
-                handle.dispatchEvent(new KeyboardEvent('keydown',
-                  { key: 'ArrowDown', bubbles: true }));
-              }
-            }"""
-        )
+        page.locator("#preview-subs-resize").focus()
+        for _ in range(8):
+            page.keyboard.press("ArrowDown")
         # Reload the same talk and check persistence ran applySubsPx.
         self._goto_preview(server, page)
         self._wait_for_handle(page)
@@ -4815,6 +4793,7 @@ class TestSubtitleOverlaySize:
             })"""
         )
         assert result["tuned"] == "1", f"Reload didn't re-tune the overlay from localStorage: {result}"
+        assert result["h"] != "", f"Reload didn't re-apply --preview-subs-h: {result}"
         assert result["scale"] != "", f"Reload didn't re-apply --preview-subs-scale via applySubsPx: {result}"
         scale_val = float(result["scale"])
         assert 0.5 <= scale_val <= 4, f"scale {scale_val} outside [0.5, 4]"
