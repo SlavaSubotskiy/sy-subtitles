@@ -900,13 +900,9 @@ body.preview-subs-resize-active-body * { cursor: ns-resize !important; user-sele
   max-height: 60vh;
   overflow: hidden;
 }
-/* Fullscreen mirrors the embedded resize handle: the user's drag scales
-   the original viewport-based font BIDIRECTIONALLY. The handle sits below
-   the overlay, so dragging it DOWN grows the block (and fs); dragging UP
-   shrinks it. 22vh cap stops two lines from being pushed off-screen at
-   the high end; 20px floor stops the low end from becoming unreadable.
-   --preview-subs-scale is set by JS as a unitless number; if absent
-   (no drag yet), the fallback 1 keeps the original baseline. */
+/* Fullscreen mirrors the embedded resize handle: --preview-subs-scale is
+   set by JS as a unitless number; if absent (no drag yet) the fallback 1
+   keeps the original baseline. */
 #view-preview.fs-mode[data-subs-tuned="1"] #subtitle-overlay {
   font-size: clamp(
     20px,
@@ -1160,8 +1156,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 
   const clamp = (min, v, max) => Math.max(min, Math.min(max, v));
 
-  // Custom-property names referenced in JS; hoisted so a typo can't drift
-  // between writers and readers.
+  const CSS_PLAYER_H = '--preview-player-h';
   const CSS_SUBS_H = '--preview-subs-h';
   const CSS_SUBS_SCALE = '--preview-subs-scale';
 
@@ -1176,13 +1171,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   }
   function saveNum(k, v) { try { localStorage.setItem(k, String(v)); } catch(_){} }
 
-  function applyPlayerVh(v) { document.documentElement.style.setProperty('--preview-player-h', v + 'vh'); }
+  function applyPlayerVh(v) { document.documentElement.style.setProperty(CSS_PLAYER_H, v + 'vh'); }
   // Scale bounds for fs-mode. Floor 0.5× / ceiling 4× of the viewport-based
   // baseline keep fullscreen readable across the handle's full range
   // without being clipped by the 22vh hard cap on tall screens. 120px is
   // the embedded default → scale 1.0.
   const PREVIEW_SUBS_SCALE_MIN = 0.5;
   const PREVIEW_SUBS_SCALE_MAX = 4;
+  let _lastSubsH = NaN, _lastSubsScale = NaN;
   function applySubsPx(v) {
     // Reject non-finite input: writing "NaNpx" silently re-creates the
     // "tiny on fullscreen" bug because CSS drops the property and the
@@ -1192,11 +1188,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
       return;
     }
     const root = document.documentElement.style;
-    root.setProperty(CSS_SUBS_H, v + 'px');
-    root.setProperty(CSS_SUBS_SCALE,
-                     String(clamp(PREVIEW_SUBS_SCALE_MIN, v / PREVIEW_SUBS_DEF_PX, PREVIEW_SUBS_SCALE_MAX)));
+    const scale = clamp(PREVIEW_SUBS_SCALE_MIN, v / PREVIEW_SUBS_DEF_PX, PREVIEW_SUBS_SCALE_MAX);
+    // Skip cascade work on no-op drag pixels — at the clamp boundaries
+    // (e.g. h ≥ 480) every mousemove would rewrite the same scale value.
+    if (v !== _lastSubsH) { root.setProperty(CSS_SUBS_H, v + 'px'); _lastSubsH = v; }
+    if (scale !== _lastSubsScale) { root.setProperty(CSS_SUBS_SCALE, String(scale)); _lastSubsScale = scale; }
     const vp = document.getElementById('view-preview');
-    if (vp) vp.setAttribute('data-subs-tuned', '1');
+    if (vp && vp.getAttribute('data-subs-tuned') !== '1') vp.setAttribute('data-subs-tuned', '1');
   }
 
   // The max useful subtitle height is whatever lets the font grow to the
@@ -1308,6 +1306,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
         onReset: () => {
           document.documentElement.style.removeProperty(CSS_SUBS_H);
           document.documentElement.style.removeProperty(CSS_SUBS_SCALE);
+          _lastSubsH = NaN; _lastSubsScale = NaN;
           const vp = document.getElementById('view-preview');
           if (vp) vp.removeAttribute('data-subs-tuned');
           try { localStorage.removeItem(keySubs()); } catch(_){}
@@ -1328,6 +1327,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
       const vp = document.getElementById('view-preview');
       if (vp) vp.removeAttribute('data-subs-tuned');
       document.documentElement.style.removeProperty(CSS_SUBS_SCALE);
+      _lastSubsH = NaN; _lastSubsScale = NaN;
     }
 
     // Measure the view header + freshness bar so the sticky top offset is
