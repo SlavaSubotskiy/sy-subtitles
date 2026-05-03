@@ -4462,18 +4462,17 @@ class TestClipboardCopyDialog:
 
 
 class TestSubtitleOverlaySize:
-    """Subtitle overlay resize ceiling — guards the +50% bump from drifting back."""
+    """Subtitle overlay font sizing: width-bound formula, fs-mode baseline,
+    and the bidirectional handle→fs-mode mirror."""
 
     def _goto_preview(self, server, page):
         page.set_viewport_size({"width": 1600, "height": 900})
         goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
         page.wait_for_selector("#mock-player", state="visible", timeout=10000)
-        page.wait_for_timeout(500)
 
-    def test_width_term_widened_by_50pct(self, server, page):
-        """The +50% bump widens the char-width divisor (23 → 15.3). On a
-        wide enough container the width-bound font should be ~1.5× what the
-        old formula would have produced for the same container."""
+    def test_width_bound_uses_15_3_divisor(self, server, page):
+        """The width-bound font is `(cqw - 48px) / 15.3`. On a wide enough
+        container the realized font must hit that bound (within rounding)."""
         self._goto_preview(server, page)
         result = page.evaluate(
             """() => {
@@ -4489,14 +4488,9 @@ class TestSubtitleOverlaySize:
               };
             }"""
         )
-        old_width_bound = (result["cqw"] - 48) / 23
-        new_width_bound = (result["cqw"] - 48) / 15.3
-        assert result["font"] > old_width_bound + 5, (
-            f"Font {result['font']}px should beat the old /23 width-bound "
-            f"≈{old_width_bound:.1f}px (cqw={result['cqw']}px)"
-        )
-        assert result["font"] >= new_width_bound - 1, (
-            f"Font {result['font']}px should reach the new /15.3 width-bound ≈{new_width_bound:.1f}px"
+        width_bound = (result["cqw"] - 48) / 15.3
+        assert result["font"] >= width_bound - 1, (
+            f"Font {result['font']}px should reach the /15.3 width-bound ≈{width_bound:.1f}px (cqw={result['cqw']}px)"
         )
 
     def test_min_handle_height_keeps_floor(self, server, page):
@@ -4542,14 +4536,13 @@ class TestSubtitleOverlaySize:
             f"Fullscreen font should grow with subs handle, got small={result['small']}px big={result['big']}px"
         )
 
-    # The fs-mode no-drag baseline is clamp(28px, 4vw, 80px) — the original
-    # rule the user wants restored. On a 1600px viewport that's min(80, 64)
-    # = 64px. Use 56px (~12% safety margin) for stable baseline asserts and
-    # 30px as a "definitely tiny" floor for regression checks.
+    # fs-mode no-drag baseline = clamp(28px, 4vw, 80px). On a 1600px
+    # viewport that's min(80, 64) = 64px; FLOOR_PX leaves ~12% rounding
+    # slack. TINY_PX catches regressions to the embedded base 32px font.
     FS_MODE_BASELINE_PX = 64
     FS_MODE_BASELINE_FLOOR_PX = 56
     FS_MODE_TINY_PX = 30
-    FS_MODE_FLOOR_PX = 20  # Hard floor in CSS so even drag-down stays readable.
+    FS_MODE_FLOOR_PX = 20  # CSS hard floor: drag-down must stay readable.
 
     # Single source of truth for the test-side mirror of applySubsPx — used
     # by every "set the handle to h, read the resulting font" probe so a
@@ -4583,21 +4576,19 @@ class TestSubtitleOverlaySize:
             {"h": drag_to_h},
         )
 
-    def test_fs_mode_default_matches_original_size(self, server, page):
-        """Entering fullscreen WITHOUT having dragged must give the original
-        clamp(28px, 4vw, 80px) — neither huge (post-bump regression) nor
-        tiny (cascade-fallback bug)."""
+    def test_fs_mode_default_matches_baseline(self, server, page):
+        """Entering fullscreen WITHOUT having dragged must give the
+        un-tuned baseline `clamp(28px, 4vw, 80px)` — not tiny
+        (cascade-fallback bug) and not oversize."""
         self._goto_preview(server, page)
         font_px = self._read_fs_font_px_via_toggle(page, drag_to_h=None)
         assert font_px >= self.FS_MODE_BASELINE_FLOOR_PX, (
             f"fs-mode default font shrank to {font_px}px — expected ≈ "
             f"{self.FS_MODE_BASELINE_PX}px (4vw on 1600 viewport)"
         )
-        # Sanity ceiling: should NOT be the old "huge" 6vw bump on this size.
-        assert font_px <= 90, (
-            f"fs-mode default {font_px}px is too big — should be the original "
-            f"clamp(28, 4vw, 80) ≈ 64px on 1600vw, not the bumped 6vw size"
-        )
+        # Ceiling for the baseline rule clamp(28, 4vw, 80) on a 1600px
+        # viewport is 80px; allow 10px slack for rounding/scrollbars.
+        assert font_px <= 90, f"fs-mode default {font_px}px exceeds the 80px ceiling of clamp(28, 4vw, 80)"
 
     def test_fs_mode_smaller_block_shrinks_proportionally(self, server, page):
         """A smaller embedded subtitle block (handle dragged UP — the handle
@@ -4802,11 +4793,10 @@ class TestSubtitleOverlaySize:
         """The 22vh hard cap must pin the fs-mode font on a short viewport
         even with the handle dragged to its largest position. Without the
         cap, two-line subtitles get pushed off-screen."""
-        # Use a deliberately short viewport so 22vh < 6vw * scale.
+        # Use a deliberately short viewport so 22vh < 4vw * scale_max.
         page.set_viewport_size({"width": 1600, "height": 400})
         goto_spa(page, server, "#/preview/2001-01-01_Test-Talk/Test-Video")
         page.wait_for_selector("#mock-player", state="visible", timeout=10000)
-        page.wait_for_timeout(400)
         font_px = self._read_fs_font_px_via_toggle(page, drag_to_h=720)
         # 22vh on 400px viewport = 88px. Allow 1px rounding slack.
         assert font_px <= 89, f"22vh cap not enforced: font {font_px}px > 88px on a 400px viewport"
