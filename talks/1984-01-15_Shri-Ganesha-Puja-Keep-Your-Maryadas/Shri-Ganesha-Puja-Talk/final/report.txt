@@ -1,0 +1,86 @@
+============================================================
+  SUBTITLE VALIDATION REPORT
+============================================================
+  SRT: talks/1984-01-15_Shri-Ganesha-Puja-Keep-Your-Maryadas/Shri-Ganesha-Puja-Talk/final/uk.srt
+  Transcript: talks/1984-01-15_Shri-Ganesha-Puja-Keep-Your-Maryadas/transcript_uk.txt
+  EN SRT: talks/1984-01-15_Shri-Ganesha-Puja-Keep-Your-Maryadas/Shri-Ganesha-Puja-Talk/source/en.srt
+  SRT blocks: 273
+  EN SRT blocks: 251
+  (text preservation check skipped — offset video)
+  (duration hard fail skipped — builder mode)
+
+============================================================
+  CHECK 2: Timing overlaps
+============================================================
+  Overlapping blocks: 0
+
+============================================================
+  CHECK 3: Time range (vs EN SRT)
+============================================================
+  EN SRT range: 00:00:10,540 — 00:20:16,243
+  SRT range:       00:00:10,540 — 00:20:18,243
+  Time range: OK
+
+============================================================
+  CHECK 4: Sequential numbering
+============================================================
+  Total blocks: 273
+  Numbering errors: 0
+
+============================================================
+  SUBTITLE STATISTICS
+============================================================
+  Total blocks: 273
+  CPS: avg=13.4, median=14.8, max=20.0
+  CPS > target: 65 (23.8%)
+  CPS > hard max: 0 (0.0%)
+  CPL: avg=54.9, max=84
+  CPL > max: 0 (0.0%)
+  Chars > max block: 0 (0.0%)
+  Lines > max: 0
+  Duration < min: 1
+  Duration > max: 0
+  Overlaps: 0
+  Gaps < min: 0
+
+  Worst CPS blocks (top 10):
+    #210: CPS=20.0 (29ch/1.5s) "Ми маємо навчитися цих речей."
+    #223: CPS=18.3 (75ch/4.1s) "дівчиною – такий заплутаний стан справ, де про ці речі й гов..."
+    #218: CPS=18.3 (41ch/2.2s) "і ми всі повинні намагатися дотримуватися"
+    #209: CPS=18.2 (57ch/3.1s) "вони сидять окремо. Вони тримають дистанцію одне з одним."
+    #208: CPS=17.8 (69ch/3.9s) "Ви побачите, що в Махараштрі жінки й чоловіки ніколи не сидя..."
+    #206: CPS=17.2 (70ch/4.1s) "Але настане день, коли вам, можливо, доведеться вийти із Сах..."
+    #224: CPS=16.2 (78ch/4.8s) "Але тут, коли ми намагаємося розібратися з нашою плутаниною,..."
+    #217: CPS=16.1 (60ch/3.7s) "Це система, завдяки якій ця країна виробила свою невинність,"
+    #222: CPS=16.1 (82ch/5.1s) "Я маю на увазі, там навіть вісімдесятирічна жінка одружуєтьс..."
+    #87: CPS=15.2 (20ch/1.3s) "Тож будьте обережні."
+
+============================================================
+  CHECK: UK block count vs EN SRT block count
+============================================================
+  UK SRT blocks: 273
+  EN SRT blocks: 251
+  Ratio UK/EN: 1.09 (max allowed 2.0)
+  Block count: OK
+
+============================================================
+  SUMMARY
+============================================================
+  [PASS] Text preservation
+  [PASS] No overlaps
+  [PASS] Time range
+  [PASS] Sequential numbering
+  [PASS] CPL ≤ 84
+  [PASS] Gap ≥ 80ms
+  [PASS] UK/EN block count ratio
+  [PASS] CPS ≤ 20.0
+
+  Avg CPS: 13.4 (target ≤15.0)
+  CPS > 15.0: 65 blocks
+  CPS > 20.0: 0 blocks
+  CPL > 84: 0 blocks
+  Duration < 1200ms: 1 blocks
+  Duration > 21000ms: 0 blocks
+  Gaps < 80ms: 0 blocks
+
+  Overall: PASSED
