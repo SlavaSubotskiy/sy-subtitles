@@ -158,6 +158,9 @@ Triggered manually via `workflow_dispatch`. Full pipeline:
 
 ### sync-subtitles.yml
 Triggered on PRs that modify `transcript_uk.txt` **or** `*/final/uk.srt`.
+Its bot commit also carries a rebuilt `site/dict/words_uk.txt`: a reviewer's
+edit changes the corpus the wordlist is generated from, so the PR would
+otherwise ship text the typo hints underline.
 Runs the sync driver (`tools/sync_pr.py`): SRT edits are first synced
 back into the transcript (reverse), a block boundary moved on a derived
 video is carried straight to the primary (re-cuts cannot travel through a

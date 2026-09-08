@@ -50,12 +50,26 @@ jobs:
       - name: Sync, optimize, validate
         run: python -m tools.sync_pr
 
+      - name: Refresh typo-hint wordlist
+        # A reviewer's edit is a corpus change: site/dict/words_uk.txt is
+        # generated from transcript_uk.txt and final/uk.srt, the two files this
+        # bot rewrites. Fix a transliteration and the committed list still
+        # describes the OLD spelling — so the SPA underlines the very word the
+        # reviewer just chose, and the guard in ci.yml fails whichever pull
+        # request happens to come next. Rebuild it here, where the change is
+        # made, exactly as the pipeline does for the talks it builds.
+        #
+        # Gated on success() for the same reason the commit below is: a failed
+        # sync leaves the tree untouched, so there is nothing new to describe.
+        if: success()
+        run: python -m tools.build_wordlist
+
       - name: Commit and push
         if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add talks/*/*/final/uk.srt talks/*/transcript_uk.txt
+          git add talks/*/*/final/uk.srt talks/*/transcript_uk.txt site/dict/words_uk.txt
           git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
           # [skip ci]: this commit is the RESULT of the sync. Pushing it back
           # re-triggers this same pull_request workflow (paths match
