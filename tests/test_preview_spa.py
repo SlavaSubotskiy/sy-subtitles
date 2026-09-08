@@ -6368,7 +6368,20 @@ class TestTypoHints:
         assert box, "nothing is marked as mixed-script"
         page.mouse.move(box["x"], box["y"])
 
-    def _type_into_first_cell(self, page, text):
+    def _type_into_first_cell(self, page, text, wait_for_paint=True):
+        """Replace the first cell's text and wait for the hints to catch up.
+
+        The wait belongs here, with the edit that causes the repaint, and not in
+        whatever reads the result afterwards. A scan is debounced, so an instant
+        after the edit `typoSeq` has not moved yet — anything comparing it with
+        `typoPaintedSeq` is answered by the paint that came BEFORE the edit and
+        reads the screen as it was. Assertions about what is painted survive
+        that; assertions that nothing is painted do not.
+
+        `wait_for_paint=False` is for the one case where no paint is coming
+        because the preference is off and nothing is scanning.
+        """
+        before = page.evaluate("() => typoPaintedSeq")
         page.evaluate(
             """(text) => {
               var el = document.querySelector('.cell.uk .cell-text');
@@ -6378,13 +6391,15 @@ class TestTypoHints:
             }""",
             text,
         )
+        if wait_for_paint:
+            self._wait_for_repaint(page, before)
 
     def _wait_for_repaint(self, page, before):
         """Wait for a paint LATER than `before` (from `_paint_count`).
 
-        `_painted_words` compares typoPaintedSeq with typoSeq, which a keystroke
-        has not yet moved — the scan behind it is debounced — so on its own that
-        comparison is answered by the paint that came before the keystroke.
+        Later, not merely current: `typoPaintedSeq == typoSeq` is already true
+        while a debounced scan is still pending, so on its own it is satisfied
+        by the paint that preceded whatever the test just did.
         """
         page.wait_for_function(
             "(before) => typoPaintedSeq > before && typoPaintedSeq === typoSeq",
@@ -6396,16 +6411,8 @@ class TestTypoHints:
         return page.evaluate("() => typoPaintedSeq")
 
     def _painted_words(self, page):
-        """What the highlight registry covers once the paint has caught up.
-
-        Scans are debounced and answered asynchronously, so reading the registry
-        the moment it exists can return the spans of the text as it was BEFORE
-        the last keystroke — offsets that no longer describe the screen.
-        """
-        page.wait_for_function(
-            "() => typoPaintedSeq > 0 && typoPaintedSeq === typoSeq",
-            timeout=15000,
-        )
+        """What the highlight registry covers. A read, nothing more — whatever
+        caused the paint is what waited for it."""
         return page.evaluate("() => [...CSS.highlights.get('sy-typo')].map(r => r.toString())")
 
     def test_underlines_a_word_no_source_knows(self, server, page):
@@ -6428,7 +6435,6 @@ class TestTypoHints:
         inserted around the underlined word."""
         self._open_editor_with_hints_on(page, server)
         self._type_into_first_cell(page, "ваші відрації слабшають")
-        self._painted_words(page)
 
         assert page.evaluate("document.querySelector('.cell.uk .cell-text').innerText") == "ваші відрації слабшають"
         assert page.evaluate("document.querySelectorAll('.cell.uk .cell-text *').length") == 0
@@ -6438,7 +6444,6 @@ class TestTypoHints:
         a caret that jumps makes the editor unusable."""
         self._open_editor_with_hints_on(page, server)
         self._type_into_first_cell(page, "ваші відрації слабшають")
-        self._painted_words(page)
         page.evaluate(
             """() => {
               var el = document.querySelector('.cell.uk .cell-text');
@@ -6468,7 +6473,7 @@ class TestTypoHints:
         self._serve_small_dictionary(page)
         goto_spa(page, server, self.REVIEW_UK)
         page.wait_for_selector(".cell.uk .cell-text", timeout=10000)
-        self._type_into_first_cell(page, "ваші відрації слабшають")
+        self._type_into_first_cell(page, "ваші відрації слабшають", wait_for_paint=False)
         page.wait_for_timeout(600)
 
         assert page.evaluate("CSS.highlights.has('sy-typo')") is False
@@ -6480,7 +6485,6 @@ class TestTypoHints:
         another guess."""
         self._open_editor_with_hints_on(page, server)
         self._type_into_first_cell(page, "ваші відрації Mати слабшають")
-        self._painted_words(page)
 
         marks = page.evaluate(
             """() => ({
@@ -6499,7 +6503,6 @@ class TestTypoHints:
         the word, where the eye can go straight to it."""
         self._open_editor_with_hints_on(page, server)
         self._type_into_first_cell(page, "ваші Toм слабшають")
-        self._painted_words(page)
 
         letters = page.evaluate("() => [...(CSS.highlights.get('sy-typo-letter') || [])].map(r => r.toString())")
 
@@ -6510,7 +6513,6 @@ class TestTypoHints:
         that neither source has the word."""
         self._open_editor_with_hints_on(page, server)
         self._type_into_first_cell(page, "ваші відрації слабшають")
-        self._painted_words(page)
 
         letters = page.evaluate("() => [...(CSS.highlights.get('sy-typo-letter') || [])].map(r => r.toString())")
 
@@ -6522,7 +6524,6 @@ class TestTypoHints:
         it; the hint has to say which letter, and what belonged there."""
         self._open_editor_with_hints_on(page, server, lang="uk")
         self._type_into_first_cell(page, "ваші Mати слабшають")
-        self._painted_words(page)
 
         self._hover_the_mixed_word(page)
 
@@ -6533,7 +6534,6 @@ class TestTypoHints:
     def test_the_tip_goes_when_the_pointer_leaves(self, server, page):
         self._open_editor_with_hints_on(page, server, lang="uk")
         self._type_into_first_cell(page, "ваші Mати слабшають")
-        self._painted_words(page)
         self._hover_the_mixed_word(page)
         page.locator("#typo-tip").wait_for(state="visible", timeout=5000)
 
@@ -6551,13 +6551,10 @@ class TestTypoHints:
         """
         self._open_editor_with_hints_on(page, server, lang="uk")
         self._type_into_first_cell(page, "ваші Mати слабшають")
-        self._painted_words(page)
         self._hover_the_mixed_word(page)
         page.locator("#typo-tip").wait_for(state="visible", timeout=5000)
 
-        painted = self._paint_count(page)
         self._type_into_first_cell(page, "ваші слабшають")
-        self._wait_for_repaint(page, painted)
 
         assert page.locator("#typo-tip").is_visible() is False
 
@@ -6571,22 +6568,175 @@ class TestTypoHints:
         """
         self._open_editor_with_hints_on(page, server, lang="uk")
         self._type_into_first_cell(page, "ваші Mати Toм")
-        self._painted_words(page)
         self._hover_the_mixed_word(page)
         page.locator("#typo-tip").wait_for(state="visible", timeout=5000)
 
-        painted = self._paint_count(page)
         self._type_into_first_cell(page, "ваші слабшають Toм")
-        self._wait_for_repaint(page, painted)
 
         assert page.locator("#typo-tip").is_visible() is False
+
+    def test_the_tip_stays_when_a_different_word_is_fixed(self, server, page):
+        """The pointer rests on `Mати` while the OTHER mixed word is corrected.
+
+        The repaint replaces every Range, including the one the tip was placed
+        from — so it has to be re-placed, not blanked. Hiding on every repaint
+        would satisfy the tests about a tip going away and quietly take the tip
+        away from a mistake that is still there, still under the pointer.
+        """
+        self._open_editor_with_hints_on(page, server, lang="uk")
+        self._type_into_first_cell(page, "ваші Mати Toм")
+        self._hover_the_mixed_word(page)
+        page.locator("#typo-tip").wait_for(state="visible", timeout=5000)
+
+        self._type_into_first_cell(page, "ваші Mати слабшають")
+
+        tip = page.locator("#typo-tip")
+        assert tip.is_visible() is True, "the tip was blanked while its word was still under the pointer"
+        assert "«M»" in tip.inner_text()
+
+    def test_the_tip_redescribes_the_letter_now_under_the_pointer(self, server, page):
+        """Same spot, different mistake: `Mати` becomes `Tати` without the
+        pointer moving. A tip that only survives is not enough — it has to be
+        about the word that is there now."""
+        self._open_editor_with_hints_on(page, server, lang="uk")
+        self._type_into_first_cell(page, "ваші Mати слабшають")
+        self._hover_the_mixed_word(page)
+        page.locator("#typo-tip").wait_for(state="visible", timeout=5000)
+        assert "«M»" in page.locator("#typo-tip").inner_text()
+
+        self._type_into_first_cell(page, "ваші Tати слабшають")
+
+        tip = page.locator("#typo-tip")
+        assert tip.is_visible() is True
+        assert "«T»" in tip.inner_text(), tip.inner_text()
+
+    def test_the_tip_goes_when_the_preference_does(self, server, page):
+        """Switching the hints off with a tip open. The underlines go by
+        themselves — the tip is a separate element and needs saying."""
+        self._open_editor_with_hints_on(page, server, lang="uk")
+        self._type_into_first_cell(page, "ваші Mати слабшають")
+        self._hover_the_mixed_word(page)
+        page.locator("#typo-tip").wait_for(state="visible", timeout=5000)
+
+        page.evaluate("() => SPA.toggleTypoHints()")
+
+        assert page.locator("#typo-tip").is_visible() is False
+
+    def test_the_tip_goes_when_the_pointer_leaves_the_window(self, server, page):
+        """Leaving the window fires mouseout, never mousemove.
+
+        Nothing else reports it, so a tip left standing here has no event coming
+        that could take it down — and the pointer it was placed from is no
+        longer anywhere on the page.
+        """
+        self._open_editor_with_hints_on(page, server, lang="uk")
+        self._type_into_first_cell(page, "ваші Mати слабшають")
+        self._hover_the_mixed_word(page)
+        page.locator("#typo-tip").wait_for(state="visible", timeout=5000)
+
+        # relatedTarget null is how the browser says "gone from the window".
+        page.evaluate(
+            """() => document.querySelector('.cell.uk .cell-text').dispatchEvent(
+                 new MouseEvent('mouseout', { bubbles: true, relatedTarget: null })
+               )"""
+        )
+
+        assert page.locator("#typo-tip").is_visible() is False
+
+    def test_a_pointer_crossing_the_page_never_touches_the_tip(self, server, page):
+        """The guards are the cheap path, and cheap has to mean untouched.
+
+        Writing `hidden = true` onto an already-hidden element is an attribute
+        write like any other: the browser recalculates style for it. On a
+        mousemove — which fires for every pixel across the whole page, whether
+        or not anything is marked — that is a cost paid for nothing.
+        """
+        self._open_editor_with_hints_on(page, server, lang="uk")
+        self._type_into_first_cell(page, "ваші Mати слабшають")
+
+        writes = page.evaluate(
+            """() => {
+              const tip = document.getElementById('typo-tip');
+              let n = 0;
+              const obs = new MutationObserver(records => { n += records.length; });
+              obs.observe(tip, { attributes: true });
+              const outside = document.body;
+              for (let i = 0; i < 50; i++) {
+                outside.dispatchEvent(new MouseEvent('mousemove', {
+                  bubbles: true, clientX: 10 + i, clientY: 10,
+                }));
+              }
+              return new Promise(done => setTimeout(() => {
+                obs.disconnect();
+                done(n);
+              }, 50));
+            }"""
+        )
+
+        assert writes == 0, f"{writes} attribute writes onto a tip that was already hidden"
+
+    def test_the_tip_goes_when_the_cells_it_pointed_into_are_gone(self, server, page):
+        """A talk loading replaces the grid with a skeleton: no cells to judge.
+
+        The scan gives up on an empty screen, which is right — but giving up
+        left the marks and the tip describing text that is no longer there.
+        """
+        self._open_editor_with_hints_on(page, server, lang="uk")
+        self._type_into_first_cell(page, "ваші Mати слабшають")
+        self._hover_the_mixed_word(page)
+        page.locator("#typo-tip").wait_for(state="visible", timeout=5000)
+
+        page.evaluate("() => document.getElementById('review-grid').replaceChildren()")
+
+        page.wait_for_function("() => !CSS.highlights.has('sy-typo')", timeout=5000)
+        assert page.locator("#typo-tip").is_visible() is False
+
+    def test_the_tip_survives_the_text_being_wrapped(self, server, page):
+        """Cmd+B is not blocked, and it leaves the cell's text inside a <b>.
+
+        The pointer is then over that wrapper rather than over the cell itself,
+        and a hint that asks only what the event's target is loses the word for
+        good — the underline stays, and no tip ever explains it again.
+        """
+        self._open_editor_with_hints_on(page, server, lang="uk")
+        self._type_into_first_cell(page, "ваші Mати слабшають")
+
+        painted = self._paint_count(page)
+        page.evaluate(
+            """() => {
+              const el = document.querySelector('.cell.uk .cell-text');
+              const b = document.createElement('b');
+              b.textContent = el.textContent;
+              el.replaceChildren(b);
+            }"""
+        )
+        self._wait_for_repaint(page, painted)
+        self._hover_the_mixed_word(page)
+
+        tip = page.locator("#typo-tip")
+        tip.wait_for(state="visible", timeout=5000)
+        assert "«M»" in tip.inner_text()
+
+    def test_the_tip_goes_when_the_view_does(self, server, page):
+        """Leaving the review for the index hides the grid without emptying it.
+
+        Nothing mutates, so no scan runs and every mark stays valid — while the
+        cells they describe are off screen and the tip floats over the index.
+        """
+        self._open_editor_with_hints_on(page, server, lang="uk")
+        self._type_into_first_cell(page, "ваші Mати слабшають")
+        self._hover_the_mixed_word(page)
+        page.locator("#typo-tip").wait_for(state="visible", timeout=5000)
+
+        page.evaluate("() => { location.hash = '#/'; }")
+
+        page.locator("#typo-tip").wait_for(state="hidden", timeout=5000)
 
     def test_an_unknown_word_gets_no_tip_because_there_is_nothing_to_say(self, server, page):
         """`відрації` is flagged because neither source has it — which is all the
         checker knows. A tip there could only repeat the underline."""
         self._open_editor_with_hints_on(page, server, lang="uk")
         self._type_into_first_cell(page, "ваші відрації слабшають")
-        self._painted_words(page)
 
         box = page.evaluate(
             """() => {
@@ -6602,7 +6752,6 @@ class TestTypoHints:
     def test_the_tip_speaks_the_chosen_language(self, server, page):
         self._open_editor_with_hints_on(page, server, lang="en")
         self._type_into_first_cell(page, "ваші Mати слабшають")
-        self._painted_words(page)
 
         self._hover_the_mixed_word(page)
 

@@ -3955,7 +3955,11 @@ function typoTipPhrases() {
 
 function hideTypoTip() {
   var tip = document.getElementById('typo-tip');
-  if (tip) tip.hidden = true;
+  // Only when it is actually showing. Assigning `hidden = true` to an already
+  // hidden element is an attribute write like any other, and the browser
+  // recalculates style for it — measured at one recalc per mousemove anywhere
+  // on the page, hints on or off, which is the cost of nothing happening.
+  if (tip && !tip.hidden) tip.hidden = true;
 }
 
 function showTypoTip(mark) {
@@ -3977,17 +3981,22 @@ function showTypoTip(mark) {
   tip.style.top = (above >= 4 ? above : word.bottom + 6) + 'px';
 }
 
-// Where the pointer last was over an editable cell, and null when it was
-// anywhere else. The tip is placed from a Range, and every Range is replaced on
-// the next paint — so the paint, not a mousemove, has to be able to re-ask what
-// the pointer is over. By then no mousemove is coming: the writer's hands are on
-// the keyboard, and once the last mistake is fixed there is no mark left for a
-// mousemove to land on either.
+// Where the pointer last was inside an editable cell — null when it was
+// elsewhere on the page, and null when it left the window. The tip is placed
+// from a Range, and every Range is replaced on the next paint, so the paint has
+// to be able to re-ask what the pointer is over. By then no mousemove is
+// coming: the writer's hands are on the keyboard, and once the last mistake is
+// fixed there is no mark left for a mousemove to land on either.
 var typoPointer = null;
 
-// The single answer to "should a tip be showing, and about what". Both the
-// pointer moving and the marks being rebuilt end here, so a tip can never
-// outlive the mistake it describes.
+// The single answer to "should a tip be showing, and about what". Everything
+// that can change that answer ends here: the pointer moving, the pointer
+// leaving the window, a repaint, a view change.
+//
+// Scrolling and resizing are the known exception. They move the word out from
+// under a still pointer without dispatching anything this can listen to
+// cheaply, so between such an event and the next of the four above, a tip can
+// sit beside its word rather than over it.
 function refreshTypoTip() {
   // Two guards before any measuring: the hit test calls getClientRects(), which
   // forces layout, and a mousemove fires on every pixel across the whole page. A
@@ -3997,6 +4006,15 @@ function refreshTypoTip() {
   if (!typoPointer || !typoScriptMarks.length) { hideTypoTip(); return; }
   var mark = typoMarkAt(typoPointer.x, typoPointer.y);
   if (mark) showTypoTip(mark); else hideTypoTip();
+}
+
+// Whether the pointer is INSIDE an editable cell — `closest`, not `matches`.
+// The text of a cell does not always sit in it directly: Cmd+B is not blocked
+// and leaves the whole line wrapped in a <b>, and from then on every pointer
+// event over that text targets the wrapper. Asking only what the target IS lost
+// the word permanently — the underline stayed and nothing ever explained it.
+function isInsideEditField(el) {
+  return !!(el && el.closest && el.closest('.cell-text, .edited'));
 }
 
 function typoMarkAt(x, y) {
@@ -4019,7 +4037,11 @@ function scheduleTypoScan() {
   clearTimeout(typoScanTimer);
   typoScanTimer = setTimeout(function() {
     var fields = typoFields();
-    if (!fields.length) return;
+    // Nothing to judge: a skeleton while a talk loads, or a view without cells.
+    // Giving up is right, but giving up quietly is not — the marks from the
+    // previous screen still paint, and the tip goes on explaining text that has
+    // been removed.
+    if (!fields.length) { clearTypoHints(); return; }
     typoSeq++;
     typoFieldsInFlight = fields;
     // textContent, not innerText: the spans come back as offsets and are turned
@@ -4111,9 +4133,26 @@ document.addEventListener('input', function(e) {
 });
 
 document.addEventListener('mousemove', function(e) {
-  typoPointer = isEditField(e.target) ? { x: e.clientX, y: e.clientY } : null;
+  typoPointer = isInsideEditField(e.target) ? { x: e.clientX, y: e.clientY } : null;
   refreshTypoTip();
 });
+
+// Leaving the window is reported as a mouseout with no relatedTarget, and by no
+// mousemove at all. Nothing else says it, so without this the last position
+// outlives the pointer itself: the tip stays where the mouse used to be, and a
+// later repaint can even raise one with the mouse off the page entirely.
+document.addEventListener('mouseout', function(e) {
+  if (e.relatedTarget) return;
+  typoPointer = null;
+  refreshTypoTip();
+});
+
+// A view change hides the grid without emptying it — no mutation, so no scan,
+// so every mark stays valid while the cells they describe are off screen.
+// Registered after the router's own hashchange listener, which therefore runs
+// first: by the time this asks, the marks it measures are the ones the reader
+// can actually see, and a hidden cell yields no rectangles to be over.
+window.addEventListener('hashchange', refreshTypoTip);
 
 function renderMarkers() {
   var list = document.getElementById('marker-list');
