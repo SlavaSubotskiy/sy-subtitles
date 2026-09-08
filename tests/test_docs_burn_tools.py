@@ -18,21 +18,42 @@ def _read(name):
 
 
 def test_claude_md_lists_the_render_gate_cli():
+    """render_gate must stay in CLAUDE.md's tool index.
+
+    The assertion follows the index's current shape (a bare backticked name in
+    the fenced list) rather than the old `tools.render_gate` usage block, which
+    no longer exists: CLAUDE.md stopped carrying CLI signatures because they
+    duplicated `--help` and drifted from it. The general guard for this now
+    lives in tests/test_claude_md_lockstep.py and covers every CLI tool; this
+    one keeps render_gate specifically pinned, since the burn feature is what
+    it was written for.
+    """
     text = _read("CLAUDE.md")
-    assert "tools.render_gate" in text, (
-        "render_gate is the load-bearing piece of the progress mechanism and "
-        "belongs in the 'Internal / pipeline-support CLIs' list"
+    assert "`render_gate`" in text, (
+        "render_gate is the load-bearing piece of the progress mechanism and belongs in CLAUDE.md's tool index"
     )
-    listing = text[text.index("# Internal / pipeline-support CLIs") :]
-    assert "tools.render_gate" in listing, "it is run by a workflow, not by hand"
+    listing = text[text.index("**Run by workflows") :]
+    assert "`render_gate`" in listing, "it is run by a workflow, not by hand"
 
 
-def test_claude_md_documents_the_progress_file_flag():
-    # The workflow's whole gate mechanism hangs off this flag; a usage block
-    # that omits it describes a tool that cannot drive the workflow.
-    text = _read("CLAUDE.md")
-    block = text[text.index("python -m tools.burn_subtitles") :][:600]
-    assert "--progress-file" in block
+def test_architecture_documents_the_progress_file_mechanism():
+    """The gate mechanism hangs off the ffmpeg progress file — say so somewhere.
+
+    This used to demand that CLAUDE.md's `burn_subtitles` usage block spell the
+    `--progress-file` flag. That block is gone (flags belong to `--help`, which
+    cannot go stale), so the requirement moved to the document that actually
+    owns the coupling: ARCHITECTURE.md explains that the job writes a progress
+    file and that render_gate blocks on it. The point was never the flag's
+    spelling — it was that a reader learns the workflow cannot drive the tool
+    without it.
+    """
+    section = _read("ARCHITECTURE.md")
+    section = section[section.index("### burn-subtitles.yml") :]
+    section = section[: section.index("\n## ")]
+    assert "progress" in section.lower(), (
+        "the burn section must explain the progress-file channel the gate steps block on"
+    )
+    assert "render_gate" in section
 
 
 def test_architecture_lists_both_new_tools():

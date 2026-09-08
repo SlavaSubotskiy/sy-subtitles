@@ -1,5 +1,20 @@
 # SY Subtitles – Claude Code Instructions
 
+> **What belongs in this file.** It is read at the start of every session, which
+> makes a stale line here worse than a stale line anywhere else: it arrives as an
+> instruction, and nobody thinks to check an instruction against a source.
+>
+> So it carries only what the code does **not** own — rules, decisions, and the
+> reason a mechanism has the shape it has — plus a bare index of what exists, so
+> a session knows what to reach for. It does **not** carry CLI signatures, flag
+> lists, token names or measurements: those have a source (`--help`, `tokens.css`,
+> the styleguide, the workflow files) that cannot go stale, and a second copy here
+> only drifts from it. Both indexes are held in lockstep with the repo by
+> `tests/test_claude_md_lockstep.py`, which also refuses a flag list.
+>
+> Adding detail that the code already owns is not an improvement — it is the
+> thing this file was rewritten to stop doing.
+
 ## Role
 
 You are an experienced, devoted, practicing Sahaja Yogi and a professional translator.
@@ -37,13 +52,23 @@ Source language: English. Target language: Ukrainian.
 
 ### Other Workflows
 
-See `ARCHITECTURE.md` for full descriptions. In short:
-`sync-subtitles.yml` (PR sync), `whisper.yml` (reusable),
-`ci.yml` (lint + tests + `gate`), `deploy-pages.yml`, `deploy-worker.yml`
-(OAuth worker → Cloudflare), `glossary-release.yml`, `sync-review-status.yml`,
-`new-talk.yml`, `pipeline-matrix-dryrun.yml`, `burn-subtitles.yml`
-(subtitle burn-in, dispatched from the SPA), `golden-talks.yml` (full-corpus
-pytest, on-demand).
+`ARCHITECTURE.md` describes each one; this is only the index of what exists,
+kept in lockstep with `.github/workflows/` by `tests/test_claude_md_lockstep.py`.
+
+<!-- workflow-index:start -->
+- `subtitle-pipeline.yml` — the full talk pipeline (above)
+- `sync-subtitles.yml` — sync edits across transcript and SRTs on a PR
+- `whisper.yml` — reusable speech detection
+- `ci.yml` — lint + tests + `gate`
+- `burn-subtitles.yml` — burn subtitles into a video, dispatched from the SPA
+- `deploy-pages.yml` — publish the SPA
+- `deploy-worker.yml` — publish the OAuth worker to Cloudflare
+- `glossary-release.yml` — cut a glossary release
+- `sync-review-status.yml` — GitHub issue labels → `review-status.json`
+- `new-talk.yml` — bootstrap a talk from an add-talk PR
+- `pipeline-matrix-dryrun.yml` — replay the pipeline against snapshots
+- `golden-talks.yml` — full-corpus pytest, on demand
+<!-- workflow-index:end -->
 
 `ci.yml`'s **`gate`** job is the ONE required check on `main`. It is always
 reported — hence no `paths:` filter on the trigger; the path list lives in the
@@ -73,16 +98,11 @@ app and asserts it boots, renders, and is styled. Off GitHub Pages the app needs
 `?repo=owner/name` (e.g. `localhost:8000/?repo=sy-tools/sy-subtitles`) or it shows a
 deliberate blank page.
 
-**To open it, prefer the project's own server** — a bare `http.server` serves the
-files but injects none of the runtime hooks, so anything behind sign-in cannot be
-exercised:
-
-```bash
-python -m tools.serve_auth_local [--port 8000] [--burn-ref BRANCH]
-#   Serves site/ with the GitHub-auth hooks already injected.
-#   --burn-ref points the render at a branch's burn-subtitles.yml, so a workflow
-#   change can be exercised before it reaches the default branch.
-```
+**To open it, use `python -m tools.serve_auth_local`**, not a bare
+`http.server` — the latter serves the files but injects none of the runtime
+hooks, so nothing behind sign-in can be exercised. Its `--burn-ref` points a
+render at a branch's `burn-subtitles.yml`, which is how a workflow change is
+tried out before it reaches the default branch.
 
 See `TESTING.md` for the full guide: markers, golden corpus, property tests,
 snapshots, and the `SY_E2E_REAL_VIMEO` network gate.
@@ -121,17 +141,14 @@ re-invent values.** Open **`site/styleguide.html`** first — it's the live cata
 - **Idiom — style via `var(--token)`, never a raw hex or magic number.** A palette
   value belongs in `tokens.css` for *both* themes; `components.css` must define no
   palette (guarded by `test_spa_cache.js`).
-- **Palette:** surfaces `--bg`,`--bg2…5`; ink `--fg`,`--fg2…6`; `--border`,`--border2/3`;
-  `--link`; `--accent-green/orange/red`; `--accent-purple` (landed/merged, GitHub's
-  own reading); `--sync-progress` (blue cloud-sync tone); `--aura`/`--aura-core`
-  (the signed-in glow, reused by the boot loader's rings);
-  semantic zones `--primary/issue/danger-{bg,border,fg}`,
-  `--stat-active-bg`, `--cell-hover/edit-bg/edited-bg`, `--mark-bg`, `--overlay-bg`.
-  (`--overlay-bg` and `--player-letterbox` are functional scrims — exempt from the
-  styleguide swatch guard, everything else needs one.)
-- **Scales:** `--space-1…8` (4→32), `--radius-sm…pill`, `--text-2xs…-display`,
-  `--shadow-sm/md/lg`, `--z-*`. Type families `--f-serif` (titles), `--f-sans` (UI),
-  `--f-mono` (codes/dates).
+- **What the tokens ARE: read `tokens.css`, or open the styleguide.** Both are
+  short, both are the truth. This file used to copy the token names out, and the
+  copy silently fell three tokens behind the app — which is the worst way for
+  this particular list to be wrong, since the idiom above says a value not in the
+  palette does not exist. So it is not copied here any more.
+  The two exceptions worth knowing without looking: `--overlay-bg` and
+  `--player-letterbox` are functional scrims, deliberately exempt from the
+  styleguide swatch guard. Every other colour token needs a swatch.
 - **Two themes:** warm-paper *light* (the default `:root`) and walnut *dark*
   (`@media (prefers-color-scheme: dark)` **and** `[data-theme="dark"]`), toggled via
   the `data-theme` attribute. They stay consistent across all six OS×toggle states —
@@ -183,143 +200,88 @@ If Vimeo returns 401: `--what text` first, then `--what srt`.
 
 ## Tools
 
-```bash
-# Download talk from amruta.org (folder named {date}_{slugify(title)} — same as
-# the SPA; see tools/talk_slug.py. amruta auth/cookie: docs/amruta-auth.md)
-python -m tools.download --url "https://www.amruta.org/..." [--what srt,text|all|video] \
-  [--langs en,uk] [--slug SLUG] [--cookie COOKIE]
-#   --what is comma-separated (default srt,text); --langs en,uk fetches EN +
-#   Ukrainian (/uk/) transcripts; folder/meta from EN. Batch mode: replace
-#   --url with --manifest queue.yaml.
+Every CLI is `python -m tools.<name>`; **`--help` is the reference** for its
+arguments, and it cannot go stale because argparse builds it from the parser the
+command actually runs. `ls tools/` is the full inventory. What follows is not
+that reference — it is the index of what exists and the handful of decisions
+that live nowhere else.
 
-# Vimeo link obfuscation: meta.yaml stores links as `video_ref` (not plaintext
-# vimeo_url). Obfuscation only — decode ships in the public SPA.
-python -m tools.vimeo_codec encode "https://vimeo.com/<id>/<hash>"   # -> video_ref
-python -m tools.vimeo_codec decode "r1..."                          # -> vimeo url
-python -m tools.mask_video_refs [--check] [PATHS...]                 # migrate meta.yaml vimeo_url -> video_ref
+<!-- tool-index:start -->
+**Talks and media**
+- `download` — fetch a talk from amruta.org. The folder is `{date}_{slug}` from
+  `tools/talk_slug.py`, the same slug the SPA computes, so the two never
+  disagree. Auth/cookie: `docs/amruta-auth.md`.
+- `whisper_run` — speech detection, word-level timestamps.
+- `burn_subtitles` — burn subtitles into a video (SRT → ASS → ffmpeg+libass).
+  Sizing comes from ratios the SPA measured against the *displayed* video, not
+  from pixels. The font is PT Serif because that is what the preview really
+  draws: its stack is `'Fraunces', Georgia, …` and Fraunces has no Cyrillic, so
+  Georgia wins — matching the preview means matching Georgia, not the stack.
+- `text_export` — SRT → plain text.
 
-# Passphrase-gate hash (used by deploy-pages.yml to inject APP_GATE_HASH from the
-# GATE_PASSPHRASE secret). Twin of site/js/passphrase_gate.js.
-python -m tools.passphrase_gate hash --salt <hex> --iterations <n> "<phrase>"
+**Building and timing subtitles**
+- `build_map` — the deterministic build orchestrator: `prepare` → (LLM writes
+  `timecodes.txt`) → `assemble`. The LLM never writes the SRT.
+- `optimize_srt` — CPS/duration/gap optimisation.
+- `align_uk` — align the Ukrainian transcript to English whisper timestamps.
+- `snap_srt_to_whisper` — forced word-align an English SRT onto whisper.
+- `offset_srt` — detect and apply a constant offset between two videos.
+- `resync_srt` — carry a UK SRT from the primary timeline onto a secondary one.
+- `build_secondary_srts` — build UK SRTs for a talk's DERIVED videos. Which
+  videos those are comes from `meta.yaml` `sync:` via `video_roles`; independent
+  and ignored videos are never built.
+- `video_roles` — resolves a talk's sync roles. **The one interpreter of
+  `meta.yaml` `sync:`** — read roles through it, never by parsing the file
+  again. Roles and their meaning: `ARCHITECTURE.md` "Video sync roles".
 
-# Build subtitles (deterministic orchestrator; LLM writes timecodes.txt between prepare and assemble)
-python -m tools.build_map prepare        --talk-dir PATH --video-slug SLUG [--lang uk]
-python -m tools.build_map prepare-timing --talk-dir PATH --video-slug SLUG [--timing-source whisper|en-srt]
-python -m tools.build_map assemble       --talk-dir PATH --video-slug SLUG [--lang uk]
+**Syncing edits**
+- `sync_transcript_to_srt` / `sync_srt_to_transcript` — one leg each, forward
+  and reverse. The reverse leg needs the talk named (not just the transcript
+  path) whenever the transcript is a copy staged away from its `meta.yaml`, or
+  the talk's declared omissions cannot be found.
+- `sync_pr` — the driver `sync-subtitles.yml` runs; leg order, baseline
+  resolution and why a re-cut travels on its own leg: `ARCHITECTURE.md`
+  "sync-subtitles.yml".
 
-# Burn subtitles into a video (SRT -> ASS -> ffmpeg+libass). Sizing comes from
-# ratios measured by the SPA against the displayed video, not pixels.
-# --font-file defaults to the vendored assets/fonts/PT_Serif-Web-Regular.ttf,
-# resolved absolutely from the module, so the CLI works from any directory.
-# PT Serif is the serif the preview really draws: its stack is
-# `'Fraunces', Georgia, …` and Fraunces has no Cyrillic, so Georgia wins.
-python -m tools.burn_subtitles --srt PATH --video PATH --output PATH \
-  --font-ratio 0.0711 --padtop-ratio 0.0741 --padbot-ratio 0.0333 \
-  [--font-file PATH] [--font-name "PT Serif"] [--gradient-steps 64] [--ass-out PATH] \
-  [--progress-file PATH]   # ffmpeg -progress sink; burn-subtitles.yml's gates poll it
+**Validation**
+- `validate_subtitles` — structural checks. Timing source is whisper OR the EN
+  SRT; **prefer the EN SRT** when the talk has one.
+- `validate_artifacts` — artifact contracts at pipeline phase boundaries.
 
-# Validate SRT subtitles (timing source: --whisper-json OR --en-srt, en-srt preferred)
-python -m tools.validate_subtitles --srt PATH --transcript PATH \
-  [--whisper-json PATH | --en-srt PATH] --report PATH \
-  [--skip-text-check] [--skip-time-check] [--skip-cps-check] [--skip-duration-check] \
-  [--compare-block-count]   # en-srt + --skip-text-check: guard UK block count vs EN
+**Glossary and corpus**
+- `glossary_check` — scan an EN transcript for glossary term candidates.
+- `fetch_transcripts` / `scrape_listing` — pull the EN+UK corpus and the talk
+  listing from amruta.org.
+- `extract_review` — pull SRT text out for language review.
+- `text_normalize` — the repo's text-hygiene rules (invisible characters,
+  line endings, Ukrainian typography), Python twin of
+  `site/js/text_sanitize.js`. A pre-commit hook runs it, so it usually acts
+  before you do.
+- `build_wordlist` — rebuild `site/dict/words_uk.txt`, the list the SPA's typo
+  hints check against. It holds only what the vendored hunspell dictionary
+  MISSES — the transliterated SY vocabulary — gathered from every
+  `transcript_uk.txt`, every `final/uk.srt` and the glossary. The pipeline
+  rebuilds it for the talks it builds; run it by hand after a glossary edit or a
+  hand-edited transcript, and commit the result.
 
-# Resolve a talk's subtitle sync roles (the ONE interpreter of meta.yaml `sync:`)
-python -m tools.video_roles --talk-dir talks/{date}_{slug} [--role primary]
-#   sync: primary | derived | independent | ignored — see ARCHITECTURE.md
-#   "Video sync roles" and docs/subtitle-sync-redesign.md
+**Vimeo links and access**
+- `vimeo_codec` / `mask_video_refs` — `meta.yaml` stores links as `video_ref`,
+  not plaintext. This is **obfuscation, not secrecy**: the decoder ships inside
+  the public SPA.
+- `passphrase_gate` — hashes the gate phrase for `deploy-pages.yml`. Twin of
+  `site/js/passphrase_gate.js`; change one and you must change the other.
+- `serve_auth_local` — serve the SPA locally with the auth hooks injected; see
+  "Local Setup" above.
 
-# Sync transcript edits into existing SRT (for PR workflow)
-python -m tools.sync_transcript_to_srt --talk-dir PATH --video-slug SLUG \
-  --old-transcript OLD --new-transcript NEW
-
-# Sync SRT text edits back into transcript_uk.txt (reverse direction, for PR workflow)
-python -m tools.sync_srt_to_transcript --old-srt OLD --new-srt NEW \
-  --transcript transcript_uk.txt [--talk-dir PATH]
-#   --talk-dir names the talk whose declared remarks apply; pass it whenever
-#   --transcript is a copy staged away from meta.yaml (as sync_pr stages it).
-
-# Sync driver for the sync-subtitles PR workflow (used by Actions).
-# Reverse (SRT->transcript), forward (transcript->SRT), re-cut (derived->primary),
-# then primary->derived. A re-cut (same words, new block boundary) travels only on
-# the re-cut leg — the transcript records no boundaries — and it runs AFTER the
-# forward leg so a boundary move survives a wording change in the same blocks.
-# Resolves its own baseline: the last `github-actions[bot]` commit carrying the
-# `Sync-Bot: v1` trailer on this branch, else the merge-base with origin/main —
-# never the PR base, which replays edits the bot already applied. Discovers
-# changed files itself, scoped to transcript_uk.txt and final/uk.srt.
-python -m tools.sync_pr [--baseline SHA]
-
-# Resync UK SRT from primary video timeline onto secondary video timeline
-python -m tools.resync_srt --primary-uk PATH --primary-en PATH \
-  --secondary-en PATH --output PATH
-
-# Build UK SRTs for a talk's DERIVED videos (offset/resync from primary).
-# Which videos those are comes from meta.yaml `sync:` via tools.video_roles;
-# independent and ignored videos are never built. Needs source/en.srt on BOTH
-# primary and derived; skips videos without it.
-#   --primary-slug is an override and must agree with meta.yaml, or it errors.
-python -m tools.build_secondary_srts --talk-dir PATH [--primary-slug SLUG] [--run-id ID]
-
-# Snap an English SRT onto whisper word timestamps (EN-subtitle timing; forced word-align)
-python -m tools.snap_srt_to_whisper --srt PATH --whisper-json PATH --output PATH \
-  [--min-gap 80] [--min-duration 1000]
-
-# Validate artifact contracts at pipeline phase boundaries
-python -m tools.validate_artifacts [--whisper PATH | --meta PATH |
-  --timecodes PATH | --talk-dir PATH] \
-  [--expected-blocks N] [--max-blocks N] [--allow-skipped-ids]   # block-count bounds (en-srt mode)
-
-# Detect and apply timecode offset between videos
-python -m tools.offset_srt detect --srt1 PATH --srt2 PATH
-python -m tools.offset_srt apply --srt PATH --offset-ms N --output PATH
-
-# Optimize SRT timing (input: --srt OR --uk-json)
-python -m tools.optimize_srt (--srt PATH | --uk-json PATH) --output PATH [--json PATH] [--report PATH] \
-  [--target-cps 15.0] [--hard-max-cps 20.0] [--min-duration 1200] [--max-duration 7000] \
-  [--min-gap 80] [--fps 24] [--skip-duration-split] [--skip-cps-split]
-
-# Export SRT to plain text
-python -m tools.text_export --srt PATH --output PATH [--meta PATH] [--double-spacing]
-
-# Align Ukrainian transcript to English whisper timestamps
-python -m tools.align_uk --transcript PATH --whisper-json PATH --output PATH \
-  [--batch-size N] [--skip-word-align]
-
-# Extract SRT text for language review
-python -m tools.extract_review --srt PATH [--output PATH]
-
-# Fetch EN+UK transcripts for glossary corpus
-python -m tools.fetch_transcripts [--index PATH] [--slug SLUG] [--delay N] [--cookie COOKIE]
-
-# Scan EN transcript for glossary term candidates
-python -m tools.glossary_check --transcript PATH --glossary PATH --report PATH
-
-# Rebuild the UK wordlist the SPA's typo hints check against (site/dict/words_uk.txt).
-# Holds only what the vendored hunspell dictionary MISSES — the transliterated SY
-# vocabulary — gathered from every transcript_uk.txt, every final/uk.srt and the
-# glossary. The pipeline's commit job re-runs it for the talks IT builds; run it
-# by hand after glossary edits or a hand-edited transcript, and commit the result.
-python -m tools.build_wordlist [--check]   # --check fails if the committed list is stale
-
-# Scrape amruta.org UK talk listing into index.yaml
-python -m tools.scrape_listing [--output PATH] [--cookie COOKIE] [--url URL]
-
-# Run Whisper speech detection
-python -m tools.whisper_run --video PATH --output PATH [--model MODEL] [--language LANG]
-
-# Internal / pipeline-support CLIs (run by workflows, rarely by hand):
-#   tools.builder_data            — query EN SRT blocks + whisper word timestamps for the builder agent
-#   tools.fake_llm                — fake LLM responder for dry-run pipeline (replays snapshots)
-#   tools.render_gate             — blocks until the detached burn encode passes a
-#                                   percentage; each burn-subtitles.yml gate step is one
-#                                   call, and a step COMPLETING is the only live progress
-#                                   channel the SPA has into a running job
-#   tools.verify_snapshot         — verify a dry-run result against a recorded snapshot
-#   tools.workflow_validation_cli — guard step validating talk-id / video-slug / video-ref inputs
-#   tools.retime_snapshot         — carry a dry-run snapshot's timings onto a new block cut
-#                                   (run after changing text_segmentation or subtitle_omit; see TESTING.md)
-```
+**Run by workflows, rarely by hand**
+`builder_data`, `fake_llm`, `verify_snapshot`, `workflow_validation_cli`, and:
+- `render_gate` — blocks until a detached burn encode passes a percentage. Each
+  gate step in `burn-subtitles.yml` is one call, and a step *completing* is the
+  only live progress channel the SPA has into a running job.
+- `retime_snapshot` — carry a dry-run snapshot's timings onto a new block cut.
+  Run it after changing `text_segmentation` or `subtitle_omit`, which move block
+  boundaries; see `TESTING.md`.
+<!-- tool-index:end -->
 
 ## Glossary
 
