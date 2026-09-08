@@ -41,7 +41,7 @@ jobs:
         with:
           python-version: '3.12'
           cache: 'pip'
-      - run: pip install ruff==0.16.5
+      - run: pip install ruff==0.16.6
       - run: ruff check tools/ tests/
       - run: ruff format --check tools/ tests/
 
