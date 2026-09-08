@@ -352,12 +352,25 @@ function deleteRef(api, token, branchName, fetchImpl) {
 // PUT to branch, sequential to keep commit order) → open the PR. A failure
 // after the branch exists carries e.branch so the UI can link to the orphan
 // branch; a retry uses a fresh timestamped name, so there are no collisions.
+//
+// opts.onStep (optional) is called with 'branch' | 'commit' | 'pr' as each
+// phase BEGINS — the busy button reads its label off it, so the name has to
+// land before the wait it describes. Purely observational: it adds no requests.
 function submitFilesPr(api, token, opts, fetchImpl) {
   var branchCreated = false;
-  return getBranchHeadSha(api, token, opts.base, fetchImpl)
+  var step = opts.onStep || function () {};
+  // Inside the chain, not before it: every other step() runs in a .then(), and
+  // a throwing callback here would otherwise escape synchronously and break the
+  // always-returns-a-promise contract on this one branch.
+  return Promise.resolve()
+    .then(function () {
+      step('branch');
+      return getBranchHeadSha(api, token, opts.base, fetchImpl);
+    })
     .then(function (sha) { return createRef(api, token, opts.branch, sha, fetchImpl); })
     .then(function () {
       branchCreated = true;
+      step('commit');
       var chain = Promise.resolve();
       opts.files.forEach(function (file) {
         chain = chain.then(function () {
@@ -375,6 +388,7 @@ function submitFilesPr(api, token, opts, fetchImpl) {
       return chain;
     })
     .then(function () {
+      step('pr');
       return createPull(api, token, {
         head: opts.branch, base: opts.base, title: opts.prTitle, body: opts.prBody,
       }, fetchImpl);

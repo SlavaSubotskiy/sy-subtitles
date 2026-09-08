@@ -335,6 +335,12 @@ function createSyncEngine(opts) {
   var lastPullAt = 0;
   var inflight = null;
   var disposed = false;
+  // Set for the whole of finalize(). It owns the chip's tone while it runs, so
+  // a pull() landing in the middle (focus / visibilitychange fire one, and
+  // tabbing away to GitHub during a finalize is the likeliest thing a user
+  // does here) must not paint 'synced' over the progress — nor over a finalize
+  // that is about to fail.
+  var finalizing = false;
 
   function info() {
     return { status: status, prUrl: meta.prUrl, prNumber: meta.prNumber, nodeId: meta.nodeId,
@@ -643,7 +649,9 @@ function createSyncEngine(opts) {
       return step.then(ensurePr).then(function () {
         if (disposed) return;
         if (unchanged && editSeq === seqAtStart) clearDirty();
-        setStatus('synced');
+        // A finalize that pre-flushed owns the chip until it is done: 'synced'
+        // here would flash a green "done" three requests too early.
+        if (!finalizing) setStatus('synced');
       });
     }).catch(function (e) {
       if (disposed) return;
@@ -689,7 +697,7 @@ function createSyncEngine(opts) {
         return;
       }
       if (file.sha === meta.sha) {
-        if (!dirty && status !== 'synced') setStatus('synced');
+        if (!dirty && !finalizing && status !== 'synced') setStatus('synced');
         return;
       }
       var remote = parseRemote(file);
@@ -707,7 +715,7 @@ function createSyncEngine(opts) {
         editSeq += 1;
         armDebounce();
         setStatus('pending');
-      } else if (!dirty) {
+      } else if (!dirty && !finalizing) {
         setStatus('synced');
       }
     }).catch(function (e) {
@@ -742,8 +750,31 @@ function createSyncEngine(opts) {
   // Finalize: push anything pending, remove the state file from the branch
   // and flip the draft PR to ready-for-review. Fully reversible — the next
   // edit re-drafts the PR and recreates the state (see ensureDraft).
+  // The resting tone this engine should be wearing, computed from what is
+  // actually true right now. A finalize that fails cannot replay a status it
+  // snapshotted on the way in: its own pre-flush may have pushed everything
+  // (so 'pending' would be a lie no debounce ever clears) or may have been
+  // mid-flight (so the snapshot is a transient 'syncing' and the chip spins
+  // forever). An error already on the chip is a diagnosis — never overwrite it.
+  function restingStatus() {
+    if (status === 'error') return null;
+    if (dirty) return 'pending';
+    return meta.prDraft === false ? 'ready' : 'synced';
+  }
+
   function finalize() {
     if (disposed || !meta.prNumber) return Promise.reject(new Error('no sync PR to finalize'));
+    // The UI lock should prevent this, but the engine holds its own invariant:
+    // two overlapping runs would have the first's tail clear `finalizing` while
+    // the second is still working.
+    if (finalizing) return Promise.reject(new Error('already finalizing'));
+    // The chip is the only feedback this action has — it is fired from a
+    // dropdown item that closes itself — so claim the progress tone BEFORE the
+    // first call goes out. The claim is a flag, not the status string: pull()
+    // and the pre-flush both write that string, and a guard keyed on it would
+    // be skipped, leaving the chip claiming "synced" for a PR nobody finalized.
+    finalizing = true;
+    setStatus('syncing');
     var pre = dirty ? flush() : Promise.resolve();
     return pre.then(function () {
       return gh.getFileContent(api, token, path, branch, fetchImpl);
@@ -760,8 +791,18 @@ function createSyncEngine(opts) {
       meta.prDraft = false;
       meta.sha = null; // the state file is gone; the next push recreates it
       saveMeta();
-      setStatus('ready');
+      finalizing = false;
+      // Guarded like every other tail: once destroyed this chip belongs to
+      // whatever talk the user opened instead.
+      if (!disposed) setStatus('ready');
       return { number: meta.prNumber, html_url: meta.prUrl };
+    }).catch(function (e) {
+      finalizing = false;
+      if (!disposed) {
+        var back = restingStatus();
+        if (back) setStatus(back);
+      }
+      throw e;
     });
   }
 

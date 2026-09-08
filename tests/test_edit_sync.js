@@ -781,6 +781,132 @@ describe('engine: finalize + re-draft lifecycle', () => {
     const seq = gh.calls.map((c) => c[0]);
     assert.ok(seq.indexOf('deleteFile') > seq.lastIndexOf('putFile'), 'delete follows the last push');
   });
+  it('announces syncing before the work, so the chip fills the wait', async () => {
+    // Finalize is 3-4 sequential calls fired from a dropdown item that closes
+    // itself. Without this the chip kept its old tone the whole time and the
+    // click looked like it did nothing.
+    const { engine, statuses } = await bootstrapped();
+    statuses.length = 0;
+    const p = engine.finalize();
+    assert.strictEqual(statuses[0], 'syncing', 'emitted before the first await');
+    await p;
+    assert.strictEqual(statuses[statuses.length - 1], 'ready');
+  });
+  it('restores the previous status when finalize fails, never a stuck spinner', async () => {
+    const { engine, statuses } = await bootstrapped({ readyFails: true });
+    assert.strictEqual(engine.getInfo().status, 'synced');
+    statuses.length = 0;
+    await assert.rejects(engine.finalize(), /graphql down/);
+    assert.strictEqual(engine.getInfo().status, 'synced', 'not left on syncing');
+    assert.strictEqual(statuses[statuses.length - 1], 'synced');
+  });
+  it('a pull landing mid-finalize neither repaints the chip nor eats the restore', async () => {
+    // focus / visibilitychange fire pull(), and tabbing away to GitHub during
+    // finalize is the likeliest thing a user does here. Unguarded, pull writes
+    // 'synced' over the progress tone, and the failure restore then sees a
+    // status it does not recognise and says nothing — leaving the chip claiming
+    // "synced" for a PR that was never finalized.
+    const { engine, statuses } = await bootstrapped({ readyFails: true });
+    const p = engine.finalize();
+    statuses.length = 0;
+    await engine.pull(true);
+    assert.deepStrictEqual(statuses, [], 'the pull repainted nothing');
+    assert.strictEqual(engine.getInfo().status, 'syncing');
+    await assert.rejects(p, /graphql down/);
+    assert.strictEqual(engine.getInfo().status, 'synced');
+  });
+  it('restores pending, not synced, when an edit landed while finalize ran', async () => {
+    const { engine, storage } = await bootstrapped({ readyFails: true });
+    const p = engine.finalize();
+    localEdit(storage, 2, 'нове');
+    engine.notifyEdit();
+    await assert.rejects(p, /graphql down/);
+    assert.strictEqual(engine.getInfo().status, 'pending', 'an unflushed edit is not "synced"');
+  });
+  it('keeps the progress tone across its own pre-flush', async () => {
+    // finalize()'s comment claims it owns the chip while it runs. Its own
+    // flush writes 'synced' — a green "done" flashing three requests before
+    // the work is actually done.
+    const { engine, statuses, storage } = await bootstrapped();
+    localEdit(storage, 2, 'нове');
+    engine.notifyEdit();
+    statuses.length = 0;
+    await engine.finalize();
+    assert.ok(!statuses.slice(0, -1).includes('synced'),
+      `no 'synced' before the end, got ${JSON.stringify(statuses)}`);
+    assert.strictEqual(statuses[statuses.length - 1], 'ready');
+  });
+
+  it('restores a state that is true NOW, not the one it snapshotted', async () => {
+    // The pre-flush pushes everything and moves the status on; restoring the
+    // status from before it means the chip says "pending" for a talk with
+    // nothing pending, and no debounce will ever clear it (dirty is false).
+    const { engine, storage } = await bootstrapped({ readyFails: true });
+    localEdit(storage, 2, 'нове');
+    engine.notifyEdit();
+    assert.strictEqual(engine.getInfo().status, 'pending');
+    await assert.rejects(engine.finalize(), /graphql down/);
+    const inf = engine.getInfo();
+    assert.strictEqual(inf.dirty, false, 'the pre-flush pushed it');
+    assert.strictEqual(inf.status, 'synced', 'so "pending" would be a lie');
+  });
+
+  it('never restores a transient syncing — the chip would spin forever', async () => {
+    const { engine, gh, storage } = await bootstrapped({ readyFails: true });
+    localEdit(storage, 2, 'нове');
+    engine.notifyEdit();
+    const inFlight = engine.flush();          // status -> 'syncing'
+    assert.strictEqual(engine.getInfo().status, 'syncing');
+    const p = engine.finalize();
+    await inFlight;
+    await assert.rejects(p, /graphql down/);
+    assert.notStrictEqual(engine.getInfo().status, 'syncing');
+    assert.ok(gh.calls.length > 0);
+  });
+
+  it('leaves an error the flush surfaced instead of painting over it', async () => {
+    const { engine, storage } = await bootstrapped({
+      // null = let the bootstrap push through; the finalize pre-flush is the
+      // second put, and that is the one that fails.
+      putFails: [null, { status: 500, message: 'Server error' }],
+      readyFails: true,
+    });
+    localEdit(storage, 2, 'нове');
+    engine.notifyEdit();
+    await assert.rejects(engine.finalize(), /graphql down/);
+    const inf = engine.getInfo();
+    assert.strictEqual(inf.status, 'error', 'the push really did fail');
+    assert.ok(inf.error && inf.error.message, 'and still says why');
+  });
+
+  it('stays quiet after destroy when the finalize chain SUCCEEDS', async () => {
+    // The failure tail guards on `disposed`; the success tail eight lines
+    // above did not, so a talk left mid-finalize painted the next talk's chip.
+    const { engine, statuses } = await bootstrapped();
+    const p = engine.finalize();
+    await engine.destroy();
+    statuses.length = 0;
+    await p;
+    assert.deepStrictEqual(statuses, []);
+  });
+
+  it('refuses a second finalize while one is already running', async () => {
+    const { engine } = await bootstrapped();
+    const first = engine.finalize();
+    await assert.rejects(engine.finalize(), /already finalizing/);
+    await first;
+  });
+
+  it('stays quiet after destroy when the finalize chain then fails', async () => {
+    // Same contract every other tail in this engine honours: once destroyed,
+    // no more status emissions — the chip belongs to whatever view is up now.
+    const { engine, statuses } = await bootstrapped({ readyFails: true });
+    const p = engine.finalize();
+    await engine.destroy();
+    statuses.length = 0;
+    await assert.rejects(p, /graphql down/);
+    assert.deepStrictEqual(statuses, []);
+  });
   it('the first edit after finalize re-drafts the PR and recreates the state', async () => {
     const { engine, gh, storage } = await bootstrapped();
     await engine.finalize();
