@@ -167,6 +167,12 @@ video is carried straight to the primary (re-cuts cannot travel through a
 transcript), then the transcript is synced out to every video's SRT
 (forward) — text-only swaps, no re-timing — and validates.
 
+The driver resolves its own baseline: the last `github-actions[bot]` commit
+carrying the `Sync-Bot: v1` trailer on this branch, else the merge-base with
+`origin/main`. Never the PR base — that would replay edits the bot has already
+applied. It also discovers the changed files itself, scoped to
+`transcript_uk.txt` and `final/uk.srt`.
+
 ### sync-review-status.yml
 Triggered on Issue label/assign changes. Syncs GitHub Issues → `review-status.json`.
 Auto-updates labels: assign → `review:in-progress`, close → `review:approved`.
