@@ -1,39 +1,98 @@
 name: CI
 
 on:
+  # Deliberately unfiltered. The one required check on `main` is `gate`, and a
+  # check can only be required if it is always reported — a `paths:` filter here
+  # would mean no run, no gate, and a pull request waiting forever on a check
+  # that is never coming. Which lanes are actually needed is decided by the
+  # `changes` job below, which owns the path list.
   push:
     branches: [main]
-    paths:
-      - 'tools/**'
-      - 'tests/**'
-      - 'site/**'
-      - 'requirements*.txt'
-      - 'ruff.toml'
-      # the ruff pin-lockstep guard must run when only the pre-commit rev moves
-      - '.pre-commit-config.yaml'
-      # shipped-data guards (no plaintext vimeo links, meta/whisper schemas)
-      # must run when only talk data changes
-      - 'talks/*/meta.yaml'
-      - 'talks/*/*/source/whisper.json'
-      - '.github/workflows/**'
   pull_request:
-    paths:
-      - 'tools/**'
-      - 'tests/**'
-      - 'site/**'
-      - 'requirements*.txt'
-      - 'ruff.toml'
-      - '.pre-commit-config.yaml'
-      - 'talks/*/meta.yaml'
-      - 'talks/*/*/source/whisper.json'
-      - '.github/workflows/**'
+
+# The SPA's edit auto-sync commits to a draft PR every few seconds of editing,
+# and those pushes now reach this workflow. Supersede rather than stack, so a
+# long editing session costs one run and not a hundred. `main` is left alone:
+# cancelling there would drop the record for a commit that is already merged.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Least-privilege default for every job (all are read-only lint/test jobs).
 permissions:
   contents: read
 
 jobs:
+  # The single source of truth for "does this change need testing at all".
+  # It used to be the trigger's `paths:` filter; that could not coexist with a
+  # required check, so the list moved here — one copy, read by every lane.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The pull-request range is measured from the merge base, so the
+          # whole history has to be present. A shallow clone reports every
+          # commit main gained since the branch as part of this change.
+          fetch-depth: 0
+          # Only names are compared, never contents — so skip the blobs. The
+          # talks are the bulk of this repository; fetching them to run
+          # `git diff --name-only` would cost more than the lanes it gates.
+          filter: blob:none
+      - id: detect
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Mirrors what the trigger filter used to say. Git pathspecs are a
+          # little looser than GitHub's globs (`*` crosses `/`), which can only
+          # ever run a lane that was not strictly required — never skip one.
+          PATHS=(
+            'tools/'
+            'tests/'
+            'site/'
+            'requirements*.txt'
+            'ruff.toml'
+            # the ruff pin-lockstep guard must run when only the pre-commit rev moves
+            '.pre-commit-config.yaml'
+            # shipped-data guards (no plaintext vimeo links, meta/whisper schemas)
+            # must run when only talk data changes
+            'talks/*/meta.yaml'
+            'talks/*/*/source/whisper.json'
+            '.github/workflows/'
+          )
+
+          if [ "$EVENT" = "pull_request" ]; then
+            RANGE="$BASE_SHA...$HEAD_SHA"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            RANGE="$BEFORE..$AFTER"
+          else
+            # A first push, a force-push, or anything else whose range cannot be
+            # named: test it rather than guess it is uninteresting.
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "no comparable range for $EVENT — running every lane"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "$RANGE" -- "${PATHS[@]}")
+          if [ -n "$CHANGED" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "watched paths changed:"
+            echo "$CHANGED"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            echo "no watched path changed in $RANGE"
+          fi
+
   lint:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -60,6 +119,8 @@ jobs:
   # ~85% of its wall time, so splitting them out roughly halves CI latency
   # and spares the unit lane the chromium install entirely.
   test-unit:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -98,6 +159,8 @@ jobs:
         run: python -m tools.build_wordlist --check
 
   test-e2e:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -130,6 +193,8 @@ jobs:
       - run: pytest tests/ -n auto -m e2e --tb=short --shard-id=${{ matrix.shard }} --num-shards=${{ strategy.job-total }}
 
   test-js:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -137,3 +202,32 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/test_*.js
+
+  # The one check to require on `main`. Every lane above can legitimately be
+  # skipped, and a skipped check is not something branch protection can wait
+  # on — so this job depends on all of them, always runs, and speaks for the
+  # lot. Requiring it means a pull request whose run never arrived stays
+  # unmergeable instead of sailing through (see #1069).
+  gate:
+    needs: [changes, lint, test-unit, test-e2e, test-js]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every lane passed or was not needed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          set -uo pipefail
+          echo "lane results: ${RESULTS:-<none>}"
+          if [ -z "${RESULTS// /}" ]; then
+            echo "::error::no lane reported a result — refusing to pass"
+            exit 1
+          fi
+          status=0
+          for result in $RESULTS; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "::error::a CI lane ended as '$result'"; status=1 ;;
+            esac
+          done
+          exit "$status"

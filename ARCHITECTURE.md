@@ -176,9 +176,18 @@ Reusable workflow. Downloads video, runs Whisper for word-level timestamps.
 Also `workflow_dispatch` callable with a `force` flag.
 
 ### ci.yml
-Runs on every push: ruff lint, Python tests, JS tests, Playwright E2E.
-Default golden-talks scope is the curated fixture; full-corpus run lives in
-`golden-talks.yml`.
+Runs on every push to `main` and on every pull request: ruff lint, Python
+tests, JS tests, Playwright E2E. Default golden-talks scope is the curated
+fixture; full-corpus run lives in `golden-talks.yml`.
+
+The trigger is deliberately unfiltered. Which lanes are needed is decided by
+the `changes` job, which owns the watched-path list, and the lanes skip when
+nothing they cover moved. The point of that shape is `gate`: it depends on
+every lane, runs with `if: always()`, and passes only when each lane succeeded
+or was skipped — so it is always reported and can be the single **required
+status check** on `main`. Requiring a lane directly would wedge any PR whose
+paths skip it, and requiring nothing at all is how a PR whose run never
+arrived merged untested (#1069).
 
 ### deploy-pages.yml
 Deploys `site/` to GitHub Pages on changes under `site/`.

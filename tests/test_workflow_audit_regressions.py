@@ -76,16 +76,26 @@ def test_review_issue_requires_built_subtitles() -> None:
     assert "needs.build-timecodes.result == 'success'" in step, "issue step does not require build-timecodes success"
 
 
+def _ci_watched_paths() -> str:
+    """The path list the CI lanes are gated on.
+
+    It used to be the `paths:` filter on ci.yml's triggers. A filtered trigger
+    cannot coexist with a required check (no run means no `gate` to wait on),
+    so the list moved into the `changes` job — see tests/test_ci_gate.py. The
+    guards below still hold; they just read it where it now lives.
+    """
+    data = yaml.safe_load((WORKFLOWS / "ci.yml").read_text(encoding="utf-8"))
+    detect = next(s for s in data["jobs"]["changes"]["steps"] if s.get("id") == "detect")
+    return detect["run"]
+
+
 def test_ci_paths_cover_precommit_config() -> None:
     """tests/test_ruff_pin_lockstep.py exists to catch a ruff bump in ONE of
     its three pinned places — but ci.yml's path filters omitted
     .pre-commit-config.yaml, so a PR bumping only the pre-commit rev never
     ran CI (and never ran the guard)."""
-    data = yaml.safe_load((WORKFLOWS / "ci.yml").read_text(encoding="utf-8"))
-    on = data.get("on") or data.get(True)  # yaml 1.1 parses bare `on` as True
-    for trigger in ("push", "pull_request"):
-        paths = on[trigger]["paths"]
-        assert ".pre-commit-config.yaml" in paths, f"{trigger}.paths misses .pre-commit-config.yaml: {paths}"
+    paths = _ci_watched_paths()
+    assert "'.pre-commit-config.yaml'" in paths, f"watched paths miss .pre-commit-config.yaml: {paths}"
 
 
 def test_ci_paths_cover_shipped_talk_data_guards() -> None:
@@ -94,12 +104,9 @@ def test_ci_paths_cover_shipped_talk_data_guards() -> None:
     used to skip entirely on PRs that only touch talks/**, so a hand edit
     reintroducing a plaintext vimeo_url or a corrupt whisper.json shipped
     with no check running at all."""
-    data = yaml.safe_load((WORKFLOWS / "ci.yml").read_text(encoding="utf-8"))
-    on = data.get("on") or data.get(True)
-    for trigger in ("push", "pull_request"):
-        paths = on[trigger]["paths"]
-        assert "talks/*/meta.yaml" in paths, f"{trigger}.paths misses talks/*/meta.yaml: {paths}"
-        assert "talks/*/*/source/whisper.json" in paths, f"{trigger}.paths misses whisper.json: {paths}"
+    paths = _ci_watched_paths()
+    assert "'talks/*/meta.yaml'" in paths, f"watched paths miss talks/*/meta.yaml: {paths}"
+    assert "'talks/*/*/source/whisper.json'" in paths, f"watched paths miss whisper.json: {paths}"
 
 
 def test_sync_review_status_unlabeled_checks_removed_label() -> None:
