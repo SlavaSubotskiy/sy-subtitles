@@ -80,3 +80,51 @@ def test_commit_step_only_runs_on_success():
     steps = wf["jobs"]["sync"]["steps"]
     commit = next(s for s in steps if s.get("name") == "Commit and push")
     assert commit.get("if") == "success()", "a failed sync must never push a partial result"
+
+
+def _step_index(steps: list[dict], name: str) -> int:
+    for i, step in enumerate(steps):
+        if step.get("name") == name:
+            return i
+    raise AssertionError(f"step {name!r} not found in the sync job")
+
+
+def test_wordlist_is_refreshed_before_the_bot_commit():
+    """A reviewer's edit is a corpus change, and the corpus feeds the wordlist.
+
+    site/dict/words_uk.txt is generated from transcript_uk.txt and final/uk.srt
+    — the two files this bot rewrites. Rename a deity or fix a transliteration
+    and the committed list no longer describes the text the PR carries, so the
+    SPA underlines the very spelling the reviewer just chose. The bot must
+    leave the PR self-consistent, exactly as the pipeline does for the talks
+    it builds (tests/test_pipeline_wordlist_refresh.py).
+    """
+    steps = _load()["jobs"]["sync"]["steps"]
+    sync = _step_index(steps, "Sync, optimize, validate")
+    refresh = _step_index(steps, "Refresh typo-hint wordlist")
+    commit = _step_index(steps, "Commit and push")
+
+    assert sync < refresh, "the wordlist must be rebuilt AFTER the sync rewrites the text"
+    assert refresh < commit, "the wordlist must be rebuilt BEFORE the bot commit stages it"
+    assert "tools.build_wordlist" in steps[refresh]["run"]
+    assert "--check" not in steps[refresh]["run"], "the bot must WRITE the list, not merely assert it is current"
+
+    # The generator imports spylls; this job installs the runtime set only.
+    installs = [i for i, s in enumerate(steps) if "pip install" in str(s.get("run", ""))]
+    assert installs and min(installs) < refresh, "dependencies must be installed before the refresh step"
+
+
+def test_wordlist_refresh_is_gated_on_a_successful_sync():
+    """A failed sync commits nothing, so rebuilding from that tree is noise."""
+    steps = _load()["jobs"]["sync"]["steps"]
+    refresh = steps[_step_index(steps, "Refresh typo-hint wordlist")]
+    assert refresh.get("if") == "success()"
+    assert not refresh.get("continue-on-error"), "a swallowed refresh restores the stale-list bug quietly"
+
+
+def test_refreshed_wordlist_is_staged_by_the_bot_commit():
+    steps = _load()["jobs"]["sync"]["steps"]
+    commit_run = steps[_step_index(steps, "Commit and push")]["run"]
+    assert "site/dict/words_uk.txt" in commit_run, (
+        "a rebuilt list that is never staged leaves the PR as inconsistent as before"
+    )
