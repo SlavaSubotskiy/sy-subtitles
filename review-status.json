@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-07T19:19:19.771844+00:00",
+  "updated_at": "2026-09-08T04:15:31.245696+00:00",
   "talks": {
     "1979-02-25_Puja-In-Pune-Marathi": {
       "status": "in-progress",
@@ -603,10 +603,10 @@
       "updated_at": "2026-09-05T05:05:58Z"
     },
     "1984-01-15_Shri-Ganesha-Puja-Keep-Your-Maryadas": {
-      "status": "pending",
-      "reviewer": null,
+      "status": "in-progress",
+      "reviewer": "SlavaSubotskiy",
       "issue_number": 1066,
-      "updated_at": "2026-09-07T19:19:07Z"
+      "updated_at": "2026-09-08T04:15:29Z"
     }
   }
 }
