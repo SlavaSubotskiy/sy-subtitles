@@ -39,9 +39,17 @@ Source language: English. Target language: Ukrainian.
 
 See `ARCHITECTURE.md` for full descriptions. In short:
 `sync-subtitles.yml` (PR sync), `whisper.yml` (reusable),
-`ci.yml` (lint + tests), `deploy-pages.yml`, `glossary-release.yml`,
-`sync-review-status.yml`, `new-talk.yml`, `pipeline-matrix-dryrun.yml`,
-`golden-talks.yml` (full-corpus pytest, on-demand).
+`ci.yml` (lint + tests + `gate`), `deploy-pages.yml`, `deploy-worker.yml`
+(OAuth worker → Cloudflare), `glossary-release.yml`, `sync-review-status.yml`,
+`new-talk.yml`, `pipeline-matrix-dryrun.yml`, `burn-subtitles.yml`
+(subtitle burn-in, dispatched from the SPA), `golden-talks.yml` (full-corpus
+pytest, on-demand).
+
+`ci.yml`'s **`gate`** job is the ONE required check on `main`. It is always
+reported — hence no `paths:` filter on the trigger; the path list lives in the
+`changes` job instead, and every lane reads it from there. A check that a
+`paths:` filter can skip never reports, and a PR then waits forever on something
+that will not come.
 
 ## Local Setup
 
@@ -54,7 +62,7 @@ python -m pytest tests/test_offset_srt.py -k detect  # run a single test
 python -m pytest tests/ --cov=tools --cov-report=term-missing  # coverage
 GOLDEN_TALKS_SCOPE=all pytest tests/test_golden_talks.py  # full-corpus golden
 node --test tests/test_*.js                          # run JS (SPA) tests
-pytest -m smoke                                      # SPA boot smoke (~2s, needs chromium)
+pytest -m smoke                                      # SPA boot smoke (~8s, needs chromium)
 ```
 
 **Any change under `site/` MUST pass `pytest -m smoke` AND be opened in a browser
@@ -64,6 +72,17 @@ unlinked/404 stylesheet). The boot smoke (`tests/test_spa_boot_smoke.py`) loads 
 app and asserts it boots, renders, and is styled. Off GitHub Pages the app needs
 `?repo=owner/name` (e.g. `localhost:8000/?repo=sy-tools/sy-subtitles`) or it shows a
 deliberate blank page.
+
+**To open it, prefer the project's own server** — a bare `http.server` serves the
+files but injects none of the runtime hooks, so anything behind sign-in cannot be
+exercised:
+
+```bash
+python -m tools.serve_auth_local [--port 8000] [--burn-ref BRANCH]
+#   Serves site/ with the GitHub-auth hooks already injected.
+#   --burn-ref points the render at a branch's burn-subtitles.yml, so a workflow
+#   change can be exercised before it reaches the default branch.
+```
 
 See `TESTING.md` for the full guide: markers, golden corpus, property tests,
 snapshots, and the `SY_E2E_REAL_VIMEO` network gate.
@@ -103,9 +122,13 @@ re-invent values.** Open **`site/styleguide.html`** first — it's the live cata
   value belongs in `tokens.css` for *both* themes; `components.css` must define no
   palette (guarded by `test_spa_cache.js`).
 - **Palette:** surfaces `--bg`,`--bg2…5`; ink `--fg`,`--fg2…6`; `--border`,`--border2/3`;
-  `--link`; `--accent-green/orange/red`; `--sync-progress` (blue cloud-sync tone);
+  `--link`; `--accent-green/orange/red`; `--accent-purple` (landed/merged, GitHub's
+  own reading); `--sync-progress` (blue cloud-sync tone); `--aura`/`--aura-core`
+  (the signed-in glow, reused by the boot loader's rings);
   semantic zones `--primary/issue/danger-{bg,border,fg}`,
   `--stat-active-bg`, `--cell-hover/edit-bg/edited-bg`, `--mark-bg`, `--overlay-bg`.
+  (`--overlay-bg` and `--player-letterbox` are functional scrims — exempt from the
+  styleguide swatch guard, everything else needs one.)
 - **Scales:** `--space-1…8` (4→32), `--radius-sm…pill`, `--text-2xs…-display`,
   `--shadow-sm/md/lg`, `--z-*`. Type families `--f-serif` (titles), `--f-sans` (UI),
   `--f-mono` (codes/dates).
