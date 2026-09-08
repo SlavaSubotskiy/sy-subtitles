@@ -103,6 +103,29 @@
   <button class="btn btn--primary" disabled>Disabled</button>
   <button class="btn btn--primary" autofocus>Focus (tab to me)</button>
 </div>
+<h3>Working (<code>.btn--busy</code>)</h3>
+<p style="color:var(--fg4)">For an action whose wait is real — the signed-in write flows run a
+chain of sequential GitHub calls. The button is marked <code>aria-busy</code> and
+<code>aria-disabled</code> (one click is one PR), yet keeps its full ink: the disabled dimming
+would read as dead rather than busy. <code>aria-disabled</code>, not <code>disabled</code> — disabling the element
+the user just activated with Enter throws focus to <code>&lt;body&gt;</code>; the in-flight lock
+is what actually refuses the second click. The label names the phase it is in, and is spoken
+through the page's <code>aria-live</code> region; the step names come from
+<code>pendingStepKey()</code>. Works on every colour variant and size — not on
+<code>.btn--icon</code>, whose square target the dot would deform. The dot is
+<code>currentColor</code>.</p>
+<div class="sg-row">
+  <button class="btn btn--primary btn--busy" aria-disabled="true" aria-busy="true">Creating the branch…</button>
+  <button class="btn btn--primary btn--busy" aria-disabled="true" aria-busy="true">Committing the file…</button>
+  <button class="btn btn--primary btn--busy" aria-disabled="true" aria-busy="true">Opening the PR…</button>
+</div>
+<div class="sg-row">
+  <button class="btn btn--busy" aria-disabled="true" aria-busy="true">Neutral</button>
+  <button class="btn btn--issue btn--busy" aria-disabled="true" aria-busy="true">Creating the issue…</button>
+  <button class="btn btn--danger btn--busy" aria-disabled="true" aria-busy="true">Danger</button>
+  <button class="btn btn--ghost btn--busy" aria-disabled="true" aria-busy="true">Ghost</button>
+  <button class="btn btn--primary btn--busy btn--sm" aria-disabled="true" aria-busy="true">Small</button>
+</div>
 <h3>Icon only (<code>.btn--icon</code>)</h3>
 <p style="color:var(--fg4)">A square target for a glyph that says it all — the accessible
 name lives on the button (<code>aria-label</code>), so nothing is lost. Stroke SVG, never an

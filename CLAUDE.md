@@ -104,6 +104,14 @@ hooks, so nothing behind sign-in can be exercised. Its `--burn-ref` points a
 render at a branch's `burn-subtitles.yml`, which is how a workflow change is
 tried out before it reaches the default branch.
 
+**Sign-in also needs the Worker, and the port is not free to choose:**
+`cd workers/oauth-exchange && npx wrangler dev` (:8787) alongside the SPA on
+**:8000** — that exact origin is what the App's callback URLs and the Worker's
+`ALLOWED_ORIGINS` allow, so any other port cannot complete the round trip.
+`.dev.vars` holds the App secret and is gitignored, so a **worktree does not
+have one**: run the Worker from the primary checkout rather than copying the
+secret across.
+
 See `TESTING.md` for the full guide: markers, golden corpus, property tests,
 snapshots, and the `SY_E2E_REAL_VIMEO` network gate.
 

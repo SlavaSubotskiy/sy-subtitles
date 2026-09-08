@@ -195,6 +195,31 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .btn--sm { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); }
 .btn--lg { padding: var(--space-4) var(--space-6); font-size: var(--text-md); }
 
+/* A button that is WORKING — the signed-in write actions run a chain of
+   sequential GitHub calls, and the wait used to look like nothing happening.
+   It is disabled (one click is one PR) but must not read as dead, so it keeps
+   its full ink instead of the disabled dimming, and a breathing dot stands in
+   for the progress we cannot measure. The label narrates the phase — see
+   pendingStepKey() in js/pending_action.js. Colour is currentColor: the state
+   works on every variant and adds no palette of its own. */
+.btn--busy:disabled, .btn--busy[aria-disabled="true"] { opacity: 1; cursor: progress; }
+.btn--busy::before {
+  content: ""; flex: none;
+  width: 0.5em; height: 0.5em; border-radius: 50%;
+  background: currentColor;
+  animation: sy-busy-pulse 1.4s ease-in-out infinite;
+}
+/* Its own amplitude rather than the loader's: sy-loader-breathe is tuned for a
+   96px mark and is invisible at half an em. */
+@keyframes sy-busy-pulse {
+  0%, 100% { transform: scale(0.7); opacity: 0.45; }
+  50%      { transform: scale(1);   opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The dot stays drawn — it is what separates "working" from "stuck". */
+  .btn--busy::before { animation: none; opacity: 0.7; }
+}
+
 /* --- Index --- */
 .talk-item { padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; max-width: 800px; margin: 8px auto; background: var(--bg2); transition: border-color 0.15s; }
 .talk-item:hover { border-color: var(--border2); }

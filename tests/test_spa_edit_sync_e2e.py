@@ -111,7 +111,7 @@ REVIEW_STATUS_UNASSIGNED = {
 SYNCED_LABEL_RE = "Synced|Синхронізовано"
 READY_LABEL_RE = "In review|На ревʼю"
 FINALIZE_LABEL_RE = "Finalize|Фіналізувати"
-OPEN_PR_LABEL_RE = "Open on GitHub|Відкрити на GitHub"
+OPEN_PR_LABEL_RE = "View on GitHub|Переглянути на GitHub"
 
 
 @pytest.fixture(scope="module")

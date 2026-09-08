@@ -122,24 +122,29 @@ cp .dev.vars.example .dev.vars       # fill in the real Iv1.… id + secret
 npx wrangler dev                      # serves http://localhost:8787
 ```
 
-Serve the SPA on port 8000 (`python -m http.server 8000 -d site`) and point it
-at the local Worker via the runtime hooks (no code edits needed) — in the
-browser console:
+Then serve the SPA with the runtime hooks already injected:
 
-```js
-window.__SY_GH_CLIENT_ID = 'Iv1.…';
-window.__SY_GH_EXCHANGE_URL = 'http://localhost:8787/exchange';
-updateAuthUI();
+```bash
+python -m tools.serve_auth_local                  # SPA on :8000
+open 'http://localhost:8000/?repo=sy-tools/sy-subtitles'
 ```
 
 Click "Sign in" → GitHub → redirected back to localhost:8000 → the exchange
 hits the local Worker. `http://localhost:8000` is already in the Worker's
-`ALLOWED_ORIGINS` and must be one of the App's callback URLs (step 1).
-Note: the hooks live only in that tab's session — re-set them after a reload
-(the callback handler runs before you can retype them, so for the full
-round-trip test serve an injected copy of index.html, e.g. with the snippet in
-`tests/test_spa_auth_e2e.py`'s `auth_server` fixture, or temporarily set the
-two constants in `site/index.html` without committing).
+`ALLOWED_ORIGINS` and must be one of the App's callback URLs (step 1) — the
+port is not free to choose, and on any other one the round trip cannot
+complete.
+
+A bare `python -m http.server` does NOT work for this: it serves the files but
+injects no hooks, and setting them from the console is too late — the OAuth
+callback handler in `index.html` runs during page load, so the callback is
+already consumed by the time you can type. That is the whole reason
+`serve_auth_local` exists.
+
+In a **worktree** there is no `.dev.vars` (it holds the App secret and is
+gitignored). Run the Worker from the primary checkout instead of copying the
+secret across; the SPA can still be served from the worktree, since the two are
+separate processes on separate ports.
 
 ## Rotation / revocation
 

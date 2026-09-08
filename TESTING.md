@@ -69,7 +69,10 @@ uncaught. It is tagged both `e2e` (so `-m "not e2e"` stays chromium-free) and
 `smoke` (so `pytest -m smoke` is a ~2s gate). **Run `pytest -m smoke` for any
 change under `site/` — and actually open the page** (`?repo=owner/name` off
 GitHub Pages, e.g. `localhost:8000/?repo=sy-tools/sy-subtitles`); a green unit
-suite alone does not prove the app renders.
+suite alone does not prove the app renders. Open it with
+`python -m tools.serve_auth_local`, never a bare `http.server`: only the former
+injects the auth hooks, and only port 8000 can complete a sign-in (see
+CLAUDE.md "Local Setup").
 
 ### Golden corpus
 

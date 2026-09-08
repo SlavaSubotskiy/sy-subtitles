@@ -514,6 +514,55 @@ describe('submitFilesPr', () => {
       commitMessage: 'edit', prTitle: 'T', prBody: 'B',
     }, f), (e) => e.status === 401 && !e.branch);
   });
+  it('announces each phase through onStep BEFORE its requests go out', async () => {
+    // The busy button reads its label off these steps, so the name must land
+    // before the wait it describes — not after.
+    const calls = [];
+    const steps = [];
+    const f = routerFetch(Object.values(routes()), calls);
+    await submitFilesPr(API, 'gho_x', {
+      branch: 'review/b', base: 'main', files: FILES,
+      commitMessage: 'edit', prTitle: 'T', prBody: 'B',
+      onStep: (name) => steps.push([name, calls.length]),
+    }, f);
+    assert.deepStrictEqual(steps, [
+      ['branch', 0],  // before the base-sha lookup
+      ['commit', 2],  // after ref + refs POST, before the per-file work
+      ['pr', 6],      // after both files, before POST /pulls
+    ]);
+  });
+  it('always returns a promise — a throwing onStep rejects, never throws', async () => {
+    // step('commit') and step('pr') run inside .then(), so they reject. The
+    // first one must behave the same, or submitFilesPr breaks the
+    // always-returns-a-promise contract on one branch only.
+    const f = routerFetch(Object.values(routes()), []);
+    const opts = {
+      branch: 'review/b', base: 'main', files: FILES,
+      commitMessage: 'edit', prTitle: 'T', prBody: 'B',
+    };
+    let out;
+    assert.doesNotThrow(() => {
+      out = submitFilesPr(API, 'gho_x',
+        Object.assign({ onStep: () => { throw new Error('painter died'); } }, opts), f);
+    });
+    assert.strictEqual(typeof out.then, 'function');
+    await assert.rejects(out, /painter died/);
+  });
+  it('reports the phase it died in, and survives a missing onStep', async () => {
+    const steps = [];
+    const f = routerFetch(Object.values(routes({
+      put: { method: 'PUT', match: '/contents/', status: 409, payload: { message: 'Conflict' } },
+    })), []);
+    const opts = {
+      branch: 'review/b', base: 'main', files: FILES,
+      commitMessage: 'edit', prTitle: 'T', prBody: 'B',
+    };
+    await assert.rejects(submitFilesPr(API, 'gho_x',
+      Object.assign({ onStep: (n) => steps.push(n) }, opts), f), /Conflict/);
+    assert.deepStrictEqual(steps, ['branch', 'commit'], 'never reached the PR step');
+    // No onStep at all is the pre-existing call shape — it must still work.
+    await assert.rejects(submitFilesPr(API, 'gho_x', opts, f), /Conflict/);
+  });
 });
 
 // ---------------------------------------------------------------------------
