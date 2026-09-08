@@ -48,6 +48,22 @@ def test_ci_runs_on_every_pull_request() -> None:
     )
 
 
+def test_ci_runs_when_a_draft_is_marked_ready() -> None:
+    """`ready_for_review` is not in the default activity types.
+
+    Every open PR in this repository is a draft (the SPA's edit auto-sync works
+    there), and flipping one to ready pushes no commit. With only the default
+    types — opened, synchronize, reopened — that transition produces no run, so
+    `gate` never reports and the PR is unmergeable with nothing left to nudge
+    it. Requiring a check makes this the difference between "not ready yet" and
+    "permanently stuck". sync-subtitles.yml opts in for the same reason.
+    """
+    pr = _triggers()["pull_request"] or {}
+    assert "ready_for_review" in (pr.get("types") or []), (
+        "a draft marked ready must produce a run, or its required check never arrives"
+    )
+
+
 def test_the_path_list_lives_in_exactly_one_place() -> None:
     """Two copies of the list drift, and the drift is invisible until it bites."""
     push = _triggers()["push"] or {}
