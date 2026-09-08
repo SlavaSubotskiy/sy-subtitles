@@ -275,7 +275,8 @@ python -m tools.glossary_check --transcript PATH --glossary PATH --report PATH
 # Rebuild the UK wordlist the SPA's typo hints check against (site/dict/words_uk.txt).
 # Holds only what the vendored hunspell dictionary MISSES — the transliterated SY
 # vocabulary — gathered from every transcript_uk.txt, every final/uk.srt and the
-# glossary. Re-run after adding talks or glossary terms, and commit the result.
+# glossary. The pipeline's commit job re-runs it for the talks IT builds; run it
+# by hand after glossary edits or a hand-edited transcript, and commit the result.
 python -m tools.build_wordlist [--check]   # --check fails if the committed list is stale
 
 # Scrape amruta.org UK talk listing into index.yaml

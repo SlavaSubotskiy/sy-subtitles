@@ -9,4 +9,3 @@ pre-commit>=4.6.2
 playwright>=1.62.0
 hypothesis>=6.167.1
 fonttools>=4.64.0
-spylls>=0.1.7

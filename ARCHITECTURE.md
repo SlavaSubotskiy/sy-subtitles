@@ -152,7 +152,9 @@ Triggered manually via `workflow_dispatch`. Full pipeline:
 3. **Translate + Review** — a Claude agent translates EN→UK, then 2+1 review
 4. **Build** — `build_map.py prepare` → single-pass LLM timecodes (`build-timecodes` job) → `build_map.py assemble` → `build_srt.py`
 5. **Validate** — text preservation, CPS, timing checks
-6. **Commit** — pushes results + creates review tracking Issue
+6. **Commit** — rebuilds `site/dict/words_uk.txt` from the corpus it just
+   extended (`tools/build_wordlist.py`), then pushes results + creates a
+   review tracking Issue
 
 ### sync-subtitles.yml
 Triggered on PRs that modify `transcript_uk.txt` **or** `*/final/uk.srt`.

@@ -7,3 +7,6 @@ python-dotenv>=1.2.3
 # same URL. See tests/test_burn_workflow.py::TestVimeoImpersonation.
 yt-dlp[default,curl-cffi]>=2026.8.19
 Pillow>=12.3.0
+# Hunspell reader for tools.build_wordlist, which the pipeline runs to keep
+# site/dict/words_uk.txt in step with the corpus it just extended.
+spylls>=0.1.7
