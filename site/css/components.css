@@ -69,6 +69,98 @@ textarea.input { resize: vertical; font-family: monospace; font-size: 13px; }
 .view { display: none; }
 .view.active { display: block; }
 
+/* ── App loader: the boot state of a view ────────────────────────────────────
+   The app's own mark — a Shri Yantra — centred in the empty view, breathing,
+   with vibration rings radiating out of it. It replaces a bare left-aligned
+   "Loading…" line, which read as a glitch rather than as the app waking up.
+
+   Two halves, kept apart on purpose: this file decides how the wait LOOKS,
+   js/boot_loader.js decides WHEN it may be seen at all (a warm cache must never
+   flash it, and a mark that did appear must not blink out). The one number that
+   spans both is the fade below — index.html waits LOADER_FADE_MS before it
+   hides the element, so the two must move together.
+
+   The same element carries a load FAILURE (.status-error): one home for "not
+   the content yet", so there is no second place to keep in sync.
+   ─────────────────────────────────────────────────────────────────────────── */
+.app-loader {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-6);
+  /* Claims the screen the app chrome leaves, so the mark lands on the optical
+     centre without measuring anything: the allowance covers the freshness bar,
+     the title header and the footer. The floor keeps it usable on a short
+     window, where it simply scrolls. */
+  min-height: max(300px, calc(100vh - 150px));
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+/* Author rules beat the UA's [hidden], so the attribute needs saying again. */
+.app-loader[hidden] { display: none; }
+.app-loader--out { opacity: 0; transform: scale(0.96); }
+
+.app-loader__mark { position: relative; width: 96px; height: 96px; }
+.app-loader__yantra {
+  width: 100%; height: 100%; display: block;
+  animation: sy-loader-breathe 2.8s ease-in-out infinite;
+}
+/* Rings share one 2.8s cycle at even thirds, so the vibrations read as a
+   steady outward flow rather than a pulse. */
+.app-loader__ring {
+  position: absolute; inset: 0;
+  border: 1px solid var(--aura); border-radius: 50%;
+  opacity: 0;
+  animation: sy-loader-ripple 2.8s cubic-bezier(0.25, 0.6, 0.25, 1) infinite;
+}
+.app-loader__ring:nth-child(2) { animation-delay: 0.93s; }
+.app-loader__ring:nth-child(3) { animation-delay: 1.86s; }
+
+.app-loader__caption {
+  margin: 0;
+  font-family: var(--f-sans); font-size: var(--text-base); letter-spacing: 0.02em;
+  color: var(--fg5);
+}
+/* A failure is not a wait: the mark and its rings go, the message stays. */
+.app-loader.status-error .app-loader__mark { display: none; }
+.app-loader.status-error .app-loader__caption { color: var(--accent-red); }
+
+@keyframes sy-loader-breathe {
+  0%, 100% { transform: scale(1);     opacity: 0.88; }
+  50%      { transform: scale(1.035); opacity: 1; }
+}
+@keyframes sy-loader-ripple {
+  0%   { transform: scale(0.62); opacity: 0; }
+  18%  { opacity: 0.62; }
+  100% { transform: scale(2.1);  opacity: 0; }
+}
+
+/* The mark is drawn in red ink for paper; on walnut that red goes muddy. Lift
+   it with light, not with a second colour — the palette stays in tokens.css. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .app-loader__yantra { filter: brightness(1.45) saturate(0.85); }
+}
+[data-theme="dark"] .app-loader__yantra { filter: brightness(1.45) saturate(0.85); }
+
+/* Content arriving after a wait: it rises into place instead of appearing
+   mid-sentence. Paired with the loader's fade-out, the two read as one move. */
+.sy-enter { animation: sy-enter 0.32s ease-out both; }
+@keyframes sy-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The rings stop travelling but stay drawn — they are what makes the mark
+     read as "working" rather than "stuck". */
+  .app-loader__ring { animation: none; opacity: 0.3; }
+  .app-loader__ring:nth-child(2) { inset: -22%; }
+  .app-loader__ring:nth-child(3) { inset: -44%; }
+  .app-loader__yantra { animation: none; }
+  .app-loader { transition: opacity 0.16s ease; }
+  .app-loader--out { transform: none; }
+  .sy-enter { animation: none; }
+}
+
 /* --- Button system — the go-forward standard for actions ------------------
    <button class="btn btn--primary btn--sm">Save</button>
    Variant: (default neutral) · --primary · --issue · --danger · --ghost

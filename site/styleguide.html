@@ -250,6 +250,48 @@ document being edited.</p>
   })();
 </script>
 
+<h2>App loader</h2>
+<p style="color:var(--fg4)">The boot state of a view: <code>.app-loader</code> centres the app's
+own mark in the empty screen, breathing, with vibration rings radiating out of it on
+<code>--aura</code>. It replaced a bare left-aligned "Loading…" line, which read as a glitch
+rather than as the app waking up.</p>
+<p style="color:var(--fg4)">Half of the component is not CSS. <strong>When</strong> it may be
+seen lives in <code>js/boot_loader.js</code>: a show is delayed
+(<code>LOADER_SHOW_DELAY_MS</code>) so a warm cache never flashes it, and a mark that did
+appear is held (<code>LOADER_MIN_VISIBLE_MS</code>) so it cannot blink out. Leaving goes
+through <code>.app-loader--out</code>, and the content that arrives rises in on
+<code>.sy-enter</code>. Under <code>prefers-reduced-motion</code> the rings stop travelling
+but stay drawn — they are what says "working" rather than "stuck".</p>
+<p style="color:var(--fg4)">A failed load reuses the same frame with
+<code>.status-error</code>: the mark goes, the message stays. One home for "not the content
+yet", so there is no second place to keep in sync.</p>
+<!-- min-height is overridden here only so both states fit the catalog page; in
+     the app the loader claims 62vh and centres in the empty view. -->
+<div class="sg-row" style="align-items:stretch;gap:var(--space-5)">
+  <div style="flex:1 1 260px;border:1px solid var(--border2);border-radius:var(--radius-xl);background:var(--bg)">
+    <div class="app-loader" style="min-height:220px">
+      <span class="app-loader__mark" aria-hidden="true">
+        <span class="app-loader__ring"></span>
+        <span class="app-loader__ring"></span>
+        <span class="app-loader__ring"></span>
+        <img class="app-loader__yantra" src="icon.png" alt="" width="96" height="96">
+      </span>
+      <p class="app-loader__caption">Завантаження...</p>
+    </div>
+  </div>
+  <div style="flex:1 1 260px;border:1px solid var(--border2);border-radius:var(--radius-xl);background:var(--bg)">
+    <div class="app-loader status-error" style="min-height:220px">
+      <span class="app-loader__mark" aria-hidden="true">
+        <span class="app-loader__ring"></span>
+        <span class="app-loader__ring"></span>
+        <span class="app-loader__ring"></span>
+        <img class="app-loader__yantra" src="icon.png" alt="" width="96" height="96">
+      </span>
+      <p class="app-loader__caption">Ліміт запитів GitHub. Спробуйте за 12 хв.</p>
+    </div>
+  </div>
+</div>
+
 <h2>Badges</h2>
 <div class="sg-row">
   <span class="review-badge needs-review">needs review</span>

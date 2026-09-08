@@ -120,3 +120,25 @@ def test_spa_boots_renders_and_is_styled_without_errors(smoke_server, smoke_page
 
     # 3. Nothing threw uncaught while booting.
     assert not page_errors, "uncaught JS error(s) during boot:\n  " + "\n  ".join(page_errors)
+
+
+def test_the_boot_loader_gives_way_to_the_index(smoke_server, smoke_page):
+    """The centred loading mark must hand over, not linger.
+
+    The mark is deliberately allowed to be skipped entirely (js/boot_loader.js
+    holds a show back for LOADER_SHOW_DELAY_MS, and these mocks answer faster
+    than that), so this does NOT assert it appears. What it pins is the exit:
+    once the index has settled, the loader is gone and the list it was waiting
+    for is on screen. A hand-over that never completes leaves a breathing mark
+    over a blank page — a failure no string grep would see.
+    """
+    page = smoke_page
+    page.goto(f"{smoke_server}/index.html")
+    page.wait_for_function("document.title.includes('Index')", timeout=10000)
+
+    page.wait_for_function("document.getElementById('index-status').hidden", timeout=10000)
+    # The index rendered in the mark's place: the toolbar is only revealed by
+    # renderIndex, and offsetParent is null while an ancestor stays display:none.
+    assert page.evaluate("!!document.getElementById('index-toolbar').offsetParent"), (
+        "the loader let go but the index never rendered"
+    )

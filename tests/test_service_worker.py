@@ -26,7 +26,7 @@ from tests.test_preview_spa import (  # noqa: F401  — re-exported fixtures
 # only the scheduling is not — so retry rather than widen the timeout forever.
 pytestmark = [pytest.mark.e2e, pytest.mark.flaky(reruns=2, reruns_delay=2)]
 
-CACHE = "sy-subtitles-c18"  # CACHE_NAME in sw.js (CACHE_VERSION = 18)
+CACHE = "sy-subtitles-c19"  # CACHE_NAME in sw.js (CACHE_VERSION = 19)
 SW_WAIT_MS = 15000
 
 
@@ -47,7 +47,7 @@ class TestServiceWorker:
         _register_sw(page, server)
         page.evaluate("() => fetch('icon.png')")
         page.wait_for_function(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " return !!(await c.match(location.origin + '/icon.png')); }",
             timeout=10000,
         )
@@ -58,7 +58,7 @@ class TestServiceWorker:
         # Seed a sentinel under the icon.png key; cache-first must return it
         # without going to the network.
         page.evaluate(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " await c.put(location.origin + '/icon.png',"
             " new Response('SENTINEL', {headers: {'content-type': 'text/plain'}})); }"
         )
@@ -70,7 +70,7 @@ class TestServiceWorker:
         # Seed a stale sentinel for index.html; network-first must prefer the
         # live response when the network is reachable.
         page.evaluate(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " await c.put(location.origin + '/index.html',"
             " new Response('STALE', {headers: {'content-type': 'text/html'}})); }"
         )
@@ -99,14 +99,14 @@ class TestServiceWorker:
         # with a sentinel before activation; it (and its entry) must survive.
         page.goto(f"{server}/index.html")
         page.evaluate(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " await c.put(location.origin + '/keep', new Response('KEEP')); }"
         )
         page.evaluate("() => navigator.serviceWorker.register('sw.js')")
         page.wait_for_function("() => !!navigator.serviceWorker.controller", timeout=SW_WAIT_MS)
         assert CACHE in page.evaluate("() => caches.keys()")
         survived = page.evaluate(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " const r = await c.match(location.origin + '/keep'); return r ? await r.text() : null; }"
         )
         assert survived == "KEEP", "activate wrongly purged the current-version cache"
@@ -128,7 +128,7 @@ class TestServiceWorker:
         # so they would not otherwise be cached).
         _register_sw(page, server)
         page.wait_for_function(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " const us = (await c.keys()).map(r => r.url);"
             " return us.some(u => u.split('?')[0].endsWith('/index.html'))"
             " && us.filter(u => u.includes('/js/')).length >= 11"
@@ -136,7 +136,7 @@ class TestServiceWorker:
             timeout=10000,
         )
         shell = page.evaluate(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " const us = (await c.keys()).map(r => r.url);"
             " return { index: us.some(u => u.split('?')[0].endsWith('/index.html')),"
             " js: us.filter(u => u.includes('/js/')).length,"
@@ -167,17 +167,17 @@ class TestServiceWorkerOffline:
         # icon.png, so delete it first to exercise the genuine miss path.)
         _register_sw(page, server)
         page.evaluate(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " await c.delete(location.origin + '/icon.png'); }"
         )
         miss = page.evaluate(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " return !!(await c.match(location.origin + '/icon.png')); }"
         )
         assert miss is False, "precondition: icon.png must not be cached yet"
         page.evaluate("() => fetch('icon.png')")
         page.wait_for_function(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " return !!(await c.match(location.origin + '/icon.png')); }",
             timeout=10000,
         )
@@ -196,7 +196,7 @@ class TestServiceWorkerOffline:
         _register_sw(page, server)
         page.evaluate("() => fetch('index.html')")
         page.wait_for_function(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " return !!(await c.match(location.origin + '/index.html')); }",
             timeout=10000,
         )
@@ -215,7 +215,7 @@ class TestServiceWorkerOffline:
         # Seed a cached asset so we can prove the SW is still alive afterwards.
         page.evaluate("() => fetch('icon.png')")
         page.wait_for_function(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " return !!(await c.match(location.origin + '/icon.png')); }",
             timeout=10000,
         )
@@ -239,7 +239,7 @@ class TestServiceWorkerOffline:
         status = page.evaluate("async () => (await fetch('definitely-missing-asset.js')).status")
         assert status == 404, f"expected a 404 from the test server, got {status}"
         cached = page.evaluate(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " return !!(await c.match(location.origin + '/definitely-missing-asset.js')); }"
         )
         assert cached is False, "a 404 response was wrongly written to the cache"
@@ -250,7 +250,7 @@ class TestServiceWorkerOffline:
         _register_sw(page, server)
         page.evaluate("() => fetch('js/sw_routing.js')")
         page.wait_for_function(
-            "async () => { const c = await caches.open('sy-subtitles-c18');"
+            "async () => { const c = await caches.open('sy-subtitles-c19');"
             " return !!(await c.match(location.origin + '/js/sw_routing.js')); }",
             timeout=10000,
         )
@@ -269,7 +269,7 @@ class TestServiceWorkerOffline:
         _register_sw(page, server)
         srt_url = "https://raw.githubusercontent.com/o/r/main/talks/x/uk/final/uk.srt?v=ab12cd34"
         page.evaluate(
-            "async (u) => { const c = await caches.open('sy-subtitles-c18');"
+            "async (u) => { const c = await caches.open('sy-subtitles-c19');"
             " await c.put(u, new Response('CACHED-SRT',"
             " {status: 200, headers: {'content-type': 'text/plain'}})); }",
             srt_url,
@@ -285,7 +285,7 @@ class TestServiceWorkerOffline:
         _register_sw(page, server)
         url = "https://raw.githubusercontent.com/o/r/main/talks/x/meta.yaml"
         page.evaluate(
-            "async (u) => { const c = await caches.open('sy-subtitles-c18');"
+            "async (u) => { const c = await caches.open('sy-subtitles-c19');"
             " await c.put(u, new Response('CACHED-META',"
             " {status: 200, headers: {'content-type': 'text/plain'}})); }",
             url,
@@ -307,7 +307,7 @@ class TestServiceWorkerOffline:
         _register_sw(page, server)
         api = "https://api.github.com/git/trees/main?recursive=1"
         page.evaluate(
-            "async (u) => { const c = await caches.open('sy-subtitles-c18');"
+            "async (u) => { const c = await caches.open('sy-subtitles-c19');"
             " await c.put(u, new Response('SHOULD-NOT-BE-SERVED', {status: 200})); }",
             api,
         )

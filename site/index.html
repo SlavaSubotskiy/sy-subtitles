@@ -30,6 +30,7 @@
 <script src="js/end_freeze.js"></script>
 <script src="js/add_talk_data.js"></script>
 <script src="js/shell_version.js"></script>
+<script src="js/boot_loader.js"></script>
 <script src="js/talk_actions.js"></script>
 <script src="js/review_issue.js"></script>
 <script src="js/passphrase_gate.js"></script>
@@ -390,7 +391,20 @@
     <input id="search-input" type="text" class="input" data-i18n-placeholder="search.placeholder" style="margin-bottom:6px">
     <div id="stats-bar" class="stats-bar"></div>
   </div>
-  <div id="index-status" class="status" data-i18n="index.loading">Loading...</div>
+  <!-- Boot state: the app's mark, centred and breathing, instead of a bare
+       "Loading…" line in the top-left corner. Whether it is ever painted is
+       js/boot_loader.js's call, not this markup's — a warm cache goes straight
+       to the list. The same element carries a load failure (.status-error), so
+       "not the index yet" has one home. -->
+  <div id="index-status" class="app-loader" role="status" aria-live="polite" hidden>
+    <span class="app-loader__mark" aria-hidden="true">
+      <span class="app-loader__ring"></span>
+      <span class="app-loader__ring"></span>
+      <span class="app-loader__ring"></span>
+      <img class="app-loader__yantra" src="icon.png" alt="" width="96" height="96">
+    </span>
+    <p id="index-status-text" class="app-loader__caption" data-i18n="index.loading">Loading...</p>
+  </div>
   <div id="index-content" style="padding: 0 20px;"></div>
 </div>
 
@@ -2719,6 +2733,68 @@ function maybeStaleToast() {
   showToast(msg);
 }
 
+// ----- The index's boot state (.app-loader) -----
+//
+// Three moves, and only three: arm the mark, paint it, settle into the screen
+// that was being waited for. The timing policy — a warm cache never sees the
+// mark, a mark that appeared is not blinked away — lives in js/boot_loader.js
+// and is unit-tested there; these functions only touch the DOM.
+
+// Must match the .app-loader fade in css/components.css.
+var LOADER_FADE_MS = 240;
+
+function paintIndexLoader() {
+  var el = document.getElementById('index-status');
+  el.classList.remove('status-error', 'app-loader--out');
+  document.getElementById('index-status-text').textContent = t('index.loading');
+  el.hidden = false;
+}
+
+// Fade the mark out (if it ever appeared), then hand over to `done`. The
+// content is rendered inside that callback rather than before it: the loader
+// claims most of the screen, so a list drawn while the mark is still fading
+// would peek out underneath it and then jump up when it goes.
+function dismissIndexLoader(done) {
+  var el = document.getElementById('index-status');
+  if (el.hidden) { done(); return; }   // never painted — nothing to fade
+  el.classList.add('app-loader--out');
+  setTimeout(function() {
+    el.hidden = true;
+    // A retry that succeeded before the mark was due still has to clear the
+    // error left on screen by the attempt before it.
+    el.classList.remove('app-loader--out', 'status-error');
+    done();
+  }, LOADER_FADE_MS);
+}
+
+// The index's failure state reuses the loader's frame: same element, mark
+// dropped by CSS, message in the caption.
+function showIndexLoadError(msg) {
+  var el = document.getElementById('index-status');
+  document.getElementById('index-status-text').textContent = msg;
+  el.classList.add('status-error');
+  el.classList.remove('app-loader--out');
+  el.hidden = false;
+}
+
+// One-shot entrance for freshly rendered content, so it arrives with the
+// loader's fade instead of snapping in. The class is taken off again once it
+// has played: `both` fill would otherwise leave a transform sitting on the
+// element for the rest of the session, and a transformed ancestor is a
+// containing block for anything fixed inside it.
+function playContentEnter() {
+  ['index-toolbar', 'index-content'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.classList.remove('sy-enter');
+    void el.offsetWidth;   // restart the animation on a repeat load
+    el.classList.add('sy-enter');
+    el.addEventListener('animationend', function done() {
+      el.classList.remove('sy-enter');
+      el.removeEventListener('animationend', done);
+    });
+  });
+}
+
 function showIndex() {
   document.getElementById('view-index').classList.add('active');
   document.title = 'SY Subtitles — Index';
@@ -2726,21 +2802,35 @@ function showIndex() {
   var statusEl = document.getElementById('index-status');
   var contentEl = document.getElementById('index-content');
 
-  if (manifest && reviewStatus) { updateLastModifiedUI(); renderStats(); renderIndex(contentEl); maybeStaleToast(); statusEl.style.display = 'none'; loadMyWork(); return; }
+  if (manifest && reviewStatus) { updateLastModifiedUI(); renderStats(); renderIndex(contentEl); maybeStaleToast(); statusEl.hidden = true; loadMyWork(); return; }
 
-  statusEl.textContent = t('index.loading');
-  statusEl.style.display = 'block';
+  // `outcome` is null on success, { msg } on failure: it travels through the
+  // loader because the screen may not be free to change the moment the data
+  // lands — see boot_loader.js.
+  var loader = createBootLoader({
+    now: function() { return Date.now(); },
+    schedule: function(cb, ms) { var id = setTimeout(cb, ms); return function() { clearTimeout(id); }; },
+    show: paintIndexLoader,
+    settle: function(outcome) {
+      if (outcome) { showIndexLoadError(outcome.msg); return; }
+      dismissIndexLoader(function() {
+        renderStats();
+        renderIndex(contentEl);
+        // Render and reveal in one turn, so the browser paints them together
+        // and there is no blank frame between the mark and the list.
+        playContentEnter();
+        maybeStaleToast();
+        loadMyWork();
+      });
+    }
+  });
+  loader.start();
 
   Promise.all([
     manifest ? Promise.resolve(manifest) : loadManifest().then(function(m) { manifest = m; updateLastModifiedUI(); return m; }),
     reviewStatus ? Promise.resolve(reviewStatus) : loadReviewStatus()
   ]).then(function() {
-    renderStats();
-    renderIndex(contentEl);
-    maybeStaleToast();
-    statusEl.style.display = 'none';
-    statusEl.classList.remove('status-error');
-    loadMyWork();
+    loader.finish(null);
   }).catch(function(err) {
     // No cache to fall back on. Phrase rate-limit failures helpfully instead of
     // dumping a raw "API 403".
@@ -2752,8 +2842,7 @@ function showIndex() {
     } else {
       msg = t('review.load_error').replace('{err}', (err && err.message) || err);
     }
-    statusEl.textContent = msg;
-    statusEl.classList.add('status-error');
+    loader.finish({ msg: msg });
   });
 }
 
